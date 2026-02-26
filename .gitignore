@@ -1,0 +1,18 @@
+# Środowisko
+.env
+
+# Generowane
+erp_docs/index/
+logs/
+__pycache__/
+*.pyc
+
+# Dane źródłowe dokumentacji (duże pliki, nie kod)
+erp_docs/raw/
+
+# Pliki tymczasowe
+*.tmp
+
+# Narzędziowe
+.claude/
+Prompt.md
