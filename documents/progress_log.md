@@ -37,6 +37,12 @@ Uwzględniono 3 z 8 punktów recenzji (priorytet przed eksperymentami):
 - Bezpieczeństwo sql_query.py: 3 warstwy (read-only DB user, blokada DML/EXEC, TOP 100 + timeout)
 - Kontrakty JSON: zdefiniowano schemat wyjścia dla wszystkich 5 narzędzi
 
-**Kolejny krok:** Inicjalizacja repo Git, następnie EXPERIMENTS_PLAN.md
+**Kolejny krok:** Wykonanie eksperymentów z EXPERIMENTS_PLAN.md, następnie IMPLEMENTATION_PLAN.md
+
+### 2026-02-26 — Repo Git + EXPERIMENTS_PLAN.md
+
+- Zainicjalizowano repo Git, wypchnięto na GitHub (CyperCyper/Auto-ERP-Agent)
+- Utworzono EXPERIMENTS_PLAN.md — 5 eksperymentów (pyodbc, xlsm parsing, FTS5, MCP tool, format ERP)
+- Kolejność: E-01 blokujący; E-02 i E-04 równolegle; E-03 po E-02; E-05 wymaga dostępu do ERP
 
 ---
