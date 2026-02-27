@@ -137,4 +137,17 @@ reguły FTS5, reguły eskalacji, pointer do ERP_SQL_SYNTAX.md.
 
 ---
 
+### 2026-02-27 — Sesja robocza (refaktoryzacja + KM2 + KM3)
+
+Dodatkowe zmiany poza kamieniami milowymi:
+
+- Refaktoryzacja tools/: search_docs.py, search_solutions.py, save_solution.py
+  (wyekstrahowanie funkcji pomocniczych, usunięcie zagnieżdżeń)
+  Poprawka bugu: brak conn.close() przy pustej frazie w search_docs.py
+- 105 testów, 100% zielonych
+
+**Następny krok: Kamień milowy 4 — MVP end-to-end**
+Przypadek testowy: "Dodaj filtr do Okna Towary/Towary według EAN który wskaże
+kartoteki towarowe nie posiadające załączników w formacie .jpg"
+
 ---
