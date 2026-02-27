@@ -151,3 +151,22 @@ Przypadek testowy: "Dodaj filtr do Okna Towary/Towary według EAN który wskaże
 kartoteki towarowe nie posiadające załączników w formacie .jpg"
 
 ---
+
+### 2026-02-27 — Kamień milowy 4 ZAKOŃCZONY (MVP end-to-end)
+
+Agent wykonał pełny cykl autonomicznie, pierwszy shot, zero iteracji:
+- Zidentyfikował okno, odczytał filtr.sql, znalazł wzorce
+- Samodzielnie przebudował pusty docs.db (build_index.py) bez eskalacji
+- Odkrył łańcuch CDN.TwrKarty → CDN.DaneObiekty → CDN.DaneBinarne
+- Wygenerował filtr NOT EXISTS z LOWER() i Twr_GIDTyp z kolumny
+- Przetestował na żywej bazie, zapisał, zweryfikowany w ERP
+
+Nowe rozwiązania w solutions/: brak jpg.sql + wyprzedane do archiwizacji.sql
+(w obu widokach Towary według EAN i Towary według grup)
+
+Znany bug: build_index.py exit code 1 przy polskich znakach w końcowym print
+(dane ładują się poprawnie, błąd tylko w wyjściu).
+
+**Następny krok: Kamień milowy 5 — Deployment**
+
+---
