@@ -66,6 +66,14 @@ Uwzględniono 3 z 8 punktów recenzji (priorytet przed eksperymentami):
 - search_solutions.py będzie odkrywać pliki przez traversal katalogów, metadane z ścieżki
 - Zaktualizowano ARCHITECTURE.md
 
-**Wszystkie eksperymenty zakończone. Kolejny krok: IMPLEMENTATION_PLAN.md**
+**Wszystkie eksperymenty zakończone.**
+
+### 2026-02-27 — ERP_SQL_SYNTAX.md + IMPLEMENTATION_PLAN.md
+
+- Utworzono ERP_SQL_SYNTAX.md — składnia kolumn, filtrów, parametrów @PAR (S/D/R), konwersja dat
+- Utworzono IMPLEMENTATION_PLAN.md — 5 kamieni milowych: tools/, erp_windows.json, CLAUDE.md, MVP test, deployment
+- Zaktualizowano CLAUDE.md o referencje do nowych dokumentów
+
+**Kolejny krok: Implementacja — Kamień milowy 1 (tools/)**
 
 ---
