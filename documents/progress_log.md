@@ -74,6 +74,11 @@ Uwzględniono 3 z 8 punktów recenzji (priorytet przed eksperymentami):
 - Utworzono IMPLEMENTATION_PLAN.md — 5 kamieni milowych: tools/, erp_windows.json, CLAUDE.md, MVP test, deployment
 - Zaktualizowano CLAUDE.md o referencje do nowych dokumentów
 
+- Zmieniono nazwę IMPLEMENTATION_PLAN.md → MVP_IMPLEMENTATION_PLAN.md
+- Zaktualizowano przypadek testowy MVP: filtr "brak załączników .jpg" w Towary według EAN
+- Zaktualizowano CLAUDE.md o referencje do ERP_SQL_SYNTAX.md i MVP_IMPLEMENTATION_PLAN.md
+
 **Kolejny krok: Implementacja — Kamień milowy 1 (tools/)**
+**Status fazy: Phase 1 (Dokumentacja) i Phase 2 (Eksperymenty) — ZAKOŃCZONE**
 
 ---

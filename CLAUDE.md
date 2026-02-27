@@ -12,4 +12,4 @@
 - `documents/TECHSTACK.md` — wybrane technologie
 - `documents/ARCHITECTURE.md` — architektura systemu
 - `documents/ERP_SQL_SYNTAX.md` — składnia SQL dla tego ERP (kolumny, filtry, parametry @PAR)
-- `documents/IMPLEMENTATION_PLAN.md` — plan implementacji
+- `documents/MVP_IMPLEMENTATION_PLAN.md` — plan implementacji MVP

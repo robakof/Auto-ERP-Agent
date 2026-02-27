@@ -54,9 +54,9 @@ Test pełnego cyklu na rzeczywistym wymaganiu w oknie Towary.
 **Kryterium sukcesu:** Agent samodzielnie (bez interwencji człowieka) przechodzi przez kroki 1–7 z PRD TO-BE i generuje poprawny kod SQL gotowy do wklejenia w ERP.
 
 **Przypadek testowy:**
-> "Dodaj kolumnę z kodem EAN do widoku Towary według grup"
+> "Dodaj filtr do Okna Towary/Towary według EAN który wskaże kartoteki towarowe nie posiadające załączników w formacie .jpg"
 
-Oczekiwany wynik: plik `.sql` z poprawnym SELECT + `{filtrsql}`, pasujący stylem do istniejących rozwiązań w tym widoku.
+Oczekiwany wynik: plik `.sql` pasujący stylem do istniejących rozwiązań w tym widoku.
 
 ---
 
