@@ -103,3 +103,18 @@ Zaktualizowano `.env.example` o zmienną `XLSM_PATH`.
 **Następny krok: Kamień milowy 2 — katalog okien ERP (erp_windows.json)**
 
 ---
+
+### 2026-02-27 — Kamień milowy 2 ZAKOŃCZONY (erp_windows.json)
+
+Utworzono `solutions/erp_windows.json` z pierwszym wpisem:
+
+- Okno towary (`okno_towary`) — primary_table: CDN.TwrKarty
+  related_tables: CDN.TwrGrupy, CDN.Atrybuty
+  aliases: towary, kartoteki towarowe
+
+Pokrywa oba istniejące widoki w solutions/ (Towary według EAN, Towary według grup).
+search_windows.py działa poprawnie — wyszukiwanie po nazwie i aliasach.
+
+**Następny krok: Kamień milowy 3 — CLAUDE.md (instrukcje operacyjne agenta)**
+
+---
