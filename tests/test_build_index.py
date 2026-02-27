@@ -6,74 +6,19 @@ from unittest.mock import MagicMock
 import pytest
 
 import tools.build_index as bi
+from tests.conftest import (
+    make_ws,
+    TABELE_ROWS, KOLUMNY_ROWS, RELACJE_ROWS, SLOWNIK_ROWS, PRZYKLADOWE_ROWS,
+)
 
 
-# ── Helpers / fixtures ─────────────────────────────────────────────────────
-
-
-def make_ws(rows: list[tuple]) -> MagicMock:
-    """Tworzy mock arkusza Excel zwracający podane wiersze."""
-    ws = MagicMock()
-    ws.iter_rows.return_value = rows
-    return ws
+# ── Helpers ─────────────────────────────────────────────────────────────────
 
 
 def in_memory_db() -> sqlite3.Connection:
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
     return conn
-
-
-# Minimalne dane testowe
-
-TABELE_ROWS = [
-    # nagłówek (pominięty)
-    (None, None, None, None, None, None),
-    # dane
-    (1, "Zamówienia", "CDN.ZamNag", "ZaN", None, "Nagłówki zamówień sprzedaży"),
-    (2, "Kontrahenci", "CDN.KntKarty", "Knt", None, "Kartoteka kontrahentów"),
-]
-
-KOLUMNY_ROWS = [
-    # wiersze przed nagłówkiem
-    ("some", "other", "stuff", None, None, None, None, None, None, None, None, None),
-    # nagłówek (szukany po "Numer tabeli")
-    ("Numer tabeli", "Nazwa własna tabeli", "Nazwa tabeli", "Nr kol",
-     "Nazwa własna kol", "Nazwa kol", "Rola", "Czy użyteczna",
-     "Preferowana", "Typ", None, "Opis"),
-    # dane
-    (1, "Zamówienia", "CDN.ZamNag", 1, "ID zamówienia", "ZaN_GIDNumer",
-     None, "Tak", "Nie", "int", None, "Identyfikator rekordu"),
-    (1, "Zamówienia", "CDN.ZamNag", 2, "ID kontrahenta", "ZaN_KntGIDNumer",
-     None, "Tak", "Tak", "int", None, "Klucz obcy do kontrahenta"),
-    (2, "Kontrahenci", "CDN.KntKarty", 1, "Nazwa kontrahenta", "Knt_Nazwa1",
-     None, "Tak", "Tak", "varchar", None, "Pierwsza linia nazwy"),
-]
-
-RELACJE_ROWS = [
-    # nagłówek (pominięty)
-    (None,) * 12,
-    # dane: source_col=4, target_table=2, target_col=5, source_table=11
-    (None, None, "KntKarty", None, "ZaN_KntGIDNumer", "Knt_GIDNumer",
-     None, None, None, None, None, "CDN.ZamNag"),
-]
-
-SLOWNIK_ROWS = [
-    # nagłówek (pominięty)
-    (None,) * 8,
-    # dane: table=2, col_name=5, value=6, meaning=7
-    (1, "Zamówienia", "CDN.ZamNag", 3, "Status", "ZaN_Status", 0, "robocze"),
-    (1, "Zamówienia", "CDN.ZamNag", 3, "Status", "ZaN_Status", 1, "zatwierdzone"),
-    (1, "Zamówienia", "CDN.ZamNag", 3, "Status", "ZaN_Status", 2, "zrealizowane"),
-]
-
-PRZYKLADOWE_ROWS = [
-    # nagłówek (pominięty)
-    (None,) * 7,
-    # dane: table=2, col_name=5, sample_value=6
-    (1, None, "CDN.KntKarty", 1, None, "Knt_Nazwa1", "Firma ABC"),
-    (1, None, "CDN.KntKarty", 1, None, "Knt_Nazwa1", "Jan Kowalski"),
-]
 
 
 # ── TestHelpers ─────────────────────────────────────────────────────────────
