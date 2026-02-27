@@ -1,0 +1,2 @@
+@PAR ?@R(SELECT Mag_GIDNumer, Mag_Kod FROM cdn.Magazyny)|Magazyn|&Magazyn:REG= @? PAR@
+Twr_Gidnumer in  (select twz_twrnumer from cdn.twrzasoby where twz_magnumer=??Magazyn group by TwZ_TwrNumer having sum(twz_ilmag)<>sum(twz_ilspr))

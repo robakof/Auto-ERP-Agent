@@ -55,6 +55,17 @@ Uwzględniono 3 z 8 punktów recenzji (priorytet przed eksperymentami):
   - Wniosek: własne nazwy z Excela krytyczne — bez nich wyniki słabe
   - Zaktualizowano ARCHITECTURE.md o strategię formułowania zapytań
 
-**Kolejny krok:** E-05 (format SQL w ERP) — wymaga ręcznego sprawdzenia, następnie IMPLEMENTATION_PLAN.md
+### 2026-02-27 — E-05 + rewizja struktury solutions/
+
+- E-05 SUKCES: format SQL odkryty z przykładów w solutions/
+  - Kolumny: SELECT z aliasami [NAZWA] + JOINy + placeholder {filtrsql}
+  - Filtry: sam warunek WHERE + opcjonalny system @PAR (typy S/D/R)
+  - filtr.sql = kotwica widoku (główny filtr kontekstu)
+- Odkryto faktyczną strukturę solutions/ (hierarchia: Okno > Widok > columns/filters)
+  — inna niż pierwotnie zakładana (płaska)
+- search_solutions.py będzie odkrywać pliki przez traversal katalogów, metadane z ścieżki
+- Zaktualizowano ARCHITECTURE.md
+
+**Wszystkie eksperymenty zakończone. Kolejny krok: IMPLEMENTATION_PLAN.md**
 
 ---

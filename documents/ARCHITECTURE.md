@@ -57,18 +57,38 @@ Baza SQLite budowana jednorazowo ze źródeł w `erp_docs/raw/`. Agent odpytuje 
 
 ### 2.4 Baza rozwiązań (solutions/)
 
-Kolekcja zatwierdzonych fragmentów SQL. Każde rozwiązanie to para plików: kod `.sql` + metadane `.json` o tej samej nazwie. Brak centralnego indeksu — eliminuje ryzyko konfliktu przy równoległym zapisie przez wielu użytkowników.
+Kolekcja zatwierdzonych fragmentów SQL zorganizowana hierarchicznie wg okna ERP i widoku. Struktura folderów sama w sobie koduje metadane (okno, widok, typ).
 
 ```
 solutions/
-├── columns/
-│   ├── knt_nazwa_w_zamowieniach.sql   ← kod SQL
-│   └── knt_nazwa_w_zamowieniach.json  ← metadane
-├── filters/
-└── reports/
+└── solutions in ERP windows/
+    └── [Okno ERP]/
+        └── [Widok]/
+            ├── filtr.sql          ← główny filtr widoku (kotwica)
+            ├── columns/
+            │   └── [nazwa].sql    ← definicja kolumny
+            └── filters/
+                └── [nazwa].sql    ← definicja filtru
 ```
 
-Metadane per rozwiązanie (`.json`): typ konfiguracji, okno ERP (`window_id`), tabele źródłowe, słowa kluczowe, autor, data, status (`draft` / `approved`).
+`search_solutions.py` odkrywa pliki przez przeszukiwanie drzewa katalogów — okno i widok odczytuje ze ścieżki. Brak centralnego indeksu eliminuje ryzyko konfliktu przy równoległym zapisie.
+
+**Format plików SQL (potwierdzony eksperymentem E-05):**
+
+Kolumny — pełny `SELECT` z aliasami `[NAZWA]`, JOINami i placeholderem `{filtrsql}` na końcu:
+```
+SELECT kolumna [ALIAS] FROM cdn.Tabela JOIN ... WHERE {filtrsql}
+```
+
+Filtry — wyłącznie warunek WHERE (bez SELECT), opcjonalnie z deklaracjami parametrów:
+```
+@PAR ?@S20|zmienna|&Etykieta:REG=domyslna @? PAR@
+warunek WHERE używający ??zmienna
+```
+
+Typy parametrów filtrów: `S[N]` (string), `D[N]` (data), `R(SELECT ...)` (dropdown z bazy).
+
+`filtr.sql` w katalogu widoku — kotwica definiująca główny kontekst widoku (np. `TwG_GIDNumer=3282`).
 
 ### 2.5 Źródła dokumentacji (erp_docs/raw/)
 
@@ -169,10 +189,12 @@ erp_docs/raw/*.xlsm
 │   └── db.py                   ← wspólna logika połączenia SQLite
 │
 ├── solutions/
-│   ├── index.json
-│   ├── columns/
-│   ├── filters/
-│   └── reports/
+│   └── solutions in ERP windows/
+│       └── [Okno ERP]/
+│           └── [Widok]/
+│               ├── filtr.sql
+│               ├── columns/
+│               └── filters/
 │
 ├── erp_docs/
 │   ├── raw/                    ← pliki źródłowe (Excel, HTML)
