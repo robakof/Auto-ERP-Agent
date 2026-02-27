@@ -278,6 +278,15 @@ Warstwa 4 — Przykładowe wartości
 
 Arkusze Excel (`Tabele.Nazwa własna tabeli`, `Kolumny.Nazwa własna kolumny`, `Kolumny.Czy użyteczna`, `Kolumny.Preferowana do raportów`) są importowane do SQLite przez `build_index.py`. Agent przeszukuje te pola w pierwszej kolejności — zanim sięgnie po oryginalne nazwy SQL.
 
+### Strategia formułowania zapytań FTS5
+
+FTS5 nie wykonuje stemmingu — `zamowienie` nie pasuje do `zamówień`. Rozwiązanie potwierdzone eksperymentem E-03:
+
+- Tokenizer: `unicode61 remove_diacritics=2` — usuwa ogonki z indeksu i zapytań
+- Zapytania agenta: **prefix matching** z rdzeniem słowa, np. `kontrah* zamow*` zamiast `kontrahent zamówienie`
+- Domyślnie filtruj do kolumn z flagą `Czy użyteczna` — eliminuje 95% szumu
+- Kolumny i tabele bez własnych nazw zwracają słabe wyniki — adnotacja Excel jest krytyczna dla jakości wyszukiwania
+
 ---
 
 ## 9. Model współdzielonego folderu

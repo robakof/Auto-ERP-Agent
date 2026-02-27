@@ -45,4 +45,16 @@ Uwzględniono 3 z 8 punktów recenzji (priorytet przed eksperymentami):
 - Utworzono EXPERIMENTS_PLAN.md — 5 eksperymentów (pyodbc, xlsm parsing, FTS5, MCP tool, format ERP)
 - Kolejność: E-01 blokujący; E-02 i E-04 równolegle; E-03 po E-02; E-05 wymaga dostępu do ERP
 
+### 2026-02-27 — Eksperymenty E-01 do E-03 zakończone
+
+- E-01 SUKCES: pyodbc działa, CEiM_Reader read-only potwierdzone, 1403 tabele widoczne
+- E-02 SUKCES: openpyxl data_only=True zwraca wartości (0% formuł), header Kolumny na wierszu 5
+- E-04 SUKCES: SELECT+JSON, TOP 100, blokada DML, output 90KB — wszystko OK
+- E-03 SUKCES: FTS5 działa z unicode61 remove_diacritics=2 + prefix matching (kontrah* zamow*)
+  - Wniosek: agent musi budować zapytania jako rdzeń+* nie pełne formy
+  - Wniosek: własne nazwy z Excela krytyczne — bez nich wyniki słabe
+  - Zaktualizowano ARCHITECTURE.md o strategię formułowania zapytań
+
+**Kolejny krok:** E-05 (format SQL w ERP) — wymaga ręcznego sprawdzenia, następnie IMPLEMENTATION_PLAN.md
+
 ---
