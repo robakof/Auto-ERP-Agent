@@ -82,3 +82,24 @@ Uwzględniono 3 z 8 punktów recenzji (priorytet przed eksperymentami):
 **Status fazy: Phase 1 (Dokumentacja) i Phase 2 (Eksperymenty) — ZAKOŃCZONE**
 
 ---
+
+### 2026-02-27 — Kamień milowy 1 ZAKOŃCZONY (tools/)
+
+Zaimplementowano wszystkie 6 narzędzi CLI + moduł pomocniczy + testy:
+
+| Moduł | Opis |
+|-------|------|
+| `sql_query.py` | SELECT na SQL Server, blokada DML, TOP 100, timeout, JSON |
+| `db.py` | Shared SQLite connection helper |
+| `build_index.py` | Parsowanie XLSM → SQLite FTS5 (Tabele/Kolumny/Relacje/Słownik/Przykładowe) |
+| `search_docs.py` | FTS5 prefix matching, filtr --table/--useful-only |
+| `search_solutions.py` | Traversal solutions/, filtr_sql z filtr.sql widoku w każdym wyniku |
+| `search_windows.py` | Wyszukiwanie po nazwie/aliasie z erp_windows.json |
+| `save_solution.py` | Zapis .sql do hierarchii solutions/, flaga --force |
+
+Łącznie: 92 testy jednostkowe, wszystkie zielone. Zewnętrzne zależności mockowane.
+Zaktualizowano `.env.example` o zmienną `XLSM_PATH`.
+
+**Następny krok: Kamień milowy 2 — katalog okien ERP (erp_windows.json)**
+
+---
