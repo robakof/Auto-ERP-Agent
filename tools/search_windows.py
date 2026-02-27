@@ -70,7 +70,6 @@ def search_windows(
             "name": window.get("name"),
             "aliases": window.get("aliases", []),
             "primary_table": window.get("primary_table"),
-            "related_tables": window.get("related_tables", []),
             "config_types": window.get("config_types", []),
         })
 

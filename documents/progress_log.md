@@ -115,6 +115,11 @@ Utworzono `solutions/erp_windows.json` z pierwszym wpisem:
 Pokrywa oba istniejące widoki w solutions/ (Towary według EAN, Towary według grup).
 search_windows.py działa poprawnie — wyszukiwanie po nazwie i aliasach.
 
+Dodano `update_window_catalog.py` — agent zarządza erp_windows.json w całości:
+upsert wpisów, dopisywanie aliasów z rozmowy (case-insensitive dedup).
+Usunięto `related_tables` z schematu — redundantne, relacje są w docs.db.
+13 nowych testów, łącznie 105 zielonych.
+
 **Następny krok: Kamień milowy 3 — CLAUDE.md (instrukcje operacyjne agenta)**
 
 ---

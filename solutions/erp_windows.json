@@ -4,7 +4,6 @@
     "name": "Okno towary",
     "aliases": ["towary", "kartoteki towarowe"],
     "primary_table": "CDN.TwrKarty",
-    "related_tables": ["CDN.TwrGrupy", "CDN.Atrybuty"],
     "config_types": ["columns", "filters"]
   }
 ]

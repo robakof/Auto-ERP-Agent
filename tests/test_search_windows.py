@@ -12,7 +12,6 @@ SAMPLE_WINDOWS = [
         "name": "Towary według EAN",
         "aliases": ["okno towarów", "lista EAN"],
         "primary_table": "CDN.TwrKarty",
-        "related_tables": ["CDN.TwrGrupy"],
         "config_types": ["columns", "filters"],
     },
     {
@@ -20,7 +19,6 @@ SAMPLE_WINDOWS = [
         "name": "Lista zamówień sprzedaży",
         "aliases": ["okno zamówień", "lista ZO"],
         "primary_table": "CDN.ZamNag",
-        "related_tables": ["CDN.KntKarty", "CDN.ZamElem"],
         "config_types": ["columns", "filters"],
     },
     {
@@ -28,7 +26,6 @@ SAMPLE_WINDOWS = [
         "name": "Kartoteka kontrahenta",
         "aliases": ["CRM", "kontrahenci"],
         "primary_table": "CDN.KntKarty",
-        "related_tables": [],
         "config_types": ["columns"],
     },
 ]
@@ -92,5 +89,5 @@ class TestSearchWindows:
     def test_result_fields_present(self, windows_dir):
         result = sw.search_windows("EAN", solutions_path=str(windows_dir))
         r = result["data"]["results"][0]
-        for field in ("id", "name", "aliases", "primary_table", "related_tables", "config_types"):
+        for field in ("id", "name", "aliases", "primary_table", "config_types"):
             assert field in r
