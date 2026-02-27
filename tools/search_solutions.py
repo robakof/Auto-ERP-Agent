@@ -64,6 +64,14 @@ def _matches(phrase: str, *, window: str, view: str, name: str, sql: str) -> boo
     )
 
 
+def _get_filtr_sql(view_dir: Path, cache: dict) -> str | None:
+    """Odczytuje filtr.sql z katalogu widoku. Wyniki cachowane w przekazanym słowniku."""
+    if view_dir not in cache:
+        filtr_path = view_dir / "filtr.sql"
+        cache[view_dir] = _read_file(filtr_path) if filtr_path.exists() else None
+    return cache[view_dir]
+
+
 def search_solutions(
     phrase: str,
     window_filter: str | None = None,
@@ -85,15 +93,7 @@ def search_solutions(
             "meta": {"duration_ms": 0, "truncated": False},
         }
 
-    # Cache filtr.sql per widok aby nie czytać wielokrotnie
-    filtr_cache: dict[Path, str] = {}
-
-    def get_filtr_sql(view_dir: Path) -> str | None:
-        if view_dir not in filtr_cache:
-            filtr_path = view_dir / "filtr.sql"
-            filtr_cache[view_dir] = _read_file(filtr_path) if filtr_path.exists() else None
-        return filtr_cache[view_dir]
-
+    filtr_cache: dict[Path, str | None] = {}
     results = []
 
     for sql_path in sorted(erp_windows_dir.rglob("*.sql")):
@@ -122,7 +122,7 @@ def search_solutions(
             continue
 
         view_dir = sql_path.parent.parent  # {Widok}/
-        filtr_sql = get_filtr_sql(view_dir)
+        filtr_sql = _get_filtr_sql(view_dir, filtr_cache)
 
         results.append({
             "path": str(sql_path.relative_to(base)).replace("\\", "/"),

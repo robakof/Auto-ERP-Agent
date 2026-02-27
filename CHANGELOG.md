@@ -68,3 +68,46 @@ Data: 2026-02-27
 - `tests/test_save_solution.py` — 5 testów (zapis, katalogi, --force)
 
 **Łącznie: 92 testy, 100% zielone.**
+
+---
+
+## Refaktoryzacja tools/ — 2026-02-27
+
+### search_docs.py
+
+Wyekstrahowane funkcje pomocnicze:
+
+- `_build_where(fts_query, table_filter, useful_only) -> tuple[str, list]`
+  Buduje klauzulę WHERE i listę parametrów. Wcześniej 10 linii inline w `search_docs()`.
+
+- `_execute_fts(conn, where, params, limit) -> list`
+  Wykonuje zapytanie FTS5, zwraca wiersze. Rzuca wyjątek przy błędzie.
+
+- `_row_to_dict(row) -> dict`
+  Konwertuje wiersz SQLite na słownik per kontrakt JSON. Wcześniej 12-linijny dict literal
+  inline w list comprehension.
+
+`search_docs()` skrócona z 78 do ~35 linii. Dwa zagnieżdżone try/except zastąpione
+przez dwa płaskie (osobny dla połączenia, osobny dla wykonania zapytania).
+
+Poprawka: brak `conn.close()` przy wyjściu przez pusty `fts_query` — dodany.
+
+### search_solutions.py
+
+Wyekstrahowana funkcja pomocnicza:
+
+- `_get_filtr_sql(view_dir: Path, cache: dict) -> str | None`
+  Wcześniej zagnieżdżona funkcja wewnątrz `search_solutions()` przechwytująca
+  `filtr_cache` przez closure. Teraz na poziomie modułu — cache przekazywany jawnie.
+
+### save_solution.py
+
+Wyekstrahowana funkcja pomocnicza:
+
+- `_read_sql_content(args) -> tuple[str | None, dict | None]`
+  Czyta SQL z `args.sql` lub `args.sql_file`. Wcześniej if/elif/else z dwoma
+  inline dict błędu bezpośrednio w `main()`.
+
+`main()` skrócona z ~40 do ~15 linii.
+
+**Testy:** 92/92 zielone. Publiczne API niezmienione.

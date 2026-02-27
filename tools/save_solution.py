@@ -28,6 +28,26 @@ load_dotenv()
 SOLUTIONS_ROOT = "solutions in ERP windows"
 
 
+def _read_sql_content(args) -> tuple[str | None, dict | None]:
+    """Czyta treść SQL z argumentów CLI. Zwraca (sql, None) lub (None, error_dict)."""
+    if args.sql:
+        return args.sql, None
+    if args.sql_file:
+        try:
+            return Path(args.sql_file).read_text(encoding="utf-8"), None
+        except Exception as e:
+            return None, {
+                "ok": False, "data": None,
+                "error": {"type": "READ_ERROR", "message": str(e)},
+                "meta": {"duration_ms": 0, "truncated": False},
+            }
+    return None, {
+        "ok": False, "data": None,
+        "error": {"type": "MISSING_ARGUMENT", "message": "Wymagane --sql lub --sql-file"},
+        "meta": {"duration_ms": 0, "truncated": False},
+    }
+
+
 def save_solution(
     window: str,
     view: str,
@@ -88,24 +108,9 @@ def main() -> None:
     parser.add_argument("--force", action="store_true", help="Nadpisz istniejący plik")
     args = parser.parse_args()
 
-    if args.sql:
-        sql = args.sql
-    elif args.sql_file:
-        try:
-            sql = Path(args.sql_file).read_text(encoding="utf-8")
-        except Exception as e:
-            print(json.dumps({
-                "ok": False, "data": None,
-                "error": {"type": "READ_ERROR", "message": str(e)},
-                "meta": {"duration_ms": 0, "truncated": False},
-            }))
-            return
-    else:
-        print(json.dumps({
-            "ok": False, "data": None,
-            "error": {"type": "MISSING_ARGUMENT", "message": "Wymagane --sql lub --sql-file"},
-            "meta": {"duration_ms": 0, "truncated": False},
-        }))
+    sql, error = _read_sql_content(args)
+    if error:
+        print(json.dumps(error))
         return
 
     result = save_solution(

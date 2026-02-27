@@ -23,6 +23,48 @@ def build_fts_query(phrase: str) -> str:
     return " ".join(f"{t}*" if not t.endswith("*") else t for t in tokens if t)
 
 
+def _build_where(fts_query: str, table_filter: str | None, useful_only: bool) -> tuple[str, list]:
+    """Buduje klauzulę WHERE i listę parametrów dla zapytania FTS5."""
+    conditions = ["columns_fts MATCH ?"]
+    params: list = [fts_query]
+    if table_filter:
+        conditions.append("table_name = ?")
+        params.append(table_filter)
+    if useful_only:
+        conditions.append("is_useful NOT IN ('', 'Nie', 'Relacja')")
+    return " AND ".join(conditions), params
+
+
+def _execute_fts(conn, where: str, params: list, limit: int) -> list:
+    """Wykonuje zapytanie FTS5 i zwraca wiersze. Rzuca wyjątek przy błędzie."""
+    return conn.execute(
+        f"""
+        SELECT table_name, table_label, col_name, col_label,
+               data_type, is_useful, description, value_dict, sample_values
+        FROM columns_fts
+        WHERE {where}
+        ORDER BY rank
+        LIMIT ?
+        """,
+        params + [limit],
+    ).fetchall()
+
+
+def _row_to_dict(row) -> dict:
+    """Konwertuje wiersz SQLite na słownik per kontrakt JSON."""
+    return {
+        "table_name": row[0],
+        "table_label": row[1],
+        "col_name": row[2],
+        "col_label": row[3],
+        "data_type": row[4],
+        "is_useful": row[5],
+        "description": row[6],
+        "value_dict": row[7],
+        "sample_values": row[8],
+    }
+
+
 def search_docs(
     phrase: str,
     table_filter: str | None = None,
@@ -45,6 +87,7 @@ def search_docs(
 
     fts_query = build_fts_query(phrase)
     if not fts_query:
+        conn.close()
         return {
             "ok": True,
             "data": {"results": []},
@@ -52,30 +95,10 @@ def search_docs(
             "meta": {"duration_ms": 0, "truncated": False},
         }
 
-    conditions = ["columns_fts MATCH ?"]
-    params: list = [fts_query]
-
-    if table_filter:
-        conditions.append("table_name = ?")
-        params.append(table_filter)
-
-    if useful_only:
-        conditions.append("is_useful NOT IN ('', 'Nie', 'Relacja')")
-
-    where = " AND ".join(conditions)
+    where, params = _build_where(fts_query, table_filter, useful_only)
 
     try:
-        rows = conn.execute(
-            f"""
-            SELECT table_name, table_label, col_name, col_label,
-                   data_type, is_useful, description, value_dict, sample_values
-            FROM columns_fts
-            WHERE {where}
-            ORDER BY rank
-            LIMIT ?
-            """,
-            params + [limit],
-        ).fetchall()
+        rows = _execute_fts(conn, where, params, limit)
     except Exception as e:
         duration_ms = round((time.monotonic() - start) * 1000)
         return {
@@ -88,21 +111,7 @@ def search_docs(
         conn.close()
 
     duration_ms = round((time.monotonic() - start) * 1000)
-    results = [
-        {
-            "table_name": row[0],
-            "table_label": row[1],
-            "col_name": row[2],
-            "col_label": row[3],
-            "data_type": row[4],
-            "is_useful": row[5],
-            "description": row[6],
-            "value_dict": row[7],
-            "sample_values": row[8],
-        }
-        for row in rows
-    ]
-
+    results = [_row_to_dict(row) for row in rows]
     return {
         "ok": True,
         "data": {"results": results},
