@@ -13,3 +13,8 @@
 - `documents/ARCHITECTURE.md` — architektura systemu
 - `documents/ERP_SQL_SYNTAX.md` — składnia SQL dla tego ERP (kolumny, filtry, parametry @PAR)
 - `documents/MVP_IMPLEMENTATION_PLAN.md` — plan implementacji MVP
+
+## Uwaga
+
+`ERP_AGENT.md` — instrukcje dla agenta roboczego (konfiguracja ERP).
+Przy deploymencie kopiowany jako `CLAUDE.md` do folderu współdzielonego.

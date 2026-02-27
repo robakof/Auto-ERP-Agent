@@ -120,6 +120,21 @@ upsert wpisów, dopisywanie aliasów z rozmowy (case-insensitive dedup).
 Usunięto `related_tables` z schematu — redundantne, relacje są w docs.db.
 13 nowych testów, łącznie 105 zielonych.
 
-**Następny krok: Kamień milowy 3 — CLAUDE.md (instrukcje operacyjne agenta)**
+**Następny krok: Kamień milowy 3 — ERP_AGENT.md (instrukcje operacyjne agenta)**
+
+---
+
+### 2026-02-27 — Kamień milowy 3 ZAKOŃCZONY (ERP_AGENT.md)
+
+Stworzono `ERP_AGENT.md` — instrukcje operacyjne dla agenta roboczego ERP.
+Oddzielony od `CLAUDE.md` (agent deweloperski). Przy deploymencie (KM5)
+kopiowany jako `CLAUDE.md` do folderu współdzielonego.
+
+Zawartość: sygnatury 7 narzędzi, 9-krokowy workflow, zarządzanie katalogiem okien,
+reguły FTS5, reguły eskalacji, pointer do ERP_SQL_SYNTAX.md.
+
+**Następny krok: Kamień milowy 4 — MVP end-to-end**
+
+---
 
 ---
