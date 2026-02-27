@@ -231,9 +231,11 @@ def build_schema(conn) -> None:
             col_name,
             col_label,
             description,
-            is_useful    UNINDEXED,
-            preferred    UNINDEXED,
-            data_type    UNINDEXED,
+            is_useful     UNINDEXED,
+            preferred     UNINDEXED,
+            data_type     UNINDEXED,
+            value_dict    UNINDEXED,
+            sample_values UNINDEXED,
             tokenize = 'unicode61 remove_diacritics 2'
         );
     """)
@@ -275,9 +277,9 @@ def insert_data(
     conn.execute("""
         INSERT INTO columns_fts
             (table_name, table_label, col_name, col_label, description,
-             is_useful, preferred, data_type)
+             is_useful, preferred, data_type, value_dict, sample_values)
         SELECT table_name, table_label, col_name, col_label, description,
-               is_useful, preferred, data_type
+               is_useful, preferred, data_type, value_dict, sample_values
         FROM columns
     """)
 
