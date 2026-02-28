@@ -38,28 +38,127 @@ SELECT
     kolumna [ALIAS WYSWIETLANY]
 FROM cdn.TabelaGlowna
 [LEFT JOIN ...]
-WHERE
-{filtrsql}
+WHERE {filtrsql}
+```
+
+### KRYTYCZNE: {filtrsql} jest obowiązkowe
+
+**Brak `{filtrsql}` powoduje katastrofę wydajnościową.**
+
+Bez tego placeholdera system ERP dla każdego wiersza widoku uruchamia SELECT bez żadnego
+zawężenia — próbuje zaciągnąć wszystkie wartości z tabeli i dopasować je do wiersza.
+Efekt: widok przestaje reagować lub ładuje się przez wiele minut.
+
+Poprawnie:
+```sql
+SELECT Knt_Marza [Marża]
+FROM cdn.KntKarty
+WHERE {filtrsql}       -- OBOWIĄZKOWE
+```
+
+Błędnie (brak filtrsql — kolumna z CDN.DefinicjeKolumn, zepsuta):
+```sql
+SELECT Knt_Marza
+FROM CDN.KntKarty
+-- brak WHERE {filtrsql} — nie generuj takich kolumn
 ```
 
 ### Zasady
 
 - Alias kolumny w nawiasach kwadratowych: `kolumna [MOJA NAZWA]`
-- Placeholder `{filtrsql}` na końcu klauzuli WHERE — system wstrzykuje tu aktywne filtry widoku
-- Pisownia `{filtrsql}` jest case-insensitive — dopuszczalne `{filtrsql}` i `{filtrSQL}`
-- Tabela główna musi odpowiadać tabeli z `filtr.sql` widoku
-- Preferowane LEFT JOIN dla atrybutów (rekord może nie mieć wartości)
+- `{filtrsql}` case-insensitive — `{filtrsql}` i `{filtrSQL}` są równoważne
+- Tabela główna musi być połączona z tabelą z `filtr.sql` widoku (przez JOIN lub bezpośrednio)
+- LEFT JOIN dla kolumn opcjonalnych — rekord może nie mieć powiązanej wartości
 
-### Przykład — pojedyncza kolumna
+### Warianty klauzuli WHERE z {filtrsql}
 
+**Tylko filtrsql** (najczęstszy przypadek):
 ```sql
-SELECT Twr_Ean [EAN]
-FROM cdn.TwrKarty
-JOIN cdn.TwrGrupy ON Twr_GIDNumer = TwG_GIDNumer AND Twr_GIDTyp = TwG_GIDTyp
 WHERE {filtrSQL}
 ```
 
-### Przykład — wiele kolumn z atrybutów (LEFT JOIN na tę samą tabelę)
+**Stały warunek AND filtrsql** — gdy kolumna ma własny warunek niezależny od filtrów:
+```sql
+WHERE wfz_status = 'Wysyłka dokumentu' AND {filtrSQL}
+```
+
+**filtrsql z GROUP BY** — dopuszczalne, GROUP BY umieszcza się po filtrsql:
+```sql
+WHERE {filtrSQL}
+GROUP BY ZaV_Waluta
+```
+
+Średnik na końcu (`WHERE {filtrSQL};`) jest dopuszczalny — ERP go ignoruje.
+
+### TOP 1 — gdy JOIN może zwrócić wiele wierszy
+
+Jeśli JOIN dołącza tabelę z relacją 1:N (np. historia WF dla dokumentu), kolumna bez TOP 1
+zwróci błąd lub pokaże wiele wartości. Użyj TOP 1 gdy powiązanie może być wielokrotne:
+
+```sql
+SELECT TOP 1
+    CASE
+        WHEN WFP_DataZamkniecia = 0 THEN 'Błąd wysyłki'
+        WHEN WFZ_Akcja = ''        THEN 'zamknięcie ręczne'
+        ELSE 'Wysłano'
+    END AS [Status wysyłki]
+FROM cdn.TraNag
+JOIN cdn.WF_Procesy ON TrN_GIDTyp = WFP_OBITyp AND TrN_GIDNumer = WFP_OBINumer
+JOIN cdn.WF_Zadania ON WFZ_WFPID = WFP_ID
+WHERE wfz_status = 'Wysyłka dokumentu' AND {filtrSQL}
+```
+
+### Wiele kolumn w jednym SELECT (agregaty)
+
+Kolumna może zwracać kilka wartości naraz. Każda jest wyświetlana jako osobna kolumna w widoku:
+
+```sql
+SELECT
+    SUM(ZaV_Netto)              [Netto],
+    SUM(ZaV_Netto) + SUM(ZaV_Vat) [Brutto],
+    ZaV_Waluta                  [Waluta]
+FROM cdn.ZamNag
+JOIN cdn.ZamVAT v ON ZaN_GIDTyp = ZaV_GIDTyp AND ZaN_GIDNumer = ZaV_GIDNumer
+WHERE {filtrSQL}
+GROUP BY ZaV_Waluta
+```
+
+### Wielokrotny JOIN tej samej tabeli — różne aliasy
+
+Gdy potrzeba dołączyć tę samą tabelę pod różnymi rolami (np. akwizytor i płatnik):
+
+```sql
+SELECT
+    Ope_Ident       [Wystawiający],
+    ak.Knt_Akronim  [Akwizytor],
+    pl.Knt_Akronim  [Płatnik]
+FROM cdn.TraNag
+JOIN cdn.OpeKarty op ON TrN_OpeNumerW = Ope_GIDNumer AND TrN_OpeTypW = Ope_GIDTyp
+JOIN cdn.KntKarty ak ON TrN_AkwNumer  = ak.Knt_GIDNumer AND TrN_AkwTyp = ak.Knt_GIDTyp
+JOIN cdn.KntKarty pl ON TrN_KnpNumer  = pl.Knt_GIDNumer AND TrN_KnpTyp = pl.Knt_GIDTyp
+WHERE {FiltrSQL}
+```
+
+### Kolumna dla widoku elementów — FROM ≠ tabela widoku
+
+W widokach elementów dokumentów (np. Elementy w Okno dokumenty) `filtr.sql` może odnosić
+się do tabeli nagłówka, a kolumna powinna startować od tabeli elementów. Ważne: obie tabele
+muszą być połączone JOINem, a `{filtrsql}` musi znaleźć swoją tabelę w JOINach:
+
+```sql
+-- Widok: Okno dokumenty / Elementy
+-- filtr.sql odnosi się do TraElem/TraNag, kolumna startuje od TraElem:
+SELECT odb.Knt_Akronim [Odbiorca]
+FROM cdn.TraElem el
+JOIN cdn.TraNag n
+    ON n.TrN_GIDNumer = el.TrE_GIDNumer
+LEFT JOIN cdn.KntKarty odb
+    ON n.TrN_KnDTyp  = odb.Knt_GIDTyp
+   AND n.TrN_KnDNumer = odb.Knt_GIDNumer
+WHERE {FiltrSQL}
+```
+
+### Przykład — kolumna z atrybutów (LEFT JOIN na tę samą tabelę wielokrotnie)
 
 ```sql
 SELECT
@@ -72,6 +171,21 @@ LEFT JOIN cdn.Atrybuty k4 ON Twr_GIDNumer = k4.Atr_ObiNumer
     AND Twr_GIDTyp = k4.Atr_ObiTyp AND k4.Atr_AtKId = 4
 WHERE {filtrsql}
 ```
+
+### CDN.DefinicjeKolumn — numeracja zakładek różni się od CDN.Filtry
+
+Dla tego samego okna ERP numer zakładki (`DFK_IDListy`) w tabeli kolumn jest **inny**
+niż numer zakładki (`FIL_ListaID`) w tabeli filtrów. Przykład dla Okno towary:
+
+| Widok | FIL_ListaID (filtry) | DFK_IDListy (kolumny) |
+|---|---|---|
+| Towary według EAN | 1 | 31 |
+| Towary według grup | 2 | 30 |
+| Handlowe (dokumenty) | 1 | 4 |
+| Magazynowe (dokumenty) | 2 | 5 |
+| Elementy (dokumenty) | 81 | 1008 |
+
+Mapowanie ustalone empirycznie przez analizę SQL kolumn — nie wynika z żadnej jawnej reguły.
 
 ---
 
@@ -473,6 +587,7 @@ Poniższe filtry zostały zaimportowane z bazy ale mają wady:
 | `Okno lista zamówień sprzedaży/Zamówienia/filters/Wystawiający.sql` | Brak `??Wystawiający` w WHERE — filtr nie działa |
 | `Okno dokumenty/Magazynowe/filters/Sezon w opisie dokumentu.sql` | Używa `TrN_GIDNumer` zamiast `MaN_GIDNumer` — prawdopodobnie copy-paste z Handlowe |
 | `Okno zapisy bankowe/Zapisy bankowe/filters/Wartość i numer dokumentu.sql` | Stary format inline bez `@PAR` — może nie działać w aktualnej wersji XL |
+| `Okno dokumenty/Elementy/columns/Marża.sql` | Brak `WHERE {filtrsql}` — kolumna ładuje wszystkie rekordy CDN.KntKarty dla każdego wiersza |
 
 ---
 
@@ -484,9 +599,12 @@ Poniższe filtry zostały zaimportowane z bazy ale mają wady:
 3. Użyj `search_docs.py` z nazwą tabeli z `filtr.sql` jako punktem startowym
 
 **Generowanie kolumny:**
-- Zawsze kończ `WHERE {filtrsql}`
+- `WHERE {filtrsql}` jest **obowiązkowe** — brak go powoduje ładowanie wszystkich rekordów tabeli dla każdego wiersza widoku (katastrofa wydajnościowa)
 - Alias kolumny w `[NAWIASACH KWADRATOWYCH]`
-- LEFT JOIN dla kolumn opcjonalnych (atrybuty, powiązane tabele)
+- LEFT JOIN dla kolumn opcjonalnych (atrybuty, powiązane tabele mogą nie istnieć)
+- Użyj `TOP 1` gdy JOIN może zwrócić wiele wierszy dla jednego rekordu (relacja 1:N)
+- GROUP BY jest dopuszczalny — umieszczaj go po `{filtrsql}`
+- Sprawdź `search_solutions.py --type columns` dla tego widoku — istniejące kolumny pokazują poprawny styl JOINów
 
 **Generowanie filtru z @PAR:**
 - Nie dodawaj SELECT ani FROM — tylko warunek WHERE
