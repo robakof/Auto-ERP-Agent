@@ -194,7 +194,13 @@ Zaimportowano 35 unikalnych kolumn SQL do solutions/:
 Pominięto: zakresy 2900–2997 (duplikaty EAN per-formatka dokumentu),
 okna nierozpoznane (2305/Retro, 2640/Samochody, 2760/Trasy, 8615/Memo, 30499).
 
-**Następny krok: Kamień milowy 5 — Deployment**
+ERP_SQL_SYNTAX.md — rozbudowana sekcja kolumn:
+- {filtrsql} KRYTYCZNE — brak = ładowanie całej tabeli per wiersz (udokumentowane)
+- Wzorce: AND {filtrsql}, GROUP BY po filtrsql, TOP 1 (1:N), aliasy tej samej tabeli
+- Tabela mapowania DFK_IDListy ≠ FIL_ListaID dla tych samych okien
+- Marża.sql dodana do sekcji znanych problemów (brak filtrsql)
+
+**Następny krok: test generowania nowych kolumn przez agenta ERP**
 
 ---
 
