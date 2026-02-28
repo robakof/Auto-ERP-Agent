@@ -171,6 +171,33 @@ Znany bug: build_index.py exit code 1 przy polskich znakach w końcowym print
 
 ---
 
+### 2026-02-28 — Import kolumn z CDN.DefinicjeKolumn do solutions/
+
+Odkryto tabelę CDN.DefinicjeKolumn — przechowuje kolumny SQL analogicznie do CDN.Filtry.
+Kluczowe różnice: DFK_IDFormatki = FIL_ProcID (to samo ID okna), ale DFK_IDListy
+ma inną numerację niż FIL_ListaID.
+
+Ustalono mapowanie (IDFormatki, IDListy) → (okno, widok) przez analizę SQL + weryfikację w ERP.
+Dodano import_columns.py — dedupl. po treści SQL (kolumny per-operator → jeden plik).
+
+Zaimportowano 35 unikalnych kolumn SQL do solutions/:
+
+| Okno | Widoki |
+|------|--------|
+| Okno kontrahenci | Grupy, Wg akronimu |
+| Okno towary | Towary według EAN (+3), Towary według grup (+4) |
+| Okno dokumenty | Handlowe (+8), Magazynowe (+2), Elementy (+5) |
+| Okno historia towaru | Transakcje - Chronologicznie (+3) |
+| Okno lista zamówień sprzedaży | Zamówienia (+4) |
+| Okno zamówienie | Zamówienie (+2) |
+
+Pominięto: zakresy 2900–2997 (duplikaty EAN per-formatka dokumentu),
+okna nierozpoznane (2305/Retro, 2640/Samochody, 2760/Trasy, 8615/Memo, 30499).
+
+**Następny krok: Kamień milowy 5 — Deployment**
+
+---
+
 ### 2026-02-28 — Import filtrów z CDN.Filtry do solutions/
 
 Odkryto strukturę tabeli CDN.Filtry: (FIL_ProcID, FIL_ListaID) = (okno, zakładka).
