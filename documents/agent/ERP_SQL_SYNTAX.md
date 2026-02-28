@@ -233,22 +233,55 @@ ID to numeric → używamy `??NazwaParam` (bez `_Q`).
 
 #### Opcjonalny parametr (możliwość pominięcia)
 
-Aby parametr był opcjonalny (puste = pokaż wszystko), dodaj pusty wiersz do dropdownu
-i owiń warunek OR:
+**UWAGA: sentinel `''` (pusty string) nie działa.** Gdy `REG=` i brak selekcji, ERP
+podstawia `??_QParam` jako wartość która nie pasuje do `= ''` (prawdopodobnie NULL).
+Skutek: warunek `??_QParam=''` daje FALSE zamiast TRUE → filtr nie zwraca wyników.
+
+**Działający wzorzec: sentinel `'all'` + `REG=all`**
 
 ```sql
 @PAR ?@R(
-    SELECT '' AS ID, '(wszystkie)' AS KOD
+    SELECT '(wszystkie)' AS KOD, 'all' AS ID
     UNION ALL
     SELECT 'brak', 'Brak stanu'
     UNION ALL
     SELECT 'ma', 'Z dowolnym stanem'
-)|StanMag|&Stan magazynowy:REG= @? PAR@
+)|StanMag|&Stan magazynowy:REG=all @? PAR@
 
-(??_QStanMag='' OR (??_QStanMag='brak' AND NOT EXISTS(...)) OR (??_QStanMag='ma' AND EXISTS(...)))
+(??_QStanMag='all' OR (??_QStanMag='brak' AND NOT EXISTS(...)) OR (??_QStanMag='ma' AND EXISTS(...)))
 ```
 
-Dla dat opcjonalnych: `REG=0` + warunek `(??DataOd=0 OR ...)`.
+Zasady:
+- Wiersz domyślny ma `ID='all'` (nie `''`)
+- `REG=all` — ERP pre-selekcjonuje opcję "(wszystkie)" po ID przy otwieraniu filtra
+- Warunek skip: `??_QParam='all'` (nie `??_QParam=''`)
+- Każdy inny nie-pusty sentinel działa tak samo (np. `'any'`, `'*'`) — `'all'` to konwencja
+- **Ograniczenie:** `REG=all` działa tylko gdy lista jest statyczna (UNION bez zapytania do tabeli). Dla dropdownów z dynamicznym zapytaniem (`FROM cdn.XXX`) ERP może nie znaleźć 'all' w danych i nie pre-selekcjonuje poprawnie.
+
+Dla dat opcjonalnych: `REG=0` + warunek `(??DataOd=0 OR ...)` — tu `0` pełni rolę sentinela i działa poprawnie (typ `@D` zachowuje się inaczej niż `@R`).
+
+#### Opcjonalny parametr z dynamicznym dropdownem — sentinel numeryczny
+
+Gdy dropdown pobiera dane z tabeli (`FROM cdn.XXX`), ID jest numeryczne — użyj `0` jako sentinela:
+
+```sql
+@PAR ?@R(SELECT '(wszystkie)' AS KOD, 0 AS ID
+UNION ALL
+SELECT Mag_Kod AS KOD, Mag_GIDNumer AS ID
+FROM cdn.Magazyny
+ORDER BY 1
+)|Magazyn|&Magazyn:REG=0 @? PAR@
+
+(??Magazyn=0 OR Twr_GIDNumer IN (
+    SELECT TwZ_TwrNumer FROM cdn.TwrZasoby
+    WHERE TwZ_MagNumer = ??Magazyn
+    GROUP BY TwZ_TwrNumer
+    HAVING SUM(TwZ_IlMag)<>SUM(TwZ_IlSpr)
+))
+```
+
+- ID numeryczne → `??Magazyn` bez `_Q`, `REG=0` → `??Magazyn=0` dla warunku skip
+- Sprawdź że `0` nie istnieje w danych jako prawdziwy ID (zwykle bezpieczne dla GIDNumer)
 
 #### Bezpieczeństwo typów w UNION
 
