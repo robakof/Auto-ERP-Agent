@@ -1,0 +1,1 @@
+trn_fiskalny IN (0,2) AND Trn_gidtyp != 2042 AND trn_stan != 6

@@ -1,0 +1,1 @@
+trn_fiskalny<>0 and trn_konnumer=0

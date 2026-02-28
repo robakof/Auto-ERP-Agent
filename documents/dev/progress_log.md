@@ -170,3 +170,33 @@ Znany bug: build_index.py exit code 1 przy polskich znakach w końcowym print
 **Następny krok: Kamień milowy 5 — Deployment**
 
 ---
+
+### 2026-02-28 — Import filtrów z CDN.Filtry do solutions/
+
+Odkryto strukturę tabeli CDN.Filtry: (FIL_ProcID, FIL_ListaID) = (okno, zakładka).
+Zbudowano mapowanie ProcID → nazwa okna na podstawie analizy SQL + weryfikacji w ERP.
+
+Zaimportowano 70 filtrów SQL do hierarchii solutions/:
+
+| Okno | Widoki |
+|------|--------|
+| Okno kontrahenci | Grupy, Wg akronimu |
+| Okno towary | Towary według EAN (+9 nowych), Towary według grup (+5 nowych) |
+| Okno rejestr VAT | Rejestr VAT |
+| Okno dokumenty | Handlowe (20), Magazynowe (4), Elementy (2) |
+| Okno zapisy bankowe | Zapisy bankowe |
+| Okno historia kontrahenta | Transakcje - Zbiorczo/Chronologicznie/Dla towaru |
+| Okno historia towaru | Transakcje - Chronologicznie/Dla kontrahenta/Wg kontrahentow, Magazyn |
+| Okno lista zamówień sprzedaży | Zamówienia |
+| Okno zamówienie | Zamówienie |
+| Okno dokument | Dokument |
+
+Pominięto 20 filtrów bez mapowania (zakres 2900–2997: identyczne picki towarowe
+w formatce dokumentu + 2 okna nieznane: 8503, 8615).
+
+Dodano import_filters.py — narzędzie do ponownego importu z flagą --force.
+Mapowanie w pliku: Mapowanie okien i filtrów.
+
+**Następny krok: Kamień milowy 5 — Deployment**
+
+---

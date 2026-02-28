@@ -1,0 +1,1 @@
+isnull(man_zrdtyp,0) in (960,0) and man_stan=5

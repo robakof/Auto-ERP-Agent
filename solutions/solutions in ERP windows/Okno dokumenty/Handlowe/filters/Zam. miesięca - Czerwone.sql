@@ -1,0 +1,1 @@
+Trn_gidnumer IN (select TrN_GIDNumer from cdn.TraNag Where TrN_Aktywny <> 0)

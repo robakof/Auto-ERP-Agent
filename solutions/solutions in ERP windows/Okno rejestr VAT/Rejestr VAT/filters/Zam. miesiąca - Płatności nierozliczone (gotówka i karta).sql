@@ -1,0 +1,1 @@
+exists (select 1 from cdn.traplat where trp_gidnumer=trn_gidnumer and trp_gidtyp=trn_gidtyp and trp_rozliczona=0 and trp_formanr in (10,50))

@@ -1,0 +1,121 @@
+Okno A (ProcID=2100)
+
+  ┌──────────┬────────────────────────────────────────────────────┐
+  │ Zakładka │                       Filtry                       │
+  ├──────────┼────────────────────────────────────────────────────┤
+  │ Kontrachenci\Grupy        │ Akwizytor, Płatnik, Zgoda na eFaktury              │
+  ├──────────┼────────────────────────────────────────────────────┤
+  │ Kontrachenci\Wg akronimu      │ akwizytor MD dokumenty, Płatnik, Zgoda na eFaktury │
+  └──────────┴────────────────────────────────────────────────────┘
+
+  ---
+  Okno B (ProcID=2700)
+
+  ┌──────────┬─────────────────────────────────────────────────────────────────────────────────────────┐  
+  │ Zakładka │                                         Filtry                                          │  
+  ├──────────┼─────────────────────────────────────────────────────────────────────────────────────────┤  
+  │ Rejestr VAT        │ Zam. miesiąca – Płatności nierozliczone (gotówka i karta) / nie opisane. / Zdublowane   │  
+  │          │ po numerze dokumentu obcego                                                             │  
+  └──────────┴─────────────────────────────────────────────────────────────────────────────────────────┘  
+
+  ---
+  Okno C (ProcID=2715) — największe, 26 filtrów
+
+  ┌────────────┬──────────────────────────────────────────────────────────────────────────────────────┐   
+  │  Zakładka  │                                        Filtry                                        │   
+  ├────────────┼──────────────────────────────────────────────────────────────────────────────────────┤   
+  │ Dokumenty\Handlowe (20      │ Forma Płatności, Data Wystawienia Dokumentu, Wystawiający, Dokumenty z POS,          │   
+  │ filtrów)   │ Dokumenty bez POS-ów, Filtr po magazynie, Po kodzie towaru, Sezon w opisie           │
+  │            │ dokumentu, Brico Korekty S-konto, Zam. miesiąca – Dokumenty fiskalne bez RS …        │   
+  ├────────────┼──────────────────────────────────────────────────────────────────────────────────────┤   
+  │ Dokumenty\Magazynowe (4       │ Zrealizowane w WMS brak dokumentu handlowego, Po kodzie towaru, Sezon w opisie       │   
+  │ filtry)    │ dokumentu, Niezwiązany                                                               │   
+  ├────────────┼──────────────────────────────────────────────────────────────────────────────────────┤   
+  │ Dokumenty\(s)Elementy (2       │ Po Dostawcy z Kodu Towaru, Po akwizytorze                                            │   
+  │ filtry)    │                                                                                      │   
+  └────────────┴──────────────────────────────────────────────────────────────────────────────────────┘   
+
+  ---
+  Okno D (ProcID=8301)
+
+  ┌──────────┬───────────────────────────┐
+  │ Zakładka │          Filtry           │
+  ├──────────┼───────────────────────────┤
+  │ Zapisy bankowe        │ Wartość i numer dokumentu │
+  └──────────┴───────────────────────────┘
+
+  ---
+  Okno E (ProcID=8501)
+
+  ┌──────────┬────────────────────────────────────┐
+  │ Zakładka │               Filtry               │
+  ├──────────┼────────────────────────────────────┤
+  │ Hisotria kontrahenta\Transakcje\Zbiorczo        │ bez WZ/PZ, Numer dokumentu, Bez WZ │
+  ├──────────┼────────────────────────────────────┤
+  │  Hisotria kontrahenta\Transakcje\Chronologicznie        │ Nazwy dokumentów                   │
+  ├──────────┼────────────────────────────────────┤
+  │  Hisotria kontrahenta\Transakcje\Dla towaru        │ Numer dokumentu                    │
+  └──────────┴────────────────────────────────────┘
+
+  ---
+  Okno F (ProcID=8503)
+
+  ┌──────────┬────────────┐
+  │ Zakładka │   Filtry   │
+  ├──────────┼────────────┤
+  │ ?        │ Kontrahent │
+  └──────────┴────────────┘
+
+  ---
+  Okno G (ProcID=8504)
+
+  ┌──────────┬─────────────────────────────────────────────────────────────────────────────────────────┐  
+  │ Zakładka │                                         Filtry                                          │  
+  ├──────────┼─────────────────────────────────────────────────────────────────────────────────────────┤  
+  │ Historia towaru\Transakcje\Chronologicznie    │ Dokumenty magazynowe w edycji oraz do wygenerowania, Przychody (bez POS), Numer         │  
+  │          │ dokumentu, Po opisie dokumentu                                                          │  
+  ├──────────┼─────────────────────────────────────────────────────────────────────────────────────────┤  
+  │ Historia towaru\Transakcje\Dla kontrachenta       │ Numer dokumentu                                                                         │  
+  ├──────────┼─────────────────────────────────────────────────────────────────────────────────────────┤  
+  │ Hisotria towaru\Magazyn\Chronologicznie     │ dokumenty niepowiązane (magazynowe bez handlowych)                                      │  
+  ├──────────┼─────────────────────────────────────────────────────────────────────────────────────────┤  
+  │ Historia towaru\Transakcje\Wg kontrachentów     │ Numer dokumentu                                                                         │  
+  └──────────┴─────────────────────────────────────────────────────────────────────────────────────────┘  
+
+  ---
+  Okno H (ProcID=8615)
+
+  ┌──────────┬────────────┐
+  │ Zakładka │   Filtry   │
+  ├──────────┼────────────┤
+  │ ?        │ Kontrahent │
+  └──────────┴────────────┘
+
+  ---
+  Okno I (ProcID=9010)
+
+  ┌──────────┬──────────────────────────────────────────────────────────────────────────┐
+  │ Zakładka │                                  Filtry                                  │
+  ├──────────┼──────────────────────────────────────────────────────────────────────────┤
+  │ Lista zamówień sprzedaży\Zamówienia        │ Zamówienia z WZ/FS do zamknięcia, Operator, Sezon w opisie, Wystawiający │
+  └──────────┴──────────────────────────────────────────────────────────────────────────┘
+
+  ---
+  Okno J (ProcID=9023)
+
+  ┌──────────┬─────────────────────────────────────────────────────────┐
+  │ Zakładka │                         Filtry                          │
+  ├──────────┼─────────────────────────────────────────────────────────┤
+  │ Zamówienie        │ Kod EAN Nazwa, Sprawdzanie statusy ofertowego produktów │
+  └──────────┴─────────────────────────────────────────────────────────┘
+
+  ---
+  Okno K (ProcID=30499)
+
+  ┌──────────┬────────────────────────────────────────┐
+  │ Zakładka │                 Filtry                 │
+  ├──────────┼────────────────────────────────────────┤
+  │ Dokument        │ Wyszukiwanie po kodzie, nazwie, EAN-ie │
+  └──────────┴────────────────────────────────────────┘
+
+  ---

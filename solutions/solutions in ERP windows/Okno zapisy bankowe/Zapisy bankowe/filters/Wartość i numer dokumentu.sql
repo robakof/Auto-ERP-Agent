@@ -1,0 +1,1 @@
+KAZ_NumerDokumentu LIKE '%' + ?@S100|Numer Dokumentu:'' + '%' OR KAZ_Kwota=?@N-15.4|Wartość:0

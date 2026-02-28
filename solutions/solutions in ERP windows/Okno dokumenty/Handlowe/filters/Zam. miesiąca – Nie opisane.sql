@@ -1,0 +1,1 @@
+Trn_gidNumer NOT IN (Select OWE_GIDNumer from cdn.OpisWymElem) AND Trn_gidtyp IN (1521,1529,1489,1497,1490,1498)

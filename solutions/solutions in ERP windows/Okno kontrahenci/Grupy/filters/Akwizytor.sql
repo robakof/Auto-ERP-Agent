@@ -1,0 +1,1 @@
+(Knt_AkwTyp=32 AND Knt_AkwNumer=17 AND Knt_AkwTyp<>0 )
