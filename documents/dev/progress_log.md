@@ -197,6 +197,22 @@ w formatce dokumentu + 2 okna nieznane: 8503, 8615).
 Dodano import_filters.py — narzędzie do ponownego importu z flagą --force.
 Mapowanie w pliku: Mapowanie okien i filtrów.
 
+---
+
+### 2026-02-28 — erp_windows.json + ERP_SQL_SYNTAX.md po analizie filtrów
+
+erp_windows.json: rozszerzony o 9 nowych okien (kontrahenci, dokumenty, rejestr VAT,
+zapisy bankowe, historia kontrahenta, historia towaru, lista zamówień sprzedaży,
+zamówienie, dokument).
+
+ERP_SQL_SYNTAX.md — nowe wzorce z analizy 70 zaimportowanych filtrów:
+- @O (opcje/radio), @n (numeryczny), @U() (uppercase), @RL/@RH (zakresy)
+- cdn.NazwaObiektu(typ, numer, 0, 2) — funkcja nazwy dokumentu
+- Daty w TraNag (TrN_Data2) = SQL date, nie Clarion
+- Nowe tabele: TrNOpisy, ZaNOpisy, OpeKarty, TraPlat, ZamNag/ZamElem, Zapisy
+- Prefiks Kontrahenci/Grupy: KnG_ (nie Knt_)
+- 3 uszkodzone filtry zidentyfikowane (Wystawiający w Zamówieniach, Sezon Magazynowe, stary format Zapisy bankowe)
+
 **Następny krok: Kamień milowy 5 — Deployment**
 
 ---

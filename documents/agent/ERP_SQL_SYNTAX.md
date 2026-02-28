@@ -114,7 +114,27 @@ Parametry deklarowane są przed warunkiem. Każdy parametr to jedna linia:
 
 ---
 
-## 4. Typy parametrów @PAR
+## 4. Modyfikatory parametrów @PAR
+
+Modyfikatory umieszczane są **po `@?` a przed `PAR@`**:
+
+| Modyfikator | Znaczenie | Przykład |
+|---|---|---|
+| `@U()` | Wymusza wielkie litery przy wpisywaniu | `@? @U() PAR@` |
+| `@RL(n)` | Minimalna wartość numeryczna | `@? @RL(-99999999) PAR@` |
+| `@RH(n)` | Maksymalna wartość numeryczna | `@? @RH(99999999) PAR@` |
+
+```sql
+-- Uppercase — wpisany tekst automatycznie zamieniany na wielkie litery:
+@PAR ?@S20|Kod|&Kod towaru:REG= @? @U() PAR@
+
+-- Numeric z zakresem:
+@PAR ?@n-16_.2|Kwota|&Kwota:REG=0 @? @RL(-99999999) @RH(99999999) PAR@
+```
+
+---
+
+## 5. Typy parametrów @PAR (kompletna lista)
 
 ### S — String (tekst)
 
@@ -145,6 +165,27 @@ Format: `D[N]` — np. `D17`
 Referencja w WHERE: `??NazwaParam` — ERP podstawia wartość numeryczną (Clarion date).
 Domyślna wartość `REG=0` oznacza "pomiń filtr" gdy warunek to `??Param=0`.
 Alternatywne wartości domyślne dat: `{DateClwFirstDay('m')}`, `{DateClwLastDay('m')}`.
+
+### O — Opcje (przyciski wyboru)
+
+```sql
+@PAR ?@O(Tak:1|Nie:0)|Zgoda|&Zgoda:REG=1 @? PAR@
+Knt_EFaVatAktywne=??Zgoda
+```
+
+Format opcji: `Etykieta:Wartość|Etykieta2:Wartość2`. Nie wymaga kolumn ID/KOD jak `@R`.
+Reguła `_Q` taka sama jak dla `@R`: wartość numeryczna → `??Param`, tekstowa → `??_QParam`.
+
+### n — Pole numeryczne
+
+```sql
+@PAR ?@n-16_.2|Kwota|&Kwota:REG=0 @? @RL(-99999999) @RH(99999999) PAR@
+
+TrP_Kwota = CASE WHEN ??Kwota = 0 THEN TrP_Kwota ELSE ??Kwota END
+```
+
+Format: `@n-[szerokość]_.[miejsca_dziesiętne]`. Wartość numeryczna → `??Param` (bez `_Q`).
+Domyślna wartość `REG=0` + warunek `??Kwota = 0` → pomiń filtr (analogia do `@D`).
 
 ### R — Lista rozwijana (dropdown)
 
@@ -226,7 +267,28 @@ CAST(CAST(Twr_StawkaPodSpr AS INT) AS VARCHAR(2)) = ??_QStawkaVat
 
 ---
 
-## 5. Konwersja dat
+## 6. Wbudowane funkcje ERP
+
+### cdn.NazwaObiektu — nazwa dokumentu
+
+```sql
+cdn.NazwaObiektu(trn_gidtyp, Trn_gidnumer, 0, 2)
+```
+
+Zwraca wyświetlaną nazwę dokumentu (np. "FS 1/2024"). Użycie — filtr po numerze dokumentu:
+
+```sql
+@PAR ?@S25|NumerDokumentu|&Numer Dokumentu:REG= @? PAR@
+
+TrN_gidnumer IN (
+    SELECT Trn_gidnumer FROM cdn.TraNag
+    WHERE cdn.NazwaObiektu(trn_gidtyp, Trn_gidnumer, 0, 2) LIKE '%' + ??NumerDokumentu + '%'
+)
+```
+
+---
+
+## 7. Konwersja dat
 
 Daty w bazie ERP przechowywane są w formacie Clarion (liczba całkowita). Konwersja:
 
@@ -239,9 +301,20 @@ Przykład:
 Twr_DataUtworzenia/86400+69035 >= ??DataOd
 ```
 
+### Daty w CDN.TraNag — UWAGA: format SQL, nie Clarion
+
+Kolumny datowe w `CDN.TraNag` (np. `TrN_Data2` — data wystawienia) przechowywane są
+jako **standardowe SQL date**, nie Clarion. Używaj bezpośrednio:
+
+```sql
+TrN_Data2 BETWEEN ??DataOd AND ??DataDo
+```
+
+Konwersja `/86400+69035` dotyczy tylko kolumn w `CDN.TwrKarty` i podobnych.
+
 ---
 
-## 6. Tabele pomocnicze — nieoczywiste struktury
+## 8. Tabele pomocnicze — nieoczywiste struktury
 
 ### Załączniki (CDN.DaneBinarne + CDN.DaneObiekty)
 
@@ -298,9 +371,79 @@ Identyfikatory atrybutów dla okna Towary:
 - `Atr_AtkId = 3` — Sezon
 - `Atr_AtkId = 59` — Status ofertowy produktu
 
+### Opisy dokumentów handlowych (CDN.TrNOpisy)
+
+```sql
+TrN_GIDNumer IN (
+    SELECT TnO_TrnNumer FROM cdn.TrNOpisy
+    WHERE UPPER(Tno_Opis) LIKE '%SEZON%'
+)
+```
+
+### Opisy zamówień (CDN.ZaNOpisy)
+
+```sql
+ZaN_GIDNumer IN (
+    SELECT ZnO_ZamNumer FROM cdn.ZaNOpisy
+    WHERE ZnO_Opis LIKE '%SEZON%'
+)
+```
+
+### Operatorzy (CDN.OpeKarty)
+
+| Kolumna | Znaczenie |
+|---|---|
+| `Ope_GIDNumer`, `Ope_GIDTyp` | GID operatora |
+| `Ope_Ident` | Login/identyfikator |
+| `Ope_Nazwisko` | Nazwisko |
+
+```sql
+TrN_GIDNumer IN (
+    SELECT TrN_GIDNumer FROM cdn.TraNag
+    JOIN cdn.OpeKarty ON TrN_OpeNumerW = Ope_GIDNumer AND TrN_OpeTypW = Ope_GIDTyp
+    WHERE Ope_Ident LIKE '%' + ??Wystawiajacy + '%'
+)
+```
+
+### Płatności (CDN.TraPlat)
+
+| Kolumna | Znaczenie |
+|---|---|
+| `TrP_GIDNumer`, `TrP_GIDTyp` | GID dokumentu |
+| `TrP_FormaNazwa` | Nazwa formy płatności |
+| `TrP_Kwota` | Kwota płatności |
+| `TrP_Rozliczona` | 0 = nierozliczona |
+| `TrP_FormaNr` | Numer formy (10=gotówka, 50=karta) |
+
+### Zamówienia (CDN.ZamNag, CDN.ZamElem)
+
+Prefiks `ZaN_` dla nagłówka, `ZaE_` dla elementów. Filtr po zamówieniach analogiczny
+do filtrów po dokumentach (`TrN_`), z podmianą prefiksu.
+
+### Zapisy kasy/banku (CDN.Zapisy)
+
+Prefiks `KAZ_`. Kolumny: `KAZ_NumerDokumentu`, `KAZ_Kwota`.
+
+### Prefiks widoku Kontrahenci/Grupy
+
+Widok "Grupy" w oknie Kontrahenci używa prefiksu `KnG_` (nie `Knt_`).
+Filtr musi odnosić się do `KnG_GIDNumer`, nie `Knt_GIDNumer`.
+
 ---
 
-## 7. Wskazówki dla agenta
+## 9. Znane problematyczne filtry
+
+Poniższe filtry zostały zaimportowane z bazy ale mają wady:
+
+| Plik | Problem |
+|---|---|
+| `Okno lista zamówień sprzedaży/Zamówienia/filters/Wystawiający.sql` | Brak `??Wystawiający` w WHERE — filtr nie działa |
+| `Okno dokumenty/Magazynowe/filters/Sezon w opisie dokumentu.sql` | Używa `TrN_GIDNumer` zamiast `MaN_GIDNumer` — prawdopodobnie copy-paste z Handlowe |
+| `Okno zapisy bankowe/Zapisy bankowe/filters/Wartość i numer dokumentu.sql` | Stary format inline bez `@PAR` — może nie działać w aktualnej wersji XL |
+
+---
+
+## 10. Wskazówki dla agenta
 
 **Przed generowaniem kodu dla widoku:**
 1. Przeczytaj `filtr.sql` widoku — wyznacza tabelę główną i typ obiektu
