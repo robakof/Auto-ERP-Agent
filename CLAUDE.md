@@ -96,6 +96,23 @@ Zastąp `{filtrsql}` warunkiem `1=1` lub konkretnym `WHERE`. Sprawdź czy wynik 
 
 Pokaż użytkownikowi wygenerowany SQL. Czekaj na akceptację przed zapisem.
 
+**Filtry globalne — metodologia testowania:**
+
+Jeśli nowy filtr ma być częścią istniejącego filtru zbiorczego (globalnego, nie per-użytkownik):
+
+1. **Nie twórz osobnego pliku** dla nowej funkcjonalności
+2. **Najpierw podaj samą logikę warunku** (bez @PAR, bez struktury zbiorczej) — użytkownik
+   przekopiuje do ERP i przetestuje ręcznie
+3. **Po potwierdzeniu że działa** — wygeneruj pełną zaktualizowaną wersję filtru zbiorczego
+   i zapisz z `--force`
+
+Przykład: nowy warunek do przetestowania w izolacji:
+```sql
+Twr_MobSpr=1
+AND EXISTS(SELECT 1 FROM cdn.TwrJM WHERE TwJ_TwrNumer=Twr_GIDNumer AND TwJ_JmZ IN ('opak.','karton'))
+AND NOT EXISTS(SELECT 1 FROM cdn.TwrJM WHERE TwJ_TwrNumer=Twr_GIDNumer AND TwJ_JmZ IN ('opak.','karton') AND TwJ_MobSpr=1)
+```
+
 ### Krok 8 — Zapisz po akceptacji
 
 ```
