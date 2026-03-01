@@ -101,8 +101,8 @@ W oparciu o `PRD.md` i `ARCHITECTURE.md` stwórz plan który posłuży do pracy 
 
 ##### GIT VERSION CONTROL
 
-**Każda sekcja/feature = osobny commit:**
-- Commit po każdej działającej zmianie
+**Każda sekcja/feature = osobny commit + push:**
+- Commit po każdej działającej zmianie, następnie natychmiast `git push`
 - Opisowe commit messages
 - Używaj conventional commits (feat:, fix:, refactor:, docs:, test:)
 
@@ -162,9 +162,9 @@ Jeżeli w trakcie implementacji natrafisz na nie omówione wcześniej kwestie lu
 
 W czacie lub w `changes_comments.md` VibeCoder przekaże ci feedback na temat wprowadzonej implementacji. Poprawiaj ją aż do uzyskania pełnej satysfakcji VibeCodera, za każdym razem dodając treść z poprawkami do `CHANGELOG.md` i testując program.
 
-#### Krok 4: Commit i aktualizacja Progress_log.md
+#### Krok 4: Commit, push i aktualizacja Progress_log.md
 
-Po zatwierdzeniu implementacji wykonaj commit i zaktualizuj `progress_log.md`.
+Po zatwierdzeniu implementacji wykonaj commit, push i zaktualizuj `progress_log.md`.
 
 ---
 

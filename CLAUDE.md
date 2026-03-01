@@ -124,6 +124,14 @@ python tools/save_solution.py \
   --sql "..."
 ```
 
+Następnie commituj i pushuj zmiany do repo:
+
+```
+git add solutions/
+git commit -m "feat: [opis rozwiązania]"
+git push
+```
+
 ### Krok 9 — Zaktualizuj katalog okien (jeśli nowe okno)
 
 Jeśli `save_solution` zapisał do okna którego nie ma w `erp_windows.json`
