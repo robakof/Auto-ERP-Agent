@@ -2,71 +2,138 @@
   {
     "id": "okno_towary",
     "name": "Okno towary",
-    "aliases": ["towary", "kartoteki towarowe"],
+    "aliases": [
+      "towary",
+      "kartoteki towarowe"
+    ],
     "primary_table": "CDN.TwrKarty",
-    "config_types": ["columns", "filters"]
+    "config_types": [
+      "columns",
+      "filters"
+    ]
   },
   {
     "id": "okno_kontrahenci",
     "name": "Okno kontrahenci",
-    "aliases": ["kontrahenci", "kartoteki kontrahentów", "klienci"],
+    "aliases": [
+      "kontrahenci",
+      "kartoteki kontrahentów",
+      "klienci"
+    ],
     "primary_table": "CDN.KntKarty",
-    "config_types": ["filters"]
+    "config_types": [
+      "filters"
+    ]
   },
   {
     "id": "okno_dokumenty",
     "name": "Okno dokumenty",
-    "aliases": ["dokumenty", "dokumenty handlowe", "faktury", "sprzedaż"],
+    "aliases": [
+      "dokumenty",
+      "dokumenty handlowe",
+      "faktury",
+      "sprzedaż"
+    ],
     "primary_table": "CDN.TraNag",
-    "config_types": ["filters"]
+    "config_types": [
+      "filters"
+    ]
   },
   {
     "id": "okno_rejestr_vat",
     "name": "Okno rejestr VAT",
-    "aliases": ["rejestr VAT", "rejestr vat", "VAT"],
+    "aliases": [
+      "rejestr VAT",
+      "rejestr vat",
+      "VAT"
+    ],
     "primary_table": "CDN.TraNag",
-    "config_types": ["filters"]
+    "config_types": [
+      "filters"
+    ]
   },
   {
     "id": "okno_zapisy_bankowe",
     "name": "Okno zapisy bankowe",
-    "aliases": ["zapisy bankowe", "bank", "wyciąg bankowy"],
+    "aliases": [
+      "zapisy bankowe",
+      "bank",
+      "wyciąg bankowy"
+    ],
     "primary_table": "CDN.Zapisy",
-    "config_types": ["filters"]
+    "config_types": [
+      "filters"
+    ]
   },
   {
     "id": "okno_historia_kontrahenta",
     "name": "Okno historia kontrahenta",
-    "aliases": ["historia kontrahenta", "transakcje kontrahenta"],
+    "aliases": [
+      "historia kontrahenta",
+      "transakcje kontrahenta"
+    ],
     "primary_table": "CDN.TraNag",
-    "config_types": ["filters"]
+    "config_types": [
+      "filters"
+    ]
   },
   {
     "id": "okno_historia_towaru",
     "name": "Okno historia towaru",
-    "aliases": ["historia towaru", "transakcje towaru"],
+    "aliases": [
+      "historia towaru",
+      "transakcje towaru"
+    ],
     "primary_table": "CDN.TraNag",
-    "config_types": ["filters"]
+    "config_types": [
+      "filters"
+    ]
   },
   {
     "id": "okno_lista_zamowien_sprzedazy",
     "name": "Okno lista zamówień sprzedaży",
-    "aliases": ["zamówienia", "zamówienia sprzedaży", "lista zamówień"],
+    "aliases": [
+      "zamówienia",
+      "zamówienia sprzedaży",
+      "lista zamówień"
+    ],
     "primary_table": "CDN.ZamNag",
-    "config_types": ["filters"]
+    "config_types": [
+      "filters"
+    ]
   },
   {
     "id": "okno_zamowienie",
     "name": "Okno zamówienie",
-    "aliases": ["zamówienie"],
+    "aliases": [
+      "zamówienie"
+    ],
     "primary_table": "CDN.TwrKarty",
-    "config_types": ["filters"]
+    "config_types": [
+      "filters"
+    ]
   },
   {
     "id": "okno_dokument",
     "name": "Okno dokument",
-    "aliases": ["dokument"],
+    "aliases": [
+      "dokument"
+    ],
     "primary_table": "CDN.TwrKarty",
-    "config_types": ["filters"]
+    "config_types": [
+      "filters"
+    ]
+  },
+  {
+    "id": "okno_platnosci",
+    "name": "Okno płatności",
+    "primary_table": "CDN.TraPlat",
+    "config_types": [
+      "columns",
+      "filters"
+    ],
+    "aliases": [
+      "płatności"
+    ]
   }
 ]
