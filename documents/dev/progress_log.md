@@ -262,6 +262,16 @@ Zmiany:
 
 **Wszystkie 5 kamieni milowych MVP zakończone.**
 
+---
+
+### 2026-03-01 — Porządki w projekcie
+
+- Usunięto: import_columns.py, import_filters.py, experiments/ (5 plików), solutions/index.json, changes_propositions.md, CHANGELOG.md
+- Archiwum (documents/dev/archive/): EXPERIMENTS_PLAN.md, MVP_IMPLEMENTATION_PLAN.md, ARCHITECTURE_REVIEW.md, session_26_02.md
+- Dodano: verify.py — skrypt weryfikacji instalacji (3 testy: docs.db, solutions/, SQL Server)
+- INSTALL.md: zastąpiono experiments/ przez verify.py jako krok weryfikacji
+- Naprawiono nazwy plików w solutions/: filr.sql, brakujące .sql, podwójna kropka
+
 **Następny krok: praca bieżąca — rozbudowa bazy rozwiązań, nowe okna ERP**
 
 ---
