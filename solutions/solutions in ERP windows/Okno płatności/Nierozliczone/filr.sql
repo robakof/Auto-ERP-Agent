@@ -1,0 +1,1 @@
+(TrP_GIDTyp=4144 AND TrP_GIDNumer=781 AND TrP_GIDLp=1)

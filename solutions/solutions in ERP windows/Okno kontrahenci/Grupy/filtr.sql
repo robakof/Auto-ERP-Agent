@@ -1,0 +1,1 @@
+KnG_GIDTyp=32 AND KnG_GIDNumer=165 AND KnG_GrOTyp=-32 AND KnG_GrONumer=6
