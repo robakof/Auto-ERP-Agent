@@ -246,6 +246,22 @@ ERP_SQL_SYNTAX.md — nowe wzorce z analizy 70 zaimportowanych filtrów:
 - Prefiks Kontrahenci/Grupy: KnG_ (nie Knt_)
 - 3 uszkodzone filtry zidentyfikowane (Wystawiający w Zamówieniach, Sezon Magazynowe, stary format Zapisy bankowe)
 
-**Następny krok: Kamień milowy 5 — Deployment**
+---
+
+### 2026-03-01 — Kamień milowy 5 ZAKOŃCZONY (Deployment)
+
+Model deploymentu: Git clone na każdej maszynie. Agent commituje zmiany lokalnie,
+developer pushuje nowe funkcjonalności, inni git pull.
+
+Zmiany:
+- .gitignore: odblokowano erp_docs/index/ → docs.db trackowany w git
+- erp_docs/index/docs.db (6.7 MB) dodany do repo — inni nie muszą uruchamiać build_index.py
+- README.md: pełne przepisanie (stary opisywał architekturę sprzed KM1)
+- INSTALL.md: instrukcja instalacji na nowej maszynie Windows (Git, Python, ODBC, Node.js, Claude Code, VS Code)
+- .env.example: usunięto 4 zbędne zmienne (tools używają hardcoded defaults)
+
+**Wszystkie 5 kamieni milowych MVP zakończone.**
+
+**Następny krok: praca bieżąca — rozbudowa bazy rozwiązań, nowe okna ERP**
 
 ---

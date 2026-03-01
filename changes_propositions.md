@@ -1,97 +1,75 @@
-# Plan implementacji — KM3 (CLAUDE.md)
+# KM5 — Deployment (Git-based)
 
-Data: 2026-02-27
-
----
-
-## Zakres
-
-Stworzenie `ERP_AGENT.md` — instrukcje operacyjne agenta konfiguracyjnego ERP.
-Plik oddzielony od `CLAUDE.md` (instrukcje dla agenta deweloperskiego).
-Przy deploymencie (KM5) kopiowany jako `CLAUDE.md` do folderu współdzielonego.
-Zwięzły, gotowy do działania bez czytania innych dokumentów podczas typowej sesji.
+Data: 2026-03-01
 
 ---
 
-## Struktura ERP_AGENT.md
+## Cel
 
-### Sekcja 1: Startup (bez zmian)
-Obecna treść — pliki do przeczytania na starcie.
-
-### Sekcja 2: Narzędzia agenta
-Sygnatury CLI wszystkich 8 narzędzi + przykład wywołania + kluczowe pola wyjścia.
-Nie duplikujemy pełnych kontraktów JSON — tylko to czego agent potrzebuje w robocie.
-
-Narzędzia:
-- `sql_query.py` — SELECT na SQL Server
-- `search_docs.py` — FTS5 po dokumentacji
-- `search_solutions.py` — szukanie wzorców SQL
-- `search_windows.py` — identyfikacja okna ERP
-- `save_solution.py` — zapis zatwierdzonego SQL
-- `update_window_catalog.py` — zarządzanie erp_windows.json
-- `build_index.py` — (administ.) przebudowa indeksu
-
-### Sekcja 3: Domyślny workflow
-
-Numerowana lista kroków — agent śledzi ją krok po kroku:
-
-```
-1. Zidentyfikuj okno → search_windows.py
-   (brak wyników → zapytaj użytkownika, dodaj alias)
-2. Odczytaj filtr.sql widoku → wyznacz tabelę główną
-3. Sprawdź wzorce → search_solutions.py [okno] [typ]
-4. Wyszukaj kolumny → search_docs.py [tabela] [--useful-only]
-5. Generuj SQL (per ERP_SQL_SYNTAX.md)
-6. Testuj → sql_query.py (zamień {filtrsql} na 1=1)
-   (błąd → analiza → poprawka → wróć do 6, maks. 5 iteracji)
-7. Prezentuj wynik użytkownikowi
-8. Po akceptacji → save_solution.py
-9. Nowe okno? → update_window_catalog.py
-```
-
-### Sekcja 4: Zarządzanie katalogiem okien
-
-Trzy przypadki:
-- **Nowe okno**: po save_solution do nieznanego folderu → odczytaj filtr.sql →
-  znajdź primary_table przez `search_docs.py "[prefiks kolumny]"` →
-  wywołaj `update_window_catalog.py --id ... --name ... --primary-table ...` →
-  zapytaj użytkownika o aliasy
-- **Nieznana fraza**: search_windows nie zwraca wyników → pokaż listę znanych okien,
-  zapytaj "czy chodzi o X?" → po potwierdzeniu dopisz alias przez
-  `update_window_catalog.py --id ... --add-alias "..."`
-- **Nowy alias w rozmowie**: użytkownik użył nieznanej nazwy → dopytaj → dopisz alias
-
-### Sekcja 5: Formułowanie zapytań FTS5
-
-Reguły prefix matching — wymagane do skutecznego wyszukiwania:
-- Tokenizuj frazę → każde słowo zamień na rdzeń + `*`
-  Przykład: `"nagłówek zamówienia"` → `"naglowek* zamowien*"` (bez ogonków)
-- Domyślnie `--useful-only` — eliminuje ~95% szumu
-- `--table CDN.XXX` gdy znasz już tabelę główną
-
-### Sekcja 6: Reguły eskalacji
-
-Kiedy eskalować do użytkownika (zamiast iterować):
-- Po 5 nieudanych iteracjach generowania/testowania
-- Brak kolumny w INFORMATION_SCHEMA (problem ze schemą bazy)
-- Wynik testu sensownie pusty lub zawiera niespodziewane dane
-  (agent nie zna kontekstu biznesowego)
-- Potrzebny zapis do pliku który już istnieje (konflikt rozwiązań)
-
-### Sekcja 7: Referencja składni SQL
-
-Jedno zdanie z pointerem do `documents/ERP_SQL_SYNTAX.md`.
-Szczegóły składni tam — nie duplikujemy w CLAUDE.md.
+Każda maszyna = `git clone`. Agent commituje zmiany (SQL, składnia) lokalnie.
+Developer pushuje nowe funkcjonalności, inni `git pull`ują.
+docs.db (6.7 MB) trafia do git — buildujesz gdy XLSM się zmienia, pozostali `git pull`.
 
 ---
 
-## Kluczowe decyzje
+## Zakres zmian
 
-- Narzędzia: pokazujemy tylko CLI + kluczowe pola (`ok`, `data.results`, `error.type`)
-- Workflow jako lista kroków z numerami — agent może ją śledzić
-- Aliasy/okna: logika decyzji inline (nie w osobnym dokumencie)
-- Brak TDD — plik dokumentacyjny, nie kod
+### 1. `.gitignore` — odblokowanie docs.db
+
+Aktualnie: `erp_docs/index/` jest w .gitignore → docs.db jest wykluczone.
+Zmiana: usunąć `erp_docs/index/` z .gitignore (cały katalog index/ wchodzi do git).
+Pliki WAL (*.db-wal, *.db-shm) dodać do .gitignore — tymczasowe pliki SQLite.
+
+### 2. `erp_docs/index/docs.db` — dodanie do git
+
+Po zmianie .gitignore: `git add erp_docs/index/docs.db` i commit.
+
+### 3. `README.md` — pełne przepisanie
+
+Aktualny README opisuje starą architekturę (płaska struktura, index.json).
+Nowy README będzie zawierał:
+
+- Krótki opis (2-3 zdania)
+- Wymagania: Python 3.12+, VS Code + Claude Code, dostęp do SQL Servera
+- Instalacja krok po kroku:
+  1. `git clone`
+  2. `pip install -r requirements.txt`
+  3. Skopiować `.env.example` → `.env`, uzupełnić SQL credentials
+  4. Gotowe — docs.db i solutions/ już w repo
+- Aktualna struktura projektu (odzwierciedlająca stan po KM1–KM4)
+- Synchronizacja: `git pull` po zmianach developera, agent robi `git commit` po zmianach
+- Rebuild docs.db (opcjonalnie): `python tools/build_index.py` gdy XLSM się zmieni
+
+### 4. `.env.example` — uproszczenie
+
+Usunąć zmienne które nigdy nie wymagają zmiany (tools używają ścieżek relatywnych):
+- `SOLUTIONS_PATH`, `ERP_DOCS_PATH`, `LOGS_PATH` — usunąć
+- `MAX_ITERATIONS` — usunąć (nieużywane przez tools)
+
+Zostawić tylko to co każdy musi uzupełnić:
+- `SQL_SERVER`, `SQL_DATABASE`, `SQL_USERNAME`, `SQL_PASSWORD`
+- `XLSM_PATH` z komentarzem: opcjonalne, wymagane tylko przy rebuild docs.db
+
+### 5. `documents/dev/progress_log.md` — wpis KM5
 
 ---
 
-*Plan przygotowany: 2026-02-27*
+## Co NIE wchodzi w zakres
+
+- Żadnych zmian w tools/ (działają na ścieżkach relatywnych — działają out-of-the-box)
+- Żadnej konfiguracji branchy / git workflow (main, proste)
+- Żadnych skryptów instalacyjnych (README wystarczy)
+
+---
+
+## Kolejność implementacji
+
+1. Zmień .gitignore
+2. Dodaj docs.db do git (commit)
+3. Przepisz README.md (commit)
+4. Zaktualizuj .env.example (commit)
+5. Zaktualizuj progress_log.md (commit)
+
+---
+
+*Plan przygotowany: 2026-03-01*
