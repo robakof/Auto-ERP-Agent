@@ -2,10 +2,13 @@
 .env
 
 # Generowane
-erp_docs/index/
 logs/
 __pycache__/
 *.pyc
+
+# Pliki tymczasowe SQLite (WAL mode)
+*.db-wal
+*.db-shm
 
 # Dane źródłowe dokumentacji (duże pliki, nie kod)
 erp_docs/raw/
