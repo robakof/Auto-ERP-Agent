@@ -124,8 +124,7 @@ Wykonaj kolejno:
 3. Zainstaluj zależności Python: pip install pyodbc python-dotenv openpyxl
 4. Skopiuj .env.example do .env
 5. Zapytaj mnie o dane połączenia SQL Server (serwer, baza, login, hasło) i wpisz do .env
-6. Zweryfikuj połączenie z SQL Server uruchamiając: python experiments/e01_pyodbc_connection.py
-7. Zweryfikuj narzędzie agenta uruchamiając: python experiments/e04_mcp_tool.py
+6. Zweryfikuj całą instalację uruchamiając: python verify.py
 
 Po każdym kroku potwierdź że działa zanim przejdziesz dalej.
 ```
