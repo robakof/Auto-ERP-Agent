@@ -7,8 +7,12 @@
 
 ## 1. Cel fazy
 
-Zbudowanie warstwy semantycznej nad bazą ERP (widoki SQL z czytelnymi nazwami)
-i udostępnienie jej pracownikom przez bota w języku naturalnym (WhatsApp).
+Zbudowanie warstwy semantycznej nad bazą ERP (widoki SQL z czytelnymi nazwami),
+która służy trzem celom jednocześnie:
+
+1. **Raportowanie** — Power BI i Excel łączą się z `BI.*` bezpośrednio, bez znajomości schematu CDN
+2. **Bot pytań** — pracownicy zadają pytania w języku naturalnym, bot odpytuje `BI.*`
+3. **Szybszy agent ERP** — agent Fazy 1 używa `BI.*` zamiast budować JOINy z CDN.*
 
 ---
 
@@ -63,7 +67,7 @@ Warstwa BI skraca agenta — zamiast budować JOINy przez `CDN.TwrKarty`
 - Comarch API (kolejna faza)
 - Zapis danych przez bota (wyłącznie odczyt)
 - Tworzenie widoków BI przez agenta (człowiek tworzy, agent dokumentuje i używa)
-- Power BI (widoki BI są z nim kompatybilne z definicji — bez dodatkowej pracy)
+- Budowa dashboardów Power BI (warstwa BI *umożliwia* to — sama budowa poza zakresem)
 
 ---
 
@@ -86,8 +90,10 @@ Warstwa BI skraca agenta — zamiast budować JOINy przez `CDN.TwrKarty`
   dokumenty handlowe, historia transakcji
 - Czytelne nazwy widoków i kolumn (np. `BI.Zamowienia.NazwaKontrahenta`)
 - Tworzone i modyfikowane przez człowieka (Developer)
-- Definicje widoków wersjonowane w repozytorium Git (`solutions/bi/`)
+- Definicje widoków wersjonowane w repozytorium Git (`solutions/bi/views/`)
 - Konto agenta/bota: read-only na schema `BI`, brak dostępu do `CDN.*`
+- **Kompatybilność z Power BI i Excel z definicji** — połączenie przez DirectQuery
+  (Power BI) lub Power Query / ODBC (Excel) bez żadnej dodatkowej pracy
 
 ### F-02 — Dokumentacja widoków BI
 
