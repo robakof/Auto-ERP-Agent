@@ -442,23 +442,43 @@ tworzonych przez konto DBA (które ma wymagane uprawnienia).
 
 Comarch dostarcza gotowe procedury SQL dla typowych pytań chatbota. Dostępne w bazie:
 
-| Procedura | Opis |
-|---|---|
-| `CDN.AI_ChatERP_PodajSprzedaz` | Sprzedaż towaru dla kontrahenta w ostatnim tyg/mies/roku |
-| `CDN.AI_ChatERP_PodajNajwiecejKupowane` | Top N najczęściej kupowanych towarów |
-| `CDN.AI_ChatERP_PodajNajwiecejSprzedawane` | Top N najczęściej sprzedawanych towarów |
-| `CDN.AI_ChatERP_PodajNajwiekszychOdbiorcow` | Top N największych odbiorców |
-| `CDN.AI_ChatERP_PodajNajwiekszychDostawcow` | Top N największych dostawców |
-| `CDN.AI_ChatERP_PodajNajwiekszychDluznikow` | Top N największych dłużników |
-| `CDN.AI_ChatERP_PodajNajwiekszychWierzycieli` | Top N największych wierzycieli |
-| `CDN.AI_ChatERP_PodajNiezrealizowaneZamowieniaPrzeterminowane` | Przeterminowane ZS/ZZ |
-| `CDN.AI_ChatERP_PodajPrzeterminowaneFaktury` | Przeterminowane faktury |
-| `CDN.AI_ChatERP_PodajKupcow` | Lista kupców |
-| `CDN.AI_ChatERP_PodajZalegajaceTowary` | Zalegające towary |
-| `CDN.AI_ChatERP_PodajZalegajaceTowaryNaMagazynie` | Zalegające towary na magazynie |
+| Procedura | Parametry | Opis |
+|---|---|---|
+| `CDN.AI_ChatERP_PodajSprzedaz` | @KntNipNazwaAkronim VARCHAR(255), @ZakresDaty TINYINT | Sprzedaż dla kontrahenta (szuka po NIP/Nazwie/Akronimie) |
+| `CDN.AI_ChatERP_PodajNajwiecejKupowane` | @IloscRekordow INT, @ZakresDaty TINYINT | Top N najczęściej kupowanych towarów |
+| `CDN.AI_ChatERP_PodajNajwiecejSprzedawane` | @IloscRekordow INT, @ZakresDaty TINYINT | Top N najczęściej sprzedawanych towarów |
+| `CDN.AI_ChatERP_PodajNajwiekszychOdbiorcow` | @IloscRekordow INT, @ZakresDaty TINYINT | Top N największych odbiorców (FS) |
+| `CDN.AI_ChatERP_PodajNajwiekszychDostawcow` | @IloscRekordow INT, @ZakresDaty TINYINT | Top N największych dostawców (FZ) |
+| `CDN.AI_ChatERP_PodajNajwiekszychDluznikow` | @IloscRekordow INT | Top N dłużników z przeterminowanymi należnościami |
+| `CDN.AI_ChatERP_PodajNajwiekszychWierzycieli` | @IloscRekordow INT | Top N wierzycieli z kwotą zobowiązań |
+| `CDN.AI_ChatERP_PodajNiezrealizowaneZamowieniaPrzeterminowane` | @IloscRekordow INT | Przeterminowane ZS/ZZ |
+| `CDN.AI_ChatERP_PodajPrzeterminowaneFaktury` | @IloscRekordow INT | Przeterminowane faktury |
+| `CDN.AI_ChatERP_PodajKupcow` | @IloscRekordow INT, @TwrKod VARCHAR(255), @ZakresDaty TINYINT | Kupcy konkretnego towaru |
+| `CDN.AI_ChatERP_PodajZalegajaceTowary` | @IloscRekordow INT | Towary zalegające na magazynie |
+| `CDN.AI_ChatERP_PodajZalegajaceTowaryNaMagazynie` | @IloscRekordow INT | Towary zalegające z detalami stanu |
+| `CDN.AI_ChatERP_PodajWzrostSprzedazyNarastajaco` | — | Wzrost sprzedaży YTD vs poprzedni rok |
+
+**@ZakresDaty:** `0` = ostatni tydzień, `1` = ostatni miesiąc, `2` = ostatni rok
 
 Definicje w: `erp_docs/raw/Dokumnetacja bazy/AI_ChatERP_*.html`
 Uprawnienia przyznane roli `CDNRaport` — sprawdź czy CEiM_BI ją dziedziczy.
+Jeśli nie: można wzorować się na ich logice SQL i budować widoki BI analogicznie.
+
+### Funkcje konwersji dat CDN (referencja)
+
+Poniższe funkcje CDN **istnieją w bazie**, ale konto `CEiM_Reader`/`CEiM_BI` może nie mieć
+EXECUTE (error 229). W widokach BI używaj wzorców inline (sekcja 7). Dla filtrów ERP
+(wstrzykiwanych przez aplikację) i widoków tworzonych przez DBA — są dostępne.
+
+| Funkcja | Sygnatura | Działanie |
+|---|---|---|
+| `CDN.DateToClarion` | `(@dt DATETIME) → INT` | DATETIME → Clarion int (`DATEDIFF(dd,'1800-12-28',@dt)`) |
+| `CDN.DateToTS` | `(@dt DATETIME) → INT` | DATETIME → sekundy od 1990-01-01 |
+| `CDN.DateDiffClarion` | `(@typ SMALLINT, @D1 INT, @D2 INT) → INT` | Różnica Clarion: 1=dni, 2=miesiące, 3=lata |
+| `CDN.DataClarionPrzesun` | `(@DataPrzed INT, @Ile INT, @Jed INT) → INT` | Przesuń datę Clarion: 0=dni, 1=tyg, 2=mies, 3=lata |
+| `CDN.Data` | `(@Rok INT, @Miesiac INT, @Dzien INT) → INT` | Rok/Miesiąc/Dzień → Clarion int (0 w Dzień = ostatni dzień miesiąca) |
+| `CDN.YMD` | `(@Year INT, @Month INT, @Day INT) → DATETIME` | Rok/Miesiąc/Dzień → DATETIME |
+| `CDN.DniZwloki` | `(@DataRoz INT, @Termin INT, @Today INT, @Rozliczony INT) → INT` | Dni zwłoki (0 jeśli brak) |
 
 ### GIDTyp — kody typów dokumentów (najważniejsze)
 
@@ -518,6 +538,36 @@ AND Rez_DataRealizacji > 0
 
 Tabele z datami Clarion: `CDN.Rezerwacje` (Rez_DataRealizacji, Rez_DataWaznosci),
 `CDN.ZamNag` (ZaN_DataRealizacji), `CDN.TwrKarty` (Twr_DataUtworzenia), i większość pozostałych.
+
+### Arytmetyka dat Clarion — wzorce inline (bez wywoływania funkcji CDN)
+
+```sql
+-- Pierwszy dzień bieżącego miesiąca jako Clarion int:
+DATEDIFF(d, '18001228', DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1))
+
+-- Ostatni dzień bieżącego miesiąca jako Clarion int:
+DATEDIFF(d, '18001228', EOMONTH(GETDATE()))
+
+-- Data N dni temu jako Clarion int:
+DATEDIFF(d, '18001228', DATEADD(d, -N, GETDATE()))
+
+-- Data N miesięcy temu jako Clarion int:
+DATEDIFF(d, '18001228', DATEADD(month, -N, GETDATE()))
+
+-- Różnica w dniach między dwiema datami Clarion (bez CDN.DateDiffClarion):
+(kolumna_clarion_2 - kolumna_clarion_1)    -- proste odejmowanie = różnica dni
+
+-- Przesuń datę Clarion o N dni (bez CDN.DataClarionPrzesun):
+(kolumna_clarion + N)                       -- dodaj dni bezpośrednio
+
+-- Przykład: rezerwacje z ostatnich 30 dni:
+Rez_DataRealizacji >= DATEDIFF(d, '18001228', DATEADD(d, -30, GETDATE()))
+AND Rez_DataRealizacji > 0
+
+-- Przykład: zamówienia z bieżącego miesiąca (ZamNag używa Clarion):
+ZaN_DataRealizacji >= DATEDIFF(d, '18001228', DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1))
+AND ZaN_DataRealizacji <= DATEDIFF(d, '18001228', EOMONTH(GETDATE()))
+```
 
 ### Daty w CDN.TraNag — UWAGA: format SQL, nie Clarion
 
@@ -691,6 +741,98 @@ Poniższe filtry zostały zaimportowane z bazy ale mają wady:
 - Uruchom testowe zapytanie przez `sql_query.py` — sprawdź czy wynik jest sensowny
 - Sprawdź czy kolumny w JOINach istnieją (`INFORMATION_SCHEMA`)
 - Przy filtrach z @PAR: przetestuj logikę warunku z podstawionymi wartościami testowymi
+
+---
+
+## 11. Widoki BI — wzorce projektowe
+
+Widoki BI tworzone są w schemacie `BI` (nie `CDN`) przez konto DBA i udostępniane
+kontu `CEiM_BI` (SELECT na `BI.*` tylko).
+
+### Zasady nazewnictwa
+
+- Widok: `BI.Rezerwacje`, `BI.Zamowienia`, `BI.Towary` (rzeczownik w liczbie mnogiej, PascalCase)
+- Kolumny: `NazwaKontrahenta`, `DataRealizacji`, `IloscDoPokrycia` (opisowe, PascalCase)
+- Każdy widok musi mieć kolumnę `ID` jako klucz główny (umożliwia relacje w Power BI)
+
+### Ograniczenia konta CEiM_BI
+
+- Brak EXECUTE na funkcje CDN (error 229 — identycznie jak CEiM_Reader)
+- Wszystkie konwersje dat i numery dokumentów muszą być inline w definicji widoku
+- SELECT tylko na `BI.*` — brak bezpośredniego dostępu do `CDN.*` (widok jest pośrednikiem)
+
+### Wzorzec: konwersja dat w widoku
+
+```sql
+-- Clarion → DATE (obsługa 0 = brak daty):
+CASE WHEN r.Rez_DataRealizacji = 0 THEN NULL
+     ELSE CAST(DATEADD(d, r.Rez_DataRealizacji, '18001228') AS DATE)
+END AS DataRealizacji
+```
+
+### Wzorzec: numer dokumentu bez CDN.NumerDokumentu
+
+```sql
+-- Numer ZS (ZamNag): seria/numer/rok
+CASE WHEN r.Rez_ZrdTyp = 960 AND z.ZaN_GIDNumer IS NOT NULL
+     THEN RTRIM(z.ZaN_ZamSeria) + '/' + CAST(z.ZaN_ZamNumer AS VARCHAR(10))
+          + '/' + CAST(z.ZaN_ZamRok AS VARCHAR(4))
+     ELSE NULL
+END AS NumerZamowieniaZS
+
+-- Numer FS (TraNag): seria/numer/rok
+RTRIM(n.TrN_Seria) + '/' + CAST(n.TrN_NumerTrN AS VARCHAR(10))
++ '/' + CAST(n.TrN_Rok AS VARCHAR(4)) AS NumerDokumentu
+```
+
+### Wzorzec: magazyn globalny (IDMagazynu = 0)
+
+```sql
+CASE WHEN r.Rez_MagNumer = 0 THEN 'Globalnie'
+     ELSE m.Mag_Nazwa
+END AS Magazyn,
+r.Rez_MagNumer AS IDMagazynu
+```
+
+### Wzorzec: JOIN kontrahenta (dwuczęściowy klucz)
+
+```sql
+LEFT JOIN CDN.KntKarty k ON k.Knt_GIDNumer = r.Rez_KntNumer
+                         AND k.Knt_GIDTyp   = r.Rez_KntTyp
+```
+
+Zawsze używaj **LEFT JOIN** dla kontrahenta — rezerwacje wewnętrzne mogą nie mieć KntNumer.
+
+### Widoki a WHERE — brak filtrowania
+
+Widoki BI **nie zawierają klauzuli WHERE** z logiką biznesową — zwracają pełne zbiory.
+Filtrowanie aktywnych/nieaktywnych wykonuje bot/Power BI na poziomie zapytania:
+
+```sql
+-- Poprawnie: brak WHERE (tylko WHERE wykluczający rekordy techniczne):
+WHERE r.Rez_TwrNumer > 0    -- wyklucza rekordy techniczne bez towaru
+
+-- Nie: WHERE r.Rez_Aktywna = 1  ← ograniczałoby Power BI
+```
+
+Wyjątek: warunek techniczny wykluczający rekordy bez klucza głównego (`TwrNumer > 0`).
+
+### Katalog widoków BI
+
+Każdy nowy widok musi być odnotowany w `solutions/bi/catalog.json`:
+
+```json
+{
+  "name": "BI.NazwaWidoku",
+  "file": "views/NazwaWidoku.sql",
+  "description": "...",
+  "primary_table": "CDN.XXX",
+  "joins": ["CDN.YYY", "CDN.ZZZ"],
+  "columns": ["ID", "Kolumna1", "Kolumna2"],
+  "example_questions": ["jak...", "ile..."],
+  "notes": "Wskazówki dla bota (wartości kodowane, warunki filtrowania)"
+}
+```
 
 ---
 

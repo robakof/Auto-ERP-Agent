@@ -22,6 +22,10 @@ python tools/search_solutions.py "fraza" [--window "Okno"] [--type columns|filte
 python tools/search_windows.py "fraza" [--type columns|filters]
   → data.results[].{id, name, aliases, primary_table, config_types}
 
+python tools/export_excel.py "SELECT ..." [--output SCIEZKA.xlsx]
+  → data.path, data.row_count, data.columns | error.type
+  (eksport wyników SQL do pliku Excel; domyślnie zapisuje do exports/)
+
 python tools/save_solution.py --window "..." --view "..." --type columns|filters --name "..." --sql "..."
   → data.path
 
