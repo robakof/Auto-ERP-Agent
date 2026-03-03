@@ -105,13 +105,18 @@ Warstwa BI skraca agenta — zamiast budować JOINy przez `CDN.TwrKarty`
 
 - Uruchomiony jako serwis Windows (serwer firmowy, sieć lokalna)
 - Przyjmuje pytanie w języku naturalnym (polskim)
-- Pipeline:
-  1. Dopasuj do biblioteki raportów (parametryzowane zapytania)
-  2. Jeśli brak dopasowania → wygeneruj SQL ad-hoc z BI views (Claude API)
-  3. Wykonaj SELECT (read-only, schema BI)
-  4. Sformułuj odpowiedź w języku naturalnym
+- Pipeline (2 wywołania Claude API):
+  1. **Dopasuj lub wygeneruj SQL** (Claude API, jedno wywołanie):
+     dopasowanie do biblioteki raportów + fallback generowanie ad-hoc z BI views
+  2. **Walidacja SQL**: blokada DML/EXEC, wymuszenie TOP, timeout
+     (te same guardrails co sql_query.py z Fazy 1)
+  3. **Wykonaj SELECT** (read-only, schema BI)
+  4. **Sformułuj odpowiedź** w języku naturalnym (Claude API, drugie wywołanie)
+- Kontekst konwersacji: ostatnie 3 tury per użytkownik (reset po 15 min
+  nieaktywności) — umożliwia doprecyzowanie ("A ile u nich?")
 - Loguje pytania i odpowiedzi (źródło danych do budowy biblioteki raportów)
 - Obsługuje brak wyników, błędy SQL, pytania poza zakresem
+- Endpoint `/health` — monitoring dostępności (ping co 5 min, alert na Telegram)
 
 ### F-04 — Kanał Telegram (testowy)
 
@@ -148,8 +153,8 @@ Warstwa BI skraca agenta — zamiast budować JOINy przez `CDN.TwrKarty`
 | ID | Wymaganie | Miara |
 |----|-----------|-------|
 | NF-01 | Czas odpowiedzi bota | < 15 sekund dla gotowego raportu, < 30 s ad-hoc |
-| NF-02 | Bezpieczeństwo danych | Bot i agent: read-only na schema BI, zero dostępu do CDN.* |
-| NF-03 | Lokalność danych | Zapytania SQL nie wychodzą poza sieć firmową; do Claude API trafia tylko pytanie i schemat BI |
+| NF-02 | Bezpieczeństwo danych | Bot i agent: read-only na schema BI, zero dostępu do CDN.*; walidacja SQL przed wykonaniem |
+| NF-03 | Prywatność danych | Do Claude API trafia: (1) pytanie + schemat BI, (2) wyniki zapytania do sformułowania odpowiedzi. Zapytania SQL wykonywane lokalnie. Decyzja zaakceptowana przez właściciela projektu |
 | NF-04 | Dostępność bota | Serwis Windows z auto-restartem (99% uptime w godzinach pracy) |
 | NF-05 | Audytowalność | Wszystkie pytania i odpowiedzi logowane lokalnie |
 
@@ -196,13 +201,14 @@ Repozytorium Git
 
 ## 8. Kwestie otwarte
 
-| # | Pytanie | Wpływ |
-|---|---------|-------|
-| O-01 | Autoryzacja użytkowników bota — whitelist numerów/ID, czy coś innego? | Bezpieczeństwo |
-| O-02 | Nazwa konta SQL dla bota (read-only na BI) — istniejące czy nowe? | Deployment |
-| O-03 | Priorytet pierwszych widoków BI — jakie encje najpilniej potrzebne? | Zakres Fazy 2a |
-| O-04 | Rejestracja Meta Business Account — kto to robi i kiedy? | Harmonogram F-05 |
-| O-05 | Do jakiego stopnia odpowiedzi bota mają być opisowe vs tabelaryczne? | UX |
+| # | Pytanie | Wpływ | Status |
+|---|---------|-------|--------|
+| O-01 | Autoryzacja użytkowników bota — whitelist numerów/ID, czy coś innego? | Bezpieczeństwo | Otwarte |
+| O-02 | Nazwa konta SQL dla bota (read-only na BI) — istniejące czy nowe? | Deployment | Otwarte |
+| O-03 | Priorytet pierwszych widoków BI — jakie encje najpilniej potrzebne? | Zakres Fazy 2a | Otwarte |
+| O-04 | Rejestracja Meta Business Account — kto to robi i kiedy? | Harmonogram F-05 | Otwarte |
+| ~~O-05~~ | ~~Odpowiedzi opisowe vs tabelaryczne~~ | ~~UX~~ | Rozstrzygnięte: opisowe (Claude formatuje odpowiedź z danych SQL) |
+| ~~O-06~~ | ~~Prywatność: dane wynikowe do Claude API~~ | ~~Compliance~~ | Rozstrzygnięte: akceptowalne — wyniki SQL trafiają do Claude API do formatowania |
 
 ---
 
@@ -213,14 +219,18 @@ Repozytorium Git
 - [ ] Struktura `solutions/bi/` w repozytorium
 - [ ] Pierwsze widoki BI (priorytety z O-03)
 - [ ] `search_bi.py` — narzędzie przeszukiwania katalogu widoków
+- [ ] `verify_bi.py` — weryfikacja widoków (`SELECT TOP 1` z każdego), wykrywanie driftu
 - [ ] Rozszerzenie agenta ERP o `search_bi.py`
 
 ### Faza 2b — Bot backend + Telegram
 
 - [ ] Bot backend jako serwis Windows (Python)
-- [ ] Pipeline NLP → SQL → odpowiedź
+- [ ] Pipeline NLP → SQL → odpowiedź (2 wywołania Claude API)
+- [ ] Walidacja SQL (guardrails z Fazy 1)
+- [ ] Kontekst konwersacji (3 tury per user, 15 min TTL)
 - [ ] Kanał Telegram (whitelist użytkowników)
 - [ ] Logowanie pytań i odpowiedzi
+- [ ] Health check (`/health` + watchdog + alert Telegram)
 - [ ] Testy end-to-end (5+ pytań reprezentatywnych)
 
 ### Faza 2c — Biblioteka raportów

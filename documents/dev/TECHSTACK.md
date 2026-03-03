@@ -122,28 +122,29 @@ SQL Server pozostaje całkowicie niedostępny z zewnątrz.
 
 **Model:** `claude-sonnet-4-6` (balans koszt/jakość dla polskiego języka naturalnego)
 
-**Przepływ:**
+**Przepływ (2 wywołania Claude API):**
 
 ```
-1. Pytanie użytkownika (PL)
+1. Pytanie użytkownika (PL) + kontekst (ostatnie 3 tury)
         ↓
-2. Report Matcher
-   - Porównanie pytania z metadanymi biblioteki raportów
-   - Jeśli score > próg → wykonaj gotowy raport z parametrami
-        ↓ (brak dopasowania)
-3. SQL Generator (Claude API)
-   - Prompt zawiera: pytanie + katalog BI views (nazwy, kolumny, opisy)
-   - Claude zwraca SELECT na BI.*
+2. Match + Generate (Claude API, call 1)
+   - Prompt: pytanie + kontekst + katalog BI views + lista raportów
+   - Claude: dopasowuje raport LUB generuje SQL ad-hoc
+        ↓
+3. SQL Validator (lokalnie, bez API)
+   - Blokada DML/EXEC, wymuszenie TOP 100, timeout 30s, tylko BI.*
         ↓
 4. SQL Executor (pyodbc, read-only, BI schema)
         ↓
-5. Answer Formatter (Claude API)
-   - Dane SQL + pytanie → odpowiedź w języku naturalnym (PL)
+5. Answer Formatter (Claude API, call 2)
+   - Pytanie + dane SQL → odpowiedź w języku naturalnym (PL)
 ```
 
-**Co trafia do Claude API:** pytanie użytkownika + schemat BI views (nazwy kolumn,
-opisy). Żadne dane z bazy nie opuszczają sieci firmowej przed uformowaniem odpowiedzi —
-tylko metadane schematu i pytanie.
+**Co trafia do Claude API:**
+- **Call 1:** pytanie + kontekst konwersacji + schemat BI + lista raportów.
+  Zero danych z bazy.
+- **Call 2:** pytanie + wyniki SQL (rekordy z bazy). Dane biznesowe opuszczają
+  sieć firmową — zaakceptowane przez właściciela projektu.
 
 ---
 

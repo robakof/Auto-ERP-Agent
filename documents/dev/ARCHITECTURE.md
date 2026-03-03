@@ -159,14 +159,17 @@ python verify.py          # weryfikacja: docs.db, solutions/, SQL Server
 │  │        └────────┬────────┘           │                   │
 │  │                 ▼                    │                   │
 │  │        NLP Pipeline                  │                   │
-│  │         ├─ Report Matcher ───────────┼──► solutions/bi/  │
-│  │         └─ SQL Generator ────────────┼──► Claude API     │
-│  │                 │                    │    (HTTPS out)     │
-│  │                 ▼                    │                   │
+│  │         ├─ Match+Generate ───────────┼──► Claude API [1] │
+│  │         │  (raport lub ad-hoc SQL)   │    (HTTPS out)    │
+│  │         ▼                            │                   │
+│  │        SQL Validator ────────────────┼ blokada DML/EXEC  │
+│  │         │                            │ TOP 100, timeout  │
+│  │         ▼                            │                   │
 │  │        SQL Executor (pyodbc) ─────────┼──► SQL Server     │
-│  │                 │                    │    BI schema      │
-│  │                 ▼                    │                   │
-│  │        Answer Formatter ─────────────┼──► Claude API     │
+│  │         │                            │    BI schema      │
+│  │         ▼                            │                   │
+│  │        Answer Formatter ─────────────┼──► Claude API [2] │
+│  │         (pytanie + dane → odp. PL)   │                   │
 │  └──────────────────────────────────────┘                   │
 │                                                              │
 │  Cloudflare Tunnel (tylko WhatsApp webhook, port 8000)       │
@@ -190,38 +193,50 @@ Power BI / Excel:
 ### 2.2 NLP Pipeline
 
 ```
-Pytanie użytkownika (PL)
+Pytanie użytkownika (PL) + kontekst (ostatnie 3 tury)
         │
         ▼
-┌─────────────────┐     dopasowanie    ┌──────────────────────┐
-│ Report Matcher  │ ─────────────────► │ Biblioteka raportów  │
-│ (Claude API)    │                    │ solutions/bi/reports/ │
-└────────┬────────┘                    └──────────────────────┘
-         │ brak dopasowania
-         ▼
-┌─────────────────┐     schemat BI     ┌──────────────────────┐
-│ SQL Generator   │ ◄────────────────  │ Katalog BI views     │
-│ (Claude API)    │                    │ solutions/bi/        │
-└────────┬────────┘                    │ catalog.json         │
-         │ SELECT na BI.*              └──────────────────────┘
-         ▼
-┌─────────────────┐
-│ SQL Executor    │ ──► SQL Server, schema BI.* (pyodbc, read-only)
-│ (pyodbc)        │
-└────────┬────────┘
-         │ wyniki JSON
-         ▼
-┌─────────────────┐
-│ Answer Formatter│ ──► Claude API (dane + pytanie → odpowiedź PL)
-└────────┬────────┘
-         │
-         ▼
+┌──────────────────────┐   raporty    ┌──────────────────────┐
+│ Match + Generate     │ ◄──────────  │ Biblioteka raportów  │
+│ (Claude API, call 1) │              │ solutions/bi/reports/ │
+│                      │   schemat    ├──────────────────────┤
+│ Jedno wywołanie:     │ ◄──────────  │ Katalog BI views     │
+│ dopasuj raport LUB   │              │ catalog.json         │
+│ wygeneruj SQL ad-hoc │              └──────────────────────┘
+└──────────┬───────────┘
+           │ SQL
+           ▼
+┌──────────────────────┐
+│ SQL Validator        │  blokada DML/EXEC, wymuszenie TOP,
+│ (lokalny, bez API)   │  timeout 30s, tylko BI.* schema
+└──────────┬───────────┘
+           │ zwalidowany SQL
+           ▼
+┌──────────────────────┐
+│ SQL Executor         │ ──► SQL Server, schema BI.* (pyodbc, read-only)
+│ (pyodbc)             │
+└──────────┬───────────┘
+           │ wyniki JSON
+           ▼
+┌──────────────────────┐
+│ Answer Formatter     │ ──► Claude API (call 2)
+│ (Claude API, call 2) │     pytanie + dane → odpowiedź PL
+└──────────┬───────────┘
+           │
+           ▼
 Odpowiedź do użytkownika (PL)
 ```
 
-**Co trafia do Claude API:** pytanie + schemat BI (nazwy, opisy kolumn).
-Dane z bazy formułowane przez Claude dopiero po ich pobraniu lokalnie —
-żadne rekordy nie opuszczają sieci firmowej jako prompt.
+**Przepływ danych do Claude API (jawna polityka):**
+- **Call 1:** pytanie + kontekst konwersacji + schemat BI (nazwy kolumn, opisy)
+  + lista raportów (nazwy, example_questions). Zero danych z bazy.
+- **Call 2:** pytanie + wyniki SQL (rekordy z bazy). Dane biznesowe opuszczają
+  sieć firmową. Decyzja zaakceptowana przez właściciela projektu.
+
+**Kontekst konwersacji:**
+- Dict per user_id z ostatnimi 3 turami (pytanie + odpowiedź)
+- TTL: 15 minut nieaktywności → reset
+- Stan w pamięci (utracony przy restarcie serwisu — akceptowalne)
 
 ---
 
@@ -271,7 +286,8 @@ solutions/
 tools/
 ├── (Faza 1 — bez zmian)
 ├── search_bi.py                   ← wyszukiwanie widoków BI
-└── search_reports.py              ← dopasowanie pytania do raportu
+├── search_reports.py              ← dopasowanie pytania do raportu
+└── verify_bi.py                   ← SELECT TOP 1 z każdego widoku (drift detection)
 
 bot/
 ├── main.py                        ← entry point serwisu
@@ -279,11 +295,11 @@ bot/
 │   ├── telegram_channel.py
 │   └── whatsapp_channel.py
 ├── pipeline/
-│   ├── nlp_pipeline.py
-│   ├── report_matcher.py
-│   ├── sql_generator.py
-│   └── answer_formatter.py
-└── sql_executor.py
+│   ├── nlp_pipeline.py            ← match+generate (call 1) + format (call 2)
+│   ├── sql_validator.py           ← guardrails: DML block, TOP, timeout, BI.* only
+│   └── conversation.py            ← kontekst 3 tury per user, TTL 15 min
+├── sql_executor.py
+└── health.py                      ← /health endpoint + watchdog
 ```
 
 ---
@@ -394,7 +410,11 @@ analiza najczęstszych pytań bez dopasowania do gotowego raportu.
 |---------|---------------|
 | SQL Server CDN.* | Konto `CEiM_BI` nie ma dostępu — fizyczna separacja |
 | SQL Server BI.* | Konto `CEiM_BI`: SELECT only, bez DDL/DML |
+| Generowany SQL | Walidator: blokada DML/EXEC, wymuszenie TOP 100, timeout 30s, tylko schema BI.* |
 | Bot endpoint | Cloudflare Tunnel — serwer nie ma publicznego IP |
-| Claude API | Wysyłamy: pytanie + schemat BI (nazwy kolumn). Zero danych z bazy |
+| Claude API (call 1) | Pytanie + schemat BI + lista raportów. Zero danych z bazy |
+| Claude API (call 2) | Pytanie + wyniki SQL (dane biznesowe). Zaakceptowane przez właściciela projektu |
 | Autoryzacja użytkowników | Whitelist numerów/ID w `.env` |
 | Logi | Lokalne na serwerze firmowym, nie w repozytorium |
+| Monitoring | `/health` endpoint + watchdog co 5 min + alert Telegram |
+| Drift detection | `verify_bi.py` — SELECT TOP 1 z każdego widoku po aktualizacji ERP |
