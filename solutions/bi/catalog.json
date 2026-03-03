@@ -1,0 +1,31 @@
+{
+  "views": [
+    {
+      "name": "BI.Rezerwacje",
+      "file": "views/Rezerwacje.sql",
+      "description": "Aktywne rezerwacje towarów z danymi towaru, kontrahenta, magazynu i zamówienia źródłowego (ZS). Ilości: zarezerwowana, zrealizowana, do pokrycia. Daty w formacie DATE (po konwersji z Clarion).",
+      "primary_table": "CDN.Rezerwacje",
+      "joins": ["CDN.TwrKarty", "CDN.KntKarty", "CDN.Magazyny", "CDN.ZamNag"],
+      "columns": [
+        "ID", "KodTowaru", "NazwaTowaru", "JednostkaRezerwacji",
+        "AkronimKontrahenta", "NazwaKontrahenta",
+        "IloscZarezerwowana", "IloscZrealizowana", "IloscNaDokMagazynowych", "IloscDoPokrycia",
+        "DataRealizacji", "DataWaznosci",
+        "Magazyn", "IDMagazynu",
+        "TypDokumentuZrodlowego", "IDDokumentuZrodlowego", "NumerZamowieniaZS",
+        "ZrodloRezerwacji", "OpisZrodla", "Aktywna", "Typ"
+      ],
+      "example_questions": [
+        "jakie są aktywne rezerwacje towaru X",
+        "ile sztuk towaru X jest zarezerwowane",
+        "rezerwacje dla kontrahenta Y",
+        "przeterminowane rezerwacje",
+        "rezerwacje na dziś",
+        "co jest zarezerwowane na magazynie X",
+        "niezrealizowane rezerwacje",
+        "ile zostało do pokrycia z rezerwacji towaru X"
+      ],
+      "notes": "WHERE Aktywna=1 AND Typ=1 AND IloscDoPokrycia>0 — bieżące otwarte. ZrodloRezerwacji: 5=ZamWew, 6=RęcznaWew, 9=ZamZew (najczęstsze), 10=RęcznaZew, 16=DokMag."
+    }
+  ]
+}

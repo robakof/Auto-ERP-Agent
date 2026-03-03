@@ -433,11 +433,58 @@ TrN_gidnumer IN (
 )
 ```
 
+**UWAGA:** `CDN.NazwaObiektu`, `CDN.NumerDokumentu`, `CDN.DokMapTypDokumentu` —
+konto `CEiM_Reader` **nie ma** EXECUTE na te funkcje (error 229).
+Dostępne wyłącznie w filtrach ERP (wstrzykiwanych przez aplikację) lub w widokach BI
+tworzonych przez konto DBA (które ma wymagane uprawnienia).
+
+### Gotowe procedury AI_ChatERP (CDN.AI_ChatERP_*)
+
+Comarch dostarcza gotowe procedury SQL dla typowych pytań chatbota. Dostępne w bazie:
+
+| Procedura | Opis |
+|---|---|
+| `CDN.AI_ChatERP_PodajSprzedaz` | Sprzedaż towaru dla kontrahenta w ostatnim tyg/mies/roku |
+| `CDN.AI_ChatERP_PodajNajwiecejKupowane` | Top N najczęściej kupowanych towarów |
+| `CDN.AI_ChatERP_PodajNajwiecejSprzedawane` | Top N najczęściej sprzedawanych towarów |
+| `CDN.AI_ChatERP_PodajNajwiekszychOdbiorcow` | Top N największych odbiorców |
+| `CDN.AI_ChatERP_PodajNajwiekszychDostawcow` | Top N największych dostawców |
+| `CDN.AI_ChatERP_PodajNajwiekszychDluznikow` | Top N największych dłużników |
+| `CDN.AI_ChatERP_PodajNajwiekszychWierzycieli` | Top N największych wierzycieli |
+| `CDN.AI_ChatERP_PodajNiezrealizowaneZamowieniaPrzeterminowane` | Przeterminowane ZS/ZZ |
+| `CDN.AI_ChatERP_PodajPrzeterminowaneFaktury` | Przeterminowane faktury |
+| `CDN.AI_ChatERP_PodajKupcow` | Lista kupców |
+| `CDN.AI_ChatERP_PodajZalegajaceTowary` | Zalegające towary |
+| `CDN.AI_ChatERP_PodajZalegajaceTowaryNaMagazynie` | Zalegające towary na magazynie |
+
+Definicje w: `erp_docs/raw/Dokumnetacja bazy/AI_ChatERP_*.html`
+Uprawnienia przyznane roli `CDNRaport` — sprawdź czy CEiM_BI ją dziedziczy.
+
+### GIDTyp — kody typów dokumentów (najważniejsze)
+
+| GIDTyp | Symbol | Opis |
+|---|---|---|
+| 16 | TWR | Karta towaru (CDN.TwrKarty) |
+| 32 | KNT | Karta kontrahenta (CDN.KntKarty) |
+| 960 | ZS | Zamówienie sprzedaży |
+| 1152 | ZZ | Zamówienie zakupu |
+| 1489 | PZ | Przyjęcie zewnętrzne |
+| 1521 | FZ | Faktura zakupu |
+| 2001 | WZ | Wydanie zewnętrzne |
+| 2033 | FS | Faktura sprzedaży |
+| 2041 | FSK | Korekta faktury sprzedaży |
+| 2592 | BkRez | Rezerwacja (CDN.Rezerwacje) |
+
+Pełna lista typów: `erp_docs/raw/Dokumnetacja bazy/e_typy.html`
+Mapowanie GIDTyp → tabela: `CDN.GIDTyp2Tabela(GIDTyp)` (funkcja; przykłady w GIDTyp2Tabela.html)
+
 ---
 
 ## 7. Konwersja dat
 
-Daty w bazie ERP przechowywane są w formacie Clarion (liczba całkowita). Konwersja:
+Daty w bazie ERP przechowywane są w formacie Clarion (liczba całkowita = liczba dni od 1800-12-28).
+
+### Konwersja w filtrach ERP (przez @PAR @D)
 
 ```sql
 kolumna_daty/86400+69035
@@ -448,6 +495,30 @@ Przykład:
 Twr_DataUtworzenia/86400+69035 >= ??DataOd
 ```
 
+### Konwersja w widokach BI i zapytaniach ad-hoc
+
+Do konwersji Clarion → SQL DATE w widokach BI i zapytaniach bezpośrednich:
+
+```sql
+-- Konwersja kolumny Clarion na DATE:
+CAST(DATEADD(d, kolumna_clarion, '18001228') AS DATE)
+
+-- Obsługa wartości 0 (brak daty):
+CASE WHEN kolumna_clarion = 0 THEN NULL
+     ELSE CAST(DATEADD(d, kolumna_clarion, '18001228') AS DATE)
+END
+
+-- Dzisiejsza data jako Clarion integer (do warunków WHERE):
+DATEDIFF(d, '18001228', GETDATE())
+
+-- Przykład: rezerwacje przeterminowane:
+Rez_DataRealizacji < DATEDIFF(d, '18001228', GETDATE())
+AND Rez_DataRealizacji > 0
+```
+
+Tabele z datami Clarion: `CDN.Rezerwacje` (Rez_DataRealizacji, Rez_DataWaznosci),
+`CDN.ZamNag` (ZaN_DataRealizacji), `CDN.TwrKarty` (Twr_DataUtworzenia), i większość pozostałych.
+
 ### Daty w CDN.TraNag — UWAGA: format SQL, nie Clarion
 
 Kolumny datowe w `CDN.TraNag` (np. `TrN_Data2` — data wystawienia) przechowywane są
@@ -457,7 +528,8 @@ jako **standardowe SQL date**, nie Clarion. Używaj bezpośrednio:
 TrN_Data2 BETWEEN ??DataOd AND ??DataDo
 ```
 
-Konwersja `/86400+69035` dotyczy tylko kolumn w `CDN.TwrKarty` i podobnych.
+Analogicznie w `CDN.TraNag`: `TrN_Data3` (data zakupu/sprzedaży) — też SQL date.
+Konwersja `/86400+69035` dotyczy `CDN.TwrKarty`, `CDN.Rezerwacje`, `CDN.ZamNag` i podobnych.
 
 ---
 
