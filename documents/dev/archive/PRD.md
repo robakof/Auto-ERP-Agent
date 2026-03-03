@@ -234,3 +234,5 @@ VS Code (środowisko agenta)
 
 *Dokument przygotowany: 2026-02-26*
 *Status: Wersja robocza — do weryfikacji przez zespół*
+
+

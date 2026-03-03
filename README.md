@@ -67,9 +67,7 @@ copy .env.example .env   # uzupełnij SQL credentials
 │   │   └── ERP_SQL_SYNTAX.md          # Składnia SQL specyficzna dla Comarch XL
 │   └── dev/
 │       ├── AI_GUIDELINES.md           # Wytyczne dla agenta deweloperskiego
-│       ├── PRD.md                     # Wymagania produktowe
 │       ├── ARCHITECTURE.md            # Architektura systemu
-│       ├── MVP_IMPLEMENTATION_PLAN.md # Plan implementacji
 │       └── progress_log.md            # Log postępów prac
 │
 └── tests/                             # Testy jednostkowe (pytest)
