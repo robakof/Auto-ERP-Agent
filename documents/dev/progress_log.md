@@ -331,3 +331,43 @@ Zaktualizować CLAUDE.md — wskazania który plik ładować przy jakim zadaniu.
 **Następny krok: implementacja według planu powyżej**
 
 ---
+
+### 2026-03-04 — Implementacja planu restrukturyzacji
+
+**Narzędzia programistyczne (166 testów, 100% zielone):**
+- `tools/read_excel_stats.py` — statystyki kolumn z xlsx bez ładowania danych do kontekstu
+  (per kolumna: total, distinct, null_count, values/sample; 17 testów)
+- `tools/export_bi_view.py` — wieloarkuszowy eksport widoku BI
+  (Plan z pliku .md lub szablon + Wynik SQL + opcjonalna Surówka; 21 testów)
+- `tools/export_excel.py` — dodano opcjonalny `--view-name` do nazwy pliku (+2 testy)
+
+**Separacja ERP_SQL_SYNTAX.md → 5 plików:**
+- `ERP_SQL_SYNTAX.md` — skrócony rdzeń (~80 linii z 840): filtr.sql, CDN functions, GIDTyp
+- `ERP_COLUMNS_WORKFLOW.md` — workflow kolumn ERP (nowy)
+- `ERP_FILTERS_WORKFLOW.md` — workflow filtrów ERP z @PAR (nowy)
+- `ERP_SCHEMA_PATTERNS.md` — wzorce schematu: daty Clarion (DATE + TIMESTAMP), CDN.Obiekty,
+  ZaN_ZamTyp odkrycie, numeracja dokumentów, tabele pomocnicze (nowy)
+- `ERP_VIEW_WORKFLOW.md` — workflow widoków BI z checklistą discovery (nowy)
+
+**CLAUDE.md** — tabela zadanie→plik, nowe narzędzia, workflow BI jako osobna sekcja.
+
+---
+
+### 2026-03-04 — Poprawki wytycznych po analizie sesji agenta (Działanie Agneta.md)
+
+Przeanalizowano sesję w której agent tworzył widok BI.Rezerwacje. Zidentyfikowano braki:
+
+**ERP_SCHEMA_PATTERNS.md:**
+- Usunięto `ZaN_ZamTyp=1280 → 'ZAM'` — agent dopisał niezweryfikowaną etykietę
+- Reguła: nieznane wartości enumeracji → eskaluj do usera z surówką, nie zgaduj
+
+**ERP_VIEW_WORKFLOW.md:**
+- Faza 0c: `SELECT DISTINCT` wszystkich wartości → cross-reference z CDN.Obiekty jednym
+  zapytaniem; nieznana wartość → eskalacja przed wpisaniem do CASE
+- Faza 0e: weryfikacja numerów przez `ROW_NUMBER PARTITION BY typ` — po 1 przykładzie
+  na każdy typ dokumentu (nie TOP 5 losowo)
+- Faza 1: plan MUSI być zapisany jako plik .md PRZED pokazaniem userowi
+- Szablon planu: `CDN_Pole` jako główna kolumna mapowania (nie alias)
+- Faza 3: export + read_excel_stats obowiązkowe bez pytania; rozbieżność COUNT → zbadaj
+
+---
