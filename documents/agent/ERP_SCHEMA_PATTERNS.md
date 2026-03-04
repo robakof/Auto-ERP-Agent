@@ -84,11 +84,13 @@ Znane wartości:
 **UWAGA — częsty błąd:**
 
 - `ZaN_GIDTyp` = 960 dla **wszystkich** rekordów ZamNag (typ obiektu/tabeli — nie używaj do rozróżniania ZS/ZZ)
-- `ZaN_ZamTyp` = faktyczny kierunek dokumentu: **960 = ZS** (sprzedaż), **1152 = ZZ** (zakup)
+- `ZaN_ZamTyp` = faktyczny kierunek dokumentu: **1280 = ZS** (sprzedaż), **1152 = ZZ** (zakup)
+  - UWAGA: w bazie ERPXL_CEIM ZS ma typ **1280**, nie 960 (zweryfikowano CDN.NazwaObiektu 2026-03-04)
+  - Wartość 960 nie pojawia się w aktywnych rezerwacjach tej bazy
 
 ```sql
--- Poprawnie — kierunek zamówienia:
-CASE z.ZaN_ZamTyp WHEN 960 THEN 'ZS' WHEN 1152 THEN 'ZZ' ELSE '???' END
+-- Poprawnie — kierunek zamówienia (baza ERPXL_CEIM):
+CASE z.ZaN_ZamTyp WHEN 1280 THEN 'ZS' WHEN 1152 THEN 'ZZ' ELSE '???' END
 
 -- Błędnie — ZaN_GIDTyp zawsze 960:
 CASE z.ZaN_GIDTyp ...  ← NIGDY nie używaj do rozróżniania ZS/ZZ
