@@ -136,8 +136,8 @@ WHERE r.Rez_Aktywna = 1
 
 ### Kolejność kolumn
 
-Odwzorowuj kolejność kolumn z tabeli źródłowej:
-GID → klucze obce (towar, kontrahent) → typ dokumentu źródłowego → magazyn → ilości → daty → flagi → metryki obliczeniowe
+Odwzorowuj kolejność kolumn z tabeli źródłowej — sprawdź kolejność przez `SELECT TOP 1 * FROM CDN.Tabela`
+i trzymaj się jej w widoku. Metryki obliczeniowe (np. `Ilosc_Do_Pokrycia`) dopisuj na końcu.
 
 ### Ograniczenia CEiM_BI
 
