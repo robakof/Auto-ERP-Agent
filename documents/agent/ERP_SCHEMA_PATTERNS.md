@@ -1,0 +1,225 @@
+# ERP — Wzorce schematu bazy
+
+Wzorce konwersji dat, tabel pomocniczych i nieoczywistych struktur CDN.
+Ładuj gdy pracujesz z datami, atrybutami, dokumentami lub nieznanymi tabelami.
+
+---
+
+## Konwersja dat Clarion
+
+### Dwa różne formaty — rozróżnij przed pisaniem kodu
+
+| Format | Zakres wartości | Przykład kolumny | Konwersja |
+|---|---|---|---|
+| **Clarion DATE** | ~70000–100000 (dni od 1800-12-28) | Rez_DataRealizacji, Twr_DataUtworzenia, ZaN_DataRealizacji | `DATEADD(d, col, '18001228')` |
+| **Clarion TIMESTAMP** | ~10^9 (sekundy od 1990-01-01) | Rez_DataRezerwacji | `DATEADD(ss, col, '1990-01-01')` |
+| **SQL DATE** | format daty SQL | TrN_Data2, TrN_Data3 (TraNag) | bez konwersji |
+
+**Jak zidentyfikować:** `SELECT MIN(col), MAX(col) FROM CDN.Tabela`
+- ~70000–100000 → Clarion DATE
+- ~10^9 → Clarion TIMESTAMP
+- format daty → SQL DATE
+
+### Wzorce konwersji (inline, bez CDN functions)
+
+```sql
+-- Clarion DATE → SQL DATE (obsługa 0 = brak daty):
+CASE WHEN col = 0 THEN NULL
+     ELSE CAST(DATEADD(d, col, '18001228') AS DATE)
+END
+
+-- Clarion TIMESTAMP → DATETIME:
+CASE WHEN col = 0 THEN NULL
+     ELSE CAST(DATEADD(ss, col, '1990-01-01') AS DATETIME)
+END
+
+-- Dzisiejsza data jako Clarion int (do WHERE):
+DATEDIFF(d, '18001228', GETDATE())
+
+-- Pierwszy/ostatni dzień bieżącego miesiąca jako Clarion:
+DATEDIFF(d, '18001228', DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1))
+DATEDIFF(d, '18001228', EOMONTH(GETDATE()))
+
+-- N dni temu jako Clarion:
+DATEDIFF(d, '18001228', DATEADD(d, -N, GETDATE()))
+
+-- Różnica między dwiema datami Clarion w dniach:
+(col2 - col1)    -- proste odejmowanie
+
+-- Filtr w WHERE (rezerwacje aktywne i nieprzeterminowane):
+Rez_DataRealizacji >= DATEDIFF(d, '18001228', GETDATE())
+AND Rez_DataRealizacji > 0
+```
+
+### Filtr przez @PAR @D
+
+```sql
+-- ERP podstawia wartość Clarion, konwersja po stronie ERP:
+Twr_DataUtworzenia/86400+69035 >= ??DataOd
+```
+
+---
+
+## CDN.Obiekty — słownik typów dokumentów
+
+Przy polach GIDTyp w nieznanej tabeli — sprawdź CDN.Obiekty:
+
+```sql
+SELECT OB_GIDTyp, OB_Nazwa, OB_Skrot
+FROM CDN.Obiekty
+WHERE OB_GIDTyp IN (960, 2592, 14346)
+```
+
+Znane wartości:
+| GIDTyp | Nazwa | Skrót |
+|---|---|---|
+| 960 | Zamówienie | Zam |
+| 2592 | Rezerwacja u dostawcy | BkRez |
+| 14346 | Zasób procesu produkcyjnego | ZPZ |
+
+---
+
+## ZaN_ZamTyp vs ZaN_GIDTyp (CDN.ZamNag)
+
+**UWAGA — częsty błąd:**
+
+- `ZaN_GIDTyp` = 960 dla **wszystkich** rekordów ZamNag (typ obiektu/tabeli — nie używaj do rozróżniania ZS/ZZ)
+- `ZaN_ZamTyp` = faktyczny kierunek dokumentu: **960 = ZS** (sprzedaż), **1152 = ZZ** (zakup)
+
+```sql
+-- Poprawnie — kierunek zamówienia:
+CASE z.ZaN_ZamTyp WHEN 960 THEN 'ZS' WHEN 1152 THEN 'ZZ' ELSE 'ZAM' END
+
+-- Błędnie — ZaN_GIDTyp zawsze 960:
+CASE z.ZaN_GIDTyp ...  ← NIGDY nie używaj do rozróżniania ZS/ZZ
+```
+
+---
+
+## Numeracja dokumentów (inline, bez CDN.NumerDokumentu)
+
+Funkcja `CDN.NumerDokumentu` i `CDN.NazwaObiektu` wymagają EXECUTE — CEiM_Reader nie ma dostępu.
+Buduj numer ręcznie. **Przed wdrożeniem zweryfikuj z userem** — poproś o SELECT z CDN funkcją
+i porównaj z ręczną konstrukcją na realnych danych.
+
+### ZamNag (ZS/ZZ)
+
+```sql
+CASE z.ZaN_ZamTyp WHEN 960 THEN 'ZS' WHEN 1152 THEN 'ZZ' ELSE 'ZAM' END
++ '-' + CAST(z.ZaN_ZamNumer AS VARCHAR(10))
++ '/' + RIGHT('0' + CAST(z.ZaN_ZamMiesiac AS VARCHAR(2)), 2)  -- zero-padded miesiąc
++ '/' + CAST(z.ZaN_ZamRok AS VARCHAR(4))
++ '/' + RTRIM(z.ZaN_ZamSeria)
+-- Wynik: ZS-9/09/2025/ZTHK
+```
+
+### TraNag (FS/FZ/WZ/PZ)
+
+```sql
+RTRIM(n.TrN_Seria) + '/' + CAST(n.TrN_NumerTrN AS VARCHAR(10))
++ '/' + CAST(n.TrN_Rok AS VARCHAR(4))
+```
+
+---
+
+## JOIN kontrahenta (dwuczęściowy klucz)
+
+```sql
+LEFT JOIN CDN.KntKarty k ON k.Knt_GIDNumer = r.Rez_KntNumer
+                         AND k.Knt_GIDTyp   = r.Rez_KntTyp
+```
+
+Zawsze LEFT JOIN — rezerwacje wewnętrzne mogą nie mieć KntNumer.
+
+---
+
+## Magazyn globalny (ID = 0)
+
+```sql
+CASE WHEN r.Rez_MagNumer = 0 THEN 'Globalnie' ELSE m.Mag_Nazwa END AS Magazyn,
+CASE WHEN r.Rez_MagNumer = 0 THEN NULL ELSE m.Mag_Kod END AS Kod_Magazynu,
+CASE WHEN r.Rez_MagNumer = 0 THEN 'Tak' ELSE 'Nie' END AS Rezerwacja_Globalna
+-- i zawsze LEFT JOIN CDN.Magazyny m ON m.Mag_GIDNumer = r.Rez_MagNumer
+```
+
+---
+
+## Tabele pomocnicze
+
+### Załączniki (CDN.DaneBinarne + CDN.DaneObiekty)
+
+```sql
+NOT EXISTS (
+    SELECT 1
+    FROM CDN.DaneObiekty dao
+    JOIN CDN.DaneBinarne dab ON dao.DAO_DABId = dab.DAB_ID
+    WHERE dao.DAO_ObiNumer = Twr_GIDNumer
+      AND dao.DAO_ObiTyp = Twr_GIDTyp
+      AND LOWER(dab.DAB_Rozszerzenie) = 'jpg'
+)
+```
+
+### Stan magazynowy (CDN.TwrZasoby)
+
+| Kolumna | Znaczenie |
+|---|---|
+| `TwZ_Ilosc` | Ilość dostępna (widoczna w ERP jako "stan") |
+| `TwZ_IlMag` | Ilość fizyczna w magazynie |
+
+```sql
+NOT EXISTS (
+    SELECT 1 FROM CDN.TwrZasoby
+    WHERE TwZ_TwrNumer = Twr_GIDNumer AND TwZ_Ilosc > 0
+)
+```
+
+### Atrybuty (CDN.Atrybuty)
+
+```sql
+EXISTS (
+    SELECT 1 FROM CDN.Atrybuty
+    WHERE Atr_ObiNumer = Twr_GIDNumer AND Atr_ObiTyp = Twr_GIDTyp
+      AND Atr_AtkId = 59 AND Atr_Wartosc = 'Wartość'
+)
+```
+
+### Opisy dokumentów
+
+```sql
+-- Handlowe (CDN.TrNOpisy):
+TrN_GIDNumer IN (SELECT TnO_TrnNumer FROM cdn.TrNOpisy WHERE UPPER(Tno_Opis) LIKE '%SEZON%')
+
+-- Zamówienia (CDN.ZaNOpisy):
+ZaN_GIDNumer IN (SELECT ZnO_ZamNumer FROM cdn.ZaNOpisy WHERE ZnO_Opis LIKE '%SEZON%')
+```
+
+### Operatorzy (CDN.OpeKarty)
+
+```sql
+JOIN cdn.OpeKarty ON TrN_OpeNumerW = Ope_GIDNumer AND TrN_OpeTypW = Ope_GIDTyp
+WHERE Ope_Ident LIKE '%' + ??Wystawiajacy + '%'
+```
+
+### Płatności (CDN.TraPlat)
+
+| Kolumna | Znaczenie |
+|---|---|
+| `TrP_FormaNazwa` | Nazwa formy płatności |
+| `TrP_Kwota` | Kwota |
+| `TrP_Rozliczona` | 0 = nierozliczona |
+| `TrP_FormaNr` | 10=gotówka, 50=karta |
+
+### Prefiks widoku Kontrahenci/Grupy
+
+Widok "Grupy" używa prefiksu `KnG_` (nie `Knt_`). Filtr musi odnosić się do `KnG_GIDNumer`.
+
+---
+
+## Znane problematyczne filtry
+
+| Plik | Problem |
+|---|---|
+| `Okno lista zamówień sprzedaży/Zamówienia/filters/Wystawiający.sql` | Brak `??Wystawiający` w WHERE |
+| `Okno dokumenty/Magazynowe/filters/Sezon w opisie dokumentu.sql` | Używa `TrN_GIDNumer` zamiast `MaN_GIDNumer` |
+| `Okno zapisy bankowe/Zapisy bankowe/filters/Wartość i numer dokumentu.sql` | Stary format inline bez `@PAR` |
+| `Okno dokumenty/Elementy/columns/Marża.sql` | Brak `WHERE {filtrsql}` |

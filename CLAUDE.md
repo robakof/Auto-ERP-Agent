@@ -3,7 +3,15 @@
 Jesteś agentem konfigurującym system ERP Comarch XL. Autonomicznie generujesz i testujesz
 kod SQL dla kolumn i filtrów w oknach ERP. Eskalujesz do użytkownika tylko gdy niezbędne.
 
-Składnia SQL dla tego ERP: `documents/agent/ERP_SQL_SYNTAX.md` — przeczytaj przed generowaniem.
+Dokumenty SQL — ładuj odpowiedni plik zależnie od zadania:
+
+| Zadanie | Plik |
+|---|---|
+| Kolumna ERP | `documents/agent/ERP_COLUMNS_WORKFLOW.md` |
+| Filtr ERP | `documents/agent/ERP_FILTERS_WORKFLOW.md` |
+| Widok BI | `documents/agent/ERP_VIEW_WORKFLOW.md` |
+| Daty, JOINy, tabele pomocnicze | `documents/agent/ERP_SCHEMA_PATTERNS.md` |
+| Funkcje CDN, GIDTyp (ogólne) | `documents/agent/ERP_SQL_SYNTAX.md` |
 
 ---
 
@@ -22,9 +30,19 @@ python tools/search_solutions.py "fraza" [--window "Okno"] [--type columns|filte
 python tools/search_windows.py "fraza" [--type columns|filters]
   → data.results[].{id, name, aliases, primary_table, config_types}
 
-python tools/export_excel.py "SELECT ..." [--output SCIEZKA.xlsx]
+python tools/export_excel.py "SELECT ..." [--output SCIEZKA.xlsx] [--view-name "Nazwa"]
   → data.path, data.row_count, data.columns | error.type
-  (eksport wyników SQL do pliku Excel; domyślnie zapisuje do exports/)
+  (szybki eksport SQL → jeden arkusz xlsx; nazwa pliku: {view_name}_TIMESTAMP.xlsx)
+
+python tools/export_bi_view.py --sql "SELECT ..." --view-name "Nazwa"
+                               [--source-table CDN.XXX] [--plan SCIEZKA.md] [--output SCIEZKA.xlsx]
+  → data.path, data.view_name, data.row_count, data.sheets | error.type
+  (eksport widoku BI: arkusze Plan + Wynik + opcjonalnie Surówka)
+
+python tools/read_excel_stats.py --file SCIEZKA.xlsx [--sheet NAZWA]
+                                 [--max-unique N] [--columns col1,col2]
+  → data.sheet, data.row_count, data.columns[].{name, total, distinct, null_count, values|sample}
+  (statystyki kolumn z xlsx — weryfikacja wyniku bez ładowania danych do kontekstu)
 
 python tools/save_solution.py --window "..." --view "..." --type columns|filters --name "..." --sql "..."
   → data.path
@@ -42,7 +60,7 @@ Przy `ok: false` — czytaj `error.type` i `error.message`.
 
 ---
 
-## Workflow
+## Workflow — kolumna lub filtr ERP
 
 ### Krok 1 — Zidentyfikuj okno ERP
 
@@ -51,7 +69,7 @@ python tools/search_windows.py "fraza z wymagania użytkownika"
 ```
 
 - Znaleziono → przejdź do kroku 2
-- Nie znaleziono → pokaż użytkownikowi listę znanych okien, zapytaj "czy chodzi o X?"
+- Nie znaleziono → pokaż listę znanych okien, zapytaj "czy chodzi o X?"
   Po potwierdzeniu: dopisz alias (krok 9), wróć do kroku 2
 
 ### Krok 2 — Odczytaj kontekst widoku
@@ -76,14 +94,13 @@ Naśladuj styl istniejących rozwiązań — JOINy, aliasy, format parametrów.
 python tools/search_docs.py "słowa kluczowe" --table CDN.XXX --useful-only
 ```
 
-Zwróć uwagę na `value_dict` (słownik wartości) i `sample_values` — pomagają dobrać
-właściwy warunek WHERE i zrozumieć znaczenie kolumn.
+Zwróć uwagę na `value_dict` i `sample_values` — pomagają dobrać warunek WHERE.
 
 ### Krok 5 — Generuj SQL
 
-Per `documents/agent/ERP_SQL_SYNTAX.md`:
-- Kolumna: `SELECT ... FROM cdn.Tabela [JOIN ...] WHERE {filtrsql}`
-- Filtr: sam warunek WHERE (bez SELECT/FROM), opcjonalnie z deklaracjami `@PAR`
+- Kolumna: `documents/agent/ERP_COLUMNS_WORKFLOW.md`
+- Filtr: `documents/agent/ERP_FILTERS_WORKFLOW.md`
+- Daty / tabele pomocnicze: `documents/agent/ERP_SCHEMA_PATTERNS.md`
 
 ### Krok 6 — Testuj
 
@@ -91,31 +108,12 @@ Per `documents/agent/ERP_SQL_SYNTAX.md`:
 python tools/sql_query.py "SELECT TOP 10 ... FROM cdn.Tabela WHERE 1=1"
 ```
 
-Zastąp `{filtrsql}` warunkiem `1=1` lub konkretnym `WHERE`. Sprawdź czy wynik jest sensowny.
-
 - Błąd SQL → analizuj komunikat, popraw, powtórz (maks. 5 iteracji)
-- Wynik pusty lub nieoczekiwany → eskaluj do użytkownika (sekcja Eskalacja)
+- Wynik pusty lub nieoczekiwany → eskaluj do użytkownika
 
 ### Krok 7 — Prezentuj wynik
 
 Pokaż użytkownikowi wygenerowany SQL. Czekaj na akceptację przed zapisem.
-
-**Filtry globalne — metodologia testowania:**
-
-Jeśli nowy filtr ma być częścią istniejącego filtru zbiorczego (globalnego, nie per-użytkownik):
-
-1. **Nie twórz osobnego pliku** dla nowej funkcjonalności
-2. **Najpierw podaj samą logikę warunku** (bez @PAR, bez struktury zbiorczej) — użytkownik
-   przekopiuje do ERP i przetestuje ręcznie
-3. **Po potwierdzeniu że działa** — wygeneruj pełną zaktualizowaną wersję filtru zbiorczego
-   i zapisz z `--force`
-
-Przykład: nowy warunek do przetestowania w izolacji:
-```sql
-Twr_MobSpr=1
-AND EXISTS(SELECT 1 FROM cdn.TwrJM WHERE TwJ_TwrNumer=Twr_GIDNumer AND TwJ_JmZ IN ('opak.','karton'))
-AND NOT EXISTS(SELECT 1 FROM cdn.TwrJM WHERE TwJ_TwrNumer=Twr_GIDNumer AND TwJ_JmZ IN ('opak.','karton') AND TwJ_MobSpr=1)
-```
 
 ### Krok 8 — Zapisz po akceptacji
 
@@ -128,7 +126,7 @@ python tools/save_solution.py \
   --sql "..."
 ```
 
-Następnie commituj i pushuj zmiany do repo:
+Następnie commituj i pushuj:
 
 ```
 git add solutions/
@@ -138,32 +136,38 @@ git push
 
 ### Krok 9 — Zaktualizuj katalog okien (jeśli nowe okno)
 
-Jeśli `save_solution` zapisał do okna którego nie ma w `erp_windows.json`
-(krok 1 nie zwrócił wyników):
-
 ```
 python tools/update_window_catalog.py \
-  --id okno_xxx \
-  --name "Nazwa okna" \
-  --primary-table CDN.XXX \
+  --id okno_xxx --name "Nazwa okna" --primary-table CDN.XXX \
   --config-types columns filters
 ```
 
-Następnie zapytaj użytkownika: "Jak potocznie nazywasz to okno? Dodam aliasy."
-Po odpowiedzi:
+Zapytaj usera: "Jak potocznie nazywasz to okno?" i dopisz aliasy.
 
-```
-python tools/update_window_catalog.py --id okno_xxx --add-alias "alias 1" --add-alias "alias 2"
-```
+---
+
+## Workflow — widok BI
+
+Szczegółowy workflow z fazą discovery i planem mapowania:
+→ `documents/agent/ERP_VIEW_WORKFLOW.md`
+
+Skrót:
+1. Discovery (SELECT TOP 1, COUNT baseline, DISTINCT na typach, MIN/MAX na datach)
+2. Plan mapowania w MD → zatwierdzenie przez usera
+3. SQL (po zatwierdzeniu)
+4. Export: `export_bi_view.py` + weryfikacja: `read_excel_stats.py`
+5. `CREATE OR ALTER VIEW BI.Nazwa AS ...` → commit
 
 ---
 
 ## Aktualizacja dokumentacji
 
-Jeśli w trakcie pracy odkryjesz nowe wzorce SQL, ograniczenia ERP lub nieoczywiste
-zachowania bazy — **natychmiast dopisz do `documents/agent/ERP_SQL_SYNTAX.md`**.
-Nie czekaj na koniec sesji. Przykłady: nowy typ parametru @PAR, nieoczywista kolumna,
-limit znaków, nieudokumentowane zachowanie systemu.
+Jeśli odkryjesz nowy wzorzec SQL, ograniczenie ERP lub nieoczywiste zachowanie bazy —
+**natychmiast dopisz do odpowiedniego pliku** w `documents/agent/`. Nie czekaj na koniec sesji.
+
+- Nowy typ @PAR, limit, format → `ERP_FILTERS_WORKFLOW.md`
+- Nowe odkrycie schematu (kolumna, konwersja, JOIN) → `ERP_SCHEMA_PATTERNS.md`
+- Nowy wzorzec BI → `ERP_VIEW_WORKFLOW.md`
 
 ---
 
@@ -171,29 +175,25 @@ limit znaków, nieudokumentowane zachowanie systemu.
 
 ### Nieznana fraza użytkownika
 
-Użytkownik mówi "dodaj coś do listy zamówień", `search_windows` nie zwraca wyników:
-
-1. Pokaż znane okna: `search_windows.py ""`
-2. Zapytaj: "Nie znam 'lista zamówień'. Czy chodzi o: [X, Y, Z]?"
+1. `search_windows.py ""` → pokaż listę
+2. "Nie znam 'lista zamówień'. Czy chodzi o: [X, Y, Z]?"
 3. Po potwierdzeniu: `update_window_catalog.py --id ... --add-alias "lista zamówień"`
-4. Kontynuuj workflow
 
-### Nowy alias pojawia się w rozmowie
+### Nowy alias w rozmowie
 
-Użytkownik używa nowej nazwy dla okna które już znasz — dopisz alias bez pytania
-jeśli kontekst jest jednoznaczny, z pytaniem jeśli niejednoznaczny.
+Użytkownik używa nowej nazwy dla okna które już znasz — dopisz bez pytania jeśli kontekst
+jednoznaczny, z pytaniem jeśli niejednoznaczny.
 
 ---
 
 ## Formułowanie zapytań FTS5
 
-Tokenizer FTS5 używa `remove_diacritics` — ogonki nieistotne w zapytaniach.
-Nie wykonuje stemmingu — użyj **rdzenia słowa + `*`**:
+Tokenizer FTS5 używa `remove_diacritics` — ogonki nieistotne.
+Brak stemmingu — użyj **rdzenia + `*`**:
 
 ```
 "nagłówek zamówienia"  →  search_docs.py "naglowek* zamowien*"
 "kontrahent"           →  search_docs.py "kontrah*"
-"kartoteka towaru"     →  search_docs.py "kartotek* towar*"
 ```
 
 Zawsze zaczynaj od `--useful-only`. Rozszerz (bez flagi) tylko gdy brak wyników.
@@ -206,16 +206,14 @@ Przerywaj autonomiczną pętlę i pytaj gdy:
 
 - 5 iteracji generowania/testowania bez sukcesu
 - Kolumna z INFORMATION_SCHEMA nie istnieje (problem ze schemą bazy)
-- Wynik testu jest pusty lub zawiera dane wyglądające na błędne
-  (agent nie zna kontekstu biznesowego — weryfikacja wymaga człowieka)
+- Wynik testu pusty lub dane wyglądają na błędne
 - Plik rozwiązania już istnieje i różni się od generowanego
-  (nie nadpisuj bez potwierdzenia)
-- Wymaganie jest niejednoznaczne i nie można ustalić okna/widoku
+- Wymaganie niejednoznaczne — nie można ustalić okna/widoku
+- Weryfikacja numerów dokumentów — poproś usera o SELECT z CDN.NazwaObiektu
 
 ---
 
 ## Tryb developerski
 
-Jeśli uruchamiasz agenta w celu rozbudowy narzędzi (nie konfiguracji ERP):
-przeczytaj `documents/dev/AI_GUIDELINES.md` — zawiera workflow developerski,
-standardy kodu i plan implementacji MVP.
+Rozbudowa narzędzi (nie konfiguracja ERP):
+→ `documents/dev/AI_GUIDELINES.md`
