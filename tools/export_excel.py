@@ -113,7 +113,11 @@ def _write_excel(columns: list[str], rows: list[list], output_path: Path) -> Non
 # ── Główna logika ────────────────────────────────────────────────────────────
 
 
-def export_to_excel(sql: str, output_path: Path | None = None) -> dict:
+def export_to_excel(
+    sql: str,
+    output_path: Path | None = None,
+    view_name: str | None = None,
+) -> dict:
     """Wykonuje SQL i zapisuje wynik do .xlsx. Zwraca słownik per kontrakt JSON."""
     error = validate_query(sql)
     if error:
@@ -129,7 +133,8 @@ def export_to_excel(sql: str, output_path: Path | None = None) -> dict:
 
     if output_path is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_path = EXPORTS_DIR / f"query_{timestamp}.xlsx"
+        prefix = view_name.replace(" ", "_").replace("/", "_") if view_name else "query"
+        output_path = EXPORTS_DIR / f"{prefix}_{timestamp}.xlsx"
 
     output_path = Path(output_path)
 
@@ -185,13 +190,18 @@ def main():
     parser.add_argument("sql", help='Zapytanie SELECT, np. "SELECT TOP 100 * FROM BI.Rezerwacje"')
     parser.add_argument(
         "--output", "-o",
-        help="Ścieżka do pliku wyjściowego .xlsx (domyślnie: exports/query_TIMESTAMP.xlsx)",
+        help="Ścieżka do pliku wyjściowego .xlsx (domyślnie: exports/{view_name}_TIMESTAMP.xlsx)",
+        default=None,
+    )
+    parser.add_argument(
+        "--view-name",
+        help="Nazwa widoku używana w nazwie pliku (domyślnie: 'query')",
         default=None,
     )
     args = parser.parse_args()
 
     output_path = Path(args.output) if args.output else None
-    result = export_to_excel(args.sql, output_path)
+    result = export_to_excel(args.sql, output_path, args.view_name)
     print(json.dumps(result, default=str, ensure_ascii=False))
 
 

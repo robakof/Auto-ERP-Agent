@@ -151,6 +151,22 @@ class TestExportToExcel:
         assert result["ok"] is True
         assert result["data"]["path"].endswith(".xlsx")
 
+    def test_view_name_in_filename(self, tmp_path):
+        mock_conn, _ = make_mock_conn(["n"], [[1]])
+        with patch("tools.export_excel.get_connection", return_value=mock_conn):
+            with patch("tools.export_excel.EXPORTS_DIR", tmp_path):
+                result = ee.export_to_excel("SELECT n FROM t", view_name="Rezerwacje")
+        assert result["ok"] is True
+        assert "Rezerwacje" in result["data"]["path"]
+
+    def test_default_prefix_when_no_view_name(self, tmp_path):
+        mock_conn, _ = make_mock_conn(["n"], [[1]])
+        with patch("tools.export_excel.get_connection", return_value=mock_conn):
+            with patch("tools.export_excel.EXPORTS_DIR", tmp_path):
+                result = ee.export_to_excel("SELECT n FROM t")
+        filename = Path(result["data"]["path"]).name
+        assert filename.startswith("query_")
+
     def test_duration_ms_present(self, tmp_path):
         mock_conn, _ = make_mock_conn(["n"], [[1]])
         output = tmp_path / "out.xlsx"
