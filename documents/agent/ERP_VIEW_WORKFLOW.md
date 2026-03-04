@@ -52,11 +52,16 @@ Patrz `ERP_SCHEMA_PATTERNS.md` — wzorce inline.
 
 ### e) Weryfikacja numerów dokumentów
 
-Jeśli tabela zawiera numery dokumentów — **poproś usera** o uruchomienie w ERP:
+Jeśli tabela zawiera numery dokumentów — **poproś usera** o uruchomienie w SSMS:
 
 ```sql
-SELECT TOP 5 cdn.NazwaObiektu(GIDTyp, GIDNumer, 0, 2), [pola do ręcznej konstrukcji]
-FROM CDN.MainTable
+USE [ERPXL_CEIM];
+GO
+
+SELECT TOP 5
+    [CDN].[NazwaObiektu](GIDTyp, GIDNumer, 0, 2) AS Numer,
+    [pola do ręcznej konstrukcji]
+FROM [CDN].[MainTable];
 ```
 
 Porównaj wynik z ręczną konstrukcją przed wdrożeniem.
@@ -89,23 +94,22 @@ Utwórz plik `solutions/bi/plans/[NazwaWidoku]_plan.md` z tabelą mapowania.
 CDN.XXX — opis
 
 ## Filtry techniczne
-- `Rez_TwrNumer > 0` — wyklucza rekordy techniczne bez towaru (N rekordów)
+- [opis warunku wykluczającego rekordy techniczne, jeśli dotyczy] — N rekordów
 
 ## JOINy
 | Tabela | Typ | Klucz | Uzasadnienie |
 |---|---|---|---|
-| CDN.TwrKarty | INNER | Twr_GIDNumer = Rez_TwrNumer | Kod i nazwa towaru |
-| CDN.KntKarty | LEFT | Knt_GIDNumer+Knt_GIDTyp = Rez_KntNumer+Rez_KntTyp | Kontrahent opcjonalny |
+| CDN.XXX | INNER/LEFT | klucz | po co ten JOIN |
 
 ## Mapowanie pól
 | CDN_Pole | Alias_w_raporcie | Transformacja | Uzasadnienie |
 |---|---|---|---|
-| Rez_GIDNumer | ID_Rezerwacji | bez zmian | klucz główny |
-| Rez_DataRealizacji | Data_Realizacji | Clarion DATE | format BI |
-| Rez_ZrdTyp | Opis_Typu_Dokumentu | CASE via CDN.Obiekty | czytelna etykieta |
+| XXX_GIDNumer | ID_[Encja] | bez zmian | klucz główny |
+| XXX_DataXXX | Data_XXX | Clarion DATE / TIMESTAMP / SQL DATE | format BI |
+| XXX_TypXXX | Opis_XXX | CASE / lookup | czytelna etykieta |
 
 ## Metryki obliczeniowe
-- `Ilosc_Do_Pokrycia = Ilosc - Zrealizowano - IloscMag`
+- [nazwa = formuła]
 
 ## Baseline
 - N rekordów z filtrem technicznym
