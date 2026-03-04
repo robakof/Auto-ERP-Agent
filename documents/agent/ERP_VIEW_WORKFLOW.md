@@ -19,24 +19,29 @@ SELECT TOP 1 * FROM CDN.MainTable
 
 ```sql
 SELECT COUNT(*), COUNT(DISTINCT GIDNumer) FROM CDN.MainTable
-WHERE <filtr techniczny>    -- np. Rez_TwrNumer > 0
+WHERE <filtr techniczny>
 ```
 
-Ten count powinien zgadzać się z wynikiem końcowego SELECT — jeśli jest więcej, JOIN mnoży wiersze.
+Ten count musi zgadzać się z wynikiem końcowego SELECT. Jeśli po dodaniu JOINów jest więcej — JOIN mnoży wiersze.
 
 ### c) Zbadaj pola "typowe" (enumeracje)
 
-Dla każdego pola reprezentującego typ/status/kierunek — zanim wpiszesz CASE, sprawdź:
+Najpierw pobierz WSZYSTKIE unikalne wartości pola:
 
 ```sql
 SELECT pole, COUNT(*) cnt FROM CDN.MainTable GROUP BY pole ORDER BY cnt DESC
 ```
 
-Dla pól GIDTyp — skrzyżuj z CDN.Obiekty:
+Następnie jednym zapytaniem skrzyżuj **wszystkie znalezione wartości** z CDN.Obiekty:
 
 ```sql
-SELECT OB_GIDTyp, OB_Nazwa FROM CDN.Obiekty WHERE OB_GIDTyp IN (...)
+SELECT OB_GIDTyp, OB_Nazwa, OB_Skrot
+FROM CDN.Obiekty
+WHERE OB_GIDTyp IN (<wszystkie DISTINCT wartości z poprzedniego zapytania>)
 ```
+
+Jeśli jakaś wartość nie ma odpowiednika w CDN.Obiekty — **eskaluj do usera** z surówką
+(ile rekordów, jakie charakterystyczne pola) zanim wpiszesz ją do CASE. Nie zgaduj etykiety.
 
 ### d) Zidentyfikuj typ pól datowych
 
@@ -52,28 +57,34 @@ Patrz `ERP_SCHEMA_PATTERNS.md` — wzorce inline.
 
 ### e) Weryfikacja numerów dokumentów
 
-Jeśli tabela zawiera numery dokumentów — **poproś usera** o uruchomienie w SSMS:
+Jeśli tabela zawiera numery dokumentów — **poproś usera** o uruchomienie w SSMS.
+Zapytanie musi zwrócić **po jednym przykładzie na każdy typ dokumentu** (nie TOP 5 losowo):
 
 ```sql
 USE [ERPXL_CEIM];
 GO
 
-SELECT TOP 5
-    [CDN].[NazwaObiektu](GIDTyp, GIDNumer, 0, 2) AS Numer,
-    [pola do ręcznej konstrukcji]
-FROM [CDN].[MainTable];
+SELECT NumerERP, TypDok, [pola do ręcznej konstrukcji]
+FROM (
+    SELECT
+        [CDN].[NazwaObiektu](TypPole, NumerPole, 0, 2) AS NumerERP,
+        TypPole AS TypDok,
+        [pola],
+        ROW_NUMBER() OVER (PARTITION BY TypPole ORDER BY NumerPole DESC) AS rn
+    FROM [CDN].[MainTable]
+) x
+WHERE rn = 1
+ORDER BY TypDok;
 ```
 
-Porównaj wynik z ręczną konstrukcją przed wdrożeniem.
-CEiM_Reader nie ma EXECUTE na CDN functions — nie możesz tego zweryfikować sam.
+Porównaj każdy typ z ręczną konstrukcją. CEiM_Reader nie ma EXECUTE na CDN functions.
 
 ### f) Sprawdź JOINy przez COUNT
 
-Dodawaj JOINy stopniowo i sprawdzaj COUNT po każdym:
+Dodawaj JOINy jeden po drugim i sprawdzaj COUNT po każdym:
 
 ```sql
--- Po dodaniu LEFT JOIN CDN.ZamNag:
-SELECT COUNT(*), COUNT(DISTINCT r.Rez_GIDNumer) FROM ... LEFT JOIN CDN.ZamNag z ON ...
+SELECT COUNT(*), COUNT(DISTINCT r.GIDNumer) FROM ... LEFT JOIN CDN.XXX ON ...
 WHERE ...
 -- Jeśli COUNT(*) > COUNT(DISTINCT) → JOIN mnoży wiersze → dodaj warunek zawężający
 ```
@@ -82,8 +93,13 @@ WHERE ...
 
 ## Faza 1 — Plan mapowania (plik MD, zatwierdzenie przez usera)
 
-Utwórz plik `solutions/bi/plans/[NazwaWidoku]_plan.md` z tabelą mapowania.
-**Nie pisz SQL dopóki user nie zatwierdzi planu.**
+**Zapisz plik PRZED pokazaniem go userowi.** Plan nie istnieje dopóki nie ma pliku.
+
+```
+solutions/bi/plans/[NazwaWidoku]_plan.md
+```
+
+Następnie pokaż treść pliku userowi i czekaj na zatwierdzenie. **Nie pisz SQL dopóki user nie zatwierdzi planu.**
 
 ### Szablon planu
 
@@ -91,10 +107,10 @@ Utwórz plik `solutions/bi/plans/[NazwaWidoku]_plan.md` z tabelą mapowania.
 # Plan widoku BI.[NazwaWidoku]
 
 ## Tabela główna
-CDN.XXX — opis
+CDN.XXX — opis, N rekordów z filtrem technicznym
 
 ## Filtry techniczne
-- [opis warunku wykluczającego rekordy techniczne, jeśli dotyczy] — N rekordów
+- [warunek] — wyklucza N rekordów, uzasadnienie
 
 ## JOINy
 | Tabela | Typ | Klucz | Uzasadnienie |
@@ -102,18 +118,21 @@ CDN.XXX — opis
 | CDN.XXX | INNER/LEFT | klucz | po co ten JOIN |
 
 ## Mapowanie pól
-| CDN_Pole | Alias_w_raporcie | Transformacja | Uzasadnienie |
+| CDN_Pole | Transformacja | Alias_w_raporcie | Uzasadnienie |
 |---|---|---|---|
-| XXX_GIDNumer | ID_[Encja] | bez zmian | klucz główny |
-| XXX_DataXXX | Data_XXX | Clarion DATE / TIMESTAMP / SQL DATE | format BI |
-| XXX_TypXXX | Opis_XXX | CASE / lookup | czytelna etykieta |
+| XXX_GIDNumer | bez zmian | ID_[Encja] | klucz główny |
+| XXX_DataXXX | Clarion DATE / TIMESTAMP / SQL DATE | Data_XXX | format BI |
+| XXX_TypXXX | CASE via CDN.Obiekty | Opis_XXX | czytelna etykieta |
 
 ## Metryki obliczeniowe
-- [nazwa = formuła]
+- [Alias = formuła CDN]
 
 ## Baseline
-- N rekordów z filtrem technicznym
+- N rekordów (COUNT = COUNT DISTINCT ✓)
 ```
+
+Uwaga: w tabeli mapowania **CDN_Pole jest główną kolumną** — plan dokumentuje które oryginalne
+pola bazy są przetwarzane i w jaki sposób.
 
 ---
 
@@ -140,8 +159,8 @@ WHERE r.Rez_Aktywna = 1
 
 ### Kolejność kolumn
 
-Odwzorowuj kolejność kolumn z tabeli źródłowej — sprawdź kolejność przez `SELECT TOP 1 * FROM CDN.Tabela`
-i trzymaj się jej w widoku. Metryki obliczeniowe (np. `Ilosc_Do_Pokrycia`) dopisuj na końcu.
+Odwzorowuj kolejność kolumn z tabeli źródłowej — sprawdź przez `SELECT TOP 1 * FROM CDN.Tabela`
+i trzymaj się jej. Metryki obliczeniowe dopisuj na końcu.
 
 ### Ograniczenia CEiM_BI
 
@@ -151,30 +170,37 @@ i trzymaj się jej w widoku. Metryki obliczeniowe (np. `Ilosc_Do_Pokrycia`) dopi
 
 ---
 
-## Faza 3 — Export i weryfikacja
+## Faza 3 — Export i weryfikacja (po zatwierdzeniu SQL, bez pytania usera)
+
+Po akceptacji SQL przez usera uruchom export i weryfikację **bez dodatkowego pytania**:
 
 ```bash
 python tools/export_bi_view.py \
-  --sql "SELECT TOP 5000 ..." \
-  --view-name "Rezerwacje" \
-  --source-table "CDN.Rezerwacje" \
-  --plan "solutions/bi/plans/Rezerwacje_plan.md"
+  --sql "SELECT ..." \
+  --view-name "[NazwaWidoku]" \
+  --source-table "CDN.MainTable" \
+  --plan "solutions/bi/plans/[NazwaWidoku]_plan.md"
 ```
 
-Następnie zweryfikuj kolumny przez statystyki:
+Następnie **obowiązkowo** uruchom statystyki:
 
 ```bash
 python tools/read_excel_stats.py \
-  --file "exports/Rezerwacje_TIMESTAMP.xlsx" \
+  --file "exports/[NazwaWidoku]_TIMESTAMP.xlsx" \
   --sheet "Wynik" \
   --max-unique 15
 ```
 
-Na co patrzeć:
-- Pola datowe: czy wartości wyglądają jak daty (nie liczby), czy NULL tam gdzie spodziewany
-- Pola typów (enumeracje): czy distinct ≤ oczekiwana liczba wartości, czy etykiety sensowne
-- Metryki obliczeniowe: czy wartości w rozsądnym zakresie (nie ujemne tam gdzie nie powinny)
-- Row count: czy COUNT z baseline zgadza się z wynikiem SELECT
+### Weryfikacja wyników
+
+Sprawdź przed pokazaniem userowi:
+
+- **Row count**: `row_count` z exportu musi równać się `COUNT(*)` z bazy z tego samego SQL.
+  Jeśli różnią się — zbadaj dlaczego (nie zakładaj "dane się zmieniły"). Różnica może oznaczać
+  błąd w JOINach lub pominięte wiersze.
+- Pola datowe: czy wartości wyglądają jak daty (nie surowe liczby Clarion)
+- Enumeracje: czy `distinct` ≤ oczekiwana liczba typów, czy etykiety sensowne
+- Metryki: czy wartości w rozsądnym zakresie
 
 ---
 
@@ -211,7 +237,8 @@ git push
 
 ## Kiedy eskalować do usera
 
-- Numery dokumentów — zawsze weryfikuj przez CDN.NazwaObiektu (user musi uruchomić)
-- Pole z enumeracją nieznaną (nie ma w CDN.Obiekty, brak dokumentacji) — poproś o wyjaśnienie
-- Wynik pusty lub row count znacząco inny od baseline — nie zgaduj, zapytaj
-- Odkryjesz nowy wzorzec konwersji lub nieoczywiste pole — dopisz do `ERP_SCHEMA_PATTERNS.md`
+- Wartość enumeracji nieznana (brak w CDN.Obiekty) — podaj surówkę: ile rekordów, jakie charakterystyczne pola
+- Numery dokumentów — zawsze weryfikuj przez CDN.NazwaObiektu (user musi uruchomić w SSMS)
+- Row count z exportu ≠ COUNT z bazy — zbadaj i wyjaśnij różnicę zanim pokażesz wyniki
+- Wynik zapytania pusty lub dane wyglądają na błędne — nie zgaduj kontekstu biznesowego
+- Odkryjesz nowy wzorzec — dopisz do `ERP_SCHEMA_PATTERNS.md` natychmiast

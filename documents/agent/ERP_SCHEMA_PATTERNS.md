@@ -88,11 +88,13 @@ Znane wartości:
 
 ```sql
 -- Poprawnie — kierunek zamówienia:
-CASE z.ZaN_ZamTyp WHEN 960 THEN 'ZS' WHEN 1152 THEN 'ZZ' ELSE 'ZAM' END
+CASE z.ZaN_ZamTyp WHEN 960 THEN 'ZS' WHEN 1152 THEN 'ZZ' ELSE '???' END
 
 -- Błędnie — ZaN_GIDTyp zawsze 960:
 CASE z.ZaN_GIDTyp ...  ← NIGDY nie używaj do rozróżniania ZS/ZZ
 ```
+
+Jeśli w danych pojawią się inne wartości ZaN_ZamTyp (np. wykryjesz przez `SELECT DISTINCT ZaN_ZamTyp FROM CDN.ZamNag`) — **eskaluj do usera** z surówką (ile rekordów, jakie serie/numery). Nie nazywaj nieznanego typu dopóki user nie wyjaśni co to jest.
 
 ---
 
@@ -111,6 +113,22 @@ CASE z.ZaN_ZamTyp WHEN 960 THEN 'ZS' WHEN 1152 THEN 'ZZ' ELSE 'ZAM' END
 + '/' + CAST(z.ZaN_ZamRok AS VARCHAR(4))
 + '/' + RTRIM(z.ZaN_ZamSeria)
 -- Wynik: ZS-9/09/2025/ZTHK
+```
+
+### ProdZlecenia (ZP) — przez CDN.ProdZasoby
+
+Rezerwacja ZPZ (`Rez_ZrdTyp=14346`) łączy się przez:
+`Rez_ZrdNumer → CDN.ProdZasoby.PZA_Id → CDN.ProdZlecenia.PZL_Id` (via `PZA_PZLId`)
+
+```sql
+LEFT JOIN CDN.ProdZasoby pza ON pza.PZA_Id = r.Rez_ZrdNumer AND r.Rez_ZrdTyp = 14346
+LEFT JOIN CDN.ProdZlecenia pzl ON pzl.PZL_Id = pza.PZA_PZLId
+
+-- Numer (zweryfikowany CDN.NazwaObiektu): ZP-1/08/23/OTO
+'ZP-' + CAST(pzl.PZL_Numer AS VARCHAR(10))
++ '/' + RIGHT('0' + CAST(pzl.PZL_Miesiac AS VARCHAR(2)), 2)
++ '/' + RIGHT(CAST(pzl.PZL_Rok AS VARCHAR(4)), 2)
++ '/' + RTRIM(pzl.PZL_Seria)
 ```
 
 ### TraNag (FS/FZ/WZ/PZ)
