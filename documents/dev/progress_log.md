@@ -275,3 +275,59 @@ Zmiany:
 **Następny krok: praca bieżąca — rozbudowa bazy rozwiązań, nowe okna ERP**
 
 ---
+
+### 2026-03-04 — tools/export_excel.py + rozbudowa ERP_SQL_SYNTAX.md
+
+**tools/export_excel.py** (nowe narzędzie agenta):
+- SQL → .xlsx: guardrails identyczne z sql_query.py (blokada DML, TOP 1000 default)
+- Auto-timestamp w nazwie pliku gdy brak `--output`
+- Formatowanie: bold header, frozen row 1, auto-szerokość kolumn (max 50 zn.)
+- 21 testów jednostkowych, wszystkie zielone (łącznie 126)
+- Dodano do CLAUDE.md (sekcja Narzędzia)
+
+**ERP_SQL_SYNTAX.md — rozbudowa:**
+- Sekcja 6: parametry AI_ChatERP (pełna tabela procedur + @ZakresDaty)
+- Sekcja 6: tabela funkcji konwersji dat CDN (DateToClarion, DateToTS, itd.)
+- Sekcja 7: arytmetyka Clarion inline (pierwszy/ostatni dzień miesiąca, N dni temu)
+- Sekcja 11 (nowa): wzorce projektowe widoków BI (nazewnictwo, daty, numery dok., JOIN-y, catalog.json)
+
+**Skan dokumentacji HTML:**
+- 2549 plików HTML w erp_docs/raw/
+- Zidentyfikowano 342 funkcje, 708 procedur, 27 widoków CDN
+- Kluczowe: formuła DateToClarion = `DATEDIFF(dd,'1800-12-28',@dt)` potwierdzona
+
+**BI.Rezerwacje — praca iteracyjna (4 wersje):**
+- Odkrycia kluczowe: ZaN_ZamTyp (960=ZS, 1152=ZZ) — nie ZaN_GIDTyp (zawsze 960)
+- Clarion TIMESTAMP: Rez_DataRezerwacji = sekundy od 1990-01-01 (nie dni od 1800-12-28)
+- CDN.Obiekty: 960="Zamowienie", 2592="Rezerwacja u dostawcy", 14346="Zasob procesu produkcyjnego"
+- Filtr techniczny: `WHERE Rez_TwrNumer > 0` (wyklucza 1102 rekordy bez towaru)
+- v4: 28 kolumn, 1426 wierszy (baza live), format numerów ZS/ZZ z zero-padded miesiącem
+- Export: exports/query_20260304_062910.xlsx
+
+---
+
+### 2026-03-04 — Plan restrukturyzacji wytycznych agenta
+
+Na podstawie retrospektywy pracy nad BI.Rezerwacje uzgodniono zestaw zmian:
+
+**Zmiany programistyczne:**
+1. `tools/export_bi_view.py` (nowe) — wieloarkuszowy Excel: Plan mapowania + Wynik SQL + Surówka z tabeli
+   Parametry: `--sql`, `--view-name`, `--plan PATH.md`, `--source-table CDN.XXX`
+2. `tools/read_excel_stats.py` (nowe) — statystyki kolumn z pliku xlsx bez ładowania danych do kontekstu
+   Parametry: `--file`, `--sheet`, `--max-unique N` (def. 20), `--columns`
+   Output: per kolumna: total, distinct, null_count, values (jeśli ≤ max-unique) lub sample (10)
+3. `tools/export_excel.py` — drobna zmiana: dodać opcjonalny `--view-name` do nazwy pliku
+
+**Restrukturyzacja dokumentacji agenta:**
+Podzielić `documents/agent/ERP_SQL_SYNTAX.md` na 5 plików:
+- `ERP_SQL_SYNTAX.md` — skrócony rdzeń: ograniczenia SQL, {filtrsql} obowiązek, GIDTyp, funkcje CDN (bez workflow)
+- `ERP_COLUMNS_WORKFLOW.md` — workflow dopisywania kolumn ERP (obecna sekcja 2 + wskazówki)
+- `ERP_FILTERS_WORKFLOW.md` — workflow tworzenia filtrów ERP (sekcje 3–5 + wskazówki)
+- `ERP_VIEW_WORKFLOW.md` — workflow tworzenia widoków BI: checklist discovery, szablon planu mapowania, reguły nazewnictwa, weryfikacja
+- `ERP_SCHEMA_PATTERNS.md` — wzorce schematu: daty Clarion (2 typy), JOIN kontrahent/magazyn, CDN.Obiekty, numeracja dokumentów, tabele pomocnicze
+
+Zaktualizować CLAUDE.md — wskazania który plik ładować przy jakim zadaniu.
+
+**Następny krok: implementacja według planu powyżej**
+
+---
