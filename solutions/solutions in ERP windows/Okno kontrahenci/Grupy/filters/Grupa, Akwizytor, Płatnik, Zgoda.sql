@@ -2,7 +2,7 @@
 @PAR ?@R(SELECT '(wszyscy)' AS KOD,0 AS ID UNION ALL SELECT Knt_Akronim AS KOD,Knt_GIDNumer AS ID FROM CDN.KntKarty WHERE Knt_Akwizytor=1 ORDER BY 1)|Akwizytor|&Akwizytor:REG=0 @? PAR@
 @PAR ?@S20|Platnik|&Płatnik:REG= @? PAR@
 @PAR ?@R(SELECT '(wszystkie)' AS KOD,'all' AS ID UNION ALL SELECT 'Tak' AS KOD,'tak' AS ID UNION ALL SELECT 'Nie' AS KOD,'nie' AS ID)|Zgoda|&Zgoda na eFaktury:REG=all @? PAR@
-@PAR ?@R(SELECT '(wszystkie)' AS KOD,'all' AS ID UNION ALL SELECT 'Zła grupa' AS KOD,'tak' AS ID)|ZlaGrupa|&Zła grupa główna:REG=all @? PAR@
+@PAR ?@R(SELECT '(wszystkie)' AS KOD,'all' AS ID UNION ALL SELECT 'Tak' AS KOD,'tak' AS ID)|ZlaGrupa|&Nieprawidłowa grupa:REG=all @? PAR@
 
 (??Grupa=0 OR KnG_GrONumer=??Grupa)
 AND (??Akwizytor=0 OR Knt_AkwNumer=??Akwizytor)
