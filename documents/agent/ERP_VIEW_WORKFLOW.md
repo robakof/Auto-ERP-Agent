@@ -140,18 +140,51 @@ Plik jest nadpisywany przy każdej aktualizacji planu — stała ścieżka bez t
 
 Jedna tabela z kolumnami:
 
-| Kolumna | Opis |
-|---|---|
-| `Kolejnosc` | numer kolejny z oryginalnej tabeli (z SELECT TOP 1 *) |
-| `CDN_Pole` | oryginalna nazwa kolumny z CDN lub tabeli JOIN |
-| `Alias_w_widoku` | docelowa nazwa w widoku BI |
-| `Transformacja` | co robimy z polem (opis lub formuła) |
-| `Uwzglednic` | Tak / Nie |
-| `Uzasadnienie` | po co to pole lub dlaczego pominięte |
+| Kolumna | Źródło | Opis |
+|---|---|---|
+| `Kolejnosc` | agent | numer kolejny z oryginalnej tabeli (z SELECT TOP 1 *) |
+| `CDN_Pole` | agent | oryginalna nazwa kolumny z CDN lub tabeli JOIN |
+| `Opis_w_dokumentacji` | search_docs.py | col_label + description z docs.db; puste gdy brak w indeksie |
+| `Przykladowe_wartosci` | search_docs.py | sample_values z docs.db; puste gdy brak |
+| `Alias_w_widoku` | agent | docelowa nazwa w widoku BI (propozycja) |
+| `Transformacja` | agent | co robimy z polem (opis lub formuła) |
+| `Uwzglednic` | agent | Tak / Nie (propozycja) |
+| `Uzasadnienie` | agent | po co to pole lub dlaczego pominięte |
+| `Komentarz_Usera` | **user** | pusta kolumna — user wpisuje uwagi przed zatwierdzeniem |
 
 Kolejność wierszy: wszystkie kolumny CDN.MainTable w kolejności z `SELECT TOP 1 *`,
 następnie kolumny sprowadzane przez JOINy (bezpośrednio po kluczu który je sprowadza),
 na końcu metryki obliczeniowe.
+
+### Jak agent wypełnia Opis_w_dokumentacji i Przykladowe_wartosci
+
+Dla każdej kolumny CDN.MainTable uruchom:
+
+```
+python tools/search_docs.py "{nazwa_kolumny}" --table CDN.MainTable --useful-only --limit 1
+```
+
+Z wyniku pobierz: `col_label` (→ `Opis_w_dokumentacji`) i `sample_values` (→ `Przykladowe_wartosci`).
+Gdy brak wyniku — zostaw puste. Nie wymyślaj opisów.
+
+Możesz zebrać wszystkie kolumny jednym wywołaniem bez frazy, z filtrem tabeli:
+
+```
+python tools/search_docs.py "" --table CDN.MainTable
+```
+
+### Odczyt planu po edycji usera
+
+Po tym jak user edytuje `{NazwaWidoku}_plan.xlsx` (uzupełni `Komentarz_Usera`, zmieni
+`Uwzglednic` lub `Transformacja`) — odczytaj zmiany:
+
+```
+python tools/excel_read_rows.py \
+  --file "solutions/bi/plans/{NazwaWidoku}_plan.xlsx" \
+  --columns CDN_Pole,Uwzglednic,Transformacja,Komentarz_Usera
+```
+
+Następnie uwzględnij komentarze usera w brudnopisie SQL i zaktualizuj plan.
 
 ### Metodologia — analiza kolumna po kolumnie
 

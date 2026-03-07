@@ -353,6 +353,19 @@ Zaktualizować CLAUDE.md — wskazania który plik ładować przy jakim zadaniu.
 
 ---
 
+### 2026-03-07 — Uzupełnienie ERP_VIEW_WORKFLOW.md + plan refaktoru tools/
+
+Dodano do ERP_VIEW_WORKFLOW.md:
+- Tabela kolumn planu rozszerzona o: Opis_w_dokumentacji, Przykladowe_wartosci (z search_docs.py), Komentarz_Usera (dla usera)
+- Instrukcja wypełniania opisu/przykładów przez search_docs.py per kolumna
+- Krok odczytu planu po edycji usera via excel_read_rows.py (tool do zbudowania)
+
+Utworzono changes_propositions.md z planem refaktoru tools/:
+- Ekstrakcja tools/lib/ (SqlClient, ExcelWriter, ExcelReader)
+- Rename toolsów z prefiksem domenowym (excel_*, docs_*, solutions_*, windows_*)
+- Nowy tool excel_read_rows.py
+- Kolejność: TDD (testy lib/ → implementacja → refaktor toolsów → rename)
+
 ### 2026-03-07 — Przepisanie ERP_VIEW_WORKFLOW.md
 
 Zrewidowano workflow tworzenia widoków BI na podstawie problemów z sesji Rezerwacje:
