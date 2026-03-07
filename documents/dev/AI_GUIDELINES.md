@@ -145,6 +145,8 @@ Wszystkie zmiany w danej implementacji powinny zostać zapisane w pliku `CHANGEL
 
 Zaplanuj implementację zakresu prac budując szczegółowy plan i zapisując go w pliku `changes_propositions.md`. Następnie dostosuj plan do wytycznych vibecodera zapisanych w pliku `changes_comments.md`. Kiedy ostateczna wersja planu zostanie zatwierdzona rozpocznij kolejny krok.
 
+`changes_propositions.md` musi zawierać nie tylko zakres bieżącego zadania, ale również **wszystkie otwarte wątki z poprzednich sesji lub wątków które są kontekstem bieżącej pracy** — zadania uzgodnione, a niezrealizowane, zmiany odkładane "na później". Brak tej listy prowadzi do gubienia zadań przy rozroście zakresu lub utracie ciągłości kontekstu.
+
 #### Krok 2: Implementacja zmian
 
 Zaimplementuj zatwierdzone zmiany zgodnie z `changes_propositions.md` i `changes_comments.md`.
@@ -245,6 +247,12 @@ Po zatwierdzeniu implementacji wykonaj commit, push i zaktualizuj `progress_log.
 - Odpowiedni poziom szczegółowości (DEBUG, INFO, WARNING, ERROR)
 - Używaj structured logging (nie `print()`)
 - Loguj kontekst, nie tylko komunikaty
+
+---
+
+## ZMIANY W AI_GUIDELINES
+
+Jakiekolwiek modyfikacje tego pliku wymagają **jawnego zatwierdzenia przez użytkownika** przed wprowadzeniem. Agent może zaproponować zmianę, ale nie może jej samodzielnie zapisać.
 
 ---
 

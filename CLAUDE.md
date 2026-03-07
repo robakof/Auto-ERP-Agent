@@ -221,3 +221,12 @@ Przerywaj autonomiczną pętlę i pytaj gdy:
 
 Rozbudowa narzędzi (nie konfiguracja ERP):
 → `documents/dev/AI_GUIDELINES.md`
+
+## Tryb metodologiczny
+
+Praca nad metodą, wytycznymi lub strukturą projektu jako taką:
+→ `documents/methodology/METHODOLOGY.md`
+
+Ten projekt działa na trzech poziomach (Agent / Developer / Metodolog). Jeśli zadanie
+które otrzymujesz nie pasuje do Twojego aktualnego poziomu — zaproponuj eskalację
+zamiast działać poza zakresem. Szczegóły w METHODOLOGY.md.
