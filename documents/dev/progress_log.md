@@ -353,6 +353,13 @@ Zaktualizować CLAUDE.md — wskazania który plik ładować przy jakim zadaniu.
 
 ---
 
+### 2026-03-07 — Sesja zakończona — stan końcowy
+
+Wszystkie zaplanowane zmiany zrealizowane. 170 testów, 100% zielone. Gotowe do push.
+
+Następna sesja: push + ewentualna praca nad widokiem BI (Rezerwacje lub nowy).
+Przed startem: przeczytaj ERP_VIEW_WORKFLOW.md — nowy workflow z brudnopisem i planem Excel.
+
 ### 2026-03-07 — Refaktor tools/: lib/ + rename + excel_read_rows
 
 Wyekstrahowano tools/lib/ (3 klasy): SqlClient, ExcelWriter, ExcelReader.
