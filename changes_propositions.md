@@ -1,5 +1,7 @@
 # Zmiany do wdrożenia — workflow BI + refaktor tools/
 
+## STATUS: ZREALIZOWANE (2026-03-07)
+
 ## Status ERP_VIEW_WORKFLOW.md
 
 Zrealizowane (commit 8c48561):
