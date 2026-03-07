@@ -353,6 +353,19 @@ Zaktualizować CLAUDE.md — wskazania który plik ładować przy jakim zadaniu.
 
 ---
 
+### 2026-03-07 — Przepisanie ERP_VIEW_WORKFLOW.md
+
+Zrewidowano workflow tworzenia widoków BI na podstawie problemów z sesji Rezerwacje:
+
+- Inicjalizacja: agent tworzy brudnopis (`drafts/{Widok}.sql`) i progress log (`drafts/{Widok}_progress.md`) przed startem; przy wznawianiu czyta oba pliki jako pierwsze
+- Faza 0c: CASE pokrywa wartości z bazy i z dokumentacji (nie tylko te aktualnie w danych)
+- Faza 0e: jednorazowe zbiorcze zapytanie CDN.NazwaObiektu — nie fragmentaryczne
+- Faza 1: plan jako Excel (export_excel.py --output stała ścieżka bez timestampu), nie MD; metodologia analizy kolumna po kolumnie z regułą pominięcia (COUNT DISTINCT = 1)
+- Faza 2: SQL wyłącznie na pliku brudnopisu, nie w czacie
+- Nowa sekcja: Zasady tłumaczenia wartości (flagi 0/1, enumeracje, klucze obce, ELSE obowiązkowy z surową wartością)
+- Nowa sekcja: Zarządzanie kontekstem — szablon progress logu, aktualizacja po każdej fazie
+- Nowa sekcja: Ochrona dokumentacji agenta — zakaz modyfikacji bez twardego dowodu/eskalacji
+
 ### 2026-03-04 — Poprawki wytycznych po analizie sesji agenta (Działanie Agneta.md)
 
 Przeanalizowano sesję w której agent tworzył widok BI.Rezerwacje. Zidentyfikowano braki:
