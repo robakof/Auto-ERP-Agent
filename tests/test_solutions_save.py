@@ -2,7 +2,7 @@
 
 import pytest
 
-import tools.save_solution as ss
+import tools.solutions_save as ss
 
 
 @pytest.fixture

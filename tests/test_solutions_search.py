@@ -2,7 +2,7 @@
 
 import pytest
 
-import tools.search_solutions as ss
+import tools.solutions_search as ss
 
 
 # ── Fixture ─────────────────────────────────────────────────────────────────

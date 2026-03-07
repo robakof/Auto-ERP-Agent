@@ -12,25 +12,29 @@
         "CDN.ZamNag",
         "CDN.ProdZasoby",
         "CDN.ProdZlecenia",
-        "CDN.Dostawy"
+        "CDN.Dostawy",
+        "CDN.TraNag",
+        "CDN.Obiekty",
+        "CDN.FrmStruktura",
+        "CDN.ProdTechnologiaZasoby"
       ],
       "columns": [
         "Typ_Rezerwacji", "ID_Rezerwacji",
         "Kod_Towaru", "Nazwa_Towaru", "Jm_Towaru",
         "Akronim_Kontrahenta", "Nazwa_Kontrahenta",
         "Typ_Dokumentu_Zrodlowego", "Opis_Dokumentu_Zrodlowego", "Numer_Dokumentu_Zrodlowego", "Pozycja_Na_Dok_Zrodlowym",
-        "ID_Magazynu", "Magazyn",
-        "ID_Dostawy",
+        "ID_Magazynu", "Kod_Magazynu",
+        "Numer_Dokumentu_Dostawy",
         "Ilosc_Zarezerwowana", "Ilosc_Zrealizowana", "Ilosc_Na_Dok_Magazynowych",
         "Data_Wprowadzenia", "Data_Realizacji", "Data_Waznosci", "Data_Aktywacji",
         "Aktywna",
         "Zrodlo_Rezerwacji", "Opis_Zrodla",
         "Data_Planowanej_Dostawy",
-        "ID_Centrum_Praw",
+        "ID_Centrum_Praw", "Nazwa_Centrum_Praw",
         "Typ_Rez",
         "Priorytet",
         "Data_Rezerwacji",
-        "ID_Zasobu_Technologii",
+        "ID_Zasobu_Technologii", "Nazwa_Zasobu_Technologii",
         "ID_Klasy_Cechy",
         "Ilosc_Do_Pokrycia"
       ],
@@ -46,7 +50,7 @@
         "ile zostało do pokrycia z rezerwacji towaru X",
         "rezerwacje powiązane z dostawą"
       ],
-      "notes": "Aktywna='Tak' AND Ilosc_Do_Pokrycia>0 — bieżące otwarte. Typ_Rez: 'Rezerwacja'/'Nierezerwacja'. Typ_Rezerwacji (GIDTyp): 'Rezerwacja'/'Rezerwacja u dostawcy'. Zrodlo_Rezerwacji: 5=ZamWew, 6=RecznaWew, 9=ZamZew (najczęstsze), 10=RecznaZew, 16=DokMag. ID_Dostawy: NULL gdy brak, wypełniane tylko po stronie sprzedaży. ID_Klasy_Cechy: 0=brak cechy."
+      "notes": "Aktywna='Tak' AND Ilosc_Do_Pokrycia>0 — bieżące otwarte. Typ_Rez: 'Rezerwacja'/'Nierezerwacja'. Typ_Rezerwacji (GIDTyp): 'Rezerwacja'/'Rezerwacja u dostawcy'. Zrodlo_Rezerwacji: 5=ZamWew, 6=RecznaWew, 9=ZamZew (najczęstsze), 10=RecznaZew, 16=DokMag. Numer_Dokumentu_Dostawy: NULL gdy brak (format: Skrot-Numer/MM/RR[/Seria]; typy: PZ/FZ/PW). Numer_Dokumentu_Zrodlowego: NULL dla BkRez (typ=2592 — samoreferencja). ID_Klasy_Cechy: 0=brak cechy. Nazwa_Centrum_Praw/Nazwa_Zasobu_Technologii: NULL gdy brak powiązania."
     }
   ]
 }

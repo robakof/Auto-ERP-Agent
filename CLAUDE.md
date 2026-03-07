@@ -21,37 +21,41 @@ Dokumenty SQL — ładuj odpowiedni plik zależnie od zadania:
 python tools/sql_query.py "SELECT ..."
   → data.columns, data.rows, data.row_count | error.type
 
-python tools/search_docs.py "fraza" [--table CDN.XXX] [--useful-only] [--limit N]
+python tools/docs_search.py "fraza" [--table CDN.XXX] [--useful-only] [--limit N]
   → data.results[].{table_name, col_name, col_label, data_type, description, value_dict, sample_values}
 
-python tools/search_solutions.py "fraza" [--window "Okno"] [--type columns|filters]
+python tools/solutions_search.py "fraza" [--window "Okno"] [--type columns|filters]
   → data.results[].{window, view, type, name, sql, filtr_sql}
 
-python tools/search_windows.py "fraza" [--type columns|filters]
+python tools/windows_search.py "fraza" [--type columns|filters]
   → data.results[].{id, name, aliases, primary_table, config_types}
 
-python tools/export_excel.py "SELECT ..." [--output SCIEZKA.xlsx] [--view-name "Nazwa"]
+python tools/excel_export.py "SELECT ..." [--output SCIEZKA.xlsx] [--view-name "Nazwa"]
   → data.path, data.row_count, data.columns | error.type
   (szybki eksport SQL → jeden arkusz xlsx; nazwa pliku: {view_name}_TIMESTAMP.xlsx)
 
-python tools/export_bi_view.py --sql "SELECT ..." --view-name "Nazwa"
-                               [--source-table CDN.XXX] [--plan SCIEZKA.md] [--output SCIEZKA.xlsx]
+python tools/excel_export_bi.py --sql "SELECT ..." --view-name "Nazwa"
+                                [--source-table CDN.XXX] [--plan SCIEZKA.xlsx] [--output SCIEZKA.xlsx]
   → data.path, data.view_name, data.row_count, data.sheets | error.type
   (eksport widoku BI: arkusze Plan + Wynik + opcjonalnie Surówka)
 
-python tools/read_excel_stats.py --file SCIEZKA.xlsx [--sheet NAZWA]
+python tools/excel_read_stats.py --file SCIEZKA.xlsx [--sheet NAZWA]
                                  [--max-unique N] [--columns col1,col2]
   → data.sheet, data.row_count, data.columns[].{name, total, distinct, null_count, values|sample}
   (statystyki kolumn z xlsx — weryfikacja wyniku bez ładowania danych do kontekstu)
 
-python tools/save_solution.py --window "..." --view "..." --type columns|filters --name "..." --sql "..."
+python tools/excel_read_rows.py --file SCIEZKA.xlsx [--sheet NAZWA] [--columns col1,col2]
+  → data.sheet, data.row_count, data.columns[], data.rows[]
+  (odczyt wierszy z xlsx — np. plan widoku po edycji przez usera)
+
+python tools/solutions_save.py --window "..." --view "..." --type columns|filters --name "..." --sql "..."
   → data.path
 
-python tools/update_window_catalog.py --id ... [--name "..."] [--primary-table CDN.XXX]
-                                       [--add-alias "..."] [--config-types columns filters]
+python tools/windows_update.py --id ... [--name "..."] [--primary-table CDN.XXX]
+                                [--add-alias "..."] [--config-types columns filters]
   → data.window, data.created
 
-python tools/build_index.py [--xlsm PATH]
+python tools/docs_build_index.py [--xlsm PATH]
   → (narzędzie administracyjne — uruchamiaj tylko na żądanie przebudowy indeksu)
 ```
 

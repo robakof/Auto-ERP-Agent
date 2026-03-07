@@ -4,8 +4,8 @@ import sqlite3
 
 import pytest
 
-import tools.search_docs as sd
-import tools.build_index as bi
+import tools.docs_search as sd
+import tools.docs_build_index as bi
 from tests.conftest import make_ws, TABELE_ROWS, KOLUMNY_ROWS, RELACJE_ROWS, SLOWNIK_ROWS, PRZYKLADOWE_ROWS
 
 

@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-import tools.update_window_catalog as uwc
+import tools.windows_update as uwc
 
 
 @pytest.fixture

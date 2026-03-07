@@ -52,15 +52,29 @@ iteruje do uzyskania poprawnego wyniku. Nie ma własnego kodu — to konfiguracj
 Skrypty Python wywoływane przez agenta. Każde narzędzie to niezależny proces —
 przyjmuje argumenty z CLI, zwraca JSON na stdout, kończy działanie.
 
+Współdzielona logika wyekstrahowana do `tools/lib/`:
+
+| Moduł | Klasa | Odpowiedzialność | Używana przez |
+|-------|-------|-----------------|---------------|
+| `lib/sql_client.py` | `SqlClient` | połączenie SQL Server, guardrails, execute | `sql_query`, `excel_export`, `excel_export_bi` |
+| `lib/excel_writer.py` | `ExcelWriter` | tworzenie xlsx: arkusze, nagłówki, auto-width | `excel_export`, `excel_export_bi` |
+| `lib/excel_reader.py` | `ExcelReader` | odczyt xlsx: statystyki, wiersze | `excel_read_stats`, `excel_read_rows` |
+
+Narzędzia CLI (domenowe nazwy plików):
+
 | Skrypt | Wejście | Wyjście |
 |--------|---------|---------|
 | `sql_query.py` | zapytanie SQL | wyniki SELECT jako JSON |
-| `search_docs.py` | fraza / tabela | kolumny ERP z opisami i słownikami wartości |
-| `search_solutions.py` | fraza / okno | lista rozwiązań SQL z kodem |
-| `search_windows.py` | fraza | okna ERP z tabelami i typami konfiguracji |
-| `save_solution.py` | kod SQL + metadane | zapis do `solutions/` |
-| `update_window_catalog.py` | id + parametry | upsert w `erp_windows.json` |
-| `build_index.py` | ścieżka XLSM | rebuild `docs.db` |
+| `excel_export.py` | SQL + opcjonalna ścieżka | jeden arkusz xlsx |
+| `excel_export_bi.py` | SQL + plan.xlsx + opcje | xlsx: Plan + Wynik + Surówka |
+| `excel_read_stats.py` | plik xlsx | statystyki kolumn (distinct, null, values) |
+| `excel_read_rows.py` | plik xlsx | wiersze jako JSON (np. plan po edycji usera) |
+| `docs_search.py` | fraza / tabela | kolumny ERP z opisami i słownikami wartości |
+| `docs_build_index.py` | ścieżka XLSM | rebuild `docs.db` |
+| `solutions_search.py` | fraza / okno | lista rozwiązań SQL z kodem |
+| `solutions_save.py` | kod SQL + metadane | zapis do `solutions/` |
+| `windows_search.py` | fraza | okna ERP z tabelami i typami konfiguracji |
+| `windows_update.py` | id + parametry | upsert w `erp_windows.json` |
 
 #### Indeks dokumentacji (erp_docs/index/docs.db)
 

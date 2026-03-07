@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-import tools.search_windows as sw
+import tools.windows_search as sw
 
 SAMPLE_WINDOWS = [
     {

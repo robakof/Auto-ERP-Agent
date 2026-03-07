@@ -353,6 +353,20 @@ Zaktualizować CLAUDE.md — wskazania który plik ładować przy jakim zadaniu.
 
 ---
 
+### 2026-03-07 — Refaktor tools/: lib/ + rename + excel_read_rows
+
+Wyekstrahowano tools/lib/ (3 klasy): SqlClient, ExcelWriter, ExcelReader.
+Usunięto duplikację: guardrails/połączenie SQL (3 toolsy → 1 klasa), logika xlsx (2+2 toolsy → 2 klasy).
+
+Nowe nazwy toolsów z prefiksem domenowym:
+- excel_export, excel_export_bi, excel_read_stats (były: export_excel, export_bi_view, read_excel_stats)
+- docs_search, docs_build_index (były: search_docs, build_index)
+- solutions_search, solutions_save (były: search_solutions, save_solution)
+- windows_search, windows_update (były: search_windows, update_window_catalog)
+
+Nowy tool: excel_read_rows.py — odczyt wierszy xlsx (plan widoku po edycji usera).
+Testy: 170 (było 166), 100% zielone. CLAUDE.md + ARCHITECTURE.md zaktualizowane.
+
 ### 2026-03-07 — Uzupełnienie ERP_VIEW_WORKFLOW.md + plan refaktoru tools/
 
 Dodano do ERP_VIEW_WORKFLOW.md:
