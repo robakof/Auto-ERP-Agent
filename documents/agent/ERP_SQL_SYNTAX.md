@@ -118,8 +118,12 @@ Ten wzorzec działa identycznie w widoku "Grupy" i "Wg akronimu".
 **WAŻNE:** `ZaN_GIDTyp` w CDN.ZamNag zawsze = 960 (typ obiektu/tabeli).
 Kierunek dokumentu (ZS/ZZ) wyznacza `ZaN_ZamTyp`: 960 = ZS, 1152 = ZZ.
 
-Pełna lista: `erp_docs/raw/Dokumnetacja bazy/e_typy.html`
-Mapowanie GIDTyp → tabela: `CDN.GIDTyp2Tabela(GIDTyp)`
+Pełna lista (456 typów) — przeszukuj przez `docs_search "symbol_lub_numer"`:
+- `docs_search "ZPZ"` → gid_type=14346, internal_name=Typ_ProdZasoby → hint na CDN.ProdZasoby
+- `docs_search "14346"` → to samo (wyszukiwanie po numerze)
+- Wynik w `data.gid_types[].{gid_type, internal_name, symbol, description}`
+
+Mapowanie GIDTyp → tabela (fallback): `CDN.GIDTyp2Tabela(GIDTyp)` lub `CDN.Obiekty`
 
 ---
 

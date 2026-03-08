@@ -442,3 +442,9 @@ Zrealizowano backlog refleksji agenta i zgłoszone bugi:
 - #11: bi_discovery.py — automatyczny raport discovery
 - Arch: single source of truth dla sygnatur narzędzi
 
+
+### 2026-03-08 — Uzupełnienie dokumentacji agenta po wdrożeniu gid_types
+
+- ERP_SQL_SYNTAX.md: sekcja GIDTyp — instrukcja użycia `docs_search` po symbolu/numerze jako pierwsza opcja (szybciej, offline); CDN.GIDTyp2Tabela jako fallback
+- ERP_SCHEMA_PATTERNS.md: sekcja CDN.Obiekty — `docs_search` przed SQL do CDN.Obiekty
+

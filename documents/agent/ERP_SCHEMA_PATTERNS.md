@@ -74,7 +74,12 @@ Przykład: szukasz tabeli operatorów → `docs_search "Ope_GIDNumer"` → `CDN.
 
 ## CDN.Obiekty — słownik typów dokumentów
 
-Przy polach GIDTyp w nieznanej tabeli — sprawdź CDN.Obiekty:
+Przy polach GIDTyp w nieznanej tabeli — najpierw `docs_search "symbol_lub_numer"` (szybciej, offline):
+```
+docs_search "14346"   → internal_name=Typ_ProdZasoby → hint na CDN.ProdZasoby
+docs_search "BkRez"   → gid_type=2592, tabela=CDN.Rezerwacje
+```
+Jeśli brak wyniku — zapytaj CDN.Obiekty:
 
 ```sql
 SELECT OB_GIDTyp, OB_Nazwa, OB_Skrot
