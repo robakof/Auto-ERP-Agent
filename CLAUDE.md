@@ -24,6 +24,7 @@ python tools/sql_query.py --file SCIEZKA.sql [--export SCIEZKA.xlsx]
 
 python tools/docs_search.py "fraza" [--table CDN.XXX] [--useful-only] [--limit N]
   → data.results[].{table_name, col_name, col_label, data_type, description, value_dict, sample_values}
+  → data.gid_types[].{gid_type, internal_name, symbol, description}
 
 python tools/solutions_search.py "fraza" [--window "Okno"] [--type columns|filters]
   → data.results[].{window, view, type, name, sql, filtr_sql}

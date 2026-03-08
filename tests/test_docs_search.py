@@ -12,6 +12,13 @@ from tests.conftest import make_ws, TABELE_ROWS, KOLUMNY_ROWS, RELACJE_ROWS, SLO
 # ── Fixture ─────────────────────────────────────────────────────────────────
 
 
+SAMPLE_GID_TYPES = [
+    {"gid_type": 960,   "internal_name": "Typ_Zam",        "symbol": "Zam",   "description": "Zamówienie"},
+    {"gid_type": 14346, "internal_name": "Typ_ProdZasoby", "symbol": "ZPZ",   "description": "Zasób procesu produkcyjnego"},
+    {"gid_type": 2592,  "internal_name": "Typ_BkRez",      "symbol": "BkRez", "description": "Rezerwacja u dostawcy"},
+]
+
+
 @pytest.fixture
 def docs_db(tmp_path):
     """Buduje docs.db w tmp_path z minimalnych danych testowych."""
@@ -24,7 +31,8 @@ def docs_db(tmp_path):
     relations = bi.parse_relations(make_ws(RELACJE_ROWS))
     value_dicts = bi.parse_value_dicts(make_ws(SLOWNIK_ROWS))
     sample_values = bi.parse_sample_values(make_ws(PRZYKLADOWE_ROWS))
-    bi.insert_data(conn, tables, columns, relations, value_dicts, sample_values)
+    bi.insert_data(conn, tables, columns, relations, value_dicts, sample_values,
+                   gid_types=SAMPLE_GID_TYPES)
     conn.close()
     return db_path
 
@@ -101,3 +109,34 @@ class TestSearchDocs:
         # limit=1, jeśli jest więcej wyników → truncated=True
         if len(result["data"]["results"]) == 1:
             assert result["meta"]["truncated"] is True
+
+    def test_gid_types_present_in_data(self, docs_db):
+        result = sd.search_docs("zamowien", db_path=docs_db)
+        assert "gid_types" in result["data"]
+
+    def test_gid_types_search_by_symbol(self, docs_db):
+        result = sd.search_docs("ZPZ", db_path=docs_db)
+        assert result["ok"] is True
+        gids = result["data"]["gid_types"]
+        assert any(g["gid_type"] == 14346 for g in gids)
+
+    def test_gid_types_search_by_number(self, docs_db):
+        result = sd.search_docs("14346", db_path=docs_db)
+        assert result["ok"] is True
+        gids = result["data"]["gid_types"]
+        assert any(g["gid_type"] == 14346 for g in gids)
+
+    def test_gid_types_fields(self, docs_db):
+        result = sd.search_docs("ZPZ", db_path=docs_db)
+        gid = next(g for g in result["data"]["gid_types"] if g["gid_type"] == 14346)
+        assert gid["internal_name"] == "Typ_ProdZasoby"
+        assert gid["symbol"] == "ZPZ"
+        assert "produkcyjnego" in gid["description"]
+
+    def test_gid_types_empty_when_no_match(self, docs_db):
+        result = sd.search_docs("xyznonexistent", db_path=docs_db)
+        assert result["data"]["gid_types"] == []
+
+    def test_gid_types_empty_phrase_returns_empty(self, docs_db):
+        result = sd.search_docs("", db_path=docs_db)
+        assert result["data"]["gid_types"] == []

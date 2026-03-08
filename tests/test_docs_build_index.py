@@ -120,6 +120,54 @@ class TestParsers:
         assert len(values) == 10
 
 
+# ── TestParseGidTypes ────────────────────────────────────────────────────────
+
+SAMPLE_GID_HTML = """
+<TABLE>
+<TR><TD>Typ_Zam</TD><TD>0000001111000000</TD><TD>960</TD><TD>Zam</TD><TD>Zamówienie,</TD></TR>
+<TR><TD>Typ_BkRez</TD><TD>0000101000100000</TD><TD>2592</TD><TD>BkRez</TD><TD>Rezerwacja u dostawcy,</TD></TR>
+<TR><TD>Typ_ProdZasoby</TD><TD>0011100000001010</TD><TD>14346</TD><TD>ZPZ</TD><TD>Zasób procesu produkcyjnego</TD></TR>
+<TR><TD>e_srt_GIDTypDokumentu_AK</TD><TD>0000100100000000</TD><TD>2304</TD><TD>AK</TD><TD>Dokument AK,</TD></TR>
+<TR><TD>Naglowek</TD><TD>Binarnie</TD><TD>Dziesietnie</TD><TD>Symbol</TD><TD>Opis</TD></TR>
+</TABLE>
+"""
+
+
+class TestParseGidTypes:
+    def test_parse_count(self, tmp_path):
+        f = tmp_path / "e_typy.html"
+        f.write_text(SAMPLE_GID_HTML, encoding="utf-8")
+        result = bi.parse_gid_types(str(f))
+        assert len(result) == 4
+
+    def test_parse_fields(self, tmp_path):
+        f = tmp_path / "e_typy.html"
+        f.write_text(SAMPLE_GID_HTML, encoding="utf-8")
+        result = bi.parse_gid_types(str(f))
+        zam = next(r for r in result if r["gid_type"] == 960)
+        assert zam["internal_name"] == "Typ_Zam"
+        assert zam["symbol"] == "Zam"
+        assert zam["description"] == "Zamówienie"
+
+    def test_strips_trailing_comma(self, tmp_path):
+        f = tmp_path / "e_typy.html"
+        f.write_text(SAMPLE_GID_HTML, encoding="utf-8")
+        result = bi.parse_gid_types(str(f))
+        for r in result:
+            assert not r["description"].endswith(",")
+
+    def test_missing_file_returns_empty(self, tmp_path):
+        result = bi.parse_gid_types(str(tmp_path / "nonexistent.html"))
+        assert result == []
+
+    def test_skips_header_rows(self, tmp_path):
+        f = tmp_path / "e_typy.html"
+        f.write_text(SAMPLE_GID_HTML, encoding="utf-8")
+        result = bi.parse_gid_types(str(f))
+        names = [r["internal_name"] for r in result]
+        assert "Naglowek" not in names
+
+
 # ── TestBuildSchema ─────────────────────────────────────────────────────────
 
 
@@ -135,6 +183,8 @@ class TestBuildSchema:
         assert "columns" in names
         assert "relations" in names
         assert "columns_fts" in names
+        assert "gid_types" in names
+        assert "gid_types_fts" in names
 
     def test_idempotent(self):
         conn = in_memory_db()

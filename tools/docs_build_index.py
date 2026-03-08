@@ -12,6 +12,7 @@ import argparse
 import os
 import sys
 from collections import defaultdict
+from html.parser import HTMLParser
 from pathlib import Path
 
 import openpyxl
@@ -187,9 +188,59 @@ def parse_sample_values(ws) -> dict[tuple, str]:
     return {k: ", ".join(v[:10]) for k, v in collected.items()}
 
 
+def parse_gid_types(html_path: str) -> list[dict]:
+    """Parsuje e_typy.html → lista typów GID z polami gid_type, internal_name, symbol, description."""
+
+    class _Parser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.types: list[dict] = []
+            self._row: list[str] = []
+            self._cell = ""
+            self._in_td = False
+
+        def handle_starttag(self, tag, attrs):
+            if tag == "tr":
+                self._row = []
+            elif tag == "td":
+                self._in_td = True
+                self._cell = ""
+
+        def handle_data(self, data):
+            if self._in_td:
+                self._cell += data
+
+        def handle_endtag(self, tag):
+            if tag == "td":
+                self._in_td = False
+                self._row.append(self._cell.strip())
+            elif tag == "tr":
+                row = self._row
+                if len(row) == 5:
+                    try:
+                        gid_type = int(row[2])
+                        self.types.append({
+                            "gid_type": gid_type,
+                            "internal_name": row[0].strip(),
+                            "symbol": row[3].strip(),
+                            "description": row[4].strip().rstrip(",").strip(),
+                        })
+                    except ValueError:
+                        pass  # wiersz nagłówkowy lub niepełny
+
+    path = Path(html_path)
+    if not path.exists():
+        return []
+    parser = _Parser()
+    parser.feed(path.read_text(encoding="utf-8"))
+    return parser.types
+
+
 def build_schema(conn) -> None:
     """Tworzy schemat SQLite (DROP IF EXISTS + CREATE). Idempotentne."""
     conn.executescript("""
+        DROP TABLE IF EXISTS gid_types_fts;
+        DROP TABLE IF EXISTS gid_types;
         DROP TABLE IF EXISTS columns_fts;
         DROP TABLE IF EXISTS relations;
         DROP TABLE IF EXISTS columns;
@@ -238,6 +289,21 @@ def build_schema(conn) -> None:
             sample_values UNINDEXED,
             tokenize = 'unicode61 remove_diacritics 2'
         );
+
+        CREATE TABLE gid_types (
+            gid_type      INTEGER,
+            internal_name TEXT,
+            symbol        TEXT,
+            description   TEXT
+        );
+
+        CREATE VIRTUAL TABLE gid_types_fts USING fts5(
+            gid_type_text,
+            internal_name,
+            symbol,
+            description,
+            tokenize = 'unicode61 remove_diacritics 2'
+        );
     """)
 
 
@@ -248,6 +314,7 @@ def insert_data(
     relations: list[dict],
     value_dicts: dict[tuple, str],
     sample_values: dict[tuple, str],
+    gid_types: list[dict] | None = None,
 ) -> None:
     """Wstawia dane do tabel SQLite i buduje indeks FTS5."""
     conn.executemany(
@@ -283,6 +350,16 @@ def insert_data(
         FROM columns
     """)
 
+    for gt in (gid_types or []):
+        conn.execute(
+            "INSERT INTO gid_types VALUES (:gid_type, :internal_name, :symbol, :description)",
+            gt,
+        )
+        conn.execute(
+            "INSERT INTO gid_types_fts VALUES (?, ?, ?, ?)",
+            (str(gt["gid_type"]), gt["internal_name"], gt["symbol"], gt["description"]),
+        )
+
     conn.commit()
 
 
@@ -314,11 +391,16 @@ def build_index(xlsm_path: str, db_path: str | None = None) -> None:
     print(f"  Słowniki:  {len(value_dicts)} kolumn")
     print(f"  Przykłady: {len(sample_values)} kolumn")
 
+    erp_docs = os.getenv("ERP_DOCS_PATH", "./erp_docs")
+    html_path = Path(erp_docs) / "raw" / "Dokumnetacja bazy" / "e_typy.html"
+    gid_types = parse_gid_types(str(html_path))
+    print(f"  GIDTypy:   {len(gid_types)}")
+
     conn = get_db(db_path)
     build_schema(conn)
-    insert_data(conn, tables, columns, relations, value_dicts, sample_values)
+    insert_data(conn, tables, columns, relations, value_dicts, sample_values, gid_types)
     conn.close()
-    print(f"[build_index] Gotowe → {db_path or 'domyślna ścieżka'}")
+    print(f"[build_index] Gotowe: {db_path or 'domyslna sciezka'}")
 
 
 def main() -> None:

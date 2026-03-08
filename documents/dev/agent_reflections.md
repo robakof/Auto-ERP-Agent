@@ -5,22 +5,6 @@ Plik zawiera tylko pozycje **niezrealizowane**. Zrealizowane — w sekcji Archiw
 
 ---
 
-## [Narzędzia] Mapa GIDTyp → tabela CDN — e_typy.html do indeksu
-
-**Źródło:** agent (self-reflection) | **Sesja:** 2026-03-08
-
-Agent szukał tabeli dla GIDTyp=14346 przez kolejne ślepe zapytania. Trafił za trzecim razem.
-Plik `erp_docs/raw/Dokumnetacja bazy/e_typy.html` zawiera 330 typów z nazwą wewnętrzną
-(np. `Typ_ProdZasoby`), GIDTyp, symbolem i opisem. Nazwa wewnętrzna → hint na tabelę CDN.
-
-**Propozycja (zatwierdzona: opcja 2):**
-- `tools/docs_build_index.py`: parsowanie `e_typy.html` → nowa tabela `gid_types` w `docs.db`
-  Schemat: `(gid_type INTEGER, internal_name TEXT, symbol TEXT, description TEXT)`
-- `tools/docs_search.py`: nowy tryb wyszukiwania po `gid_types`
-- Agent szuka `docs_search "14346"` → dostaje `Typ_ProdZasoby` → hint na `CDN.ProdZasoby`
-
----
-
 ## [Narzędzia] Propozycja: bi_discovery.py — automatyczny raport discovery
 
 **Źródło:** agent (self-reflection) | **Sesja:** 2026-03-08
@@ -104,3 +88,8 @@ Poprawiono nazwy w dokumentach agenta i CLAUDE.md (~20 miejsc).
 ## ✓ [Workflow] Weryfikacja numerów dokumentów — dwuetapowa
 Sesja: 2026-03-08 | Wdrożone: 2026-03-08
 ERP_VIEW_WORKFLOW.md (Faza 0e): krok 1 DISTINCT podtypów, krok 2 NazwaObiektu per podtyp.
+
+## ✓ [Narzędzia] Mapa GIDTyp → tabela CDN — e_typy.html do indeksu
+Sesja: 2026-03-08 | Wdrożone: 2026-03-08
+`docs_build_index.py`: parsowanie `e_typy.html` (456 typów) → tabela `gid_types` + `gid_types_fts` w docs.db.
+`docs_search.py`: `_search_gid_types()` + `data.gid_types[]` w odpowiedzi. 202 testy.

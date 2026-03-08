@@ -66,6 +66,28 @@ def _row_to_dict(row) -> dict:
     }
 
 
+def _search_gid_types(conn, fts_query: str) -> list[dict]:
+    """Przeszukuje gid_types_fts i zwraca listę typów GID."""
+    try:
+        rows = conn.execute(
+            """
+            SELECT g.gid_type, g.internal_name, g.symbol, g.description
+            FROM gid_types_fts f
+            JOIN gid_types g ON g.rowid = f.rowid
+            WHERE gid_types_fts MATCH ?
+            ORDER BY rank
+            LIMIT 20
+            """,
+            [fts_query],
+        ).fetchall()
+    except Exception:
+        return []
+    return [
+        {"gid_type": r[0], "internal_name": r[1], "symbol": r[2], "description": r[3]}
+        for r in rows
+    ]
+
+
 def search_docs(
     phrase: str,
     table_filter: str | None = None,
@@ -91,7 +113,7 @@ def search_docs(
         conn.close()
         return {
             "ok": True,
-            "data": {"results": []},
+            "data": {"results": [], "gid_types": []},
             "error": None,
             "meta": {"duration_ms": 0, "truncated": False},
         }
@@ -100,6 +122,7 @@ def search_docs(
 
     try:
         rows = _execute_fts(conn, where, params, limit)
+        gid_types = _search_gid_types(conn, fts_query)
     except Exception as e:
         duration_ms = round((time.monotonic() - start) * 1000)
         return {
@@ -115,7 +138,7 @@ def search_docs(
     results = [_row_to_dict(row) for row in rows]
     return {
         "ok": True,
-        "data": {"results": results},
+        "data": {"results": results, "gid_types": gid_types},
         "error": None,
         "meta": {"duration_ms": duration_ms, "truncated": len(results) == limit},
     }
