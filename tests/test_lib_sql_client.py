@@ -86,6 +86,18 @@ class TestValidate:
         assert self.client.validate("insert into t values(1)") is not None
         assert self.client.validate("Delete from t") is not None
 
+    def test_valid_with_cte(self):
+        sql = "WITH cte AS (SELECT id FROM t) SELECT * FROM cte"
+        assert self.client.validate(sql) is None
+
+    def test_valid_with_cte_multiline(self):
+        sql = "WITH Sciezka AS (\n    SELECT id, name FROM t\n    UNION ALL\n    SELECT id, name FROM t2\n)\nSELECT * FROM Sciezka"
+        assert self.client.validate(sql) is None
+
+    def test_with_cte_lowercase(self):
+        sql = "with cte as (select id from t) select * from cte"
+        assert self.client.validate(sql) is None
+
 
 # ── TestExecute ──────────────────────────────────────────────────────────────
 
@@ -129,6 +141,15 @@ class TestExecute:
         mock_conn, mock_cursor = make_mock_conn(["n"], [[1]])
         with patch.object(self.client, "get_connection", return_value=mock_conn):
             self.client.execute("SELECT n FROM t", inject_top=None)
+        executed_sql = mock_cursor.execute.call_args[0][0]
+        assert "TOP" not in executed_sql.upper()
+
+    def test_no_injection_for_with_cte(self):
+        """inject_top nie modyfikuje CTE — TOP trafiłby do anchora, nie do głównego SELECT."""
+        mock_conn, mock_cursor = make_mock_conn(["id"], [[1]])
+        sql = "WITH cte AS (SELECT id FROM t) SELECT * FROM cte"
+        with patch.object(self.client, "get_connection", return_value=mock_conn):
+            self.client.execute(sql, inject_top=100)
         executed_sql = mock_cursor.execute.call_args[0][0]
         assert "TOP" not in executed_sql.upper()
 

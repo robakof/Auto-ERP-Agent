@@ -78,7 +78,8 @@ class SqlClient:
         statements = self._split_statements(sql)
         if len(statements) > 1:
             return "MULTIPLE_STATEMENTS: dozwolone tylko jedno zapytanie"
-        if not upper.lstrip().startswith("SELECT"):
+        normalized = upper.lstrip()
+        if not (normalized.startswith("SELECT") or normalized.startswith("WITH")):
             return "NOT_SELECT: dozwolone tylko zapytania SELECT"
         return None
 
@@ -111,7 +112,7 @@ class SqlClient:
                 "error": {"type": "VALIDATION_ERROR", "message": error},
             }
 
-        if inject_top is not None and "TOP " not in sql.upper():
+        if inject_top is not None and "TOP " not in sql.upper() and not sql.upper().lstrip().startswith("WITH"):
             sql = sql.replace("SELECT ", f"SELECT TOP {inject_top} ", 1)
 
         start = time.monotonic()

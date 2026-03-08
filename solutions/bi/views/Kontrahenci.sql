@@ -1,4 +1,4 @@
--- BRUDNOPIS — BI.Kontrahenci
+CREATE OR ALTER VIEW BI.Kontrahenci AS
 
 WITH Sciezka_Grup AS (
     -- Anchor: grupy poziomu 1 (bezpośrednie dzieci korzenia GIDNumer=0)

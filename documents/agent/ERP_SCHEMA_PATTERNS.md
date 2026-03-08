@@ -269,6 +269,35 @@ WHERE Ope_Ident LIKE '%' + ??Wystawiajacy + '%'
 
 Widok "Grupy" używa prefiksu `KnG_` (nie `Knt_`). Filtr musi odnosić się do `KnG_GIDNumer`.
 
+### Grupy kontrahentów — dwie tabele, różne zastosowania
+
+| Tabela | Typ rekordów | Zastosowanie |
+|---|---|---|
+| `CDN.KntGrupy` type=-32 | ~30 rek. — definicje grup (hierarchia) | budowanie ścieżki CTE |
+| `CDN.KntGrupy` type=32 | ~5651 rek. — WSZYSTKIE grupy kontrahenta | bridge table — mnoży wiersze |
+| `CDN.KntGrupyDom` type=-32 | ~29 rek. — definicje grup (hierarchia) | budowanie ścieżki CTE |
+| `CDN.KntGrupyDom` type=32 | dokładnie 1 rek. per kontrahent | **GRUPA GŁÓWNA** — użyj tej |
+
+**Wzorzec dla grupy głównej (ścieżka rekurencyjna):**
+```sql
+WITH Sciezka_Grup AS (
+    SELECT KGD_GIDNumer, CAST(KGD_Kod AS NVARCHAR(2000)) AS Sciezka
+    FROM CDN.KntGrupyDom WHERE KGD_GIDTyp = -32 AND KGD_GrONumer = 0
+    UNION ALL
+    SELECT g.KGD_GIDNumer, CAST(p.Sciezka + '\' + RTRIM(g.KGD_Kod) AS NVARCHAR(2000))
+    FROM CDN.KntGrupyDom g
+    INNER JOIN Sciezka_Grup p ON p.KGD_GIDNumer = g.KGD_GrONumer
+    WHERE g.KGD_GIDTyp = -32 AND g.KGD_GrONumer > 0
+)
+-- W zapytaniu głównym:
+LEFT JOIN CDN.KntGrupyDom kgd
+    ON kgd.KGD_GIDNumer = k.Knt_GIDNumer AND kgd.KGD_GIDTyp = 32
+LEFT JOIN Sciezka_Grup sg ON sg.KGD_GIDNumer = kgd.KGD_GrONumer
+```
+
+`KGD_GIDNumer` (type=32) = `Knt_GIDNumer` kontrahenta (nie `Knt_KnGNumer`!).
+`KGD_GrONumer` = GIDNumer grupy nadrzędnej w hierarchii type=-32.
+
 ---
 
 ## Znane problematyczne filtry

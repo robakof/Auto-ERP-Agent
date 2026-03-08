@@ -1,4 +1,4 @@
-## Status: Faza 2 — Brudnopis SQL gotowy (151 kolumn), BLOKADA: Knt_EFaVatDataDo sentinel
+## Status: Faza 3 — Export zweryfikowany, gotowy do CREATE VIEW (czeka na akceptację usera)
 
 **Tabela główna:** CDN.KntKarty
 **Filtr techniczny:** brak (pełny zbiór)
@@ -167,9 +167,41 @@ Właściwa baza: `erp_docs/index/docs.db` (7 MB, 214 kolumn CDN.KntKarty z opisa
 - CTE startuje od GrONumer=0 (pomija "Grupa Główna")
 - 13 rekordów Knt_KnGNumer=0 → brak przypisania do grupy → NULL w Sciezka_Grupy
 
-**Następny krok (priorytet):**
-1. Poprawić sql_client.py: zmienić walidację aby akceptowała WITH...SELECT (lub zmienić CTE na podzapytanie inline)
-2. Naprawić błąd: `k.Knt_KnGNumer` → `k.Knt_Rodzaj` w sekcji ATRYBUTY CRM
-3. Przetestować pełny draft (4530 wierszy)
-4. Eksport excel_export_bi.py + weryfikacja statystyk
-5. CREATE OR ALTER VIEW BI.Kontrahenci
+---
+
+## Faza 3 — Weryfikacja exportu (2026-03-08, sesja 3)
+
+**Export:** `solutions/bi/Kontrahenci/Kontrahenci_export.xlsx`
+**Wynik:** 4530 wierszy ✓, 151 kolumn ✓, arkusze: Plan / Wynik / Surówka
+
+**Naprawione w tej sesji:**
+- `sql_client.py` — walidator akceptuje WITH...SELECT (CTE); inject_top pomijany dla WITH
+- Bug: `k.Knt_KnGNumer AS ID_Rodzaju_Kontrahenta` → `k.Knt_Rodzaj AS ID_Rodzaju_Kontrahenta`
+
+**Weryfikacja statystyk:**
+- Typ: 4 wartości (Odbiorca/Dostawca/Dostawca-Odbiorca/Nieokreślono) ✓
+- Status: 3 wartości ✓ | Platnik_VAT: Tak/Nie ✓ | Archiwalny: Tak/Nie ✓
+- Eksport_Rodzaj: 4 wartości (Krajowy/Z UE/Spoza UE/Nieokreślono) ✓
+- Sciezka_Grupy: 16 distinct, 4514 NULL (brak przypisania do grupy) ✓
+- Data_Ostatniej_Modyfikacji: format datetime 2024–2025 ✓
+- EFaktura_VAT_Data_Waznosci: sentinel >109211 → NULL, 6 realnych dat ✓
+- Rodzaj_Kontrahenta: "Kontrahent" (słownik CDN.Slowniki) ✓
+- Brak "Nieznane" w żadnej enumeracji ✓
+
+---
+
+## Faza 3 — Rewizja grup (2026-03-08, sesja 4)
+
+**Problem:** `CDN.KntGrupy` (type=32) zawiera WSZYSTKIE grupy kontrahenta (bridge table) — 5651 rekordów dla 4530 kontrahentów → JOIN mnożył wiersze.
+
+**Rozwiązanie:** `CDN.KntGrupyDom` — osobna tabela z grupą główną (JEDENA per kontrahent):
+- `KntGrupyDom` type=32: 4530 rekordów, `KGD_GIDNumer = Knt_GIDNumer`
+- `KGD_GrONumer` → wskazuje na grupę w type=-32 (definicje hierarchii)
+- CTE zbudowany z `CDN.KntGrupyDom` (type=-32), separator `\`
+- JOIN: `kgd ON KGD_GIDNumer = k.Knt_GIDNumer AND KGD_GIDTyp = 32` → `sg ON KGD_GIDNumer = kgd.KGD_GrONumer`
+
+**Wynik:** 4530 wierszy ✓, 26 distinct ścieżek, 656 NULL (brak grupy głównej), separator `\`
+
+**Usunięto:** `ID_Rodzaju_Kontrahenta` (niepotrzebne — mamy `Rodzaj_Kontrahenta`)
+
+**Następny krok:** CREATE OR ALTER VIEW BI.Kontrahenci (czeka na akceptację usera)
