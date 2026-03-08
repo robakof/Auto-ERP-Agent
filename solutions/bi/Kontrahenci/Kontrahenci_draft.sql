@@ -1,5 +1,20 @@
 -- BRUDNOPIS — BI.Kontrahenci
--- Etap 1: ID, typ, adres, dane identyfikacyjne (kolumny 1–20)
+
+WITH Sciezka_Grup AS (
+    -- Anchor: grupy poziomu 1 (bezpośrednie dzieci korzenia GIDNumer=0)
+    SELECT
+        KnG_GIDNumer,
+        CAST(KnG_Akronim AS NVARCHAR(2000)) AS Sciezka
+    FROM CDN.KntGrupy
+    WHERE KnG_GIDTyp = -32 AND KnG_GrONumer = 0
+    UNION ALL
+    SELECT
+        g.KnG_GIDNumer,
+        CAST(p.Sciezka + ' > ' + RTRIM(g.KnG_Akronim) AS NVARCHAR(2000))
+    FROM CDN.KntGrupy g
+    INNER JOIN Sciezka_Grup p ON p.KnG_GIDNumer = g.KnG_GrONumer
+    WHERE g.KnG_GIDTyp = -32 AND g.KnG_GrONumer > 0
+)
 
 SELECT
     -- === IDENTYFIKACJA ===
@@ -42,12 +57,12 @@ SELECT
     k.Knt_Gmina                                             AS Gmina,
     k.Knt_RegionCRM                                         AS Region_CRM,
 
-    -- === ADRES POWIĄZANY (CDN.KntAdresy — adres główny kontrahenta) ===
-    a.KnA_Akronim                                           AS Adres_Powiazany_Akronim,
-    a.KnA_Nazwa1                                            AS Adres_Powiazany_Nazwa1,
-    a.KnA_KodP                                              AS Adres_Powiazany_KodP,
-    a.KnA_Miasto                                            AS Adres_Powiazany_Miasto,
-    a.KnA_Ulica                                             AS Adres_Powiazany_Ulica,
+    -- === ADRES DODATKOWY (CDN.KntAdresy — wskazany adres powiązany) ===
+    a.KnA_Akronim                                           AS Adres_Dodatkowy_Akronim,
+    a.KnA_Nazwa1                                            AS Adres_Dodatkowy_Nazwa,
+    a.KnA_KodP                                              AS Adres_Dodatkowy_Kod_Pocztowy,
+    a.KnA_Miasto                                            AS Adres_Dodatkowy_Miasto,
+    a.KnA_Ulica                                             AS Adres_Dodatkowy_Ulica,
 
     -- === KONTAKT ===
     k.Knt_Telefon1                                          AS Telefon1,
@@ -81,14 +96,18 @@ SELECT
     END                                                     AS Forma_Platnosci_Zakup,
 
     -- === TERMINY PŁATNOŚCI ===
-    k.Knt_TerminPlKa                                        AS Termin_Platnosci_Ka,
-    k.Knt_TerminPlZak                                       AS Termin_Platnosci_Zak,
-    k.Knt_SpTerminPlSpr                                      AS Termin_Spr_Specjalny,
-    k.Knt_SpTerminPlZak                                      AS Termin_Zak_Specjalny,
-    k.Knt_MaxTerminPlSpr                                    AS Max_Termin_Platnosci_Spr,
-    k.Knt_MaxTerminPlZak                                    AS Max_Termin_Platnosci_Zak,
+    k.Knt_TerminPlKa                                        AS Termin_Platnosci_Kaucji,
+    k.Knt_TerminPlZak                                       AS Termin_Platnosci_Zakup,
+    k.Knt_SpTerminPlSpr                                     AS Termin_Platnosci_Sprzedaz_Specjalny,
+    k.Knt_SpTerminPlZak                                     AS Termin_Platnosci_Zakup_Specjalny,
+    k.Knt_MaxTerminPlSpr                                    AS Max_Termin_Platnosci_Sprzedaz,
+    k.Knt_MaxTerminPlZak                                    AS Max_Termin_Platnosci_Zakup,
     k.Knt_MaxDniPoTerminie                                  AS Max_Dni_Po_Terminie,
-    k.Knt_LimitTerminowy                                    AS Limit_Terminowy,
+    CASE k.Knt_LimitTerminowy
+        WHEN 0 THEN 'Nieograniczony'
+        WHEN 1 THEN 'Ograniczony'
+        ELSE 'Nieznane (' + CAST(k.Knt_LimitTerminowy AS VARCHAR) + ')'
+    END                                                     AS Limit_Terminowy,
 
     -- === LIMITY KREDYTOWE ===
     k.Knt_LimitWart                                         AS Limit_Wartosciowy,
@@ -99,29 +118,48 @@ SELECT
     -- === RABATY I CENY ===
     k.Knt_Rabat                                             AS Rabat,
     k.Knt_Marza                                             AS Marza,
-    k.Knt_Cena                                              AS Poziom_Ceny,
-    k.Knt_Dewizowe                                          AS Czy_Dewizowe,
-    k.Knt_Symbol                                            AS Waluta_Symbol,
+    k.Knt_Cena                                              AS ID_Cennika_Sprzedazy,
+    RTRIM(tcn.Nazwa_Cennika)                                AS Nazwa_Cennika_Sprzedazy,
+    k.Knt_Symbol                                            AS Waluta,
     k.Knt_NrKursu                                           AS Nr_Kursu,
 
     -- === CECHY HANDLOWE ===
-    k.Knt_ExpoKraj                                          AS Eksport_Kraj,
-    k.Knt_SeriaFa                                           AS Seria_FA,
-    k.Knt_TypDok                                            AS Typ_Dokumentu,
-    k.Knt_TypDokZS                                          AS Typ_Dok_ZS,
-    k.Knt_TypDokZZ                                          AS Typ_Dok_ZZ,
+    CASE k.Knt_ExpoKraj
+        WHEN 1 THEN 'Krajowy'
+        WHEN 2 THEN 'Z Unii Europejskiej'
+        WHEN 3 THEN 'Spoza Unii Europejskiej'
+        WHEN 0 THEN 'Nieokreślono'
+        ELSE 'Nieznane (' + CAST(k.Knt_ExpoKraj AS VARCHAR) + ')'
+    END                                                     AS Eksport_Rodzaj,
+    k.Knt_SeriaFa                                           AS Seria_Faktury,
+    CASE k.Knt_TypDok
+        WHEN 0    THEN 'Brak'
+        WHEN 2033 THEN 'Faktura sprzedaży'
+        WHEN 2034 THEN 'Paragon'
+        ELSE 'Nieznane (' + CAST(k.Knt_TypDok AS VARCHAR) + ')'
+    END                                                     AS Typ_Rachunku,
+    CASE k.Knt_TypDokZS
+        WHEN 0    THEN 'Brak'
+        WHEN 2001 THEN 'Wydanie zewnętrzne'
+        ELSE 'Nieznane (' + CAST(k.Knt_TypDokZS AS VARCHAR) + ')'
+    END                                                     AS Typ_Dokumentu_Z_Zamowienia_Sprzedazy,
+    k.Knt_TypDokZZ                                          AS ID_Typu_Dokumentu_Z_Zamowienia_Zakupu,
     k.Knt_SposobDostawy                                     AS Sposob_Dostawy,
     k.Knt_Kurier                                            AS Kurier,
     k.Knt_Odleglosc                                         AS Odleglosc,
     k.Knt_Priorytet                                         AS Priorytet,
     k.Knt_PriorytetRez                                      AS Priorytet_Rezerwacji,
-    k.Knt_PojedynczeDokDoZam                                AS Pojedyncze_Dok_Do_Zam,
+    k.Knt_PojedynczeDokDoZam                                AS Pojedynczy_Dokument_Do_Zamowienia,
 
     -- === FLAGI HANDLOWE ===
     CASE k.Knt_PlatnikVat
         WHEN 1 THEN 'Tak' WHEN 0 THEN 'Nie'
         ELSE 'Nieznane (' + CAST(k.Knt_PlatnikVat AS VARCHAR) + ')'
     END                                                     AS Platnik_VAT,
+    CASE k.Knt_Dewizowe
+        WHEN 1 THEN 'Tak' WHEN 0 THEN 'Nie'
+        ELSE 'Nieznane (' + CAST(k.Knt_Dewizowe AS VARCHAR) + ')'
+    END                                                     AS Dewizowy,
     CASE k.Knt_Archiwalny
         WHEN 1 THEN 'Tak' WHEN 0 THEN 'Nie'
         ELSE 'Nieznane (' + CAST(k.Knt_Archiwalny AS VARCHAR) + ')'
@@ -156,14 +194,14 @@ SELECT
     END                                                     AS Rolnik_Ryczaltowy,
 
     -- === OPERATOR ZAKŁADAJĄCY (CDN.OpeKarty) ===
-    k.Knt_OpeNumer                                          AS ID_Operatora_Zal,
-    o.Ope_Ident                                             AS Login_Operatora_Zal,
-    o.Ope_Nazwisko                                          AS Nazwisko_Operatora_Zal,
+    k.Knt_OpeNumer                                          AS ID_Operatora_Zalozenia,
+    o.Ope_Ident                                             AS Login_Operatora_Zalozenia,
+    o.Ope_Nazwisko                                          AS Nazwisko_Operatora_Zalozenia,
 
     -- === OPERATOR MODYFIKUJĄCY (CDN.OpeKarty) ===
-    k.Knt_OpeNumerM                                         AS ID_Operatora_Mod,
-    om.Ope_Ident                                            AS Login_Operatora_Mod,
-    om.Ope_Nazwisko                                         AS Nazwisko_Operatora_Mod,
+    k.Knt_OpeNumerM                                         AS ID_Operatora_Modyfikacji,
+    om.Ope_Ident                                            AS Login_Operatora_Modyfikacji,
+    om.Ope_Nazwisko                                         AS Nazwisko_Operatora_Modyfikacji,
 
     -- === FIRMA HANDLOWA (CDN.FrmStruktura) ===
     k.Knt_FrsID                                             AS ID_Firmy_Handlowej,
@@ -185,147 +223,153 @@ SELECT
     rej.KAR_Seria                                           AS Seria_Rejestru_Kasowego,
     rej.KAR_Nazwa                                           AS Nazwa_Rejestru_Kasowego,
 
-    -- === GRUPA KONTRAHENTA (CDN.KntGrupy) ===
+    -- === GRUPA KONTRAHENTA — pełna ścieżka (CDN.KntGrupy, rekurencyjnie) ===
     k.Knt_KnGNumer                                          AS ID_Grupy,
-    kg.KnG_Akronim                                          AS Nazwa_Grupy,
+    sg.Sciezka                                              AS Sciezka_Grupy,
 
     -- === DATY (Clarion DATE: DATEADD(d, col, '18001228')) ===
     CASE WHEN k.Knt_VatDataRejestracji > 0
-        THEN DATEADD(d, k.Knt_VatDataRejestracji, '18001228') END AS Data_VAT_Rejestracji,
+        THEN DATEADD(d, k.Knt_VatDataRejestracji, '18001228') END   AS Data_Rejestracji_VAT,
     CASE WHEN k.Knt_VatDataPrzywrocenia > 0
-        THEN DATEADD(d, k.Knt_VatDataPrzywrocenia, '18001228') END AS Data_VAT_Przywrocenia,
+        THEN DATEADD(d, k.Knt_VatDataPrzywrocenia, '18001228') END  AS Data_Przywrocenia_VAT,
     CASE WHEN k.Knt_VatDataOdmowy > 0
-        THEN DATEADD(d, k.Knt_VatDataOdmowy, '18001228') END     AS Data_VAT_Odmowy,
+        THEN DATEADD(d, k.Knt_VatDataOdmowy, '18001228') END       AS Data_Odmowy_VAT,
     CASE WHEN k.Knt_VatDataUsuniecia > 0
-        THEN DATEADD(d, k.Knt_VatDataUsuniecia, '18001228') END   AS Data_VAT_Usuniecia,
+        THEN DATEADD(d, k.Knt_VatDataUsuniecia, '18001228') END     AS Data_Usuniecia_VAT,
     CASE WHEN k.Knt_DataOdLoj > 0
-        THEN DATEADD(d, k.Knt_DataOdLoj, '18001228') END         AS Data_Loj_Od,
+        THEN DATEADD(d, k.Knt_DataOdLoj, '18001228') END           AS Data_Lojalnosci_Od,
     CASE WHEN k.Knt_DataDoLoj > 0
-        THEN DATEADD(d, k.Knt_DataDoLoj, '18001228') END         AS Data_Loj_Do,
+        THEN DATEADD(d, k.Knt_DataDoLoj, '18001228') END           AS Data_Lojalnosci_Do,
     -- LastMod — Clarion TIMESTAMP: DATEADD(ss, col, '1990-01-01')
     CASE WHEN k.Knt_LastModL > 0
-        THEN DATEADD(ss, k.Knt_LastModL, '1990-01-01') END       AS Data_Ost_Modyfikacji,
+        THEN DATEADD(ss, k.Knt_LastModL, '1990-01-01') END         AS Data_Ostatniej_Modyfikacji,
     CASE WHEN k.Knt_LastModO > 0
-        THEN DATEADD(ss, k.Knt_LastModO, '1990-01-01') END       AS Data_Ost_Mod_Ope,
+        THEN DATEADD(ss, k.Knt_LastModO, '1990-01-01') END         AS Data_Modyfikacji_Operator,
     CASE WHEN k.Knt_LastModC > 0
-        THEN DATEADD(ss, k.Knt_LastModC, '1990-01-01') END       AS Data_Ost_Mod_Cnf,
-    -- Knt_EFaVatDataDo: 117976=2123-12-31 (13 rek.) i 150483=2212-12-31 (1 rek.) = sentinele "bezterminowo"
-    -- Bezpieczny zakres Clarion DATE: BETWEEN 1 AND 109211 (do 2099-12-31)
+        THEN DATEADD(ss, k.Knt_LastModC, '1990-01-01') END         AS Data_Modyfikacji_Kontrahent,
+    -- Knt_EFaVatDataDo: wartości >109211 (np. 117976, 150483) = sentinel "bezterminowo"
     CASE
         WHEN k.Knt_EFaVatDataDo BETWEEN 1 AND 109211
         THEN DATEADD(d, k.Knt_EFaVatDataDo, '18001228')
-        ELSE NULL  -- 0=brak, >109211=sentinel "bezterminowo"
-    END                                                           AS Data_EFaVat_Do,
-    k.Knt_DataUtworzenia                                         AS Data_Utworzenia,
+        ELSE NULL
+    END                                                             AS EFaktura_VAT_Data_Waznosci,
+    k.Knt_DataUtworzenia                                           AS Data_Utworzenia,
 
     -- === E-FAKTURA VAT ===
     CASE k.Knt_EFaVatAktywne
         WHEN 1 THEN 'Tak' WHEN 0 THEN 'Nie'
         ELSE 'Nieznane (' + CAST(k.Knt_EFaVatAktywne AS VARCHAR) + ')'
-    END                                                           AS EFaVat_Aktywne,
-    k.Knt_EFaVatEMail                                            AS EFaVat_Email,
-    k.Knt_EFaVatOsw                                              AS EFaVat_Oswiadczenie,
+    END                                                             AS EFaktura_VAT_Aktywna,
+    k.Knt_EFaVatEMail                                              AS EFaktura_VAT_Email,
+    k.Knt_EFaVatOsw                                                AS EFaktura_VAT_Oswiadczenie,
 
     -- === VAT / PODATKI ===
     CASE k.Knt_PodatnikiemNabywca
         WHEN 1 THEN 'Tak' WHEN 0 THEN 'Nie'
         ELSE 'Nieznane (' + CAST(k.Knt_PodatnikiemNabywca AS VARCHAR) + ')'
-    END                                                           AS Podatnikiem_Nabywca,
+    END                                                             AS Podatnikiem_Nabywca,
     CASE k.Knt_WSTO
         WHEN 1 THEN 'Tak' WHEN 0 THEN 'Nie'
         ELSE 'Nieznane (' + CAST(k.Knt_WSTO AS VARCHAR) + ')'
-    END                                                           AS WSTO,
+    END                                                             AS WSTO,
     CASE k.Knt_KSeFWyslij
         WHEN 1 THEN 'Tak' WHEN 0 THEN 'Nie'
         ELSE 'Nieznane (' + CAST(k.Knt_KSeFWyslij AS VARCHAR) + ')'
-    END                                                           AS KSeF_Wyslij,
-    k.Knt_ProcTrnJpk                                             AS Proc_Trn_JPK,
-    k.Knt_OplataSpozZakup                                        AS Oplata_Spoz_Zakup,
-    k.Knt_OplataSpozSprzedaz                                     AS Oplata_Spoz_Sprzedaz,
+    END                                                             AS KSeF_Wyslij,
+    k.Knt_ProcTrnJpk                                               AS Procedura_JPK,
+    k.Knt_OplataSpozZakup                                          AS Oplata_Spozywcza_Zakup,
+    k.Knt_OplataSpozSprzedaz                                       AS Oplata_Spozywcza_Sprzedaz,
 
-    -- === LOYALNOŚĆ ===
-    k.Knt_KartaLoj                                               AS Karta_Lojalnosciowa,
-    k.Knt_Punkty                                                  AS Punkty,
-    k.Knt_PunktyOdebr                                            AS Punkty_Odebrane,
-    k.Knt_PunktyNalicz                                           AS Punkty_Naliczone,
-    k.Knt_PunktyKorekta                                          AS Punkty_Korekta,
+    -- === PROGRAM LOJALNOŚCIOWY ===
+    k.Knt_KartaLoj                                                  AS Karta_Lojalnosciowa,
+    k.Knt_Punkty                                                    AS Punkty,
+    k.Knt_PunktyOdebr                                              AS Punkty_Odebrane,
+    k.Knt_PunktyNalicz                                             AS Punkty_Naliczone,
+    k.Knt_PunktyKorekta                                            AS Punkty_Korekta,
 
     -- === FLAGI DODATKOWE ===
     CASE k.Knt_Oddzialowy
         WHEN 1 THEN 'Tak' WHEN 0 THEN 'Nie'
         ELSE 'Nieznane (' + CAST(k.Knt_Oddzialowy AS VARCHAR) + ')'
-    END                                                           AS Oddzialowy,
+    END                                                             AS Oddzialowy,
     CASE k.Knt_Spedytor
         WHEN 1 THEN 'Tak' WHEN 0 THEN 'Nie'
         ELSE 'Nieznane (' + CAST(k.Knt_Spedytor AS VARCHAR) + ')'
-    END                                                           AS Spedytor,
+    END                                                             AS Spedytor,
     CASE k.Knt_Anonim
         WHEN 1 THEN 'Tak' WHEN 0 THEN 'Nie'
         ELSE 'Nieznane (' + CAST(k.Knt_Anonim AS VARCHAR) + ')'
-    END                                                           AS Anonim,
+    END                                                             AS Anonim,
     CASE k.Knt_ESklep
         WHEN 1 THEN 'Tak' WHEN 0 THEN 'Nie'
         ELSE 'Nieznane (' + CAST(k.Knt_ESklep AS VARCHAR) + ')'
-    END                                                           AS ESklep,
+    END                                                             AS ESklep,
     CASE k.Knt_ObcaKarta
         WHEN 1 THEN 'Tak' WHEN 0 THEN 'Nie'
         ELSE 'Nieznane (' + CAST(k.Knt_ObcaKarta AS VARCHAR) + ')'
-    END                                                           AS Obca_Karta,
+    END                                                             AS Obca_Karta_Platnicza,
     CASE k.Knt_Osoba
         WHEN 1 THEN 'Tak' WHEN 0 THEN 'Nie'
         ELSE 'Nieznane (' + CAST(k.Knt_Osoba AS VARCHAR) + ')'
-    END                                                           AS Osoba_Fizyczna,
+    END                                                             AS Osoba_Fizyczna,
     CASE k.Knt_StanPostep
         WHEN 0 THEN 'Brak'
         WHEN 1 THEN 'W trakcie postępowania'
         ELSE 'Nieznane (' + CAST(k.Knt_StanPostep AS VARCHAR) + ')'
-    END                                                           AS Stan_Postepowania,
+    END                                                             AS Stan_Postepowania,
     CASE k.Knt_DataPromocji
         WHEN 0 THEN 'Brak'
         WHEN 1 THEN 'Wg daty wystawienia'
         WHEN 2 THEN 'Wg daty realizacji'
         ELSE 'Nieznane (' + CAST(k.Knt_DataPromocji AS VARCHAR) + ')'
-    END                                                           AS Data_Promocji_Typ,
-
-    -- === ATRYBUTY CRM ===
-    k.Knt_Atrybut1                                               AS Atrybut1,
-    k.Knt_Wartosc1                                               AS Wartosc1,
-    k.Knt_Atrybut2                                               AS Atrybut2,
-    k.Knt_Wartosc2                                               AS Wartosc2,
-    k.Knt_Atrybut3                                               AS Atrybut3,
-    k.Knt_Wartosc3                                               AS Wartosc3,
-    k.Knt_Branza                                                  AS Branza,
-    k.Knt_Rodzaj                                                  AS Rodzaj,
-    k.Knt_RolaPartnera                                           AS Rola_Partnera,
-
-    -- === DOKUMENT TOŻSAMOŚCI ===
-    k.Knt_DokumentTozsamosci                                     AS Dokument_Tozsamosci,
-    CASE WHEN k.Knt_DataWydania > 0
-        THEN DATEADD(d, k.Knt_DataWydania, '18001228') END       AS Data_Wydania,
-    k.Knt_OrganWydajacy                                          AS Organ_Wydajacy,
-
-    -- === KONTRAHENT UMOWA / CRM ===
-    k.Knt_Umowa                                                   AS Umowa,
-    k.Knt_CechaOpis                                              AS Cecha_Opis,
-
-    -- === KONTO HANDLOWE / RACHUNKI ===
-    k.Knt_KontoDostawcy                                          AS Konto_FK_Dostawcy,
-    k.Knt_KontoOdbiorcy                                          AS Konto_FK_Odbiorcy,
-
-    -- === SPRZEDAŻ — POZOSTAŁE ===
-    k.Knt_TypKarty                                               AS Typ_Karty,
-    k.Knt_NumerKarty                                             AS Numer_Karty,
-    k.Knt_Dzialalnosc                                            AS Dzialalnosc,
-
-    -- === FLAGI POZOSTAŁE ===
-    CASE k.Knt_Dewizowe
-        WHEN 1 THEN 'Tak' WHEN 0 THEN 'Nie'
-        ELSE 'Nieznane (' + CAST(k.Knt_Dewizowe AS VARCHAR) + ')'
-    END                                                           AS Dewizowy,
+    END                                                             AS Promocja_Wg_Daty,
     CASE k.Knt_Powiazany
         WHEN 1 THEN 'Tak' WHEN 0 THEN 'Nie'
         ELSE 'Nieznane (' + CAST(k.Knt_Powiazany AS VARCHAR) + ')'
-    END                                                           AS Powiazany
+    END                                                             AS Powiazany,
+
+    -- === ATRYBUTY CRM ===
+    k.Knt_Atrybut1                                                  AS CRM_Atrybut1,
+    k.Knt_Wartosc1                                                  AS CRM_Wartosc1,
+    k.Knt_Atrybut2                                                  AS CRM_Atrybut2,
+    k.Knt_Wartosc2                                                  AS CRM_Wartosc2,
+    k.Knt_Atrybut3                                                  AS CRM_Atrybut3,
+    k.Knt_Wartosc3                                                  AS CRM_Wartosc3,
+    k.Knt_Branza                                                    AS Branza,
+    k.Knt_KnGNumer                                                  AS ID_Rodzaju_Kontrahenta,
+    slw.SLW_WartoscS                                                AS Rodzaj_Kontrahenta,
+    k.Knt_RolaPartnera                                              AS Rola_Partnera,
+    CASE k.Knt_Dzialalnosc
+        WHEN 0 THEN 'Nieokreślono'
+        WHEN 1 THEN 'Spółka cywilna'
+        WHEN 2 THEN 'Spółka z o.o.'
+        WHEN 3 THEN 'Spółka akcyjna'
+        WHEN 4 THEN 'Spółka jawna'
+        WHEN 5 THEN 'Spółka komandytowa'
+        WHEN 6 THEN 'Spółdzielnia'
+        WHEN 7 THEN 'Przedsiębiorstwo Państwowe'
+        WHEN 8 THEN 'Jednoosobowa działalność gospodarcza'
+        WHEN 9 THEN 'Inna działalność'
+        ELSE 'Nieznane (' + CAST(k.Knt_Dzialalnosc AS VARCHAR) + ')'
+    END                                                             AS Dzialalnosc_Gospodarcza,
+
+    -- === DOKUMENT TOŻSAMOŚCI ===
+    k.Knt_DokumentTozsamosci                                       AS Dokument_Tozsamosci,
+    CASE WHEN k.Knt_DataWydania > 0
+        THEN DATEADD(d, k.Knt_DataWydania, '18001228') END         AS Data_Wydania_Dokumentu,
+    k.Knt_OrganWydajacy                                            AS Organ_Wydajacy,
+
+    -- === UMOWA / CRM ===
+    k.Knt_Umowa                                                     AS Umowa,
+    k.Knt_CechaOpis                                                AS Cecha_Opis,
+
+    -- === KONTA KSIĘGOWE ===
+    k.Knt_KontoDostawcy                                            AS Konto_Ksiegowe_Dostawcy,
+    k.Knt_KontoOdbiorcy                                            AS Konto_Ksiegowe_Odbiorcy,
+
+    -- === KARTA PŁATNICZA ===
+    k.Knt_TypKarty                                                  AS Typ_Karty_Platniczej,
+    k.Knt_NumerKarty                                               AS Numer_Karty_Platniczej
 
 FROM CDN.KntKarty k
 LEFT JOIN CDN.KntAdresy a
@@ -352,7 +396,14 @@ LEFT JOIN CDN.KntKarty plat
 LEFT JOIN CDN.Rejestry rej
     ON rej.KAR_GIDNumer = k.Knt_KarNumer
     AND k.Knt_KarNumer > 0
-LEFT JOIN CDN.KntGrupy kg
-    ON kg.KnG_GIDNumer = k.Knt_KnGNumer
-    AND kg.KnG_GIDTyp = -32
+LEFT JOIN Sciezka_Grup sg
+    ON sg.KnG_GIDNumer = k.Knt_KnGNumer
     AND k.Knt_KnGNumer > 0
+LEFT JOIN (
+    SELECT TCN_RodzajCeny, MIN(TCN_Nazwa) AS Nazwa_Cennika
+    FROM CDN.TwrCenyNag
+    GROUP BY TCN_RodzajCeny
+) tcn ON tcn.TCN_RodzajCeny = k.Knt_Cena AND k.Knt_Cena > 0
+LEFT JOIN CDN.Slowniki slw
+    ON slw.SLW_ID = k.Knt_Rodzaj
+    AND k.Knt_Rodzaj > 0

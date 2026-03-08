@@ -136,4 +136,40 @@ Właściwa baza: `erp_docs/index/docs.db` (7 MB, 214 kolumn CDN.KntKarty z opisa
 **Pola puste (0 rek.) → pominięte:** FaVATOsw, MSTwrGrupaNumer, PodzialPlat, VatWalSys, ZTrNumer, OpZNumer, LastTransLockDate, FAVATData, DataKarty
 **Knt_DataPromocji:** to flaga (1=Wystawienia, 2=Realizacji), nie data
 
-**Następny krok:** Weryfikacja z użytkownikiem → `excel_export_bi.py` → `excel_read_stats.py` → CREATE OR ALTER VIEW
+---
+
+## Faza 2 — Rewizja draftu (2026-03-08, sesja 2)
+
+**BLOKADA: sql_client.py odrzuca WITH CTE** — walidator sprawdza `startswith("SELECT")` (sql_client.py:81). Rozwiązanie: poprawić walidator aby akceptował `WITH ... SELECT` lub przepisać CTE jako podzapytanie.
+
+**Zmiany w tej sesji:**
+- Pełny rewrite draftu: czytelne nazwy kolumn (usunięto skróty _Loj, _Spr, _Zak, _Ka, _Mod, _Zal, EFaVat_, FK)
+- Dodano WITH CTE `Sciezka_Grup` — rekurencja po CDN.KntGrupy (KnG_GIDTyp=-32), ścieżka bez korzenia "Grupa Główna"
+- Nowy JOIN: CDN.TwrCenyNag (tcn) → Nazwa_Cennika_Sprzedazy (MIN(TCN_Nazwa) GROUP BY TCN_RodzajCeny)
+- Nowy JOIN: CDN.Slowniki (slw) → Rodzaj_Kontrahenta (SLW_WartoscS gdzie SLW_ID=Knt_Rodzaj)
+- Knt_TypDok: CASE 0=Brak, 2033=Faktura sprzedaży, 2034=Paragon
+- Knt_Dzialalnosc: pełny CASE (0–9) z dokumentacji
+- Knt_ExpoKraj: CASE 1=Krajowy, 2=Z UE, 3=Spoza UE
+- Knt_LimitTerminowy: CASE 0=Nieograniczony, 1=Ograniczony
+- Knt_Rodzaj 800=Kontrahent (z Slowniki), 0=NULL
+- Usunięto duplikat Knt_Dewizowe (zostaje CASE)
+- Błąd w drafcie: `k.Knt_KnGNumer AS ID_Rodzaju_Kontrahenta` — POWINNO BYĆ `k.Knt_Rodzaj AS ID_Rodzaju_Kontrahenta` — DO POPRAWY
+
+**Odkrycia o cennikach (CDN.TwrCenyNag):**
+- Knt_Cena = TCN_RodzajCeny (nie TCN_Id)
+- Wartości: 1=CENA 100, 2=CMENTARZ, 3=FRANOWO, 4=BRICO, 5=INTER, 6=mrówka, 7=CHATA POLSKA, 8=AT, 9=PRYZMAT
+- Wiele rekordów per TCN_RodzajCeny → używamy MIN(TCN_Nazwa) GROUP BY
+
+**Struktura grup KntGrupy (KnG_GIDTyp=-32):**
+- Korzeń: GIDNumer=0, GrONumer=-1, Akronim="Grupa Główna"
+- Poziom 1 (GrONumer=0): 01.KLIENCI(5), 02.DOSTAWCY(11), 03.HANDLOWCY(2319), 04.AKWIZYTORZY(18)
+- 01.KLIENCI ma dzieci: 01.DETAL(9), 02.DETAL+(2), 03.HURT(3), 04.CENTRALA(6), 05.BRICO(4), etc.
+- CTE startuje od GrONumer=0 (pomija "Grupa Główna")
+- 13 rekordów Knt_KnGNumer=0 → brak przypisania do grupy → NULL w Sciezka_Grupy
+
+**Następny krok (priorytet):**
+1. Poprawić sql_client.py: zmienić walidację aby akceptowała WITH...SELECT (lub zmienić CTE na podzapytanie inline)
+2. Naprawić błąd: `k.Knt_KnGNumer` → `k.Knt_Rodzaj` w sekcji ATRYBUTY CRM
+3. Przetestować pełny draft (4530 wierszy)
+4. Eksport excel_export_bi.py + weryfikacja statystyk
+5. CREATE OR ALTER VIEW BI.Kontrahenci
