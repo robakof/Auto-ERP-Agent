@@ -16,6 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.lib.excel_writer import ExcelWriter
+from tools.lib.output import print_json
 from tools.lib.sql_client import SqlClient
 
 
@@ -57,21 +58,21 @@ def main():
     if args.file:
         sql_path = Path(args.file)
         if not sql_path.exists():
-            print(json.dumps({
+            print_json({
                 "ok": False, "data": None,
                 "error": {"type": "FILE_NOT_FOUND", "message": f"Plik SQL nie istnieje: {args.file}"},
                 "meta": {"duration_ms": 0, "truncated": False},
-            }, ensure_ascii=False))
+            })
             return
         sql = sql_path.read_text(encoding="utf-8")
     elif args.sql:
         sql = args.sql
     else:
-        print(json.dumps({
+        print_json({
             "ok": False, "data": None,
             "error": {"type": "MISSING_ARGUMENT", "message": "Podaj zapytanie SQL jako argument lub przez --file"},
             "meta": {"duration_ms": 0, "truncated": False},
-        }))
+        })
         return
 
     result = run_query(sql)
@@ -79,7 +80,7 @@ def main():
     if result["ok"] and args.export:
         _export_to_excel(result, Path(args.export))
 
-    print(json.dumps(result, default=str, ensure_ascii=False))
+    print_json(result)
 
 
 if __name__ == "__main__":

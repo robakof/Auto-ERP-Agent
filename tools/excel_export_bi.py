@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.lib.excel_reader import ExcelReader
 from tools.lib.excel_writer import ExcelWriter
+from tools.lib.output import print_json
 from tools.lib.sql_client import SqlClient
 
 EXPORTS_DIR = Path(__file__).parent.parent / "exports"
@@ -131,7 +132,7 @@ def main() -> None:
         plan_path=Path(args.plan) if args.plan else None,
         output_path=Path(args.output) if args.output else None,
     )
-    print(json.dumps(result, default=str, ensure_ascii=False))
+    print_json(result)
 
 
 if __name__ == "__main__":

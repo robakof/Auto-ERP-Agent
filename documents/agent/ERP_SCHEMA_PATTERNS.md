@@ -60,6 +60,18 @@ Twr_DataUtworzenia/86400+69035 >= ??DataOd
 
 ---
 
+## Odkrywanie nazw nieznanych tabel
+
+Nazwy tabel CDN są nieintuicyjne — **nigdy nie zgaduj**. Zawsze weryfikuj przez:
+
+```
+docs_search "[prefiks]GIDNumer"   ← znajdzie tabelę po prefiksie kolumny klucza
+```
+
+Przykład: szukasz tabeli operatorów → `docs_search "Ope_GIDNumer"` → `CDN.OpeKarty` (nie `CDN.Operatorzy`).
+
+---
+
 ## CDN.Obiekty — słownik typów dokumentów
 
 Przy polach GIDTyp w nieznanej tabeli — sprawdź CDN.Obiekty:

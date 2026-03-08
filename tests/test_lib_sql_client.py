@@ -52,6 +52,31 @@ class TestValidate:
         assert result is not None
         assert "MULTIPLE_STATEMENTS" in result
 
+    def test_semicolon_in_string_literal_allowed(self):
+        assert self.client.validate("SELECT 'klucz; opis' FROM t") is None
+
+    def test_semicolon_in_where_string_allowed(self):
+        assert self.client.validate("SELECT * FROM t WHERE col = 'val; other'") is None
+
+    def test_escaped_quote_in_string_allowed(self):
+        assert self.client.validate("SELECT * FROM t WHERE col = 'val''s; text'") is None
+
+    def test_trailing_semicolon_after_string_allowed(self):
+        assert self.client.validate("SELECT * FROM t WHERE col = 'ok';") is None
+
+    def test_semicolon_after_string_blocks_second_statement(self):
+        result = self.client.validate("SELECT 'ok'; SELECT 2")
+        assert result is not None
+        assert "MULTIPLE_STATEMENTS" in result
+
+    def test_sql_comment_lines_stripped_before_validation(self):
+        sql = "-- komentarz\n-- drugi komentarz\nSELECT * FROM t"
+        assert self.client.validate(sql) is None
+
+    def test_sql_comment_inline_does_not_affect_validation(self):
+        sql = "SELECT * FROM t -- filtruj aktywne"
+        assert self.client.validate(sql) is None
+
     def test_blocks_non_select(self):
         result = self.client.validate("SHOW TABLES")
         assert result is not None

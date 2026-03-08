@@ -491,6 +491,40 @@ Zrealizowano pierwsze 4 pozycje z listy priorytetów:
 
 Pliki zamknięte — agent powinien na starcie usunąć `solutions/bi/drafts/` w całości.
 
-**Następny krok:** #7 — Bug SqlClient: `re.split` respektujący string literals
+### 2026-03-08 — cd. poprawki workflow agenta BI
+
+**#7 + A — SqlClient.validate(): średnik w stringu + strip komentarzy SQL:**
+- `_split_statements()`: iteracja po znakach z flagą in_string, obsługa `''` (escaped quote)
+- `_strip_comments()`: usuwa linie zaczynające się od `--` przed walidacją
+- 187 testów (+7), 100% zielone
+
+**Struktura — #6 domknięte:** usunięto `solutions/bi/drafts/` (pliki przeniesione do `Rezerwacje/`)
+
+**agent_reflections.md:** archiwizacja wdrożonych (#1–#7 via ✓), dodano nowe refleksje
+(C: e_typy.html → docs.db, E: Edit zamiast Read).
+
+### 2026-03-08 — #8 encoding cp1250 — wszystkie toolsy
+
+**#8 — Encoding UTF-8 na stdout:**
+- Nowy moduł `tools/lib/output.py`: `print_json(result)` wymusza `sys.stdout.reconfigure(encoding='utf-8')`
+- Zamieniono `print(json.dumps(..., ensure_ascii=False))` → `print_json()` we wszystkich 10 toolsach
+- 191 testów (+4), 100% zielone
+- Weryfikacja: `Nagłówki_dokumentów` poprawnie bez garblingu
+
+### 2026-03-08 — #9 + #E + #10 — dokumentacja agenta i guidelines
+
+- `AI_GUIDELINES.md` sekcja 2 "Komendy powłoki": reguły Bash + reguła Edit zamiast Read
+- `ERP_SCHEMA_PATTERNS.md`: zasada `docs_search "[prefiks]GIDNumer"` + przykład CDN.OpeKarty
+- `agent_reflections.md`: przepisany — tylko 3 pozycje niezrealizowane, reszta w Archiwum
+
+**Zrealizowane w sesji 2026-03-08 (łącznie):**
+- ✓ #6 Usunięto solutions/bi/drafts/
+- ✓ #7 + A SqlClient: średnik w stringu + strip komentarzy
+- ✓ #8 Encoding UTF-8: tools/lib/output.py, 10 toolsów
+- ✓ #9 + E Komendy powłoki + Edit zamiast Read (AI_GUIDELINES.md)
+- ✓ #10 Nieoczywiste nazwy tabel (ERP_SCHEMA_PATTERNS.md)
+- 191 testów, 100% zielone
+
+**Pozostałe:** C (e_typy.html → docs.db), #11 (bi_discovery.py), Arch (single source of truth)
 
 ---

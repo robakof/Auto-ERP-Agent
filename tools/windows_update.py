@@ -23,6 +23,9 @@ import sys
 import time
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from tools.lib.output import print_json
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -144,7 +147,7 @@ def main() -> None:
         add_aliases=args.add_aliases,
         config_types=args.config_types,
     )
-    print(json.dumps(result, ensure_ascii=False, default=str))
+    print_json(result)
 
 
 if __name__ == "__main__":

@@ -18,6 +18,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from tools.lib.output import print_json
+
 SOLUTIONS_ROOT = "solutions in ERP windows"
 
 
@@ -160,7 +163,7 @@ def main() -> None:
         type_filter=args.type,
         limit=args.limit,
     )
-    print(json.dumps(result, ensure_ascii=False, default=str))
+    print_json(result)
 
 
 if __name__ == "__main__":

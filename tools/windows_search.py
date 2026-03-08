@@ -18,6 +18,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from tools.lib.output import print_json
+
 WINDOWS_FILE = "erp_windows.json"
 
 
@@ -89,7 +93,7 @@ def main() -> None:
     args = parser.parse_args()
 
     result = search_windows(phrase=args.phrase, type_filter=args.type)
-    print(json.dumps(result, ensure_ascii=False, default=str))
+    print_json(result)
 
 
 if __name__ == "__main__":

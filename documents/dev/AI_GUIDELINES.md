@@ -170,7 +170,29 @@ Po zatwierdzeniu implementacji wykonaj commit, push i zaktualizuj `progress_log.
 
 ---
 
-## 2. CODE QUALITY STANDARDS
+## 2. KOMENDY POWŁOKI
+
+### Reguły pisania komend Bash
+
+Hook bezpieczeństwa blokuje zbyt złożone komendy. Trzymaj się prostych form:
+
+1. **Nie używaj `$()`** — zamiast tego zapisz SQL do pliku i podaj ścieżkę jako argument
+2. **Nie używaj `python -c "..."`** z wieloliniowym kodem — zapisz do pliku tymczasowego
+3. **Maksymalnie 2 komendy w łańcuchu `&&`** — dłuższe podziel na osobne wywołania
+4. **Pusty string `""` jako argument** — zastąp pojedynczym znakiem lub usuń
+5. **`find` z `2>/dev/null`** — użyj narzędzia Glob zamiast Bash
+
+### Edycja dużych plików SQL
+
+Przy iteracyjnej pracy nad brudnopisem SQL (300+ linii, wiele iteracji):
+
+- Używaj `Edit` z minimalnym `old_string` (kilka linii wokół zmiany)
+- **Nie czytaj całego pliku** przed każdą iteracją — zużywa kontekst niepotrzebnie
+- `Read` jest uzasadniony tylko gdy potrzebujesz zrozumieć szerszy fragment kodu
+
+---
+
+## 3. CODE QUALITY STANDARDS
 
 ### Nazewnictwo
 

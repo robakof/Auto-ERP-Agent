@@ -15,6 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from tools.db import get_db
+from tools.lib.output import print_json
 
 
 def build_fts_query(phrase: str) -> str:
@@ -134,7 +135,7 @@ def main() -> None:
         useful_only=args.useful_only,
         limit=args.limit,
     )
-    print(json.dumps(result, ensure_ascii=False, default=str))
+    print_json(result)
 
 
 if __name__ == "__main__":

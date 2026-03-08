@@ -25,13 +25,57 @@ class SqlClient:
         "OPENROWSET", "OPENQUERY", "SELECT INTO",
     ]
 
+    @staticmethod
+    def _strip_comments(sql: str) -> str:
+        """Usuwa linie zaczynające się od -- (komentarze SQL)."""
+        lines = [line for line in sql.splitlines() if not line.lstrip().startswith("--")]
+        return "\n".join(lines)
+
+    @staticmethod
+    def _split_statements(sql: str) -> list[str]:
+        """Dzieli SQL po średniku z pominięciem średników wewnątrz string literals."""
+        statements = []
+        current: list[str] = []
+        in_string = False
+        i = 0
+        while i < len(sql):
+            ch = sql[i]
+            if in_string:
+                current.append(ch)
+                if ch == "'":
+                    # '' = escaped quote — pozostajemy w stringu
+                    if i + 1 < len(sql) and sql[i + 1] == "'":
+                        current.append("'")
+                        i += 2
+                        continue
+                    in_string = False
+            else:
+                if ch == "'":
+                    in_string = True
+                    current.append(ch)
+                elif ch == ";":
+                    fragment = "".join(current).strip()
+                    if fragment:
+                        statements.append(fragment)
+                    current = []
+                    i += 1
+                    continue
+                else:
+                    current.append(ch)
+            i += 1
+        fragment = "".join(current).strip()
+        if fragment:
+            statements.append(fragment)
+        return statements
+
     def validate(self, sql: str) -> str | None:
         """Zwraca komunikat błędu lub None gdy zapytanie jest bezpieczne."""
+        sql = self._strip_comments(sql)
         upper = sql.upper()
         for keyword in self.BLOCKED_KEYWORDS:
             if keyword in upper:
                 return f"BLOCKED_KEYWORD: '{keyword}' nie jest dozwolone"
-        statements = [s.strip() for s in sql.split(";") if s.strip()]
+        statements = self._split_statements(sql)
         if len(statements) > 1:
             return "MULTIPLE_STATEMENTS: dozwolone tylko jedno zapytanie"
         if not upper.lstrip().startswith("SELECT"):

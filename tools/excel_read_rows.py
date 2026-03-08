@@ -18,6 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.lib.excel_reader import ExcelReader
+from tools.lib.output import print_json
 
 
 def read_rows(
@@ -47,7 +48,7 @@ def main() -> None:
 
     cols = [c.strip() for c in args.columns.split(",")] if args.columns else None
     result = read_rows(Path(args.file), args.sheet, cols)
-    print(json.dumps(result, default=str, ensure_ascii=False))
+    print_json(result)
 
 
 if __name__ == "__main__":
