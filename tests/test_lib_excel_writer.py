@@ -95,3 +95,32 @@ class TestExcelWriter:
         wb = load_workbook(out)
         ws = wb.active
         assert ws.cell(row=1, column=1).font.bold is True
+
+    def test_sheet_has_excel_table(self, tmp_path):
+        w = ExcelWriter()
+        w.add_sheet("Rezerwacje", ["Kod", "Nazwa"], [["A", "X"], ["B", "Y"]])
+        out = tmp_path / "out.xlsx"
+        w.save(out)
+        wb = load_workbook(out)
+        ws = wb["Rezerwacje"]
+        assert len(ws.tables) > 0
+
+    def test_excel_table_covers_all_data(self, tmp_path):
+        w = ExcelWriter()
+        w.add_sheet("Plan", ["A", "B", "C"], [["x", "y", "z"]])
+        out = tmp_path / "out.xlsx"
+        w.save(out)
+        wb = load_workbook(out)
+        ws = wb["Plan"]
+        table = list(ws.tables.values())[0]
+        assert table.ref == "A1:C2"
+
+    def test_multiple_sheets_each_has_table(self, tmp_path):
+        w = ExcelWriter()
+        w.add_sheet("Arkusz1", ["X"], [["v1"]])
+        w.add_sheet("Arkusz2", ["Y"], [["v2"]])
+        out = tmp_path / "out.xlsx"
+        w.save(out)
+        wb = load_workbook(out)
+        assert len(wb["Arkusz1"].tables) > 0
+        assert len(wb["Arkusz2"].tables) > 0

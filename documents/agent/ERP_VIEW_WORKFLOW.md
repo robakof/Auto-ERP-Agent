@@ -11,8 +11,8 @@ i iteracyjnej pracy na pliku roboczym.
 Utwórz dwa pliki robocze (jeśli nie istnieją):
 
 ```
-solutions/bi/drafts/{NazwaWidoku}.sql          ← brudnopis SELECT (nie CREATE VIEW)
-solutions/bi/drafts/{NazwaWidoku}_progress.md  ← log postępu
+solutions/bi/{NazwaWidoku}/{NazwaWidoku}_draft.sql          ← brudnopis SELECT (nie CREATE VIEW)
+solutions/bi/{NazwaWidoku}/{NazwaWidoku}_progress.md  ← log postępu
 ```
 
 **Przy wznawianiu pracy** po przerwie lub kompresji kontekstu — zacznij od przeczytania
@@ -59,7 +59,7 @@ WHERE OB_GIDTyp IN (<wszystkie DISTINCT wartości>)
 Następnie sprawdź dokumentację:
 
 ```
-python tools/search_docs.py "nazwa_pola" --table CDN.MainTable
+python tools/docs_search.py "nazwa_pola" --table CDN.MainTable
 ```
 
 **CASE musi pokrywać wartości z bazy ORAZ wartości wymienione w dokumentacji** — nawet
@@ -80,11 +80,18 @@ SELECT MIN(col_data), MAX(col_data) FROM CDN.MainTable WHERE col_data > 0
 
 Patrz `ERP_SCHEMA_PATTERNS.md` — wzorce inline.
 
-### e) Weryfikacja numerów dokumentów — jednorazowa eskalacja
+### e) Weryfikacja numerów dokumentów — dwuetapowa eskalacja
 
-Zbierz `SELECT DISTINCT` ze WSZYSTKICH pól typów dokumentów w tabeli jednym krokiem.
-Skompiluj **jeden gotowy SELECT** z CDN.NazwaObiektu obejmujący wszystkie znalezione typy
-i przekaż go userowi do uruchomienia w SSMS. Nie wracaj z częściowymi pytaniami.
+**Krok 1 — zbierz wszystkie podtypy z tabeli źródłowej:**
+
+```sql
+SELECT TypPole, COUNT(*) cnt FROM CDN.MainTable GROUP BY TypPole ORDER BY cnt DESC
+```
+
+Nie zakładaj jednorodności — ta sama tabela może zawierać dokumenty różnych typów
+z różnymi formatami numerów. Uruchom przez `sql_query.py`, przejrzyj wynik.
+
+**Krok 2 — skompiluj jedno zapytanie obejmujące WSZYSTKIE znalezione podtypy:**
 
 ```sql
 USE [ERPXL_CEIM];
@@ -103,7 +110,16 @@ WHERE rn = 1
 ORDER BY TypDok;
 ```
 
-Jedno zapytanie pokrywa wszystkie typy — po jednym przykładzie na każdy typ.
+Jedno zapytanie — po jednym przykładzie na każdy podtyp. Nie wracaj z częściowymi pytaniami.
+
+**Zapisz zapytanie do pliku przed przekazaniem userowi:**
+
+```
+solutions/bi/{NazwaWidoku}/{NazwaWidoku}_objects.sql
+```
+
+Dopiero potem przekaż ścieżkę do pliku userowi z prośbą o uruchomienie w SSMS.
+User może plik otworzyć, skopiować i wrócić z wynikiem.
 Nie pisz numeracji dokumentów dopóki user nie wróci z wynikiem.
 
 ### f) Sprawdź JOINy przez COUNT
@@ -117,7 +133,7 @@ SELECT COUNT(*), COUNT(DISTINCT r.GIDNumer) FROM ... LEFT JOIN CDN.XXX ON ...
 
 ### Po zakończeniu Fazy 0 — zapisz postępy
 
-Zaktualizuj `solutions/bi/drafts/{NazwaWidoku}_progress.md` (patrz sekcja
+Zaktualizuj `solutions/bi/{NazwaWidoku}/{NazwaWidoku}_progress.md` (patrz sekcja
 "Zarządzanie kontekstem" na końcu tego dokumentu).
 
 ---
@@ -127,11 +143,11 @@ Zaktualizuj `solutions/bi/drafts/{NazwaWidoku}_progress.md` (patrz sekcja
 ### Format planu
 
 Plan to plik Excel — nie MD. Agent konstruuje tabelę mapowania jako SQL z hardkodowanymi
-wartościami (UNION ALL) i eksportuje przez `export_excel.py` ze stałą ścieżką:
+wartościami (UNION ALL) i eksportuje przez `excel_export.py` ze stałą ścieżką:
 
 ```bash
-python tools/export_excel.py "SELECT ..." \
-  --output "solutions/bi/plans/{NazwaWidoku}_plan.xlsx"
+python tools/excel_export.py "SELECT ..." \
+  --output "solutions/bi/{NazwaWidoku}/{NazwaWidoku}_plan.xlsx"
 ```
 
 Plik jest nadpisywany przy każdej aktualizacji planu — stała ścieżka bez timestampu.
@@ -144,8 +160,8 @@ Jedna tabela z kolumnami:
 |---|---|---|
 | `Kolejnosc` | agent | numer kolejny z oryginalnej tabeli (z SELECT TOP 1 *) |
 | `CDN_Pole` | agent | oryginalna nazwa kolumny z CDN lub tabeli JOIN |
-| `Opis_w_dokumentacji` | search_docs.py | col_label + description z docs.db; puste gdy brak w indeksie |
-| `Przykladowe_wartosci` | search_docs.py | sample_values z docs.db; puste gdy brak |
+| `Opis_w_dokumentacji` | docs_search.py | col_label + description z docs.db; puste gdy brak w indeksie |
+| `Przykladowe_wartosci` | docs_search.py | sample_values z docs.db; puste gdy brak |
 | `Alias_w_widoku` | agent | docelowa nazwa w widoku BI (propozycja) |
 | `Transformacja` | agent | co robimy z polem (opis lub formuła) |
 | `Uwzglednic` | agent | Tak / Nie (propozycja) |
@@ -161,16 +177,20 @@ na końcu metryki obliczeniowe.
 Dla każdej kolumny CDN.MainTable uruchom:
 
 ```
-python tools/search_docs.py "{nazwa_kolumny}" --table CDN.MainTable --useful-only --limit 1
+python tools/docs_search.py "{nazwa_kolumny}" --table CDN.MainTable --useful-only --limit 1
 ```
 
-Z wyniku pobierz: `col_label` (→ `Opis_w_dokumentacji`) i `sample_values` (→ `Przykladowe_wartosci`).
-Gdy brak wyniku — zostaw puste. Nie wymyślaj opisów.
+Z wyniku pobierz:
+- `col_label` → `Opis_w_dokumentacji` (etykieta z dokumentacji, **nie nazwa kolumny CDN**)
+- `sample_values` → `Przykladowe_wartosci`
+
+Gdy brak wyniku — zostaw puste. **Nigdy nie wpisuj `col_name` jako opisu** — to jest pole
+techniczne, nie czytelny opis. Puste pole jest lepsze niż mylące.
 
 Możesz zebrać wszystkie kolumny jednym wywołaniem bez frazy, z filtrem tabeli:
 
 ```
-python tools/search_docs.py "" --table CDN.MainTable
+python tools/docs_search.py "" --table CDN.MainTable
 ```
 
 ### Odczyt planu po edycji usera
@@ -180,11 +200,27 @@ Po tym jak user edytuje `{NazwaWidoku}_plan.xlsx` (uzupełni `Komentarz_Usera`, 
 
 ```
 python tools/excel_read_rows.py \
-  --file "solutions/bi/plans/{NazwaWidoku}_plan.xlsx" \
+  --file "solutions/bi/{NazwaWidoku}/{NazwaWidoku}_plan.xlsx" \
   --columns CDN_Pole,Uwzglednic,Transformacja,Komentarz_Usera
 ```
 
-Następnie uwzględnij komentarze usera w brudnopisie SQL i zaktualizuj plan.
+**Zanim zaczniesz generować SQL — najpierw przeskanuj plan pod kątem niespójności.**
+
+Wypisz wszystkie wiersze spełniające którykolwiek z warunków:
+- `Komentarz_Usera` jest wypełniony
+- `Uwzglednic` = "Nie" przy niepustym `Komentarz_Usera` (potencjalna sprzeczność)
+- `Transformacja` wygląda na niekompletną lub wymaga interpretacji
+
+Przedstaw je userowi jako listę do rozstrzygnięcia:
+
+```
+Zanim zacznę — znalazłem N wierszy wymagających uwagi:
+- [CDN_Pole]: Komentarz_Usera = "...", Uwzglednic = "..."
+- ...
+Czy mam zastosować komentarze dosłownie, czy wolisz najpierw omówić?
+```
+
+Dopiero po potwierdzeniu usera przystąp do generowania SQL.
 
 ### Metodologia — analiza kolumna po kolumnie
 
@@ -215,11 +251,23 @@ Po zatwierdzeniu — zaktualizuj progress log.
 
 ## Faza 2 — SQL na pliku brudnopisu (iteracja)
 
-**Cały SQL powstaje i żyje w pliku `solutions/bi/drafts/{NazwaWidoku}.sql`.**
+**Cały SQL powstaje i żyje w pliku `solutions/bi/{NazwaWidoku}/{NazwaWidoku}_draft.sql`.**
 
 - Nie wrzucaj długich SELECT-ów do czatu
 - Edytuj plik → eksportuj → weryfikuj → powtarzaj
 - W czacie podawaj tylko: co zmieniłeś i jaki jest wynik weryfikacji
+
+### Obowiązkowy eksport po każdej zmianie
+
+Każde wywołanie testujące brudnopis musi zawierać `--export`. Jeden krok = test + Excel.
+
+```bash
+python tools/sql_query.py --file "solutions/bi/{NazwaWidoku}/{NazwaWidoku}_draft.sql" \
+  --export "solutions/bi/{NazwaWidoku}/{NazwaWidoku}_export.xlsx"
+```
+
+Plik eksportu nadpisywany in-place (stała ścieżka bez timestampu). User zawsze widzi
+aktualny wynik bez konieczności osobnego proszenia o eksport.
 
 Plik brudnopisu zawiera `SELECT` (nie `CREATE VIEW`). Widok powstaje dopiero po akceptacji
 usera w Fazie 4.
@@ -306,17 +354,17 @@ CASE WHEN Rez_DstNumer = 0 THEN NULL ELSE Rez_DstNumer END AS ID_Dostawy
 ## Faza 3 — Export i weryfikacja (po każdej iteracji SQL)
 
 ```bash
-python tools/export_bi_view.py \
-  --sql "$(cat solutions/bi/drafts/{NazwaWidoku}.sql)" \
+python tools/excel_export_bi.py \
+  --sql "$(cat solutions/bi/{NazwaWidoku}/{NazwaWidoku}_draft.sql)" \
   --view-name "{NazwaWidoku}" \
   --source-table "CDN.MainTable" \
-  --plan "solutions/bi/plans/{NazwaWidoku}_plan.xlsx"
+  --plan "solutions/bi/{NazwaWidoku}/{NazwaWidoku}_plan.xlsx"
 ```
 
 Następnie statystyki:
 
 ```bash
-python tools/read_excel_stats.py \
+python tools/excel_read_stats.py \
   --file "exports/{NazwaWidoku}_TIMESTAMP.xlsx" \
   --sheet "Wynik" \
   --max-unique 15
@@ -363,7 +411,7 @@ git push
 
 ## Zarządzanie kontekstem — progress log widoku
 
-Plik `solutions/bi/drafts/{NazwaWidoku}_progress.md` jest kołem ratunkowym przy kompresji
+Plik `solutions/bi/{NazwaWidoku}/{NazwaWidoku}_progress.md` jest kołem ratunkowym przy kompresji
 kontekstu. Aktualizuj go obligatoryjnie na końcu każdej fazy.
 
 Minimalny zakres po każdej fazie:
@@ -388,9 +436,9 @@ Minimalny zakres po każdej fazie:
 - [ZWERYFIKOWANE: ZS format ZS-N/MM/RRRR/Seria]
 
 **Pliki:**
-- Brudnopis: solutions/bi/drafts/{NazwaWidoku}.sql
-- Plan: solutions/bi/plans/{NazwaWidoku}_plan.xlsx
-- Ostatni export: exports/...
+- Brudnopis: solutions/bi/{NazwaWidoku}/{NazwaWidoku}_draft.sql
+- Plan: solutions/bi/{NazwaWidoku}/{NazwaWidoku}_plan.xlsx
+- Ostatni export: solutions/bi/{NazwaWidoku}/{NazwaWidoku}_export.xlsx
 
 **Następny krok:** [konkretna czynność]
 ```

@@ -3,6 +3,7 @@ excel_export.py — Narzędzie agenta: eksport wyników SQL do pliku Excel (.xls
 
 CLI:
     python tools/excel_export.py "SELECT TOP 100 ..." [--output SCIEZKA.xlsx] [--view-name "Nazwa"]
+    python tools/excel_export.py --file SCIEZKA.sql  [--output SCIEZKA.xlsx] [--view-name "Nazwa"]
 
 Jeśli --output nie podano, plik zapisywany jest w exports/ z nazwą opartą na znaczniku czasu.
 
@@ -45,8 +46,9 @@ def export_to_excel(
         }
 
     try:
+        sheet_name = view_name if view_name else "Dane"
         writer = ExcelWriter()
-        writer.add_sheet("Dane", result["columns"], result["rows"])
+        writer.add_sheet(sheet_name, result["columns"], result["rows"])
         writer.save(output_path)
     except Exception as e:  # noqa: BLE001
         return {
@@ -70,13 +72,32 @@ def export_to_excel(
 
 def main():
     parser = argparse.ArgumentParser(description="Eksportuj wyniki SQL do pliku Excel.")
-    parser.add_argument("sql", help='Zapytanie SELECT')
+    parser.add_argument("sql", nargs="?", default=None, help="Zapytanie SELECT (inline)")
+    parser.add_argument("--file", "-f", default=None, help="Ścieżka do pliku .sql z zapytaniem")
     parser.add_argument("--output", "-o", default=None, help="Ścieżka do pliku .xlsx")
     parser.add_argument("--view-name", default=None, help="Nazwa widoku w nazwie pliku")
     args = parser.parse_args()
 
+    if args.file:
+        sql_path = Path(args.file)
+        if not sql_path.exists():
+            print(json.dumps({
+                "ok": False, "data": None,
+                "error": {"type": "FILE_NOT_FOUND", "message": f"Plik SQL nie istnieje: {args.file}"},
+            }, ensure_ascii=False))
+            return
+        sql = sql_path.read_text(encoding="utf-8")
+    elif args.sql:
+        sql = args.sql
+    else:
+        print(json.dumps({
+            "ok": False, "data": None,
+            "error": {"type": "MISSING_INPUT", "message": "Podaj zapytanie SQL jako argument lub przez --file"},
+        }, ensure_ascii=False))
+        return
+
     output_path = Path(args.output) if args.output else None
-    result = export_to_excel(args.sql, output_path, args.view_name)
+    result = export_to_excel(sql, output_path, args.view_name)
     print(json.dumps(result, default=str, ensure_ascii=False))
 
 

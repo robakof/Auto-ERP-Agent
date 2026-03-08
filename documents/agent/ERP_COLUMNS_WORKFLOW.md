@@ -151,7 +151,7 @@ Numer zakładki (`DFK_IDListy`) dla kolumn jest **inny** niż dla filtrów (`FIL
 ## Checklist przed oddaniem
 
 1. Przeczytaj `filtr.sql` widoku → tabela główna i typ obiektu
-2. Sprawdź `search_solutions.py --type columns` dla widoku → naśladuj styl istniejących
+2. Sprawdź `solutions_search.py --type columns` dla widoku → naśladuj styl istniejących
 3. `{filtrsql}` obecne w WHERE — **obowiązkowe**
 4. Alias w `[NAWIASACH KWADRATOWYCH]`
 5. LEFT JOIN dla kolumn opcjonalnych

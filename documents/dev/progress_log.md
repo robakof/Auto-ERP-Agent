@@ -418,3 +418,73 @@ Przeanalizowano sesję w której agent tworzył widok BI.Rezerwacje. Zidentyfiko
 - Faza 3: export + read_excel_stats obowiązkowe bez pytania; rozbieżność COUNT → zbadaj
 
 ---
+
+### 2026-03-08 — Poprawki workflow agenta BI (sesja deweloperska)
+
+Zebrano refleksje z sesji agenta do `documents/dev/agent_reflections.md` (11 obserwacji).
+Zrealizowano pierwsze 4 pozycje z listy priorytetów:
+
+**Kod — tools/:**
+- `sql_query.py`: dodano `--file SCIEZKA.sql` + `--export SCIEZKA.xlsx` (test + Excel w 1 kroku)
+- `excel_export.py`: dodano `--file SCIEZKA.sql` (alternatywa dla inline SQL)
+- Testy: 177 (było 170), 100% zielone
+
+**ERP_VIEW_WORKFLOW.md:**
+- Faza 2: reguła obowiązkowego eksportu po każdej iteracji SQL (`sql_query.py --file ... --export ...`)
+- Faza 0e: weryfikacja numerów dokumentów dwuetapowa (najpierw DISTINCT podtypów, potem NazwaObiektu)
+- Faza 0e: zapytanie CDN.NazwaObiektu zapisywane do `{Widok}_objects.sql` przed przekazaniem userowi
+- Faza 1: odczyt planu zaczyna się od przeskanowania niespójności — lista do zatwierdzenia przed SQL
+
+**Nazwy narzędzi:**
+- Poprawiono stare nazwy we wszystkich dokumentach agenta i CLAUDE.md
+  (search_docs→docs_search, export_bi_view→excel_export_bi, itd. — łącznie ~20 miejsc)
+
+**Refleksje niezrealizowane (do następnej sesji):**
+- #5: Excel — nazwa arkusza, Table object, opis z docs (kod + workflow)
+- #6: Struktura folderów per widok (`solutions/bi/{Widok}/`)
+- #7: Bug SqlClient — średnik w stringu
+- #8: Bug docs_search — encoding cp1250
+- #9: Komendy powłoki — reguły w AI_GUIDELINES.md
+- #10: Nieoczywiste nazwy tabel → ERP_SCHEMA_PATTERNS.md
+- #11: bi_discovery.py (nowe narzędzie)
+- Arch: single source of truth dla sygnatur narzędzi
+
+**Następny krok:** #5 — Excel: nazwa arkusza = nazwa widoku, Table object, opis z docs_search
+
+### 2026-03-08 — cd. poprawki workflow agenta BI
+
+**#5 — Excel: nazwa arkusza, Table object, opis z docs:**
+- `ExcelWriter`: każdy arkusz tworzony jako Excel Table (filtrowanie, zebra-stripes, styl Medium9)
+- `excel_export.py`: nazwa arkusza = `--view-name` gdy podany, "Dane" gdy brak
+- `ERP_VIEW_WORKFLOW.md`: instrukcja Opis_w_dokumentacji wyostrzona — `col_label`, nie `col_name`
+- 180 testów, 100% zielone
+
+**Następny krok:** #6 — Struktura folderów per widok (`solutions/bi/{Widok}/`)
+
+### 2026-03-08 — cd. poprawki workflow agenta BI
+
+**#6 — Struktura folderów per widok:**
+- Migracja Rezerwacje: `drafts/` + `plans/` → `Rezerwacje/` (5 plików)
+- `solutions/bi/drafts/` do ręcznego usunięcia gdy Excel zamknięty
+- `ERP_VIEW_WORKFLOW.md`: wszystkie ścieżki zaktualizowane na `solutions/bi/{Widok}/{Widok}_*.`
+- 180 testów, 100% zielone
+
+**Zrealizowane z listy refleksji (documents/dev/agent_reflections.md):**
+- ✓ #1 Auto-export Excel po każdej iteracji (sql_query.py --export)
+- ✓ #2 Błędne nazwy narzędzi w dokumentach agenta
+- ✓ #3 + #4a CDN.NazwaObiektu do pliku + dwuetapowa weryfikacja podtypów
+- ✓ #4 Plan — niespójności wykrywane przed SQL
+- ✓ #5 Excel: Table object, nazwa arkusza = view_name, opis z col_label
+- ✓ #6 Struktura folderów per widok
+
+**Pozostałe do zrealizowania** (szczegóły każdej pozycji: `documents/dev/agent_reflections.md`):
+- #7: Bug SqlClient — średnik w stringu łamie walidację
+- #8: Bug docs_search — encoding cp1250
+- #9: Komendy powłoki — reguły w AI_GUIDELINES.md
+- #10: Nieoczywiste nazwy tabel → ERP_SCHEMA_PATTERNS.md
+- #11: bi_discovery.py (nowe narzędzie)
+- Arch: single source of truth dla sygnatur narzędzi
+
+**Następny krok:** #7 — Bug SqlClient: `re.split` respektujący string literals
+
+---

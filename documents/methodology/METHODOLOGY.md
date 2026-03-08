@@ -3,8 +3,8 @@
 ## Wprowadzenie — dla człowieka
 
 Niniejszy dokument opisuje metodologię pracy nad projektami realizowanymi przy udziale agenta
-LLM (Large Language Model). Metodologia powstała empirycznie — przez obserwację własnej pracy
-i systematyczne wyciąganie wniosków z sytuacji, w których agent działał poza oczekiwanym zakresem.
+LLM (Large Language Model). Metodologia powstała empirycznie — przez obserwację własnej pracy i 
+systematyczne wyciąganie z niej wniosków..
 
 Metodologia nie jest zbiorem reguł technicznych. Jest sposobem myślenia o współpracy
 człowiek–agent, uwzględniającym zarówno możliwości, jak i ograniczenia modeli językowych.
@@ -38,11 +38,12 @@ Każda sesja ma jeden poziom. Nie mieszaj ich.
 - Developer może zaproponować wywołanie Metodologa
 - Metodolog nie eskaluje wyżej — to poziom refleksji nad całością
 
-**Jak eskalować.** Jeśli rozpoznajesz, że zadanie przekracza Twój poziom:
-1. Powiedz użytkownikowi wprost: "To wymaga poziomu Developera / Metodologa."
+**Jak sygnalizować wyższy poziom.** Jeśli zauważasz obserwację lub insight, który należy
+do poziomu Developera lub Metodologa — niezależnie od tego czy dasz radę sam czy nie:
+1. Nazwij obserwację: "Zauważam coś, co może być istotne dla Developera / Metodologa."
 2. Zapytaj: "Czy mam przygotować prompt do kolejnej sesji?"
-3. Jeśli tak — napisz zwięzły handoff: swój aktualny stan, co wywołało eskalację,
-   co wymaga decyzji na wyższym poziomie.
+3. Jeśli tak — napisz zwięzły handoff: aktualny stan, konkretna obserwacja,
+   pytanie do rozważenia na wyższym poziomie.
 
 **Wytyczne są warstwą chronioną.** Nie modyfikuj `AI_GUIDELINES.md`, `CLAUDE.md`
 ani plików w `documents/agent/` bez jawnego zatwierdzenia przez użytkownika.
@@ -85,44 +86,56 @@ bez zatwierdzenia ze strony użytkownika.
 
 Trzy poziomy działania to w praktyce trzy różne sesje — trzy instancje tego samego modelu,
 każda załadowana innym kontekstem, pełniąca inną funkcję. Użytkownik jest mediatorem
-między instancjami: zatwierdza eskalację i przekazuje handoff.
+między instancjami: zatwierdza sygnał i przekazuje handoff.
 
-### Kierunek eskalacji
+### Kierunek sygnału
 
 ```
 Metodolog   (refleksja nad metodą — rzadko wywoływany)
     ^
-    |  eskaluje Developer, nigdy Agent bezpośrednio
+    |  sygnalizuje Developer, nigdy Agent bezpośrednio
 Developer   (architektura, wytyczne, narzędzia)
     ^
-    |  eskaluje Agent
+    |  sygnalizuje Agent
 Agent       (zadania wykonawcze — najczęściej aktywny)
 ```
 
-Eskalacja nigdy nie idzie w dół. Metodolog nie wywołuje Developera z własnej inicjatywy —
-to Developer, obserwując metodę, może zaproponować sesję metodologiczną.
+Sygnał idzie wyłącznie w górę. Nie chodzi o to, że agent "nie daje rady" — chodzi o to,
+że agent **zauważa coś, co ma znaczenie dla wyższego poziomu**: obserwację architektoniczną,
+insightmetodologiczny, wzorzec który warto utrwalić. To jest jakość obserwacji, nie awaria.
 
 ### Protokół handoff
 
-Gdy Agent rozpoznaje potrzebę eskalacji:
+Gdy Agent rozpoznaje sygnał dla wyższego poziomu:
 
-1. Formułuje obserwację: "To zadanie wymaga decyzji architektonicznej / metodologicznej."
+1. Formułuje obserwację: "Zauważam coś, co może być istotne dla Developera / Metodologa."
 2. Pyta użytkownika: "Czy mam przygotować prompt do sesji Developera?"
 3. Po zgodzie pisze handoff zawierający:
    - aktualny stan projektu (co zrobione, co w toku)
-   - co wywołało eskalację i dlaczego to przekracza poziom Agenta
-   - konkretne pytanie lub decyzja do podjęcia przez wyższy poziom
+   - konkretną obserwację która wywołała sygnał
+   - pytanie lub decyzja do rozważenia na wyższym poziomie
 
-Handoff jest formą **eksplicytnej samoświadomości stanu** — agent musi opisać siebie
-z zewnątrz, tak jak widzi go kolejna instancja. To wymusza precyzję i zapobiega gubienia
-kontekstu przy przekazaniu.
+Handoff jest formą **jawnej samoświadomości stanu** — agent musi opisać siebie z zewnątrz,
+tak jak widzi go kolejna instancja. To wymusza precyzję i zapobiega gubienia kontekstu.
 
 ### Komunikacja instancji przez użytkownika
 
-Użytkownik jest świadkiem i gatekeeper — zatwierdza eskalację, ale nie musi rozumieć
-jej technicznego uzasadnienia. Model komunikuje się sam ze sobą, a użytkownik obserwuje
-i w razie potrzeby koryguje kierunek. To odwrócenie typowego układu: zamiast "użytkownik
-zleca, agent wykonuje" — agent proponuje, użytkownik zatwierdza lub odchyla.
+Użytkownik jest świadkiem i gatekeeper — zatwierdza sygnał, ale nie musi rozumieć
+jego technicznego uzasadnienia. Model komunikuje się sam ze sobą, a użytkownik obserwuje
+i w razie potrzeby koryguje kierunek. Zamiast "użytkownik zleca, agent wykonuje" —
+agent sygnalizuje, użytkownik zatwierdza lub odchyla.
+
+### Hipoteza: nasłuch
+
+*(Koncepcja nieprzetestowana — zapisana jako kierunek do weryfikacji.)*
+
+Alternatywą dla reaktywnego sygnału jest **nasłuch** — Developer lub Metodolog obecni
+jako pasywni obserwatorzy sesji Agenta. Zamiast czekać na wezwanie, dostają feed
+konwersacji i wchodzą gdy sami zauważą coś w swoim zakresie.
+
+Potencjalna zaleta: agent nie musi wiedzieć co jest istotne dla wyższego poziomu —
+wyższy poziom sam to ocenia. Problem do rozwiązania: jak technicznie i operacyjnie
+zorganizować taki nasłuch bez przeciążenia kontekstu i bez rozproszenia sesji roboczej.
 
 ---
 
@@ -187,11 +200,19 @@ odtworzyć stan projektu, jest problemem ciągłości.
 
 ### Progress log
 
-*[Do uzupełnienia po analizie przykładów z dwóch projektów.]*
+Progress log jest zewnętrzną pamięcią agenta — nie dokumentacją historyczną, lecz
+narzędziem przekazania stanu. Jego odbiorcą jest zawsze kolejna instancja (lub ta sama
+po resecie).
 
-Progress log służy jako zewnętrzna pamięć agenta — nie dokumentacja historyczna, lecz
-przekazanie stanu. Szczegółowa struktura i konwencje zostaną opisane po obserwacji wzorców
-wyłonionych organicznie przez agentów w istniejących projektach.
+Progress log nie działa w izolacji — jest częścią ekosystemu dokumentów projektu.
+Jego forma wynika z natury projektu i tego, co niosą inne dokumenty. Każdy projekt
+wypracowuje własny format organicznie.
+
+Rdzeń który pojawia się niezależnie od formatu:
+- "Następny krok:" zawsze obecny — punkt wejścia dla kolejnej sesji
+- Kluczowe pliki wymienione przy zadaniach
+- Decyzje z uzasadnieniem, nie tylko lista faktów
+- Opcjonalnie: błędy poprzedniej instancji i lekcje dla następnej
 
 ### Zarządzanie oknem kontekstowym
 

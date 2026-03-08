@@ -18,8 +18,9 @@ Dokumenty SQL — ładuj odpowiedni plik zależnie od zadania:
 ## Narzędzia
 
 ```
-python tools/sql_query.py "SELECT ..."
-  → data.columns, data.rows, data.row_count | error.type
+python tools/sql_query.py "SELECT ..." [--export SCIEZKA.xlsx]
+python tools/sql_query.py --file SCIEZKA.sql [--export SCIEZKA.xlsx]
+  → data.columns, data.rows, data.row_count, [data.export_path] | error.type
 
 python tools/docs_search.py "fraza" [--table CDN.XXX] [--useful-only] [--limit N]
   → data.results[].{table_name, col_name, col_label, data_type, description, value_dict, sample_values}
@@ -31,6 +32,7 @@ python tools/windows_search.py "fraza" [--type columns|filters]
   → data.results[].{id, name, aliases, primary_table, config_types}
 
 python tools/excel_export.py "SELECT ..." [--output SCIEZKA.xlsx] [--view-name "Nazwa"]
+python tools/excel_export.py --file SCIEZKA.sql [--output SCIEZKA.xlsx] [--view-name "Nazwa"]
   → data.path, data.row_count, data.columns | error.type
   (szybki eksport SQL → jeden arkusz xlsx; nazwa pliku: {view_name}_TIMESTAMP.xlsx)
 
@@ -69,7 +71,7 @@ Przy `ok: false` — czytaj `error.type` i `error.message`.
 ### Krok 1 — Zidentyfikuj okno ERP
 
 ```
-python tools/search_windows.py "fraza z wymagania użytkownika"
+python tools/windows_search.py "fraza z wymagania użytkownika"
 ```
 
 - Znaleziono → przejdź do kroku 2
@@ -82,12 +84,12 @@ Przeczytaj `filtr.sql` z katalogu widoku:
 `solutions/solutions in ERP windows/{Okno}/{Widok}/filtr.sql`
 
 Prefiks kolumn w `filtr.sql` wyznacza tabelę główną (np. `Twr_` → CDN.TwrKarty).
-Jeśli nie wiesz która to tabela: `search_docs.py "[prefiks]GIDNumer"`.
+Jeśli nie wiesz która to tabela: `docs_search.py "[prefiks]GIDNumer"`.
 
 ### Krok 3 — Znajdź wzorce
 
 ```
-python tools/search_solutions.py "" --window "Okno" --type columns|filters
+python tools/solutions_search.py "" --window "Okno" --type columns|filters
 ```
 
 Naśladuj styl istniejących rozwiązań — JOINy, aliasy, format parametrów.
@@ -95,7 +97,7 @@ Naśladuj styl istniejących rozwiązań — JOINy, aliasy, format parametrów.
 ### Krok 4 — Znajdź kolumny
 
 ```
-python tools/search_docs.py "słowa kluczowe" --table CDN.XXX --useful-only
+python tools/docs_search.py "słowa kluczowe" --table CDN.XXX --useful-only
 ```
 
 Zwróć uwagę na `value_dict` i `sample_values` — pomagają dobrać warunek WHERE.
@@ -122,7 +124,7 @@ Pokaż użytkownikowi wygenerowany SQL. Czekaj na akceptację przed zapisem.
 ### Krok 8 — Zapisz po akceptacji
 
 ```
-python tools/save_solution.py \
+python tools/solutions_save.py \
   --window "Okno towary" \
   --view "Towary według EAN" \
   --type filters \
@@ -141,7 +143,7 @@ git push
 ### Krok 9 — Zaktualizuj katalog okien (jeśli nowe okno)
 
 ```
-python tools/update_window_catalog.py \
+python tools/windows_update.py \
   --id okno_xxx --name "Nazwa okna" --primary-table CDN.XXX \
   --config-types columns filters
 ```
@@ -159,7 +161,7 @@ Skrót:
 1. Discovery (SELECT TOP 1, COUNT baseline, DISTINCT na typach, MIN/MAX na datach)
 2. Plan mapowania w MD → zatwierdzenie przez usera
 3. SQL (po zatwierdzeniu)
-4. Export: `export_bi_view.py` + weryfikacja: `read_excel_stats.py`
+4. Export: `excel_export_bi.py` + weryfikacja: `excel_read_stats.py`
 5. `CREATE OR ALTER VIEW BI.Nazwa AS ...` → commit
 
 ---
@@ -179,9 +181,9 @@ Jeśli odkryjesz nowy wzorzec SQL, ograniczenie ERP lub nieoczywiste zachowanie 
 
 ### Nieznana fraza użytkownika
 
-1. `search_windows.py ""` → pokaż listę
+1. `windows_search.py ""` → pokaż listę
 2. "Nie znam 'lista zamówień'. Czy chodzi o: [X, Y, Z]?"
-3. Po potwierdzeniu: `update_window_catalog.py --id ... --add-alias "lista zamówień"`
+3. Po potwierdzeniu: `windows_update.py --id ... --add-alias "lista zamówień"`
 
 ### Nowy alias w rozmowie
 
@@ -196,8 +198,8 @@ Tokenizer FTS5 używa `remove_diacritics` — ogonki nieistotne.
 Brak stemmingu — użyj **rdzenia + `*`**:
 
 ```
-"nagłówek zamówienia"  →  search_docs.py "naglowek* zamowien*"
-"kontrahent"           →  search_docs.py "kontrah*"
+"nagłówek zamówienia"  →  docs_search.py "naglowek* zamowien*"
+"kontrahent"           →  docs_search.py "kontrah*"
 ```
 
 Zawsze zaczynaj od `--useful-only`. Rozszerz (bez flagi) tylko gdy brak wyników.
