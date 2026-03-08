@@ -1,4 +1,4 @@
-## Status: Faza 3 — Export zweryfikowany, gotowy do CREATE VIEW (czeka na akceptację usera)
+## Status: Faza 4 — ZAKOŃCZONY. Widok zapisany, commit d2030d3, czeka na CREATE VIEW na DBA.
 
 **Tabela główna:** CDN.KntKarty
 **Filtr techniczny:** brak (pełny zbiór)
@@ -204,4 +204,4 @@ Właściwa baza: `erp_docs/index/docs.db` (7 MB, 214 kolumn CDN.KntKarty z opisa
 
 **Usunięto:** `ID_Rodzaju_Kontrahenta` (niepotrzebne — mamy `Rodzaj_Kontrahenta`)
 
-**Następny krok:** CREATE OR ALTER VIEW BI.Kontrahenci (czeka na akceptację usera)
+**Następny krok:** CREATE OR ALTER VIEW BI.Kontrahenci wykonać na DBA (plik: solutions/bi/views/Kontrahenci.sql)

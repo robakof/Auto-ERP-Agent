@@ -30,6 +30,14 @@ Wykonaj przed napisaniem jakiegokolwiek kodu. Cel: zrozumieć dane, nie zgadywa�
 SELECT TOP 1 * FROM CDN.MainTable
 ```
 
+Dla każdego klucza obcego w tabeli głównej — zanim napiszesz JOIN — sprawdź etykietę tabeli docelowej w docs.db:
+
+```
+python tools/docs_search.py "" --table CDN.PotencjalnaTabela
+```
+
+Etykieta tabeli (`table_label`) często jednoznacznie wskazuje przeznaczenie (np. "Grupy_Główne_Kart_Kontrachentów" vs "Grupy_Kart_Kontrachentów"). Nie polegaj wyłącznie na nazwie kolumny klucza.
+
 ### b) Ustal baseline row count
 
 ```sql
