@@ -20,6 +20,25 @@ Wzorce konwersji dat, tabel pomocniczych i nieoczywistych struktur CDN.
 - ~10^9 → Clarion TIMESTAMP
 - format daty → SQL DATE
 
+### Bezpieczny zakres Clarion DATE
+
+Standardowy zakres dat Clariona: **1–109211** (1801-01-01 do 2099-12-31).
+Wartości spoza tego zakresu (>109211) mogą być **sentinelami aplikacyjnymi** ("bezterminowo").
+
+Przykład z CDN.KntKarty (Knt_EFaVatDataDo):
+- 117976 → 2123-12-31 (13 rek.) = sentinel "bezterminowo"
+- 150483 → 2212-12-31 (1 rek.) = sentinel "bezterminowo"
+
+**Wzorzec defensywny dla pól z potencjalnym sentinelem:**
+```sql
+CASE WHEN col BETWEEN 1 AND 109211 THEN DATEADD(d, col, '18001228') ELSE NULL END
+```
+
+**Wzorzec standardowy (gdy zakres potwierdzony):**
+```sql
+CASE WHEN col = 0 THEN NULL ELSE DATEADD(d, col, '18001228') END
+```
+
 ### Wzorce konwersji (inline, bez CDN functions)
 
 ```sql

@@ -209,11 +209,12 @@ SELECT
         THEN DATEADD(ss, k.Knt_LastModO, '1990-01-01') END       AS Data_Ost_Mod_Ope,
     CASE WHEN k.Knt_LastModC > 0
         THEN DATEADD(ss, k.Knt_LastModC, '1990-01-01') END       AS Data_Ost_Mod_Cnf,
-    -- TODO: Knt_EFaVatDataDo — wartość 150483 wymaga weryfikacji (sentinel?)
+    -- Knt_EFaVatDataDo: 117976=2123-12-31 (13 rek.) i 150483=2212-12-31 (1 rek.) = sentinele "bezterminowo"
+    -- Bezpieczny zakres Clarion DATE: BETWEEN 1 AND 109211 (do 2099-12-31)
     CASE
-        WHEN k.Knt_EFaVatDataDo = 0 THEN NULL
-        WHEN k.Knt_EFaVatDataDo > 100000 THEN NULL  -- TODO: sentinel "bezterminowo"?
-        ELSE DATEADD(d, k.Knt_EFaVatDataDo, '18001228')
+        WHEN k.Knt_EFaVatDataDo BETWEEN 1 AND 109211
+        THEN DATEADD(d, k.Knt_EFaVatDataDo, '18001228')
+        ELSE NULL  -- 0=brak, >109211=sentinel "bezterminowo"
     END                                                           AS Data_EFaVat_Do,
     k.Knt_DataUtworzenia                                         AS Data_Utworzenia,
 
