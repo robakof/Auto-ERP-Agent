@@ -485,6 +485,12 @@ Zrealizowano pierwsze 4 pozycje z listy priorytetów:
 - #11: bi_discovery.py (nowe narzędzie)
 - Arch: single source of truth dla sygnatur narzędzi
 
+**Uwaga — #6 niekompletne:** `solutions/bi/drafts/` zawiera jeszcze:
+- `Rezerwacje_export.xlsx` (był otwarty, nie dało się przenieść — skopiowano do `Rezerwacje/`)
+- `~$Rezerwacje_export.xlsx` (plik tymczasowy Excel)
+
+Pliki zamknięte — agent powinien na starcie usunąć `solutions/bi/drafts/` w całości.
+
 **Następny krok:** #7 — Bug SqlClient: `re.split` respektujący string literals
 
 ---
