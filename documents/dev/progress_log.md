@@ -511,6 +511,26 @@ Pliki zamknięte — agent powinien na starcie usunąć `solutions/bi/drafts/` w
 - 191 testów (+4), 100% zielone
 - Weryfikacja: `Nagłówki_dokumentów` poprawnie bez garblingu
 
+### 2026-03-08 — Plan widoków BI + refleksje z sesji BI.Kontrahenci
+
+Agent zbudował BI.Kontrahenci (widok gotowy w `solutions/bi/views/Kontrahenci.sql`).
+
+Ustalono kolejność kolejnych widoków BI (faza testowa):
+1. BI.Kontrahenci ✓
+2. BI.Zamowienia — zamówienia ZS/ZZ, daty dostawy, status realizacji, link do FZ
+3. BI.Rozrachunki — należności, przeterminowanie, stopień zapłaty
+4. BI.DokumentyHandlowe — Tier 2, po teście pipeline bota
+
+Refleksje z sesji — 4 priorytety developerskie (szczegóły: agent_reflections.md):
+- P1: `--file` w excel_export_bi.py
+- P2: `--count-only` + `--quiet` w sql_query.py
+- P3: bi_verify.py (test+eksport+statystyki w 1 kroku)
+- P4: solutions_save_view.py (draft → views/ bez ładowania treści)
+
+Otwarte: przebudowa CLAUDE.md (3 poziomy wywołania: Agent ERP / Developer / Metodolog).
+
+**Następny krok:** implementacja P1+P2 (narzędzia) lub BI.Zamowienia — do uzgodnienia.
+
 ### 2026-03-08 — #9 + #E + #10 — dokumentacja agenta i guidelines
 
 - `AI_GUIDELINES.md` sekcja 2 "Komendy powłoki": reguły Bash + reguła Edit zamiast Read
