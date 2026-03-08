@@ -73,6 +73,31 @@ Dostępne wyłącznie w filtrach ERP lub widokach tworzonych przez DBA.
 
 W widokach BI używaj wzorców inline — patrz `ERP_SCHEMA_PATTERNS.md`.
 
+**UWAGA: `KnG_GrONumer` w kontekście filtra widoku Grupy jest zawodny.**
+
+ERP buduje zapytanie tego widoku z JOINami, przez co kolumna `KnG_GrONumer`
+może rozwiązywać się do innej tabeli niż rekord przynależności kontrahenta
+(np. do węzła nadrzędnego drzewa grup). Efekt: filtr oparty bezpośrednio
+na `KnG_GrONumer` zwraca błędne wyniki (np. flaguje poprawnie przypisanych).
+
+**Bezpieczny wzorzec dla filtrów operujących na grupach kontrahenta:**
+Zawsze idź przez `Knt_GIDNumer` i jawnie szukaj rekordów przynależności:
+
+```sql
+-- ŹLE: KnG_GrONumer z kontekstu wiersza może być niejednoznaczne
+EXISTS (SELECT 1 FROM CDN.KntGrupy child
+        WHERE child.KnG_GrONumer = KnG_GrONumer AND child.KnG_GIDTyp = -32)
+
+-- DOBRZE: przez Knt_GIDNumer — jednoznaczne i przetestowane
+EXISTS (SELECT 1 FROM CDN.KntGrupy mg
+        WHERE mg.KnG_GIDNumer = Knt_GIDNumer AND mg.KnG_GIDTyp = 32
+          AND EXISTS (SELECT 1 FROM CDN.KntGrupy child
+                      WHERE child.KnG_GrONumer = mg.KnG_GrONumer
+                        AND child.KnG_GIDTyp = -32))
+```
+
+Ten wzorzec działa identycznie w widoku "Grupy" i "Wg akronimu".
+
 ---
 
 ## 3. GIDTyp — kody typów dokumentów
