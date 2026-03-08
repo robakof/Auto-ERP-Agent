@@ -36,6 +36,26 @@ def _build_where(fts_query: str, table_filter: str | None, useful_only: bool) ->
     return " AND ".join(conditions), params
 
 
+def _execute_table_scan(conn, table_filter: str, useful_only: bool, limit: int) -> list:
+    """Zwraca wszystkie kolumny z danej tabeli bez FTS (gdy phrase='')."""
+    conditions = ["table_name = ?"]
+    params: list = [table_filter]
+    if useful_only:
+        conditions.append("is_useful NOT IN ('', 'Nie', 'Relacja')")
+    where = " AND ".join(conditions)
+    return conn.execute(
+        f"""
+        SELECT table_name, table_label, col_name, col_label,
+               data_type, is_useful, description, value_dict, sample_values
+        FROM columns
+        WHERE {where}
+        ORDER BY rowid
+        LIMIT ?
+        """,
+        params + [limit],
+    ).fetchall()
+
+
 def _execute_fts(conn, where: str, params: list, limit: int) -> list:
     """Wykonuje zapytanie FTS5 i zwraca wiersze. Rzuca wyjątek przy błędzie."""
     return conn.execute(
@@ -109,7 +129,7 @@ def search_docs(
         }
 
     fts_query = build_fts_query(phrase)
-    if not fts_query:
+    if not fts_query and not table_filter:
         conn.close()
         return {
             "ok": True,
@@ -118,11 +138,13 @@ def search_docs(
             "meta": {"duration_ms": 0, "truncated": False},
         }
 
-    where, params = _build_where(fts_query, table_filter, useful_only)
-
     try:
-        rows = _execute_fts(conn, where, params, limit)
-        gid_types = _search_gid_types(conn, fts_query)
+        if not fts_query and table_filter:
+            rows = _execute_table_scan(conn, table_filter, useful_only, limit)
+        else:
+            where, params = _build_where(fts_query, table_filter, useful_only)
+            rows = _execute_fts(conn, where, params, limit)
+        gid_types = _search_gid_types(conn, fts_query) if fts_query else []
     except Exception as e:
         duration_ms = round((time.monotonic() - start) * 1000)
         return {
