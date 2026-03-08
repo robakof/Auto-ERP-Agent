@@ -5,6 +5,64 @@ Plik zawiera tylko pozycje **niezrealizowane**. Zrealizowane — w sekcji Archiw
 
 ---
 
+## [P1] excel_export_bi.py — brak --file
+
+**Źródło:** agent (self-reflection) | **Sesja:** 2026-03-08 (BI.Kontrahenci)
+
+Agent używał `--sql "$(cat draft.sql)"` — 400 linii SQL przechodziło przez bash i kontekst jako string.
+`--file SCIEZKA.sql` (jak w sql_query.py i excel_export.py) wczytywałoby plik bezpośrednio.
+
+---
+
+## [P2] sql_query.py — --count-only (eliminuje 5.8 MB JSON przy testach)
+
+**Źródło:** agent (self-reflection) | **Sesja:** 2026-03-08 (BI.Kontrahenci)
+
+`--file draft.sql` zwróciło 5.8 MB JSON z 4530 wierszami × 150 kolumn.
+W 90% przypadków potrzeba tylko: ok, row_count, columns[].
+Flaga `--count-only` redukowałaby wynik do kilku bajtów.
+
+Powiązane: `--quiet` wypisujący tylko `OK 4530` lub `ERROR: ...` eliminuje ręczny parsing JSON w bashu
+(pattern `2>&1 | python -c "import sys,json; ..."` powtórzony 5+ razy w sesji).
+
+---
+
+## [P3] bi_verify.py — test + eksport + statystyki w 1 kroku
+
+**Źródło:** agent (self-reflection) | **Sesja:** 2026-03-08 (BI.Kontrahenci)
+
+Zawsze 3 osobne kroki:
+```
+sql_query.py --file draft.sql
+excel_export_bi.py --sql "$(cat ...)"
+excel_read_stats.py --file export.xlsx
+```
+Propozycja: `bi_verify.py --draft PLIK --view-name X --plan PLAN`
+Zwraca skrótowy raport: `rows: 4530 ✓, columns: 150, stats: {Typ: 4 distinct, ...}`.
+Wbudować też baseline COUNT check z discovery (fazy 0: `COUNT(*), COUNT(DISTINCT GIDNumer)`).
+
+---
+
+## [P4] solutions_save_view.py — draft → views/ bez ładowania treści
+
+**Źródło:** agent (self-reflection) | **Sesja:** 2026-03-08 (BI.Kontrahenci)
+
+`views/Kontrahenci.sql` = `CREATE OR ALTER VIEW BI.Kontrahenci AS` + zawartość draftu.
+Agent czytał cały draft (400 linii) żeby mechanicznie przepisać.
+Narzędzie `solutions_save_view.py --draft PLIK --schema BI` robiłoby to bez ładowania treści do kontekstu.
+
+---
+
+## [Prompt] Agent edytuje pliki dokumentacji bez jawnej zgody człowieka
+
+**Źródło:** user | **Sesja:** 2026-03-08 (BI.Kontrahenci)
+
+Agent zmodyfikował plik z wytycznymi mimo zasady w AI_GUIDELINES.md:
+"Jakiekolwiek modyfikacje tego pliku wymagają jawnego zatwierdzenia przez użytkownika".
+Naprawić na poziomie promptu — wzmocnić zakaz w CLAUDE.md lub ERP_VIEW_WORKFLOW.md.
+
+---
+
 ## [Narzędzia] Propozycja: bi_discovery.py — automatyczny raport discovery
 
 **Źródło:** agent (self-reflection) | **Sesja:** 2026-03-08
