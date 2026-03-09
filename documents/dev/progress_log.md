@@ -531,6 +531,23 @@ Otwarte: przebudowa CLAUDE.md (3 poziomy wywołania: Agent ERP / Developer / Met
 
 **Następny krok:** implementacja P1+P2 (narzędzia) lub BI.Zamowienia — do uzgodnienia.
 
+### 2026-03-09 — P3 + P4 (backlog narzędzia)
+
+**P4 — solutions_save_view.py:**
+- `--draft SCIEZKA.sql [--view-name NAZWA] [--schema BI]`
+- Dopisuje nagłówek CREATE OR ALTER VIEW i zapisuje do `solutions/bi/views/{name}.sql`
+- Nazwa widoku z pliku gdy `--view-name` pominięty (strip `_draft`)
+
+**P3 — bi_verify.py:**
+- `--draft PLIK.sql --view-name NAZWA [--plan] [--source-table] [--export] [--max-unique]`
+- Wewnętrznie: export_bi_view → read_stats arkusz Wynik
+- Output: row_count, column_count, export_path, stats[] (distinct, null_count, values/sample per kolumna)
+- Zastępuje 3 osobne wywołania narzędzi
+
+230 testów (+16), 100% zielone. AGENT.md zaktualizowany.
+
+---
+
 ### 2026-03-09 — P1 + P2 (backlog narzędzia)
 
 **P1 — excel_export_bi.py `--file`:**

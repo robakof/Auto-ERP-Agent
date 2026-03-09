@@ -82,6 +82,16 @@ python tools/excel_read_rows.py --file SCIEZKA.xlsx [--sheet NAZWA] [--columns c
 python tools/solutions_save.py --window "..." --view "..." --type columns|filters --name "..." --sql "..."
   → data.path
 
+python tools/solutions_save_view.py --draft SCIEZKA.sql [--view-name NAZWA] [--schema BI]
+  → data.path, data.view_name, data.schema | error.type
+  (zapisuje CREATE OR ALTER VIEW {schema}.{name} AS + treść draftu do solutions/bi/views/)
+
+python tools/bi_verify.py --draft SCIEZKA.sql --view-name NAZWA
+                          [--plan SCIEZKA.xlsx] [--source-table CDN.XXX]
+                          [--export SCIEZKA.xlsx] [--max-unique N]
+  → data.row_count, data.column_count, data.export_path, data.stats[].{name, distinct, null_count, values|sample}
+  (test + eksport + statystyki w 1 kroku; zastępuje 3 osobne wywołania narzędzi)
+
 python tools/windows_update.py --id ... [--name "..."] [--primary-table CDN.XXX]
                                 [--add-alias "..."] [--config-types columns filters]
   → data.window, data.created

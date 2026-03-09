@@ -22,30 +22,6 @@ Opis problemu i propozycja rozwiązania.
 
 ## Aktywne
 
-### [P3] bi_verify.py — test + eksport + statystyki w 1 kroku
-
-**Źródło:** agent_suggestions
-**Sesja:** 2026-03-08 (BI.Kontrahenci)
-**Wartość:** średnia
-**Pracochłonność:** średnia
-
-Zawsze 3 osobne kroki: sql_query → excel_export_bi → excel_read_stats.
-`bi_verify.py --draft PLIK --view-name X --plan PLAN` zwracałoby skrótowy raport.
-
----
-
-### [P4] solutions_save_view.py — draft → views/ bez ładowania treści
-
-**Źródło:** agent_suggestions
-**Sesja:** 2026-03-08 (BI.Kontrahenci)
-**Wartość:** średnia
-**Pracochłonność:** mała
-
-Agent czytał cały draft (400 linii) żeby mechanicznie przepisać do views/.
-`solutions_save_view.py --draft PLIK --schema BI` robiłoby to bez ładowania treści do kontekstu.
-
----
-
 ### [Prompt] Agent edytuje pliki dokumentacji bez jawnej zgody
 
 **Źródło:** agent_suggestions
@@ -97,3 +73,5 @@ Pozycje #1–#10 z sesji 2026-03-08: zrealizowane, szczegóły w `agent_reflecti
 
 **[P1] excel_export_bi.py — brak --file** — zrealizowane 2026-03-09
 **[P2] sql_query.py — --count-only + --quiet** — zrealizowane 2026-03-09
+**[P3] bi_verify.py** — zrealizowane 2026-03-09
+**[P4] solutions_save_view.py** — zrealizowane 2026-03-09
