@@ -109,3 +109,34 @@ class TestMain:
                 eb.main()
         result = json.loads(capsys.readouterr().out)
         assert result["ok"] is True
+
+    def test_file_flag_reads_sql_from_file(self, tmp_path, capsys):
+        sql_file = tmp_path / "draft.sql"
+        sql_file.write_text("SELECT n FROM t", encoding="utf-8")
+        output = tmp_path / "out.xlsx"
+        mock_conn, _ = make_mock_conn(["n"], [[1]])
+        with patch("sys.argv", [
+            "excel_export_bi.py", "--file", str(sql_file),
+            "--view-name", "Test", "--output", str(output)
+        ]):
+            with patch.object(SqlClient, "get_connection", return_value=mock_conn):
+                eb.main()
+        result = json.loads(capsys.readouterr().out)
+        assert result["ok"] is True
+
+    def test_file_flag_missing_file_returns_error(self, tmp_path, capsys):
+        with patch("sys.argv", [
+            "excel_export_bi.py", "--file", str(tmp_path / "brak.sql"),
+            "--view-name", "Test"
+        ]):
+            eb.main()
+        result = json.loads(capsys.readouterr().out)
+        assert result["ok"] is False
+        assert result["error"]["type"] == "FILE_NOT_FOUND"
+
+    def test_missing_sql_and_file_returns_error(self, capsys):
+        with patch("sys.argv", ["excel_export_bi.py", "--view-name", "Test"]):
+            eb.main()
+        result = json.loads(capsys.readouterr().out)
+        assert result["ok"] is False
+        assert result["error"]["type"] == "MISSING_ARGUMENT"

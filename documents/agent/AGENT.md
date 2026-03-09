@@ -44,9 +44,10 @@ Wszystkie pliki w `documents/agent/`. Ładuj tylko to co potrzebne do bieżąceg
 ## Narzędzia
 
 ```
-python tools/sql_query.py "SELECT ..." [--export SCIEZKA.xlsx]
-python tools/sql_query.py --file SCIEZKA.sql [--export SCIEZKA.xlsx]
+python tools/sql_query.py "SELECT ..." [--export SCIEZKA.xlsx] [--count-only] [--quiet]
+python tools/sql_query.py --file SCIEZKA.sql [--export SCIEZKA.xlsx] [--count-only] [--quiet]
   → data.columns, data.rows, data.row_count, [data.export_path] | error.type
+  --count-only: pomiń rows (tylko row_count + columns); --quiet: wypisz "OK {n}" lub "ERROR: ..."
 
 python tools/docs_search.py "fraza" [--table CDN.XXX] [--useful-only] [--limit N]
   → data.results[].{table_name, col_name, col_label, data_type, description, value_dict, sample_values}
@@ -64,6 +65,7 @@ python tools/excel_export.py --file SCIEZKA.sql [--output SCIEZKA.xlsx] [--view-
   (szybki eksport SQL → jeden arkusz xlsx; nazwa pliku: {view_name}_TIMESTAMP.xlsx)
 
 python tools/excel_export_bi.py --sql "SELECT ..." --view-name "Nazwa"
+python tools/excel_export_bi.py --file SCIEZKA.sql  --view-name "Nazwa"
                                 [--source-table CDN.XXX] [--plan SCIEZKA.xlsx] [--output SCIEZKA.xlsx]
   → data.path, data.view_name, data.row_count, data.sheets | error.type
   (eksport widoku BI: arkusze Plan + Wynik + opcjonalnie Surówka)

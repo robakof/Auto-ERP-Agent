@@ -116,3 +116,43 @@ class TestMain:
         result = json.loads(capsys.readouterr().out)
         assert result["ok"] is False
         assert not export_path.exists()
+
+    def test_count_only_excludes_rows(self, capsys):
+        mock_conn, _ = make_mock_conn(["a", "b"], [["x", 1], ["y", 2]])
+        with patch("sys.argv", ["sql_query.py", "SELECT a, b FROM t", "--count-only"]):
+            with patch.object(SqlClient, "get_connection", return_value=mock_conn):
+                sq.main()
+        result = json.loads(capsys.readouterr().out)
+        assert result["ok"] is True
+        assert result["data"]["row_count"] == 2
+        assert result["data"]["columns"] == ["a", "b"]
+        assert "rows" not in result["data"]
+
+    def test_count_only_on_error_returns_normal_error(self, capsys):
+        with patch("sys.argv", ["sql_query.py", "DELETE FROM t", "--count-only"]):
+            sq.main()
+        result = json.loads(capsys.readouterr().out)
+        assert result["ok"] is False
+        assert result["error"]["type"] == "VALIDATION_ERROR"
+
+    def test_quiet_ok_prints_plain_text(self, capsys):
+        mock_conn, _ = make_mock_conn(["n"], [[1], [2], [3]])
+        with patch("sys.argv", ["sql_query.py", "SELECT n FROM t", "--quiet"]):
+            with patch.object(SqlClient, "get_connection", return_value=mock_conn):
+                sq.main()
+        out = capsys.readouterr().out.strip()
+        assert out == "OK 3"
+
+    def test_quiet_error_prints_plain_text(self, capsys):
+        with patch("sys.argv", ["sql_query.py", "DELETE FROM t", "--quiet"]):
+            sq.main()
+        out = capsys.readouterr().out.strip()
+        assert out.startswith("ERROR:")
+
+    def test_count_only_and_quiet_combined(self, capsys):
+        mock_conn, _ = make_mock_conn(["n"], [[i] for i in range(5)])
+        with patch("sys.argv", ["sql_query.py", "SELECT n FROM t", "--count-only", "--quiet"]):
+            with patch.object(SqlClient, "get_connection", return_value=mock_conn):
+                sq.main()
+        out = capsys.readouterr().out.strip()
+        assert out == "OK 5"

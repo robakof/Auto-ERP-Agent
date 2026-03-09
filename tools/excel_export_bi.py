@@ -3,6 +3,7 @@ excel_export_bi.py — Narzędzie agenta: eksport widoku BI do wieloarkuszowego 
 
 CLI:
     python tools/excel_export_bi.py --sql "SELECT ..." --view-name "NazwaWidoku"
+    python tools/excel_export_bi.py --file SCIEZKA.sql  --view-name "NazwaWidoku"
                                     [--source-table CDN.XXX] [--plan SCIEZKA.xlsx]
                                     [--output SCIEZKA.xlsx]
 
@@ -118,15 +119,38 @@ def export_bi_view(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Eksportuj widok BI do wieloarkuszowego Excel.")
-    parser.add_argument("--sql", required=True, help="Zapytanie SELECT")
+    parser.add_argument("--sql", default=None, help="Zapytanie SELECT (inline)")
+    parser.add_argument("--file", "-f", default=None, help="Ścieżka do pliku .sql z zapytaniem")
     parser.add_argument("--view-name", required=True, help="Nazwa widoku")
     parser.add_argument("--source-table", default=None, help="Tabela źródłowa (arkusz Surówka)")
     parser.add_argument("--plan", default=None, help="Ścieżka do pliku planu (.xlsx lub .md)")
     parser.add_argument("--output", "-o", default=None, help="Ścieżka do pliku .xlsx")
     args = parser.parse_args()
 
+    _error_meta = {"duration_ms": 0}
+
+    if args.file:
+        sql_path = Path(args.file)
+        if not sql_path.exists():
+            print_json({
+                "ok": False, "data": None,
+                "error": {"type": "FILE_NOT_FOUND", "message": f"Plik SQL nie istnieje: {args.file}"},
+                "meta": _error_meta,
+            })
+            return
+        sql = sql_path.read_text(encoding="utf-8")
+    elif args.sql:
+        sql = args.sql
+    else:
+        print_json({
+            "ok": False, "data": None,
+            "error": {"type": "MISSING_ARGUMENT", "message": "Podaj zapytanie SQL przez --sql lub --file"},
+            "meta": _error_meta,
+        })
+        return
+
     result = export_bi_view(
-        sql=args.sql,
+        sql=sql,
         view_name=args.view_name,
         source_table=args.source_table,
         plan_path=Path(args.plan) if args.plan else None,

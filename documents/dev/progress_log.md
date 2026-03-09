@@ -531,6 +531,20 @@ Otwarte: przebudowa CLAUDE.md (3 poziomy wywołania: Agent ERP / Developer / Met
 
 **Następny krok:** implementacja P1+P2 (narzędzia) lub BI.Zamowienia — do uzgodnienia.
 
+### 2026-03-09 — P1 + P2 (backlog narzędzia)
+
+**P1 — excel_export_bi.py `--file`:**
+- Dodano `--file SCIEZKA.sql` jako alternatywę dla `--sql` (identycznie jak sql_query.py i excel_export.py)
+- `--sql` przestało być required — walidacja w main()
+
+**P2 — sql_query.py `--count-only` + `--quiet`:**
+- `--count-only`: pomiń rows w JSON (tylko row_count + columns) — eliminuje 5.8 MB payload
+- `--quiet`: wypisz `OK {n}` lub `ERROR: komunikat` zamiast JSON
+
+214 testów (+12), 100% zielone. AGENT.md zaktualizowany.
+
+---
+
 ### 2026-03-08 — #9 + #E + #10 — dokumentacja agenta i guidelines
 
 - `AI_GUIDELINES.md` sekcja 2 "Komendy powłoki": reguły Bash + reguła Edit zamiast Read

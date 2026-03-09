@@ -22,32 +22,6 @@ Opis problemu i propozycja rozwiązania.
 
 ## Aktywne
 
-### [P1] excel_export_bi.py — brak --file
-
-**Źródło:** agent_suggestions
-**Sesja:** 2026-03-08 (BI.Kontrahenci)
-**Wartość:** wysoka
-**Pracochłonność:** mała
-
-Agent używał `--sql "$(cat draft.sql)"` — 400 linii SQL przez bash i kontekst.
-`--file SCIEZKA.sql` wczytywałoby plik bezpośrednio (jak w sql_query.py i excel_export.py).
-
----
-
-### [P2] sql_query.py — --count-only
-
-**Źródło:** agent_suggestions
-**Sesja:** 2026-03-08 (BI.Kontrahenci)
-**Wartość:** wysoka
-**Pracochłonność:** mała
-
-`--file draft.sql` zwróciło 5.8 MB JSON z 4530 wierszami × 150 kolumn.
-W 90% przypadków potrzeba tylko: ok, row_count, columns[].
-Flaga `--count-only` redukowałaby wynik do kilku bajtów.
-Powiązane: `--quiet` wypisujący tylko `OK 4530` lub `ERROR: ...`.
-
----
-
 ### [P3] bi_verify.py — test + eksport + statystyki w 1 kroku
 
 **Źródło:** agent_suggestions
@@ -79,8 +53,9 @@ Agent czytał cały draft (400 linii) żeby mechanicznie przepisać do views/.
 **Wartość:** wysoka
 **Pracochłonność:** mała
 
-Agent zmodyfikował plik z wytycznymi mimo zakazu w AI_GUIDELINES.md.
-Wzmocnić zakaz w CLAUDE.md — dodać jawne wyliczenie plików chronionych.
+Agent zmodyfikował plik z wytycznymi mimo zakazu w DEVELOPER.md.
+Lista plików chronionych dodana do CLAUDE.md i AGENT.md (sesja 2026-03-09).
+Otwarte: czy sam zakaz tekstowy wystarczy, czy potrzebny mechanizm weryfikowalny (np. test CI).
 
 ---
 
@@ -91,13 +66,13 @@ Wzmocnić zakaz w CLAUDE.md — dodać jawne wyliczenie plików chronionych.
 **Wartość:** średnia
 **Pracochłonność:** mała (opcja 3) / duża (opcja 1)
 
-Nazwy i sygnatury narzędzi zapisane w CLAUDE.md, ERP_VIEW_WORKFLOW.md,
+Nazwy i sygnatury narzędzi zapisane w AGENT.md, ERP_VIEW_WORKFLOW.md,
 ERP_COLUMNS_WORKFLOW.md, ERP_FILTERS_WORKFLOW.md i docstringach tools/*.py.
 
 Opcje:
 1. gen_docs.py generuje sekcję Narzędzia z docstringów (eliminuje problem u źródła)
 2. Jeden plik referencyjny TOOLS.md + dyscyplina
-3. Test CI sprawdzający czy narzędzia w CLAUDE.md istnieją jako pliki w tools/
+3. Test CI sprawdzający czy narzędzia w AGENT.md istnieją jako pliki w tools/
 
 ---
 
@@ -119,3 +94,6 @@ baseline COUNT, pola stałe (COUNT DISTINCT=1), klasyfikacja dat, enumeracje.
 *(przeniesione z agent_reflections.md — zrealizowane)*
 
 Pozycje #1–#10 z sesji 2026-03-08: zrealizowane, szczegóły w `agent_reflections.md`.
+
+**[P1] excel_export_bi.py — brak --file** — zrealizowane 2026-03-09
+**[P2] sql_query.py — --count-only + --quiet** — zrealizowane 2026-03-09

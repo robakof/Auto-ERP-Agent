@@ -4,6 +4,11 @@ sql_query.py — Narzędzie agenta: wykonywanie zapytań SELECT na SQL Server ER
 CLI:
     python tools/sql_query.py "SELECT TOP 5 ZaN_GIDNumer FROM CDN.ZamNag"
     python tools/sql_query.py --file SCIEZKA.sql [--export SCIEZKA.xlsx]
+                              [--count-only] [--quiet]
+
+Flagi:
+    --count-only  Pomiń kolumnę rows w odpowiedzi (tylko row_count + columns)
+    --quiet       Wypisz OK {n} lub ERROR: komunikat zamiast JSON
 
 Output: JSON na stdout zgodny z kontraktem narzędzi agenta.
 """
@@ -53,6 +58,8 @@ def main():
     parser.add_argument("sql", nargs="?", default=None, help="Zapytanie SELECT (inline)")
     parser.add_argument("--file", "-f", default=None, help="Ścieżka do pliku .sql z zapytaniem")
     parser.add_argument("--export", "-e", default=None, help="Eksportuj wynik do pliku .xlsx")
+    parser.add_argument("--count-only", action="store_true", help="Pomiń rows w odpowiedzi")
+    parser.add_argument("--quiet", action="store_true", help="Wypisz OK {n} lub ERROR: komunikat")
     args = parser.parse_args()
 
     if args.file:
@@ -79,6 +86,16 @@ def main():
 
     if result["ok"] and args.export:
         _export_to_excel(result, Path(args.export))
+
+    if args.quiet:
+        if result["ok"]:
+            print(f"OK {result['data']['row_count']}")
+        else:
+            print(f"ERROR: {result['error']['message']}")
+        return
+
+    if args.count_only and result["ok"]:
+        result["data"].pop("rows", None)
 
     print_json(result)
 
