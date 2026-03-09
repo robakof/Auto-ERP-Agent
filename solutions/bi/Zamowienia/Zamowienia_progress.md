@@ -88,13 +88,39 @@ Zgłosić do usera po zakończeniu widoku.
 - Plan: solutions/bi/Zamowienia/Zamowienia_plan.xlsx (135 wierszy)
 - Plan SQL: solutions/bi/Zamowienia/Zamowienia_plan_src.sql
 
-## Następny krok
+---
 
-Zatwierdzenie planu przez usera (Zamowienia_plan.xlsx). Po zatwierdzeniu → Faza 2 (SQL).
+## Faza 2 — SQL (2026-03-09)
 
-Konwersajca kończąca agenta:
-Odpowiedz króko! Czyli plan w xlsx jest wygenrowany na nowo?  
-                                                               
-● Nie. Plan nie został wygenerowany — sesja skończyła się na      błędzie UNION ALL. Istnieje tylko Zamowienia_plan_src.sql (202   wiersze z pełną dokumentacją), ale plik .xlsx nie powstał.   
-                                                                  Następna sesja zaczyna od wygenerowania Excela z tego pliku   
-  przez Python/openpyxl. 
+**Status:** Faza 2 ZAKOŃCZONA → czeka na akceptację usera
+
+**Plik:** `solutions/bi/Zamowienia/Zamowienia_draft.sql`
+**Eksport:** `solutions/bi/Zamowienia/Zamowienia_export.xlsx`
+**Wynik:** 12034 wierszy ✓, 102 kolumny ✓
+
+**JOINy w brudnopisie:**
+- CDN.ZamNag zrd — self-join źródłowy (ZrdNumer != GIDNumer → aktualnie all NULL)
+- CDN.KntKarty k/odb/plat/akw — kontrahent, odbiorca, płatnik, akwizytor
+- CDN.KntAdresy kna/adw — adres kontrahenta, adres wysyłki
+- CDN.Magazyny m/magd — magazyn, magazyn docelowy
+- CDN.OpeKarty opew/opem/opez/opep/opemod/opepos — operatorzy (6 aliasów)
+- CDN.FrmStruktura frs — firma handlowa
+- CDN.PrcKarty prc — opiekun (GIDTyp=944)
+- CDN.Rejestry rej — rejestr kasowy
+- CDN.TwrCenyNag tcn — cennik (subquery MIN)
+- CDN.Slowniki slw_fiask / slw_stat — fiasco + status realizacji
+
+**Naprawione:**
+- Cecha_Opis: NULLIF '<Nieokreślona>' (z polskim ś) — poprawiono
+
+**Otwarte kwestie:**
+- ZaN_PromocjePar=3 (3731 rek.) — oznaczone 'Nieznane (3)', czeka na weryfikację usera (przykłady: ZS-390/09/2024/SPKR)
+- ZaN_DokZwiazane — bitmask surowy, prompt do researchera w toku
+
+**Poprawki (2026-03-09 sesja 2):**
+- Rok w numerze: RIGHT(CAST(ZamRok AS VARCHAR(4)),2) → format YY zgodny z ERP
+- Stan 53: 'Anulowane (arch.+w real.)' → 'Zamknięte w realizacji'
+- DokZwiazane: zostawiony jako surowy bitmask (brak możliwości empirycznego dekodowania)
+
+**Status: Faza 4 — widok zapisany** `solutions/bi/views/Zamowienia.sql`
+**Następny krok:** CREATE VIEW na DBA + otwarty temat ZaN_PromocjePar=3

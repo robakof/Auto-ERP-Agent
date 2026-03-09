@@ -1,3 +1,5 @@
+CREATE OR ALTER VIEW BI.Zamowienia AS
+
 -- BRUDNOPIS — BI.Zamowienia
 
 SELECT
