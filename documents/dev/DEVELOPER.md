@@ -200,6 +200,19 @@ Po zatwierdzeniu implementacji wykonaj commit, push i zaktualizuj `progress_log.
 
 ## 2. KOMENDY POWŁOKI
 
+### Zanim użyjesz Bash — sprawdź dedykowane narzędzia
+
+**Bash jest ostatecznością. Najpierw:**
+
+| Zamiast Bash...             | Użyj narzędzia |
+|-----------------------------|----------------|
+| `head`/`cat`/`tail` na pliku | `Read`         |
+| `grep`/`rg` w plikach       | `Grep`         |
+| `find`/`ls` po nazwach      | `Glob`         |
+| `sed`/`awk` do edycji pliku | `Edit`         |
+
+Bash tylko dla operacji systemowych które nie mają dedykowanego narzędzia (uruchamianie testów, git, mv, mkdir).
+
 ### Reguły pisania komend Bash
 
 Hook bezpieczeństwa blokuje zbyt złożone komendy. Trzymaj się prostych form:
@@ -209,6 +222,8 @@ Hook bezpieczeństwa blokuje zbyt złożone komendy. Trzymaj się prostych form:
 3. **Maksymalnie 2 komendy w łańcuchu `&&`** — dłuższe podziel na osobne wywołania
 4. **Pusty string `""` jako argument** — zastąp pojedynczym znakiem lub usuń
 5. **`find` z `2>/dev/null`** — użyj narzędzia Glob zamiast Bash
+6. **`cd "ścieżka" && git`** — hook blokuje; używaj `git -C "ścieżka"` zamiast `cd &&`
+7. **`git mv` per plik** — używaj zwykłego `mv`, potem jeden `git add -A` na końcu zadania
 
 ### Edycja dużych plików SQL
 
