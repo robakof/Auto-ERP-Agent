@@ -145,7 +145,7 @@ i porównaj z ręczną konstrukcją na realnych danych.
 ### ZamNag (ZS/ZZ)
 
 ```sql
-CASE z.ZaN_ZamTyp WHEN 960 THEN 'ZS' WHEN 1152 THEN 'ZZ' ELSE 'ZAM' END
+CASE z.ZaN_ZamTyp WHEN 1280 THEN 'ZS' WHEN 1152 THEN 'ZZ' ELSE 'ZAM' END
 + '-' + CAST(z.ZaN_ZamNumer AS VARCHAR(10))
 + '/' + RIGHT('0' + CAST(z.ZaN_ZamMiesiac AS VARCHAR(2)), 2)  -- zero-padded miesiąc
 + '/' + CAST(z.ZaN_ZamRok AS VARCHAR(4))

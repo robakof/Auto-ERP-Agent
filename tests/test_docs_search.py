@@ -82,12 +82,6 @@ class TestSearchDocs:
         for r in result["data"]["results"]:
             assert r["table_name"] == "CDN.KntKarty"
 
-    def test_useful_only_filter(self, docs_db):
-        result = sd.search_docs("zamowien", useful_only=True, db_path=docs_db)
-        assert result["ok"] is True
-        for r in result["data"]["results"]:
-            assert r["is_useful"] not in ("", "Nie", "Relacja")
-
     def test_empty_phrase_returns_empty(self, docs_db):
         result = sd.search_docs("", db_path=docs_db)
         assert result["ok"] is True

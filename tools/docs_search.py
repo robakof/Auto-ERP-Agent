@@ -2,9 +2,9 @@
 search_docs.py — Narzędzie agenta: przeszukiwanie indeksu dokumentacji ERP (FTS5).
 
 CLI:
-    python tools/search_docs.py "kontrahent zamowienie" [--table CDN.ZamNag] [--useful-only] [--limit 10]
+    python tools/docs_search.py "kontrahent zamowienie" [--table CDN.ZamNag] [--limit 1000]
 
-Output: JSON na stdout zgodny z kontraktem z ARCHITECTURE.md.
+Output: JSON na stdout zgodny z kontraktem narzędzi agenta.
 """
 
 import argparse
@@ -24,24 +24,20 @@ def build_fts_query(phrase: str) -> str:
     return " ".join(f"{t}*" if not t.endswith("*") else t for t in tokens if t)
 
 
-def _build_where(fts_query: str, table_filter: str | None, useful_only: bool) -> tuple[str, list]:
+def _build_where(fts_query: str, table_filter: str | None) -> tuple[str, list]:
     """Buduje klauzulę WHERE i listę parametrów dla zapytania FTS5."""
     conditions = ["columns_fts MATCH ?"]
     params: list = [fts_query]
     if table_filter:
         conditions.append("table_name = ?")
         params.append(table_filter)
-    if useful_only:
-        conditions.append("is_useful NOT IN ('', 'Nie', 'Relacja')")
     return " AND ".join(conditions), params
 
 
-def _execute_table_scan(conn, table_filter: str, useful_only: bool, limit: int) -> list:
+def _execute_table_scan(conn, table_filter: str, limit: int) -> list:
     """Zwraca wszystkie kolumny z danej tabeli bez FTS (gdy phrase='')."""
     conditions = ["table_name = ?"]
     params: list = [table_filter]
-    if useful_only:
-        conditions.append("is_useful NOT IN ('', 'Nie', 'Relacja')")
     where = " AND ".join(conditions)
     return conn.execute(
         f"""
@@ -111,8 +107,7 @@ def _search_gid_types(conn, fts_query: str) -> list[dict]:
 def search_docs(
     phrase: str,
     table_filter: str | None = None,
-    useful_only: bool = False,
-    limit: int = 20,
+    limit: int = 1000,
     db_path: str | None = None,
 ) -> dict:
     """Przeszukuje docs.db i zwraca wyniki per kontrakt JSON."""
@@ -140,9 +135,9 @@ def search_docs(
 
     try:
         if not fts_query and table_filter:
-            rows = _execute_table_scan(conn, table_filter, useful_only, limit)
+            rows = _execute_table_scan(conn, table_filter, limit)
         else:
-            where, params = _build_where(fts_query, table_filter, useful_only)
+            where, params = _build_where(fts_query, table_filter)
             rows = _execute_fts(conn, where, params, limit)
         gid_types = _search_gid_types(conn, fts_query) if fts_query else []
     except Exception as e:
@@ -170,14 +165,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Przeszukuje indeks dokumentacji ERP.")
     parser.add_argument("phrase", help="Fraza do wyszukania")
     parser.add_argument("--table", default=None, help="Ogranicz do tabeli (np. CDN.ZamNag)")
-    parser.add_argument("--useful-only", action="store_true", help="Tylko kolumny użyteczne")
-    parser.add_argument("--limit", type=int, default=20, help="Maks. liczba wyników (domyślnie 20)")
+    parser.add_argument("--limit", type=int, default=1000, help="Maks. liczba wyników (domyślnie 1000)")
     args = parser.parse_args()
 
     result = search_docs(
         phrase=args.phrase,
         table_filter=args.table,
-        useful_only=args.useful_only,
         limit=args.limit,
     )
     print_json(result)

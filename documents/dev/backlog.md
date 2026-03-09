@@ -22,6 +22,52 @@ Opis problemu i propozycja rozwiązania.
 
 ## Aktywne
 
+### [Docs] docs_search -- domyślny limit=20 ucina wyniki bez ostrzeżenia
+
+**Źródło:** agent_suggestions
+**Sesja:** 2026-03-09 (BI.Zamowienia)
+**Wartość:** wysoka
+**Pracochłonność:** mała
+
+Agent przeszukał CDN.ZamNag, dostał 20 wyników z 187 kolumn i zbudował plan na niepełnej wiedzy.
+Brak sygnału że wynik jest ucięty — agent wnioskuje "to wszystko".
+
+Rozwiązanie: dodać `"truncated": true` do odpowiedzi gdy wynik == limit.
+Analogicznie do istniejącego pola `truncated` w sql_query.py.
+
+---
+
+### [Docs] docs_search --useful-only zwraca 0 wyników bez ostrzeżenia
+
+**Źródło:** developer_suggestions
+**Sesja:** 2026-03-09
+**Wartość:** wysoka
+**Pracochłonność:** mała
+
+`is_useful` wypełnione tylko dla kilku tabel. Agent używający `--useful-only` na nieoznaczonej
+tabeli dostaje 0 wyników i może błędnie wnioskować "brak dokumentacji".
+
+Rozwiązanie (opcja 3): gdy `useful_only=True` i wynik pusty → dodaj pole
+`"warning": "0 wyników z --useful-only; spróbuj bez flagi"` do odpowiedzi JSON.
+
+Dotyczy: `docs_search.py` + testy.
+
+---
+
+### [Narzędzia] bi_plan_generate.py — generowanie planu Excel z pliku SQL metadanych
+
+**Źródło:** agent_suggestions
+**Sesja:** 2026-03-09 (BI.Zamowienia)
+**Wartość:** średnia
+**Pracochłonność:** mała
+
+Agent próbował generować plan Excel przez UNION ALL z 202 wierszami — błąd przy polskich
+znakach i myślnikach. Narzędzie `bi_plan_generate.py --src plan_src.sql --output plan.xlsx`
+czytałoby plik SQL metadanych (SELECT + stałe wartości) i generowało Excel przez openpyxl.
+Eliminuje powtarzający się wzorzec przy każdym nowym widoku BI.
+
+---
+
 ### [Arch] Sygnatury narzędzi powielone w wielu miejscach
 
 **Źródło:** developer_suggestions

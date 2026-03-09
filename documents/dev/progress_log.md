@@ -531,6 +531,16 @@ Otwarte: przebudowa CLAUDE.md (3 poziomy wywołania: Agent ERP / Developer / Met
 
 **Następny krok:** implementacja P1+P2 (narzędzia) lub BI.Zamowienia — do uzgodnienia.
 
+### 2026-03-09 — docs_search: usuniecie --useful-only, limit 1000, fix ERP_SCHEMA_PATTERNS
+
+- `docs_search.py`: usunięto `--useful-only` i logikę filtrowania; domyślny limit 20 → 1000
+- `ERP_SCHEMA_PATTERNS.md`: poprawiono błąd w wzorcu numeru ZamNag (WHEN 960 → WHEN 1280 dla ZS)
+- `AGENT.md`, `ERP_VIEW_WORKFLOW.md`: usunięto wszystkie wzmianki o `--useful-only`
+- Backlog: dodano [Docs] limit=20 i [Narzędzia] bi_plan_generate
+- 247 testów (-1 test useful_only), 100% zielone
+
+---
+
 ### 2026-03-09 — bi_discovery.py + czyszczenie backlogu
 
 **bi_discovery.py:**

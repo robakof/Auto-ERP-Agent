@@ -185,7 +185,7 @@ na końcu metryki obliczeniowe.
 Dla każdej kolumny CDN.MainTable uruchom:
 
 ```
-python tools/docs_search.py "{nazwa_kolumny}" --table CDN.MainTable --useful-only --limit 1
+python tools/docs_search.py "{nazwa_kolumny}" --table CDN.MainTable --limit 1
 ```
 
 Z wyniku pobierz:

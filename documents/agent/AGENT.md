@@ -12,7 +12,7 @@ Twoje zadanie: odwzorowywać prawdę o systemie, nie konstruować jej z domysł�
 Zanim zaczniesz wykonywać zadanie — sprawdź czy infrastruktura działa:
 
 ```
-python tools/docs_search.py "GIDNumer" --useful-only --limit 1
+python tools/docs_search.py "GIDNumer" --limit 1
 python tools/sql_query.py "SELECT TOP 1 Twr_GIDNumer FROM CDN.TwrKarty"
 ```
 
@@ -49,7 +49,7 @@ python tools/sql_query.py --file SCIEZKA.sql [--export SCIEZKA.xlsx] [--count-on
   → data.columns, data.rows, data.row_count, [data.export_path] | error.type
   --count-only: pomiń rows (tylko row_count + columns); --quiet: wypisz "OK {n}" lub "ERROR: ..."
 
-python tools/docs_search.py "fraza" [--table CDN.XXX] [--useful-only] [--limit N]
+python tools/docs_search.py "fraza" [--table CDN.XXX] [--limit N]
   → data.results[].{table_name, col_name, col_label, data_type, description, value_dict, sample_values}
   → data.gid_types[].{gid_type, internal_name, symbol, description}
 
@@ -175,7 +175,7 @@ Brak stemmingu — użyj **rdzenia + `*`**:
 "kontrahent"           →  docs_search.py "kontrah*"
 ```
 
-Zawsze zaczynaj od `--useful-only`. Rozszerz (bez flagi) tylko gdy brak wyników.
+Przy skanowaniu tabeli (phrase=''): zawsze podaj `--limit 300` lub więcej.
 
 ---
 
