@@ -73,5 +73,4 @@ Wdrożenie pozycji z `methodology_backlog.md`:
 
 ### Następny krok
 
-Utwórz repo `loom` na GitHubie → zaktualizuj URL w `seed.md` → wypchnij `_loom/`.
-Następnie: projekt transport — skopiuj `seed.md` jako CLAUDE.md, uruchom agenta.
+Projekt transport: utwórz nowe repo → skopiuj `_loom/seed.md` jako `CLAUDE.md` → uruchom agenta.
