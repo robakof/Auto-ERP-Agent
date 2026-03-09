@@ -91,3 +91,10 @@ Zgłosić do usera po zakończeniu widoku.
 ## Następny krok
 
 Zatwierdzenie planu przez usera (Zamowienia_plan.xlsx). Po zatwierdzeniu → Faza 2 (SQL).
+
+Konwersajca kończąca agenta:
+Odpowiedz króko! Czyli plan w xlsx jest wygenrowany na nowo?  
+                                                               
+● Nie. Plan nie został wygenerowany — sesja skończyła się na      błędzie UNION ALL. Istnieje tylko Zamowienia_plan_src.sql (202   wiersze z pełną dokumentacją), ale plik .xlsx nie powstał.   
+                                                                  Następna sesja zaczyna od wygenerowania Excela z tego pliku   
+  przez Python/openpyxl. 
