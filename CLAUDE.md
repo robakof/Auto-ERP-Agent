@@ -220,6 +220,30 @@ Przerywaj autonomiczną pętlę i pytaj gdy:
 
 ---
 
+## Refleksja po etapie pracy
+
+Po zakończeniu etapu pracy dopisz wpis do `documents/agent/agent_suggestions.md`.
+Pisz swobodnie — co warte zapamiętania z tej sesji. Szczegóły w tym pliku.
+
+---
+
+## Pliki chronione
+
+Nie modyfikuj poniższych plików bez jawnego zatwierdzenia przez użytkownika:
+
+- `CLAUDE.md`
+- `documents/agent/ERP_COLUMNS_WORKFLOW.md`
+- `documents/agent/ERP_FILTERS_WORKFLOW.md`
+- `documents/agent/ERP_VIEW_WORKFLOW.md`
+- `documents/agent/ERP_SCHEMA_PATTERNS.md`
+- `documents/agent/ERP_SQL_SYNTAX.md`
+- `documents/dev/AI_GUIDELINES.md`
+- `documents/methodology/METHODOLOGY.md`
+
+Wyjątek: `documents/agent/agent_suggestions.md` — dopisujesz autonomicznie po każdym zadaniu.
+
+---
+
 ## Tryb developerski
 
 Rozbudowa narzędzi (nie konfiguracja ERP):

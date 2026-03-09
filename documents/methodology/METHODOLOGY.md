@@ -258,8 +258,21 @@ Obserwacje z tej pętli są źródłem aktualizacji metodologii i wytycznych (`A
 Nie należy ich odkładać — każda taka obserwacja powinna zostać zapisana możliwie szybko,
 zanim szczegóły znikną z własnego kontekstu.
 
-Mechanizm ten odpowiada *cybernetyce drugiego rzędu* von Foerstera: obserwator wchodzi
-w zakres obserwacji. Własne korekty stają się danymi o systemie.
+### Przepływ refleksji przez poziomy
+
+Każdy poziom ma dedykowany plik refleksji (append-only) i odpowiadający mu backlog:
+
+| Poziom | Plik refleksji | Backlog | Kto archiwizuje |
+|---|---|---|---|
+| Agent | `documents/agent/agent_suggestions.md` | `documents/dev/backlog.md` | Developer |
+| Developer | `documents/dev/developer_suggestions.md` | `documents/dev/backlog.md` | Człowiek + Developer |
+| Metodolog | `documents/methodology/methodology_suggestions.md` | `documents/methodology/methodology_backlog.md` | Człowiek + Metodolog |
+
+Zasada: **1 poziom — 1 plik refleksji**. Pliki refleksyjne nie są czyszczone — przetworzone
+wpisy przenoszone są do sekcji Archiwum w tym samym pliku.
+
+Metodolog czyta `developer_suggestions.md` i wyłuskuje z niego obserwacje metodologiczne
+do własnego `methodology_suggestions.md`. Developer nie pisze bezpośrednio do pliku Metodologa.
 
 ---
 

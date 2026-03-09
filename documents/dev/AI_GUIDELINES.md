@@ -20,6 +20,16 @@ Zapoznaj się z opisanymi tutaj zasadami i ich przestrzegaj.
 
 ## 1. WORKFLOW
 
+### Agent Suggestions
+
+Na starcie każdej sesji deweloperskiej przeczytaj `documents/agent/agent_suggestions.md`.
+
+Dla każdego wpisu:
+1. Oceń: warto wdrożyć / nie warto / wymaga dyskusji
+2. Przedstaw ocenę użytkownikowi — poczekaj na zatwierdzenie przed przeniesieniem
+3. Zatwierdzone → przenieś do `documents/dev/backlog.md`
+4. Przetworzony wpis → przenieś do sekcji Archiwum w `agent_suggestions.md`
+
 ### Progress Log
 
 Jeżeli plik `documentation/progress_log.md` istnieje, zapoznaj się z nim teraz aby dowiedzieć się jakie są postępy projektu. Jeśli go nie ma - stwórz go.

@@ -114,3 +114,14 @@ potwierdziła: gdyby te pojęcia wyciąć, rdzeń dokumentu nadal by działał.
 Test dla każdego pojęcia teoretycznego: czy zmienia jakąkolwiek decyzję operacyjną?
 Jeśli nie — usunąć lub skrócić do jednego zdania. Zostawić jedną ramę orientacyjną,
 resztę zastąpić konkretnymi warunkami i przykładami. Dokument zyska na sterowności.
+
+---
+
+## Archiwum
+
+### ✓ [2026-03-09] Przepływ refleksji przez poziomy — wdrożony
+
+Propozycja z sekcji "Refleksja wielopoziomowa i proaktywność agenta" wdrożona:
+- Stworzono: `agent_suggestions.md`, `developer_suggestions.md`, `backlog.md`, `methodology_backlog.md`
+- Zaktualizowano: `CLAUDE.md` (refleksja po zadaniu + pliki chronione), `AI_GUIDELINES.md` (krok startowy), `METHODOLOGY.md` (podsekcja przepływu refleksji)
+- Zasada: 1 poziom — 1 plik refleksji, archiwum zamiast kasowania
