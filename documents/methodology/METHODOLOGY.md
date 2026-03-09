@@ -27,7 +27,12 @@ korektę jako dane o systemie, nie tylko jako działanie. To jest źródło meto
 ## Wprowadzenie — dla agenta
 
 Czytasz ten dokument, ponieważ zostałeś wywołany w roli **Metodologa** lub przekazano ci go
-jako kontekst sesji. Oto co musisz wiedzieć:
+jako kontekst sesji.
+
+**Na starcie sesji:** przeczytaj `documents/methodology/methodology_progress.md` — aktualny
+stan i konkretny następny krok.
+
+Oto co musisz wiedzieć:
 
 **Twoja rola w tej sesji.** Projekt rozróżnia trzy poziomy działania: Agent (wykonuje zadania),
 Developer (kształtuje narzędzia i wytyczne), Metodolog (ocenia i poprawia metodę pracy).
@@ -45,7 +50,7 @@ do poziomu Developera lub Metodologa — niezależnie od tego czy dasz radę sam
 3. Jeśli tak — napisz zwięzły handoff: aktualny stan, konkretna obserwacja,
    pytanie do rozważenia na wyższym poziomie.
 
-**Wytyczne są warstwą chronioną.** Nie modyfikuj `AI_GUIDELINES.md`, `CLAUDE.md`
+**Wytyczne są warstwą chronioną.** Nie modyfikuj `DEVELOPER.md`, `CLAUDE.md`
 ani plików w `documents/agent/` bez jawnego zatwierdzenia przez użytkownika.
 
 **Projekt jest odzwierciedleniem metody.** Jeśli widzisz rozbieżność między tym jak
@@ -60,20 +65,19 @@ Praca z agentem odbywa się na trzech odrębnych poziomach, które nie powinny b
 
 | Poziom | Rola | Dokument wejściowy | Zakres |
 |---|---|---|---|
-| **Agent** | Executor | `CLAUDE.md` (project instructions) | Realizuje konkretne zadania: kod, SQL, testy, pliki |
-| **Developer** | Architekt | `AI_GUIDELINES.md` | Kształtuje narzędzia, strukturę projektu, wytyczne |
-| **Metodolog** | Obserwator | `METHODOLOGY.md` | Ocenia metodę pracy, kształtuje prompty, poprawia proces |
+| **Agent** | Executor | `CLAUDE.md` → `documents/agent/AGENT.md` | Realizuje konkretne zadania: kod, SQL, testy, pliki |
+| **Developer** | Architekt | `CLAUDE.md` → `documents/dev/DEVELOPER.md` | Kształtuje narzędzia, strukturę projektu, wytyczne |
+| **Metodolog** | Obserwator | `CLAUDE.md` → `documents/methodology/METHODOLOGY.md` | Ocenia metodę pracy, kształtuje prompty, poprawia proces |
 
-`CLAUDE.md` jest punktem wejścia ładowanym automatycznie — z natury zorientowanym na agenta.
-Przy pracy na poziomie developera lub metodologa `CLAUDE.md` powinien zawierać routing:
-jednoznaczne wskazanie na `AI_GUIDELINES.md` lub `METHODOLOGY.md` jako właściwy kontekst sesji.
+`CLAUDE.md` jest punktem wejścia ładowanym automatycznie — zawiera routing do właściwego
+dokumentu roli. Każda rola ładuje tylko swój dokument i idzie dalej zgodnie z jego instrukcjami.
 
 Każdy poziom ma osobny folder dokumentacji:
 
 ```
 documents/
-├── agent/        <- instrukcje dla agenta wykonawczego
-├── dev/          <- wytyczne developerskie (AI_GUIDELINES, PRD, ARCHITECTURE...)
+├── agent/        <- instrukcje dla agenta wykonawczego (AGENT.md + workflow ERP)
+├── dev/          <- wytyczne developerskie (DEVELOPER.md, PROJECT_START.md, backlog...)
 └── methodology/  <- ten folder; metodologia pracy jako taka
 ```
 
@@ -230,7 +234,7 @@ Okno kontekstowe jest zasobem, nie nieskończoną przestrzenią. Należy nim zar
 
 Najważniejszą rzeczą jaką agent poznaje na początku sesji są **wytyczne działania** —
 nie historia projektu, nie szczegółowy opis kodu, lecz *jak ma działać*. Wytyczne
-(`AI_GUIDELINES.md` lub odpowiednik) pełnią podwójną rolę:
+(`DEVELOPER.md` lub odpowiednik) pełnią podwójną rolę:
 
 1. Instrukcja operacyjna — jak agent ma podejmować decyzje
 2. Implicitny progress log — sama struktura dokumentu (co istnieje, co nie) mówi agentowi
@@ -254,7 +258,7 @@ Pytania pętli meta-obserwacji:
 - Czy to co poprawiłem jest symptomem brakującej reguły w wytycznych?
 - Czy ta sytuacja zdarzyła się już wcześniej?
 
-Obserwacje z tej pętli są źródłem aktualizacji metodologii i wytycznych (`AI_GUIDELINES.md`).
+Obserwacje z tej pętli są źródłem aktualizacji metodologii i wytycznych (`DEVELOPER.md`).
 Nie należy ich odkładać — każda taka obserwacja powinna zostać zapisana możliwie szybko,
 zanim szczegóły znikną z własnego kontekstu.
 
@@ -278,7 +282,7 @@ do własnego `methodology_suggestions.md`. Developer nie pisze bezpośrednio do 
 
 ## Wytyczne agenta jako warstwa chroniona
 
-`AI_GUIDELINES.md` i dokumenty w `documents/agent/` stanowią **warstwę chronioną**.
+`DEVELOPER.md` i dokumenty w `documents/agent/` stanowią **warstwę chronioną**.
 
 Agent nie powinien modyfikować tych plików bez jawnego zatwierdzenia przez użytkownika,
 nawet jeśli uważa, że zmiana jest oczywista lub poprawiająca.
@@ -308,9 +312,9 @@ szum. Zbyt mała dokumentacja dla dużych zadań prowadzi do utraty stanu i powt
 
 ## Relacja do AI_GUIDELINES
 
-`AI_GUIDELINES.md` to **instrukcja operacyjna** dla agenta — odpowiada na pytanie
+`DEVELOPER.md` to **instrukcja operacyjna** dla agenta — odpowiada na pytanie
 *jak agent ma działać*. Niniejsza metodologia odpowiada na pytanie *dlaczego tak, a nie inaczej*
 i *jak myśleć o tej pracy*.
 
-Zmiany w `AI_GUIDELINES.md` powinny wynikać z obserwacji zebranych w pętli meta-obserwacji
+Zmiany w `DEVELOPER.md` powinny wynikać z obserwacji zebranych w pętli meta-obserwacji
 i być zapisane tu jako kontekst decyzji — żeby nie gubić uzasadnienia przy kolejnych sesjach.

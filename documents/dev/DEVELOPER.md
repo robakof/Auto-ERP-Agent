@@ -1,24 +1,36 @@
-# AI Assistant Guidelines
+# Developer — instrukcje operacyjne
 
-**Cel:** Wytyczne dla AI coding assistant wspierającego developera pracującego z bazami danych i skryptami
-
-Jesteś asystentem programowania dla vibecodera.
-Twoim zadaniem jest pomóc w tworzeniu projektu opisanego w pliku README.md
-
-Zapoznaj się z opisanymi tutaj zasadami i ich przestrzegaj.
+Kształtujesz narzędzia, architekturę i wytyczne projektu ERP XL.
+Budujesz minimalistycznie, modularnie, w uzgodnionym zakresie.
 
 ---
 
-## Najważniejsze zasady współpracy w skrócie
+## Najważniejsze zasady
 
-1. Buduj minimalistycznie tylko w zakresie który został uzgodniony z Vibecoderem
-2. Zapoznawaj się tylko z plikami które są niezbędne do wykonywania zadań, oszczędzaj context window
+1. Buduj tylko w zakresie który został uzgodniony z użytkownikiem
+2. Ładuj do kontekstu tylko pliki niezbędne do bieżącego zadania
 3. Trzymaj się ustalonego workflow w zależności od etapu projektu
 4. Buduj modularnie
 
 ---
 
 ## 1. WORKFLOW
+
+### Na starcie sesji
+
+1. Przeczytaj `documents/dev/backlog.md` — aktualny stan priorytetów
+2. Przeczytaj `documents/agent/agent_suggestions.md` — nowe obserwacje agenta
+3. Przeczytaj `documents/dev/progress_log.md` — stan projektu
+
+### Skala zadania
+
+Przed rozpoczęciem oceń skalę:
+
+**Małe / poprawka** → implementuj bezpośrednio (Phase 3 poniżej)
+**Średnie / nowy moduł** → stwórz `ARCHITECTURE.md` z sekcjami PRD i techstack, zatwierdź
+**Duże / projektowe** → zaproponuj nową gałąź, przejdź z użytkownikiem przez `PROJECT_START.md`
+
+Szczegóły inicjalizacji: `documents/dev/PROJECT_START.md`
 
 ### Agent Suggestions
 
@@ -32,11 +44,17 @@ Dla każdego wpisu:
 
 ### Progress Log
 
-Jeżeli plik `documentation/progress_log.md` istnieje, zapoznaj się z nim teraz aby dowiedzieć się jakie są postępy projektu. Jeśli go nie ma - stwórz go.
+Jeżeli plik `documents/dev/progress_log.md` istnieje, zapoznaj się z nim teraz aby dowiedzieć się jakie są postępy projektu. Jeśli go nie ma - stwórz go.
 
 W progress_log w minimalistyczny sposób zapisuj postępy pracy. W pliku powinny znajdować się najważniejsze informacje dotyczące postępów prac bez wchodzenia w szczegóły czy zbytniej drobiazgowości.
 
 Progress_log służy do zapoznania się dla kolejnych asystentów z postępami prac tak aby z łatwością mogli odnaleźć się w kontekście projektu bez przeładowywania context window.
+
+### Inicjalizacja projektu lub nowej gałęzi
+
+Poniższe fazy (Phase 1-2) stosuj gdy inicjujesz nowy projekt lub nową gałąź.
+Przy bieżących zadaniach — przejdź bezpośrednio do Phase 3.
+Szczegółowy workflow inicjalizacji: `documents/dev/PROJECT_START.md`
 
 ### Phase 1: Tworzenie dokumentacji projektowej
 
@@ -282,7 +300,7 @@ Przy iteracyjnej pracy nad brudnopisem SQL (300+ linii, wiele iteracji):
 
 ---
 
-## ZMIANY W AI_GUIDELINES
+## ZMIANY W DEVELOPER.MD
 
 Jakiekolwiek modyfikacje tego pliku wymagają **jawnego zatwierdzenia przez użytkownika** przed wprowadzeniem. Agent może zaproponować zmianę, ale nie może jej samodzielnie zapisać.
 
