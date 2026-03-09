@@ -531,6 +531,19 @@ Otwarte: przebudowa CLAUDE.md (3 poziomy wywołania: Agent ERP / Developer / Met
 
 **Następny krok:** implementacja P1+P2 (narzędzia) lub BI.Zamowienia — do uzgodnienia.
 
+### 2026-03-09 — bi_discovery.py + czyszczenie backlogu
+
+**bi_discovery.py:**
+- `CDN.NazwaTabeli [--pk] [--filter] [--max-enum N]`
+- Zapytania: INFORMATION_SCHEMA → COUNT(*) → COUNT DISTINCT zbiorcze (batch 50) → GROUP BY per enum → MIN/MAX per datę
+- Role: empty | constant | enum | id | Clarion_DATE | Clarion_TIMESTAMP | SQL_DATE | text | numeric
+- Klasyfikacja Clarion_DATE: 1 ≤ MIN/MAX ≤ 200 000; Clarion_TIMESTAMP: MAX ≥ 1 000 000 000
+- 248 testów (+18), 100% zielone. AGENT.md zaktualizowany.
+
+**Backlog:** zamknięto [Prompt] (metodolog), [Narzędzia] bi_discovery — backlog pusty.
+
+---
+
 ### 2026-03-09 — P3 + P4 (backlog narzędzia)
 
 **P4 — solutions_save_view.py:**

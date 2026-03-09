@@ -22,19 +22,6 @@ Opis problemu i propozycja rozwiązania.
 
 ## Aktywne
 
-### [Prompt] Agent edytuje pliki dokumentacji bez jawnej zgody
-
-**Źródło:** agent_suggestions
-**Sesja:** 2026-03-08 (BI.Kontrahenci)
-**Wartość:** wysoka
-**Pracochłonność:** mała
-
-Agent zmodyfikował plik z wytycznymi mimo zakazu w DEVELOPER.md.
-Lista plików chronionych dodana do CLAUDE.md i AGENT.md (sesja 2026-03-09).
-Otwarte: czy sam zakaz tekstowy wystarczy, czy potrzebny mechanizm weryfikowalny (np. test CI).
-
----
-
 ### [Arch] Sygnatury narzędzi powielone w wielu miejscach
 
 **Źródło:** developer_suggestions
@@ -52,19 +39,6 @@ Opcje:
 
 ---
 
-### [Narzędzia] bi_discovery.py — automatyczny raport discovery
-
-**Źródło:** agent_suggestions
-**Sesja:** 2026-03-08
-**Wartość:** średnia
-**Pracochłonność:** średnia
-
-Faza discovery widoku BI to zawsze ~10 tych samych zapytań.
-`bi_discovery.py CDN.NazwaTabeli [--pk ...] [--filter ...]` zwracałoby raport:
-baseline COUNT, pola stałe (COUNT DISTINCT=1), klasyfikacja dat, enumeracje.
-
----
-
 ## Archiwum
 
 *(przeniesione z agent_reflections.md — zrealizowane)*
@@ -75,3 +49,5 @@ Pozycje #1–#10 z sesji 2026-03-08: zrealizowane, szczegóły w `agent_reflecti
 **[P2] sql_query.py — --count-only + --quiet** — zrealizowane 2026-03-09
 **[P3] bi_verify.py** — zrealizowane 2026-03-09
 **[P4] solutions_save_view.py** — zrealizowane 2026-03-09
+**[Prompt] Agent edytuje pliki dokumentacji bez zgody** — zrealizowane przez Metodologa
+**[Narzędzia] bi_discovery.py** — zrealizowane 2026-03-09

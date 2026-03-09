@@ -92,6 +92,13 @@ python tools/bi_verify.py --draft SCIEZKA.sql --view-name NAZWA
   → data.row_count, data.column_count, data.export_path, data.stats[].{name, distinct, null_count, values|sample}
   (test + eksport + statystyki w 1 kroku; zastępuje 3 osobne wywołania narzędzi)
 
+python tools/bi_discovery.py CDN.NazwaTabeli [--pk Kolumna_GIDNumer] [--filter "warunek WHERE"]
+                             [--max-enum N]
+  → data.table, data.row_count, [data.pk_distinct], [data.filter]
+  → data.columns[].{name, sql_type, distinct, role, [value|values], [min, max]}
+  role: empty | constant | enum | id | Clarion_DATE | Clarion_TIMESTAMP | SQL_DATE | text | numeric
+  (automatyczny raport discovery: 1 zbiorcze COUNT DISTINCT + GROUP BY/MIN-MAX per kolumna)
+
 python tools/windows_update.py --id ... [--name "..."] [--primary-table CDN.XXX]
                                 [--add-alias "..."] [--config-types columns filters]
   → data.window, data.created
