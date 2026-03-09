@@ -13,11 +13,13 @@
 - Architektura wytycznych: CLAUDE.md (routing) → AGENT.md / DEVELOPER.md / METHODOLOGY.md
 - LOOM: `_loom/` — szablony metodologii do bootstrapu nowych projektów
 
-**Widok w toku:** BI.Zamowienia — Faza 0 zakończona, plan Excel gotowy (`Zamowienia_plan.xlsx`, 202 kolumny)
+**Widok w toku:** BI.ZamNag — Faza 1–4 zakończona przez agenta (widok gotowy: `solutions/bi/views/ZamNag.sql`). Otwarte: ZaN_PromocjePar=3 (znaczenie nieznane), ZaN_DokZwiazane (bitmask surowy).
 
-**Backlog aktywny:** [Arch] sygnatury narzędzi powielone w wielu miejscach
+**Backlog aktywny:**
+- [Workflow] ERP_VIEW_WORKFLOW + ERP_SCHEMA_PATTERNS — poprawki po sesji BI.ZamNag (zasada pomijania pól, bi_verify/excel_read_rows zasady kontekstu, numery inline, TrN_ZaNNumer, format roku)
+- [Arch] sygnatury narzędzi powielone w wielu miejscach
 
-**Następny krok:** BI.Zamowienia Faza 1 (SQL) lub [Arch] sygnatury narzędzi
+**Następny krok:** wdrożenie [Workflow] — edycja ERP_VIEW_WORKFLOW.md + ERP_SCHEMA_PATTERNS.md
 
 ---
 
