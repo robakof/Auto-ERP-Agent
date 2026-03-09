@@ -86,6 +86,10 @@ python tools/solutions_save_view.py --draft SCIEZKA.sql [--view-name NAZWA] [--s
   → data.path, data.view_name, data.schema | error.type
   (zapisuje CREATE OR ALTER VIEW {schema}.{name} AS + treść draftu do solutions/bi/views/)
 
+python tools/bi_plan_generate.py --src SCIEZKA_plan_src.sql [--output SCIEZKA.xlsx]
+  → data.path, data.row_count, data.columns | error.type
+  (generuje plan Excel z pliku SQL metadanych; wykonuje lokalnie w SQLite — obsługuje polskie znaki)
+
 python tools/bi_verify.py --draft SCIEZKA.sql --view-name NAZWA
                           [--plan SCIEZKA.xlsx] [--source-table CDN.XXX]
                           [--export SCIEZKA.xlsx] [--max-unique N]
