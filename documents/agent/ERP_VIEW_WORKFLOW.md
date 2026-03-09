@@ -6,6 +6,17 @@ i iteracyjnej pracy na pliku roboczym.
 
 ---
 
+## Nazewnictwo widoków
+
+**`{NazwaWidoku}` = nazwa tabeli źródłowej bez prefixu CDN.**
+
+Przykłady: `ZamNag` (z CDN.ZamNag), `KntKarty` (z CDN.KntKarty), `Rezerwacje` (z CDN.Rezerwacje).
+
+Dotyczy: katalogu widoku, plików roboczych, pliku SQL w views/, wpisu w catalog.json (`BI.NazwaWidoku`).
+Nigdy nie używaj polskich nazw opisowych (`Zamowienia`, `Kontrahenci`).
+
+---
+
 ## Inicjalizacja — przed jakimkolwiek zapytaniem
 
 Utwórz dwa pliki robocze (jeśli nie istnieją):

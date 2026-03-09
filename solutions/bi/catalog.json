@@ -54,8 +54,8 @@
     }
   ,
     {
-      "name": "BI.Kontrahenci",
-      "file": "views/Kontrahenci.sql",
+      "name": "BI.KntKarty",
+      "file": "views/KntKarty.sql",
       "description": "Kartoteka kontrahentów z pełnymi danymi identyfikacyjnymi, adresowymi, handlowymi i kontaktowymi. Flagi przetłumaczone na Tak/Nie, enumeracje na etykiety PL. Grupa główna jako ścieżka rekurencyjna (CDN.KntGrupyDom).",
       "primary_table": "CDN.KntKarty",
       "joins": [
