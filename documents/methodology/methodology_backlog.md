@@ -12,7 +12,7 @@ Zarządza: Metodolog.
 
 **Źródło:** methodology_suggestions | developer_suggestions
 **Sesja:** data
-**Dokument do zmiany:** METHODOLOGY.md | CLAUDE.md | AI_GUIDELINES.md
+**Dokument do zmiany:** METHODOLOGY.md | CLAUDE.md | DEVELOPER.md
 
 Opis obserwacji i propozycja zmiany.
 ```
