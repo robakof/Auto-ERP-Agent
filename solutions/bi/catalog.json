@@ -126,5 +126,71 @@
       ],
       "notes": "Filtr techniczny: ROZ_GIDLp=1 (każde rozliczenie w bazie ma 2 wiersze — lustro; widok bierze tylko GIDLp=1). Typ_Dok1/Typ_Dok2: pełne nazwy PL. Nr_Dok: NULL możliwy dla nowych rekordów dodanych podczas wykonywania zapytania (baza produkcyjna). ID_Rozliczenia_Nadrzednego = ROZ_GIDNumer gdy brak rodzica (41 wierszy ma inny ID — rozliczenia powiązane z RK). Data_Podejrzana='Tak': ~4 rekordy z datą > 2030 (błędy w danych ERP)."
     }
+  ,
+    {
+      "name": "AIBI.ZamNag",
+      "file": "views/ZamNag.sql",
+      "description": "Nagłówki zamówień sprzedaży i zakupu (ZS, ZZ, OFS, OFZ) z pełnymi danymi kontrahenta, odbiorcy, płatnika, magazynu, form płatności, rabatów, dat i operatorów. Statusy i typy przetłumaczone na etykiety PL.",
+      "primary_table": "CDN.ZamNag",
+      "joins": [
+        "CDN.ZamNag (self: dokument źródłowy)",
+        "CDN.KntKarty (kontrahent, odbiorca, płatnik, akwizytor)",
+        "CDN.KntAdresy (adres knt, adres wysyłki)",
+        "CDN.Magazyny (magazyn, magazyn docelowy)",
+        "CDN.OpeKarty (6 operatorów)",
+        "CDN.FrmStruktura",
+        "CDN.PrcKarty",
+        "CDN.Rejestry",
+        "CDN.TwrCenyNag",
+        "CDN.Slowniki"
+      ],
+      "columns": [
+        "ID_Zamowienia", "Typ_GID", "Typ_Zamowienia", "Stan", "Rodzaj",
+        "Numer_Dokumentu", "Numer_Potwierdzenia", "Numer_Dokumentu_Zrodlowego", "Typ_Dokumentu_Zrodlowego",
+        "ID_Dokumentu_Korekty", "Typ_Dokumentu_Korekty",
+        "ID_Kontrahenta", "Akronim_Kontrahenta", "Nazwa_Kontrahenta",
+        "ID_Adresu_Knt", "Adres_Knt_Akronim", "Adres_Knt_Miasto", "Adres_Knt_Kod_Pocztowy", "Adres_Knt_Ulica",
+        "ID_Odbiorcy", "Akronim_Odbiorcy", "Nazwa_Odbiorcy",
+        "ID_Platnika", "Akronim_Platnika", "Nazwa_Platnika",
+        "ID_Akwizytora", "Akronim_Akwizytora",
+        "ID_Adresu_Wysylki", "Adres_Wysylki_Akronim", "Adres_Wysylki_Miasto", "Adres_Wysylki_Kod_Pocztowy", "Adres_Wysylki_Ulica",
+        "ID_Magazynu", "Kod_Magazynu", "Nazwa_Magazynu",
+        "ID_Magazynu_Docelowego", "Kod_Magazynu_Docelowego", "Nazwa_Magazynu_Docelowego",
+        "ID_Formy_Platnosci", "Forma_Platnosci", "Nazwa_Formy_Platnosci", "Termin_Platnosci",
+        "Waluta", "Kurs_Mianownik", "Kurs_Licznik", "Typ_Kursu", "Wspolna_Waluta",
+        "Rabat", "Typ_Rabatu", "Rabat_Wartosciowy", "Rabat_Promocyjny_Globalny", "Sposob_Naliczania_Rabatow",
+        "ID_Cennika_Kontrahenta", "ID_Cennika_Sprzedazy", "Nazwa_Cennika_Sprzedazy",
+        "ID_Rejestru_Kasowego", "Seria_Rejestru_Kasowego", "Nazwa_Rejestru_Kasowego",
+        "Eksport_Norma", "Symbol_Incoterms", "Kraj_Przez_Wysylke",
+        "Sposob_Dostawy", "Cecha_Opis", "Netto_Brutto",
+        "Data_Wystawienia", "Godzina_Wystawienia", "Data_Realizacji", "Data_Waznosci",
+        "Data_Potwierdzenia", "Godzina_Potwierdzenia", "Data_Aktywacji_Rezerwacji",
+        "Limit_Kredytowy_Wazny_Do", "Data_Ostatniej_Modyfikacji", "Data_Ostatniej_Modyfikacji_POS",
+        "Realizacja_W_Calosci", "Status_Realizacji", "Wyslano", "Rezerwacje_Na_Niepotwierdzonym", "Priorytet_Rezerwacji",
+        "ID_Opiekuna", "Imie_Nazwisko_Opiekuna",
+        "ID_Operatora_Wystawiajacego", "Login_Operatora_Wystawiajacego",
+        "ID_Operatora_Modyfikujacego", "Login_Operatora_Modyfikujacego",
+        "ID_Operatora_Zatwierdzajacego", "Login_Operatora_Zatwierdzajacego",
+        "ID_Operatora_Potwierdzajacego", "Login_Operatora_Potwierdzajacego",
+        "ID_Operatora_Mod", "Login_Operatora_Mod",
+        "ID_Operatora_POS", "Login_Operatora_POS",
+        "ID_Firmy_Handlowej", "Nazwa_Firmy_Handlowej",
+        "ID_Przyczyny_Fiaska", "Przyczyna_Fiaska", "Kategoria_Fiaska",
+        "Dokument_Obcy", "Dokument_Obcy_P", "URL", "Dok_Zwiazane_Bitmask"
+      ],
+      "example_questions": [
+        "zamówienia kontrahenta X",
+        "niezrealizowane zamówienia sprzedaży",
+        "zamówienia z tego miesiąca",
+        "zamówienia w realizacji",
+        "ile zamówień ma kontrahent X",
+        "zamówienia obsługiwane przez opiekuna Y",
+        "zamówienia anulowane w tym roku",
+        "zamówienia z magazynu X",
+        "zamówienia w EUR",
+        "kto wystawił zamówienie ZS-123"
+      ],
+      "notes": "Typy: 1280=ZS (zamówienie sprzedaży), 1152=ZZ (zamówienie zakupu), 768=OFS, 640=OFZ. Stan: 2=Zamówienie, 3=Potwierdzone, 5=W realizacji, 21=Zrealizowane, 35=Anulowane. Numer_Dokumentu budowany inline (format: ZS-Numer/MM/RR/Seria). ZaN_ZrdNumer = self-ref (bezużyteczny). Dok_Zwiazane_Bitmask — surowy, znaczenie nierozpoznane. Sposob_Naliczania_Rabatow=Nieznane(3) — 3731 rekordów, znaczenie nieznane."
+    }
   ]
 }
