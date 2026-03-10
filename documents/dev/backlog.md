@@ -22,6 +22,19 @@ Opis problemu i propozycja rozwiązania.
 
 ## Aktywne
 
+### [Dev] Informacja o kontekście na końcu każdej wiadomości
+
+**Źródło:** developer_suggestions
+**Sesja:** 2026-03-10
+**Wartość:** wysoka
+**Pracochłonność:** mała
+
+Agent powinien kończyć każdą wiadomość informacją o aktualnym zużyciu kontekstu
+(np. "Kontekst: ~54%"). Cel: świadomość co zużywa kontekst, sygnał do optymalizacji,
+bezpieczeństwo przy długich sesjach. Wpisać jako regułę do DEVELOPER.md.
+
+---
+
 ### [Arch] Sygnatury narzędzi powielone w wielu miejscach
 
 **Źródło:** developer_suggestions
