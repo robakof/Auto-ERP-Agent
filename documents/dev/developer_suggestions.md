@@ -56,6 +56,51 @@ Jeśli odpowiedź na pytanie jest "nie" lub "nic" — pomiń pytanie.
    Lekcja: przy każdym nowym narzędziu które opiera się na danych zewnętrznych — sprawdź
    pokrycie tych danych zanim wbudujesz logikę filtrującą na ich podstawie.
 
+### [2026-03-10] Analityk Danych — architektura + implementacja + refleksja metodologiczna
+
+1. **Decyzje architektoniczne:**
+
+   SQLite jako lokalny obszar roboczy analityka — dobra decyzja. Eliminuje wielokrotne
+   połączenia do SQL Servera, umożliwia cross-column analysis bez dodatkowego kosztu,
+   daje ciągłość stanu między sesjami. Warto rozważyć ten wzorzec przy przyszłych agentach
+   potrzebujących dużego lokalnego zbioru danych.
+
+   `data_quality_records.py` — serializacja każdego wiersza jako JSON do jednej kolumny `data`
+   (zamiast dynamicznego schematu tabeli) — akceptowalne uproszczenie. Dynamiczny schemat
+   byłby trudniejszy do generowania raportów i trudniejszy do testowania. Wadą jest brak
+   możliwości łatwego filtrowania po konkretnym identyfikatorze w SQLite.
+
+   Plik `COMMIT_EDITMSG` jako bufor wiadomości commitów — złe rozwiązanie w praktyce.
+   Write tool pyta o nadpisanie za każdym razem. Właściwe rozwiązanie to `git_commit.py`.
+
+2. **Zbyt skomplikowane:**
+
+   Nic. 5 narzędzi, każde robi jedną rzecz, razem tworzą spójny pipeline. Dobry podział.
+
+3. **Obserwacje o metodzie pracy:**
+
+   Pojawienie się drugiej roli wykonawczej (Analityk) ujawniło lukę w metodologii:
+   zakłada ona jeden poziom "Agent" z jednym plikiem refleksji. Przy dwóch rolach
+   wykonawczych to przestaje działać — inne wzorce obserwacji, inna jednostka pracy,
+   inne potrzeby ciągłości stanu. Handoff do Metodologa przygotowany.
+
+   Hook bezpieczeństwa blokuje więcej wzorców niż dotychczas dokumentowano:
+   `""` przed `--argumentem` (empty string bypass), `$(cat plik)` w argumentach,
+   `cd "ścieżka ze spacjami" && komenda`. Każdy nowy wzorzec blokowania to koszt
+   użytkownika — musi zatwierdzać lub sesja się zatrzymuje. Warto rozważyć systematyczny
+   przegląd komend w AGENT.md i DEVELOPER.md pod kątem hook compliance zanim pojawią się
+   w produkcji, nie po.
+
+   Kontekst zużyty nierównomiernie — dużo poszło na czytanie dokumentacji przed implementacją
+   (METHODOLOGY.md + AGENT.md = dobre, ale ciężkie). Przy kolejnych sesjach developerskich
+   z nową rolą: załaduj tylko DEVELOPER.md na start, METHODOLOGY.md tylko gdy projekt dotyka
+   granic metodologicznych — nie profilaktycznie.
+
+   Progress_log pomijany w trakcie sesji — zaktualizowany dopiero gdy użytkownik zapytał.
+   Powinien być aktualizowany automatycznie po każdym KM, nie na żądanie.
+
+---
+
 ### [2026-03-09] Porządki, bi_plan_generate, rename widoków
 
 3. **Obserwacje o metodzie pracy:**
