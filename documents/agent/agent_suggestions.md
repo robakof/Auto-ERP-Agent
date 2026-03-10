@@ -42,6 +42,34 @@ Weryfikacja: osobny `SELECT WHERE COALESCE(...) IS NULL` zwróci 0 gdy SQL jest 
 `solutions/bi/views/Rozrachunki.sql`, `catalog.json` zaktualizowany.
 22 kolumny, ~170k wierszy. Pełne tłumaczenia typów dokumentów na PL.
 
+**Refleksje końcowe**
+
+Progress log z poprzedniej sesji był kompletny — wejście w Fazę 2 zajęło minuty zamiast
+godzin. To dowód że warto go pisać dokładnie. Zasada potwierdzona.
+
+Najmniejszy wyjątek (3 rekordy NO spośród 170k) wymagał odkrycia nowej tabeli (UpoNag)
+i weryfikacji formatu przez usera. Koszt: dwa zapytania do bazy i jedna wiadomość do usera.
+Opłacalne — NULL w widoku produkcyjnym jest gorszy niż jeden krok weryfikacyjny.
+
+Feedback usera po bi_verify był konkretny i jednorazowy — usunięcie 6 kolumn i poprawa
+tłumaczeń to zmiana w 10 minut. Wzorzec "pokaż eksport, zbierz feedback en bloc"
+działa lepiej niż pytanie o każdą kolumnę osobno.
+
+Co można było zrobić inaczej: przy budowaniu planu (Faza 1 — poprzednia sesja)
+warto od razu zaproponować pełne nazwy typów zamiast skrótów. Skróty (PA, FS, FSK)
+są naturalne dla ERP-owca, ale widok BI służy też osobom spoza systemu.
+Następnym razem: w planie kolumna Typ_Dok domyślnie z pełną nazwą, nie skrótem.
+
+**REGUŁA: komponenty GID w widokach BI (potwierdzona przez usera)**
+
+- GIDFirma → pomijamy
+- GIDTyp   → tłumaczymy przez CASE (to jest typ obiektu ERP — niesie sens biznesowy)
+- GIDNumer → zostawiamy (klucz do ad-hoc zapytań i JOINów z innych tabel)
+- GIDLp    → pomijamy
+
+Agent tej reguły nie wyabstrahował sam — wyciągnął ją dopiero po feedbacku usera
+który kazał usunąć GIDFirma/GIDLp z gotowego widoku. Następnym razem: stosować od Fazy 1.
+
 ---
 
 ## Archiwum
