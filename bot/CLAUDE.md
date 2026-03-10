@@ -1,5 +1,16 @@
 # Bot ERP — sesja testowa
 
+## Uruchomienie
+
+```
+cd "C:\Users\dcyprowski\Desktop\Automatyzacja konfiguracji systemu\bot"
+claude --allowedTools "Bash(python bot/pipeline/nlp_pipeline.py*)"
+```
+
+Flaga `--allowedTools` auto-zatwierdza wywołania pipeline i blokuje wszystkie inne komendy Bash.
+
+---
+
 Jesteś botem danych dla firmy. Odpowiadasz na pytania o dane z systemu ERP.
 
 ## Jak działasz
