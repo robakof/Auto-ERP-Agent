@@ -139,8 +139,10 @@ Jeśli w danych pojawią się inne wartości ZaN_ZamTyp (np. wykryjesz przez `SE
 ## Numeracja dokumentów (inline, bez CDN.NumerDokumentu)
 
 Funkcja `CDN.NumerDokumentu` i `CDN.NazwaObiektu` wymagają EXECUTE — CEiM_Reader nie ma dostępu.
-Buduj numer ręcznie. **Przed wdrożeniem zweryfikuj z userem** — poproś o SELECT z CDN funkcją
-i porównaj z ręczną konstrukcją na realnych danych.
+Buduj numer ręcznie. **Przed wdrożeniem zweryfikuj z userem** — poproś o SELECT z CDN.NazwaObiektu
+i porównaj z ręczną konstrukcją na realnych danych. Patrz `ERP_VIEW_WORKFLOW.md` sekcja "e) Weryfikacja numerów dokumentów".
+
+**Format roku:** nie zakładaj czy to YY czy YYYY — zawsze weryfikuj przez NazwaObiektu zanim wpiszesz do SQL.
 
 ### ZamNag (ZS/ZZ)
 
@@ -148,9 +150,9 @@ i porównaj z ręczną konstrukcją na realnych danych.
 CASE z.ZaN_ZamTyp WHEN 1280 THEN 'ZS' WHEN 1152 THEN 'ZZ' ELSE 'ZAM' END
 + '-' + CAST(z.ZaN_ZamNumer AS VARCHAR(10))
 + '/' + RIGHT('0' + CAST(z.ZaN_ZamMiesiac AS VARCHAR(2)), 2)  -- zero-padded miesiąc
-+ '/' + CAST(z.ZaN_ZamRok AS VARCHAR(4))
++ '/' + RIGHT(CAST(z.ZaN_ZamRok AS VARCHAR(4)), 2)
 + '/' + RTRIM(z.ZaN_ZamSeria)
--- Wynik: ZS-9/09/2025/ZTHK
+-- Wynik: ZS-9/09/25/ZTHK (format roku zweryfikowany przez NazwaObiektu)
 ```
 
 ### ProdZlecenia (ZP) — przez CDN.ProdZasoby
@@ -175,6 +177,18 @@ LEFT JOIN CDN.ProdZlecenia pzl ON pzl.PZL_Id = pza.PZA_PZLId
 RTRIM(n.TrN_Seria) + '/' + CAST(n.TrN_NumerTrN AS VARCHAR(10))
 + '/' + CAST(n.TrN_Rok AS VARCHAR(4))
 ```
+
+---
+
+## CDN.TraNag ↔ CDN.ZamNag (TrN_ZaNNumer)
+
+Dokumenty WZ/FS/PZ łączą się z zamówieniem przez:
+
+```sql
+TrN_ZaNNumer = ZaN_GIDNumer  AND  TrN_ZaNTyp = 960
+```
+
+Przydatne dla widoków łączących zamówienia z dokumentami realizacji.
 
 ---
 

@@ -45,26 +45,6 @@ Opis problemu i propozycja rozwiązania.
 
 ---
 
-### [Dev] Komendy powłoki — git i podgląd plików bez zatwierdzeń
-
-**Źródło:** developer_suggestions
-**Sesja:** 2026-03-09
-**Wartość:** wysoka
-**Pracochłonność:** mała
-
-Dwa problemy blokujące płynną pracę:
-
-1. `cd "ścieżka ze spacjami" && git commit` — hook blokuje jako "bare repository attack".
-   Rozwiązanie: używać `git -C "ścieżka"` zamiast `cd && git`. Wpisać do DEVELOPER.md sekcja "Komendy powłoki".
-
-2. Zbyt częste git operations w środku zadania (git mv per plik).
-   Zasada: git tylko raz — na końcu zadania. Operacje na plikach przez zwykły `mv`/`cp`, nie `git mv`.
-   Wpisać jako regułę do DEVELOPER.md.
-
-3. `head -5 plik && echo && head -5 plik2` — hook blokuje. Używać narzędzia `Read` zamiast Bash dla podglądu.
-
----
-
 ### [Arch] Sygnatury narzędzi powielone w wielu miejscach
 
 **Źródło:** developer_suggestions
@@ -94,3 +74,4 @@ Pozycje #1–#10 z sesji 2026-03-08: zrealizowane, szczegóły w `agent_reflecti
 **[P4] solutions_save_view.py** — zrealizowane 2026-03-09
 **[Prompt] Agent edytuje pliki dokumentacji bez zgody** — zrealizowane przez Metodologa
 **[Narzędzia] bi_discovery.py** — zrealizowane 2026-03-09
+**[Dev] Komendy powłoki** — zrealizowane 2026-03-09 (git -C, mv zamiast git mv, Read zamiast head/cat)

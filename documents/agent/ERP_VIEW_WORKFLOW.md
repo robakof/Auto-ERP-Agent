@@ -220,8 +220,10 @@ Po tym jak user edytuje `{NazwaWidoku}_plan.xlsx` (uzupełni `Komentarz_Usera`, 
 ```
 python tools/excel_read_rows.py \
   --file "solutions/bi/{NazwaWidoku}/{NazwaWidoku}_plan.xlsx" \
-  --columns CDN_Pole,Uwzglednic,Transformacja,Komentarz_Usera
+  --columns CDN_Pole,Uwzglednic,Komentarz_Usera
 ```
+
+Pełne kolumny (`Transformacja`, `Uzasadnienie`) — tylko dla wierszy które tego wymagają.
 
 **Zanim zaczniesz generować SQL — najpierw przeskanuj plan pod kątem niespójności.**
 
@@ -255,9 +257,15 @@ Przejdź przez **każdą** kolumnę CDN.MainTable. Dla każdej zadaj sobie kolej
    z adnotacją "techniczne". Pomiń tylko gdy wartość jest stałą dla całej tabeli
    i nie niesie żadnej informacji (udowodnij przez COUNT DISTINCT = 1).
 
-**Zasada pominięcia:** pole można pominąć samodzielnie tylko gdy SELECT DISTINCT na nim
-zwraca dokładnie jedną wartość dla całej tabeli. W pozostałych przypadkach — uwzględnij
-lub zapytaj usera.
+**Zasada pominięcia** — pole można pominąć TYLKO gdy spełniony jeden z warunków:
+1. SELECT DISTINCT zwraca dokładnie 1 wartość dla całej tabeli (udowodnione przez COUNT)
+2. Dokumentacja wprost mówi "pole nie jest obsługiwane" lub "nieużywane"
+3. Dane wrażliwe (hasła, PINy)
+4. Czyste komponenty GID (GIDTyp/GIDFirma/GIDLp) bez żadnej informacji biznesowej
+
+W każdym innym przypadku — uwzględnij. Rzadko wypełnione, nieznane zastosowanie,
+mała wartość analityczna — to NIE są powody do pominięcia. Power BI odfiltruje
+co user nie potrzebuje; brak kolumny w widoku blokuje analizę.
 
 ### Zatwierdzenie
 
@@ -371,6 +379,11 @@ CASE WHEN Rez_DstNumer = 0 THEN NULL ELSE Rez_DstNumer END AS ID_Dostawy
 ---
 
 ## Faza 3 — Export i weryfikacja (po każdej iteracji SQL)
+
+### bi_verify vs sql_query
+
+- `bi_verify`: tylko na końcu etapu lub gdy zmiana dotyka wielu kolumn/JOINów
+- `sql_query`: przy drobnej poprawce (1 kolumna, literówka) — bez pełnych statystyk
 
 ```bash
 python tools/excel_export_bi.py \
