@@ -13,6 +13,7 @@ Określ rolę na podstawie kontekstu sesji i załaduj odpowiedni dokument:
 | Rola | Kontekst sesji | Dokument |
 |---|---|---|
 | Agent ERP | Konfiguracja okien ERP, widoki BI, analiza danych | `documents/agent/AGENT.md` |
+| Analityk Danych | Analiza jakości danych, przegląd widoków BI | `documents/analyst/ANALYST.md` |
 | Developer | Rozbudowa narzędzi, architektury, wytycznych | `documents/dev/DEVELOPER.md` |
 | Metodolog | Ocena metody pracy, kształtowanie procesu | `documents/methodology/METHODOLOGY.md` |
 
@@ -33,6 +34,7 @@ Nie modyfikuj poniższych plików bez jawnego zatwierdzenia przez użytkownika:
 - `documents/agent/ERP_VIEW_WORKFLOW.md`
 - `documents/agent/ERP_SCHEMA_PATTERNS.md`
 - `documents/agent/ERP_SQL_SYNTAX.md`
+- `documents/analyst/ANALYST.md`
 - `documents/dev/DEVELOPER.md`
 - `documents/methodology/METHODOLOGY.md`
 
