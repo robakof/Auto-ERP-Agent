@@ -94,5 +94,37 @@
       ],
       "notes": "Sciezka_Grupy: ścieżka rekurencyjna z CDN.KntGrupyDom separator '\\', brak grupy = 'Grupa główna'. Typ: Odbiorca/Dostawca/Dostawca-Odbiorca/Nieokreślono. Archiwalny='Tak' — nieaktywne kartoteki. EFaktura_VAT_Data_Waznosci: NULL = bezterminowo (sentinel >109211). Cenniki: 1=CENA100, 2=CMENTARZ, 3=FRANOWO, 4=BRICO, 5=INTER, 6=mrówka, 7=CHATA POLSKA, 8=AT, 9=PRYZMAT."
     }
+  ,
+    {
+      "name": "BI.Rozrachunki",
+      "file": "views/Rozrachunki.sql",
+      "description": "Rozliczenia dokumentów (matchingi). Każde rozliczenie = para dokumentów: Dok1 (strona rozliczana, TRP) i Dok2 (strona kasowa/bankowa, KAZ). Dominujący wzorzec: Paragon → Zapis kasowy/bankowy. Typy przetłumaczone na pełne nazwy PL. Numery dokumentów budowane inline z CDN.TraNag, CDN.Zapisy, CDN.MemNag, CDN.UpoNag, CDN.RozniceKursowe.",
+      "primary_table": "CDN.Rozrachunki",
+      "joins": [
+        "CDN.TraNag", "CDN.Obiekty",
+        "CDN.Zapisy", "CDN.MemNag", "CDN.UpoNag", "CDN.RozniceKursowe",
+        "CDN.OpeKarty"
+      ],
+      "columns": [
+        "ID_Firma", "ID_Rozliczenia",
+        "ID_Typ_Dok1", "Typ_Dok1", "ID_Numer_Dok1", "Nr_Dok1",
+        "ID_Typ_Dok2", "Typ_Dok2", "ID_Numer_Dok2", "Nr_Dok2",
+        "Kwota", "Kwota_Sys", "Waluta",
+        "ID_Operator", "Operator_Ident", "Operator_Nazwisko",
+        "Kwota_RK", "Strona_RK",
+        "Data_Rozliczenia", "Data_Podejrzana",
+        "ID_Rozliczenia_Nadrzednego"
+      ],
+      "example_questions": [
+        "jakie dokumenty są rozliczone z fakturą FS-1/06/23/FRA",
+        "ile rozliczeń ma operator X",
+        "rozliczenia z różnicami kursowymi",
+        "rozliczenia w EUR",
+        "noty odsetkowe w rozliczeniach",
+        "rozliczenia z podejrzaną datą",
+        "jak rozliczona jest faktura X"
+      ],
+      "notes": "Filtr techniczny: ROZ_GIDLp=1 (każde rozliczenie w bazie ma 2 wiersze — lustro; widok bierze tylko GIDLp=1). Typ_Dok1/Typ_Dok2: pełne nazwy PL. Nr_Dok: NULL możliwy dla nowych rekordów dodanych podczas wykonywania zapytania (baza produkcyjna). ID_Rozliczenia_Nadrzednego = ROZ_GIDNumer gdy brak rodzica (41 wierszy ma inny ID — rozliczenia powiązane z RK). Data_Podejrzana='Tak': ~4 rekordy z datą > 2030 (błędy w danych ERP)."
+    }
   ]
 }

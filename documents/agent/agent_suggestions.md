@@ -19,7 +19,28 @@ Pytania pomocnicze:
 
 ## Wpisy
 
-*(brak aktywnych wpisów)*
+### 2026-03-10 — Sesja BI.Rozrachunki (Faza 2 → Faza 4)
+
+**CDN.UpoNag — Nota odsetkowa (typ 2832)**
+
+Typ 2832 (NO) NIE jest w CDN.TraNag — jest w CDN.UpoNag (tabela upomnień/not odsetkowych).
+JOIN: `upo.UPN_GIDNumer = r.ROZ_TrpNumer/KAZNumer` przy `ROZ_TrpTyp/KAZTyp = 2832`.
+Format numeru (zweryfikowany przez CDN.NazwaObiektu):
+`'NO-' + RIGHT(CAST(UPN_Rok AS VARCHAR(4)), 2) + '/' + CAST(UPN_Numer AS VARCHAR(10))`
+Wzorzec: NO-25/3 (YY/Numer — ODWROTNIE niż intuicja sugeruje).
+
+Typ 2832 należy wykluczyć z NOT IN dla TraNag: `NOT IN (784, 4144, 435, 2832)`.
+
+**Artefakt wyścigu czasowego**
+
+Baza produkcyjna rośnie podczas wykonywania zapytania. Małe liczby NULLi w Nr_Dok (2–4)
+przy eksporcie to nowe rekordy dodane między zapytaniem a eksportem — nie błąd SQL.
+Weryfikacja: osobny `SELECT WHERE COALESCE(...) IS NULL` zwróci 0 gdy SQL jest poprawny.
+
+**Widok BI.Rozrachunki — zakończony**
+
+`solutions/bi/views/Rozrachunki.sql`, `catalog.json` zaktualizowany.
+22 kolumny, ~170k wierszy. Pełne tłumaczenia typów dokumentów na PL.
 
 ---
 

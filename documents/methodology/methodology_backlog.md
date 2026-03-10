@@ -46,6 +46,27 @@ Zostawić jedną ramę orientacyjną, resztę zastąpić konkretnymi warunkami.
 
 ---
 
+### Poziom interwencji — symptom vs. źródło
+
+**Źródło:** developer_suggestions
+**Sesja:** 2026-03-10
+**Dokument do zmiany:** METHODOLOGY.md (sekcja "Pętla meta-obserwacji")
+
+Przed zapisaniem obserwacji jako nowej reguły należy ustalić poziom interwencji.
+Pytania diagnostyczne:
+- Czy to problem który można rozwiązać narzędziem zamiast instrukcją?
+- Czy można prekomputować dane tak żeby agent nie musiał ich odkrywać?
+- Czy zmiana architektury sprawia że problem nie ma prawa wystąpić?
+
+Jeśli odpowiedź na którekolwiek brzmi "tak" — sygnał dla Developera, nie nowa reguła.
+Reguła jest ostatnim narzędziem: właściwa gdy strukturalne rozwiązanie jest nieproporcjonalnie kosztowne lub niemożliwe.
+
+Uzasadnienie: obecne pytania pętli meta-obserwacji działają na poziomie single-loop
+("co powiedzieć agentowi żeby było lepiej?"). Brakuje pytań double-loop — czy interwencja
+powinna istnieć. To jest zastosowanie Argyris/Schön już cytowanych we wprowadzeniu.
+
+---
+
 ## Archiwum
 
 *(brak wpisów)*

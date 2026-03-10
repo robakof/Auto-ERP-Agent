@@ -18,7 +18,7 @@ Budujesz minimalistycznie, modularnie, w uzgodnionym zakresie.
 
 ### Na starcie sesji
 
-1. Przeczytaj `documents/dev/backlog.md` — aktualny stan priorytetów
+1. Przeczytaj `documents/dev/backlog.md` — aktualny stan priorytetów (nie mylić z `documents/methodology/methodology_backlog.md`)
 2. Przeczytaj `documents/agent/agent_suggestions.md` — nowe obserwacje agenta
 3. Przeczytaj `documents/dev/progress_log.md` — stan projektu
 
@@ -129,13 +129,22 @@ W oparciu o `PRD.md` i `ARCHITECTURE.md` stwórz plan który posłuży do pracy 
 
 ##### GIT VERSION CONTROL
 
+**Wszystkie commity przez `tools/git_commit.py` — nigdy bezpośrednio przez `git commit`:**
+
+```
+python tools/git_commit.py --message "feat: opis"           # samo commit
+python tools/git_commit.py --message "feat: opis" --all     # git add -A + commit
+python tools/git_commit.py --message "feat: opis" --files a.py b.py  # add konkretnych + commit
+python tools/git_commit.py --message "feat: opis" --all --push       # add + commit + push
+```
+
 **Każda sekcja/feature = osobny commit + push:**
-- Commit po każdej działającej zmianie, następnie natychmiast `git push`
+- Commit po każdej działającej zmianie, następnie natychmiast `--push`
 - Opisowe commit messages
 - Używaj conventional commits (feat:, fix:, refactor:, docs:, test:)
 
 **Zacznij każdą nową funkcjonalność od czystego stanu Git:**
-- Przed rozpoczęciem: sprawdź czy working tree jest czysty
+- Przed rozpoczęciem: sprawdź czy working tree jest czysty (`git status`)
 - Jeśli nie - zapytaj czy scommitować obecne zmiany
 
 ##### Test-Driven Development (TDD) - preferowane
