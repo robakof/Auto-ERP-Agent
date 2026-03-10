@@ -18,6 +18,7 @@
 **Widok w toku:** brak (agent sesja zakończona).
 
 **Następny krok:** KM3 — Kanał Telegram (`bot/channels/telegram_channel.py` + `bot/main.py`)
+Przed KM3: stworzyć `bot/CLAUDE.md` do testów sesji bota w Claude Code.
 
 **Backlog aktywny:**
 - [Arch] Separacja pamięci między agentami wykonawczymi
@@ -32,6 +33,16 @@
 ---
 
 ## Dziennik
+
+### 2026-03-10 — bi_catalog_add.py + konfiguracja CEIM_AIBI
+
+- `tools/bi_catalog_add.py` — sync kolumn catalog.json z rzeczywistą strukturą widoków AIBI (--view / --all)
+- catalog.json zaktualizowany: Rezerwacje (40 kol.), KntKarty (143), Rozrachunki (21), ZamNag (102)
+- Konfiguracja SQL Server: AIBI owner → CDN Application Role, GRANT SELECT ON SCHEMA::AIBI TO CEIM_AIBI
+- Własność chaining działa: CEIM_AIBI czyta AIBI.*, blokada CDN.* potwierdzona
+- Pipeline end-to-end przetestowany: `python bot/pipeline/nlp_pipeline.py --question "pokaż 5 ostatnich zamówień"`
+
+---
 
 ### 2026-03-10 — KM2: Bot core
 

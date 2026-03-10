@@ -19,7 +19,11 @@ Pytania pomocnicze:
 
 ## Wpisy
 
-*(brak aktywnych wpisów)*
+### 2026-03-10 — bi_catalog_add.py — uzupełnienie
+
+Narzędzie aktualizuje tylko `columns`. Przy każdym nowym widoku agent nadal musi ręcznie
+uzupełnić `description`, `example_questions` i `notes` w catalog.json.
+Rozważyć: czy `--all` przy starcie sesji bota powinno być częścią weryfikacji (jak `bi_verify`)?
 
 ---
 
