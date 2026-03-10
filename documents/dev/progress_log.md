@@ -4,7 +4,7 @@
 
 ## Stan bieżący
 
-**Aktualizacja:** 2026-03-09
+**Aktualizacja:** 2026-03-10
 
 **Co działa:**
 - 13 toolsów CLI + `tools/lib/` (SqlClient, ExcelWriter, ExcelReader, output) — 253 testy, 100% zielone
@@ -17,8 +17,9 @@
 
 **Widok w toku:** brak (agent sesja zakończona).
 
-**Następny krok:** KM3 — Kanał Telegram (`bot/channels/telegram_channel.py` + `bot/main.py`)
-Przed KM3: stworzyć `bot/CLAUDE.md` do testów sesji bota w Claude Code.
+**KM3 zakończony:** `bot/channels/telegram_channel.py` + `bot/main.py` + 6 testów, 405 łącznie 100% zielone.
+
+**Następny krok:** KM4 — Biblioteka raportów (`solutions/bi/reports/` + `tools/search_reports.py`) lub backlog.
 
 **Backlog aktywny:**
 - [Arch] Separacja pamięci między agentami wykonawczymi
@@ -33,6 +34,16 @@ Przed KM3: stworzyć `bot/CLAUDE.md` do testów sesji bota w Claude Code.
 ---
 
 ## Dziennik
+
+### 2026-03-10 — KM3: Kanał Telegram
+
+- `bot/channels/telegram_channel.py` — TelegramChannel (async, long polling, whitelist, silent reject, TYPING, split)
+- `bot/config/allowed_users.txt` — whitelist user_id (plik txt, komentarze ignorowane)
+- `bot/main.py` — entry point (load .env, whitelist, pipeline, channel.run)
+- `.env.example` + `requirements.txt` — TELEGRAM_BOT_TOKEN + python-telegram-bot>=21.0
+- 6 testów (+6), 405 łącznie, 100% zielone
+
+---
 
 ### 2026-03-10 — testy bota + fix ZamNag.sql
 
