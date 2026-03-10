@@ -22,29 +22,6 @@ Opis problemu i propozycja rozwiązania.
 
 ## Aktywne
 
-### [Workflow] ERP_VIEW_WORKFLOW + ERP_SCHEMA_PATTERNS — poprawki po sesji BI.Zamowienia
-
-**Źródło:** agent_suggestions
-**Sesja:** 2026-03-09 (BI.Zamowienia Faza 1–4)
-**Wartość:** wysoka
-**Pracochłonność:** mała
-
-**ERP_VIEW_WORKFLOW.md:**
-- Zasada pomijania pól (KLUCZOWA KOREKTA): pomiń TYLKO gdy (1) COUNT DISTINCT = 1 dla całej tabeli, (2) docs wprost "nieużywane", (3) dane wrażliwe, (4) czyste komponenty GID. W każdym innym przypadku — uwzględnij. Rzadko wypełnione, nieznane zastosowanie, mała wartość wg agenta — to NIE są powody do pominięcia.
-- bi_verify: używaj tylko na końcu etapu lub przy zmianach wielu kolumn/JOINów. Przy drobnej poprawce (1 kolumna, literówka) — sql_query zamiast bi_verify.
-- excel_read_rows: pierwsze przejście przez plan tylko z `--columns CDN_Pole,Uwzglednic,Komentarz_Usera`. Pełne kolumny tylko dla wierszy które tego wymagają.
-- Numery dokumentów inline: NIGDY nie zgaduj formatu. Format numerów jest niejednorodny (spięte/niespięte faktury, różne typy dokumentów — różne wzorce). Zawsze: zapytaj bazę o rzeczywiste przykłady przez CDN.NazwaObiektu, pokaż userowi, poczekaj na potwierdzenie PRZED wpisaniem do SQL.
-
-**ERP_VIEW_WORKFLOW.md — nazewnictwo:**
-- Reguła: `{NazwaWidoku}` = nazwa tabeli źródłowej bez prefixu CDN (np. `ZamNag`, `KntKarty`). Nigdy polskie nazwy opisowe. Dotyczy katalogu, plików roboczych, views/, catalog.json.
-- Istniejące widoki przemianowane: `Zamowienia/` → `ZamNag/`, `Kontrahenci/` → `KntKarty/`, views analogicznie. ✓ zrealizowane
-
-**ERP_SCHEMA_PATTERNS.md:**
-- `TrN_ZaNNumer` — link CDN.TraNag ↔ CDN.ZamNag (WHERE TrN_ZaNTyp = 960). Przydatne dla widoków łączących zamówienia z dokumentami WZ/FS/PZ.
-- Format roku: ERP wyświetla rok jako YY lub YYYY zależnie od kontekstu — nie zakładaj formatu, weryfikuj przez NazwaObiektu.
-
----
-
 ### [Arch] Sygnatury narzędzi powielone w wielu miejscach
 
 **Źródło:** developer_suggestions
@@ -75,3 +52,4 @@ Pozycje #1–#10 z sesji 2026-03-08: zrealizowane, szczegóły w `agent_reflecti
 **[Prompt] Agent edytuje pliki dokumentacji bez zgody** — zrealizowane przez Metodologa
 **[Narzędzia] bi_discovery.py** — zrealizowane 2026-03-09
 **[Dev] Komendy powłoki** — zrealizowane 2026-03-09 (git -C, mv zamiast git mv, Read zamiast head/cat)
+**[Workflow] ERP_VIEW_WORKFLOW + ERP_SCHEMA_PATTERNS** — zrealizowane 2026-03-10 (zasada pominięcia pola, bi_verify/sql_query, excel_read_rows, TrN_ZaNNumer, format roku przez NazwaObiektu)

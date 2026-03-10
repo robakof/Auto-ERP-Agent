@@ -16,14 +16,23 @@
 **Widok w toku:** BI.ZamNag — Faza 1–4 zakończona przez agenta (widok gotowy: `solutions/bi/views/ZamNag.sql`). Otwarte: ZaN_PromocjePar=3 (znaczenie nieznane), ZaN_DokZwiazane (bitmask surowy).
 
 **Backlog aktywny:**
-- [Workflow] ERP_VIEW_WORKFLOW + ERP_SCHEMA_PATTERNS — poprawki po sesji BI.ZamNag (zasada pomijania pól, bi_verify/excel_read_rows zasady kontekstu, numery inline, TrN_ZaNNumer, format roku)
 - [Arch] sygnatury narzędzi powielone w wielu miejscach
 
-**Następny krok:** wdrożenie [Workflow] — edycja ERP_VIEW_WORKFLOW.md + ERP_SCHEMA_PATTERNS.md
+**Następny krok:** [Arch] — decyzja o opcji (gen_docs.py / TOOLS.md / test CI)
 
 ---
 
 ## Dziennik
+
+### 2026-03-10 — [Workflow] ERP_VIEW_WORKFLOW + ERP_SCHEMA_PATTERNS
+
+- Zasada pominięcia pola: rozszerzona do 4 warunków
+- bi_verify vs sql_query: reguła kontekstu w Fazie 3
+- excel_read_rows: pierwsze przejście z CDN_Pole,Uwzglednic,Komentarz_Usera
+- ERP_SCHEMA_PATTERNS: nowa sekcja TrN_ZaNNumer, reguła formatu roku przez NazwaObiektu, poprawka przykładu ZamNag (YY)
+- backlog.md: [Workflow] i [Dev] zamknięte
+
+---
 
 ### 2026-03-09 — restructuring progress_log
 
