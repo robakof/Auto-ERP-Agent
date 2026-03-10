@@ -18,11 +18,21 @@
 **Backlog aktywny:**
 - [Arch] sygnatury narzędzi powielone w wielu miejscach
 
-**Następny krok:** [Arch] — decyzja o opcji (gen_docs.py / TOOLS.md / test CI)
+**W toku:** Analityk Danych — KM3 (data_quality_report) → KM4 (ANALYST.md + routing CLAUDE.md)
 
 ---
 
 ## Dziennik
+
+### 2026-03-10 — Analityk Danych KM1 + KM2
+
+- Architektura: `documents/analyst/ARCHITECTURE.md` + `IMPLEMENTATION_PLAN.md`
+- KM1: `data_quality_init.py` (eksport widoku/tabeli do SQLite) + `data_quality_query.py` (query lokalne)
+- KM2: `data_quality_save.py` (zapis obserwacji) + `data_quality_records.py` (zapis brudnych rekordów jako JSON)
+- 43 nowe testy, 296 łącznie, 100% zielone
+- W toku: KM3 (data_quality_report — raport Excel), KM4 (ANALYST.md + routing)
+
+---
 
 ### 2026-03-10 — [Workflow] ERP_VIEW_WORKFLOW + ERP_SCHEMA_PATTERNS
 
