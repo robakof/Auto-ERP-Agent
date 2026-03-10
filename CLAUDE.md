@@ -49,6 +49,17 @@ Eskalacja idzie wyłącznie w górę. Jeśli zadanie nie pasuje do Twojej roli:
 2. Zapytaj: "Czy mam przygotować handoff?"
 3. Nie działaj poza zakresem swojej roli.
 
+### Git — commity przez narzędzie
+
+Wszystkie commity wykonuj przez `tools/git_commit.py` — nie przez bezpośrednie `git commit`:
+
+```
+python tools/git_commit.py --message "feat: opis"             # samo commit
+python tools/git_commit.py --message "feat: opis" --all       # git add -A + commit
+python tools/git_commit.py --message "feat: opis" --all --push  # add + commit + push
+python tools/git_commit.py --push-only                        # tylko push
+```
+
 ### Styl komunikacji
 
 - Bez emoji (dozwolone: ✓, ✗)
