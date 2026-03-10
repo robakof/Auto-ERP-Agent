@@ -93,6 +93,23 @@ Reguła do AGENT.md: "przed numeracją inline — sprawdź wzorce w solutions/re
 ---
 
 
+### [Dev] bi_catalog_add.py — automatyczne wyciąganie kolumn z widoku SQL
+
+**Źródło:** obserwacja sesji
+**Sesja:** 2026-03-10
+**Wartość:** wysoka
+**Pracochłonność:** mała
+
+Ręczne kopiowanie aliasów kolumn z pliku `.sql` do `catalog.json` jest drogie kontekstowo i podatne na błędy.
+
+Narzędzie `tools/bi_catalog_add.py`:
+- Czyta plik widoku `.sql`
+- Wyciąga kolumny regexem `AS (\w+)`
+- Generuje szkielet wpisu JSON (name, file, columns) gotowy do uzupełnienia o description/example_questions
+- Opcjonalnie: dodaje wpis bezpośrednio do `catalog.json`
+
+---
+
 ### [Workflow] ERP_SCHEMA_PATTERNS + ERP_VIEW_WORKFLOW — odkrycia z sesji BI.Rozrachunki
 
 **Źródło:** agent_suggestions
