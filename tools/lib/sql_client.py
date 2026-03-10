@@ -1,12 +1,13 @@
 """
 SqlClient — współdzielona logika SQL Server: połączenie, guardrails, wykonanie zapytania.
 
-Używana przez: sql_query.py, excel_export.py, excel_export_bi.py
+Używana przez: sql_query.py, excel_export.py, excel_export_bi.py, bot/sql_executor.py
 """
 
 import os
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 import pyodbc
@@ -14,6 +15,31 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 load_dotenv()
+
+
+@dataclass(frozen=True)
+class SqlCredentials:
+    server: str
+    database: str
+    username: str
+    password: str
+
+    @classmethod
+    def from_env(cls, prefix: str = "SQL_") -> "SqlCredentials":
+        return cls(
+            server=os.getenv(f"{prefix}SERVER", ""),
+            database=os.getenv(f"{prefix}DATABASE", ""),
+            username=os.getenv(f"{prefix}USERNAME", ""),
+            password=os.getenv(f"{prefix}PASSWORD", ""),
+        )
+
+
+def create_erp_sql_client() -> "SqlClient":
+    return SqlClient(SqlCredentials.from_env("SQL_"))
+
+
+def create_bot_sql_client() -> "SqlClient":
+    return SqlClient(SqlCredentials.from_env("BOT_SQL_"))
 
 
 class SqlClient:
@@ -24,6 +50,9 @@ class SqlClient:
         "TRUNCATE", "EXEC", "EXECUTE", "SP_", "XP_",
         "OPENROWSET", "OPENQUERY", "SELECT INTO",
     ]
+
+    def __init__(self, credentials: SqlCredentials | None = None):
+        self.credentials = credentials or SqlCredentials.from_env("SQL_")
 
     @staticmethod
     def _strip_comments(sql: str) -> str:
@@ -86,10 +115,10 @@ class SqlClient:
     def get_connection(self) -> pyodbc.Connection:
         conn_str = (
             f"DRIVER={{{self.DRIVER}}};"
-            f"SERVER={os.getenv('SQL_SERVER')};"
-            f"DATABASE={os.getenv('SQL_DATABASE')};"
-            f"UID={os.getenv('SQL_USERNAME')};"
-            f"PWD={os.getenv('SQL_PASSWORD')};"
+            f"SERVER={self.credentials.server};"
+            f"DATABASE={self.credentials.database};"
+            f"UID={self.credentials.username};"
+            f"PWD={self.credentials.password};"
             "TrustServerCertificate=yes;"
         )
         return pyodbc.connect(conn_str, timeout=self.TIMEOUT_SECONDS)

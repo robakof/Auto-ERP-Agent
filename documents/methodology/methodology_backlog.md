@@ -67,6 +67,26 @@ powinna istnieć. To jest zastosowanie Argyris/Schön już cytowanych we wprowad
 
 ---
 
+### Ręczne przetwarzanie jako sygnał brakującego narzędzia
+
+**Źródło:** developer_suggestions
+**Sesja:** 2026-03-10
+**Dokument do zmiany:** METHODOLOGY.md (sekcja "Pętla meta-obserwacji")
+
+Gdy agent ręcznie przetwarza strukturę pliku (regex, ekstrakcja, transformacja) —
+to sygnał że brakuje narzędzia, nie że należy zrobić to dokładniej.
+
+Pytanie diagnostyczne dla agenta w trakcie pracy:
+"Czy to co właśnie robię manualnie mogłoby być jednym wywołaniem CLI?"
+
+Jeśli tak — zatrzymaj się i zgłoś do Developera zanim zaczniesz kopiować.
+
+Uzasadnienie: osobna zasada od "symptom vs. źródło" z backlogu —
+tamta dotyczy Developera przy projektowaniu reguł, ta dotyczy Agenta
+w trakcie sesji roboczej. Różny moment i poziom zastosowania.
+
+---
+
 ## Archiwum
 
 *(brak wpisów)*

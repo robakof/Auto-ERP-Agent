@@ -7,7 +7,7 @@ import pyodbc
 import pytest
 
 from tests.conftest import make_mock_conn
-from tools.lib.sql_client import SqlClient
+from tools.lib.sql_client import SqlClient, SqlCredentials, create_bot_sql_client, create_erp_sql_client
 
 
 # ── TestValidate ─────────────────────────────────────────────────────────────
@@ -200,3 +200,74 @@ class TestExecute:
         with patch.object(self.client, "get_connection", return_value=mock_conn):
             result = self.client.execute("SELECT d, v FROM t")
         json.dumps(result, default=str)
+
+
+# ── TestSqlCredentials ────────────────────────────────────────────────────────
+
+
+class TestSqlCredentials:
+    def test_from_env_reads_sql_prefix(self, monkeypatch):
+        monkeypatch.setenv("SQL_SERVER", "srv")
+        monkeypatch.setenv("SQL_DATABASE", "db")
+        monkeypatch.setenv("SQL_USERNAME", "usr")
+        monkeypatch.setenv("SQL_PASSWORD", "pwd")
+        creds = SqlCredentials.from_env("SQL_")
+        assert creds.server == "srv"
+        assert creds.database == "db"
+        assert creds.username == "usr"
+        assert creds.password == "pwd"
+
+    def test_from_env_custom_prefix(self, monkeypatch):
+        monkeypatch.setenv("BOT_SQL_SERVER", "bot_srv")
+        monkeypatch.setenv("BOT_SQL_DATABASE", "bot_db")
+        monkeypatch.setenv("BOT_SQL_USERNAME", "CEIM_AIBI")
+        monkeypatch.setenv("BOT_SQL_PASSWORD", "bot_pwd")
+        creds = SqlCredentials.from_env("BOT_SQL_")
+        assert creds.server == "bot_srv"
+        assert creds.username == "CEIM_AIBI"
+
+    def test_frozen(self):
+        creds = SqlCredentials(server="s", database="d", username="u", password="p")
+        with pytest.raises(Exception):
+            creds.server = "other"  # type: ignore[misc]
+
+
+# ── TestSqlClientCredentials ──────────────────────────────────────────────────
+
+
+class TestSqlClientCredentials:
+    def test_explicit_credentials_stored(self):
+        creds = SqlCredentials(server="s", database="d", username="u", password="p")
+        client = SqlClient(credentials=creds)
+        assert client.credentials.server == "s"
+        assert client.credentials.username == "u"
+
+    def test_default_credentials_from_sql_prefix(self, monkeypatch):
+        monkeypatch.setenv("SQL_SERVER", "erp_srv")
+        monkeypatch.setenv("SQL_DATABASE", "erp_db")
+        monkeypatch.setenv("SQL_USERNAME", "erp_usr")
+        monkeypatch.setenv("SQL_PASSWORD", "erp_pwd")
+        client = SqlClient()
+        assert client.credentials.server == "erp_srv"
+        assert client.credentials.username == "erp_usr"
+
+
+# ── TestFactories ─────────────────────────────────────────────────────────────
+
+
+class TestFactories:
+    def test_create_erp_sql_client(self, monkeypatch):
+        monkeypatch.setenv("SQL_SERVER", "erp_srv")
+        monkeypatch.setenv("SQL_DATABASE", "erp_db")
+        monkeypatch.setenv("SQL_USERNAME", "erp_usr")
+        monkeypatch.setenv("SQL_PASSWORD", "erp_pwd")
+        client = create_erp_sql_client()
+        assert client.credentials.username == "erp_usr"
+
+    def test_create_bot_sql_client(self, monkeypatch):
+        monkeypatch.setenv("BOT_SQL_SERVER", "bot_srv")
+        monkeypatch.setenv("BOT_SQL_DATABASE", "bot_db")
+        monkeypatch.setenv("BOT_SQL_USERNAME", "CEIM_AIBI")
+        monkeypatch.setenv("BOT_SQL_PASSWORD", "bot_pwd")
+        client = create_bot_sql_client()
+        assert client.credentials.username == "CEIM_AIBI"
