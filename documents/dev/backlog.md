@@ -51,6 +51,47 @@ do sesji Metodologa przed wdrożeniem. Punkt 3 może być rozwiązany na poziomi
 
 ---
 
+### [Agent] Baza wzorców numeracji dokumentów — usamodzielnienie agenta
+
+**Źródło:** developer_suggestions + obserwacja użytkownika
+**Sesja:** 2026-03-10
+**Wartość:** wysoka
+**Pracochłonność:** średnia
+
+**Problem:**
+CEiM_Reader nie ma EXECUTE na CDN.NazwaObiektu — agent zawsze musi prosić usera
+o uruchomienie zapytania przez SSMS. Każdy widok z numerami dokumentów = min. 1-2
+round-tripy. Agent robi oszczędne weryfikacje (TOP 20, jeden wzorzec) bo nie widzi
+pełnej różnorodności typów.
+
+**Rozwiązanie:**
+DBA uruchamia raz zapytanie zbiorcze przez CDN.NazwaObiektu — jeden przykład na każdą
+unikalną kombinację (tabela, typ dokumentu, seria, rok). Wynik zapisany jako statyczny plik
+referencyjny:
+
+```
+solutions/reference/numeracja_wzorce.xlsx
+```
+
+Kolumny: Tabela, Typ, Seria, Rok, NumerSystemowy, pola surowe (Numer, Miesiąc, Rok, Seria).
+
+Agent ładuje plik przez `excel_read_rows` na starcie każdego widoku z numerami dokumentów.
+Reguła do AGENT.md: "przed numeracją inline — sprawdź wzorce w solutions/reference/numeracja_wzorce.xlsx".
+
+**Zakres prac:**
+1. Developer pisze zapytanie zbiorcze pokrywające wszystkie tabele z numerami
+   (TraNag, ZamNag, ProdZlecenia, MemNag, RozniceKursowe, ZapNag i inne)
+2. User/DBA uruchamia przez SSMS i zapisuje wynik do solutions/reference/
+3. Reguła w AGENT.md (chroniony plik — wymaga zatwierdzenia)
+
+**Trade-offy:**
+- ✓ Agent samodzielny przy numerach — zero eskalacji do SSMS
+- ✓ Jednorazowy koszt, odświeżanie raz na rok lub przy nowych typach dokumentów
+- ✗ Statyczne — nowe typy nie pojawią się automatycznie
+- ✗ Wymaga DBA do pierwszego uruchomienia
+
+---
+
 ### [Dev] git_commit.py — narzędzie do commitowania bez dialogów
 
 **Źródło:** developer_suggestions
@@ -68,6 +109,36 @@ python tools/git_commit.py --message "feat: opis" [--path "ścieżka repo"]
 
 Obsługuje wieloliniowe wiadomości (argument `--message` przyjmuje newline).
 Usuwa potrzebę COMMIT_EDITMSG jako wzorca pracy.
+
+---
+
+### [Workflow] ERP_SCHEMA_PATTERNS + ERP_VIEW_WORKFLOW — odkrycia z sesji BI.Rozrachunki
+
+**Źródło:** agent_suggestions
+**Sesja:** 2026-03-10
+**Wartość:** wysoka
+**Pracochłonność:** mała
+
+**ERP_SCHEMA_PATTERNS.md — nowe wzorce:**
+
+1. KB (784) → CDN.Zapisy: kolumna `KAZ_NumerDokumentu` zawiera gotowy string numeru.
+   Nie trzeba budować inline — bezpośredni SELECT na CDN.Zapisy.
+
+2. Prefiks numeru TraNag — zweryfikowana formuła:
+   - `(Z)` → TrN_Stan & 2 = 2 AND typ korekty (FSK/FZK/PAK/FKE)
+   - `(A)` → TrN_GenDokMag = -1 AND typ zakupowy (FZ/FZK/PZ)
+   - `(s)` → TrN_GenDokMag = -1 AND pozostałe
+   - brak → standard
+   Miesiąc z wiodącym zerem: `RIGHT('0' + CAST(MM AS VARCHAR(2)), 2)`.
+
+3. CDN.Rozrachunki — struktura GIDLp=1/2: każde rozliczenie = 2 lustrzane wiersze.
+   Widok bierze GIDLp=1. TRP = strona 1 (faktura/paragon), KAZ = strona 2 (płatność KB).
+
+**ERP_VIEW_WORKFLOW.md — sekcja e) weryfikacja numerów:**
+
+4. Przy pierwszym odczycie formatów z objects.sql — od razu buduj query porównujące
+   NumerSystemowy vs NumerInline. Nie czekaj na feedback usera żeby dopiero wtedy
+   zaproponować verify query. Jedna runda zamiast dwóch.
 
 ---
 

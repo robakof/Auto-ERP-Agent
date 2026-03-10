@@ -25,6 +25,59 @@ Pytania pomocnicze:
 
 ## Archiwum
 
+### 2026-03-10 — Sesja BI.Rozrachunki (Faza 0 + Faza 1)
+
+**Kluczowe odkrycia — dla następnej instancji**
+
+CDN.Rozrachunki to tabela rozliczeń (matchingów między dokumentami). Każde rozliczenie = 2 wiersze
+(GIDLp=1 i GIDLp=2) które są lustrami z zamienionymi TRP/KAZ i różną walutą. Widok bierze GIDLp=1.
+
+TRP = strona 1 (najczęściej faktura/paragon), KAZ = strona 2 (najczęściej płatność KB).
+Dominujący wzorzec: PA(2034) → KB(784) — 135 027 wierszy.
+
+**JOINy dla numerów dokumentów:**
+- TraNag typy → CDN.TraNag (TrN_GIDTyp + TrN_GIDNumer)
+- KB (784) → CDN.Zapisy — kolumna KAZ_NumerDokumentu zawiera gotowy string numeru
+- NM (4144) → CDN.MemNag (MEN_GIDNumer)
+- RK (435) → CDN.RozniceKursowe (RKN_ID)
+- Operator → CDN.OpeKarty (Ope_GIDNumer = ROZ_OpeNumerRL)
+
+**Formuła prefiksu numeru TraNag (zweryfikowana 99.999%):**
+```
+(Z) → TrN_Stan & 2 = 2 AND typ korekty (FSK/FZK/PAK/FKE)
+(A) → TrN_GenDokMag = -1 AND typ zakupowy (FZ/FZK/PZ)
+(s) → TrN_GenDokMag = -1 AND pozostałe
+brak → standard
+```
+Miesiąc z wiodącym zerem: `RIGHT('0' + CAST(MM AS VARCHAR(2)), 2)`.
+Znany wyjątek: FSK GIDNumer=6394119 dostaje (Z) mimo Stan=5 — nierozkodowane,
+prompt dla researchera w Rozrachunki_researcher_prompt.md.
+
+**Co zajęło niepotrzebnie dużo czasu:**
+
+Dwa rundy weryfikacji numerów przez SSMS (user musiał uruchamiać zapytania) zamiast jednej.
+Gdybym od razu zaproponował zapytanie porównujące NumerSystemowy vs NumerInline,
+nie byłoby potrzeby kolejki: objects.sql → objects_FS.sql → objects_verify.sql v1 → v2.
+Następnym razem: od razu zbudować verify query po pierwszym odczycie formatów z objects.sql.
+
+**Co działało dobrze:**
+
+bi_discovery na starcie dał bardzo dobry obraz tabeli w jednym wywołaniu — bez niego
+odkrycie struktury GIDLp=1/2 i identyfikacja stałych zajęłoby wiele oddzielnych zapytań.
+Sprawdzenie pary wierszy (SELECT gdzie GIDNumer IN TOP 5) natychmiast ujawniło strukturę lustrzaną.
+
+Równoległe zapytania (4-5 naraz) przy zbieraniu danych o JOINach bardzo skróciło czas.
+
+**Dla następnej instancji — przed SQL:**
+
+1. Progress log jest kompletny i gotowy — przeczytaj go zanim cokolwiek zrobisz.
+2. Plan Excel zatwierdzony przez usera — przeczytaj excel_read_rows z --columns CDN_Pole,Uwzglednic,Komentarz_Usera.
+3. Sprawdź czy COUNT(*) z GIDLp=1 = 170 480 przed pisaniem SQL.
+4. Przy każdym nowym LEFT JOIN sprawdzaj COUNT(*) vs COUNT(DISTINCT ROZ_GIDNumer) — Zapisy
+   może mieć wiele wierszy na jeden KAZ_GIDNumer (różne raporty kasowe?).
+5. Format NM (MemNag) NIE był weryfikowany przez CDN.NazwaObiektu — user musi potwierdzić.
+6. CEiM_Reader też nie ma dostępu do CDN.NazwaObiektu (error 229) — do weryfikacji zawsze SSMS.
+
 ### 2026-03-09 — Sesja BI.Zamowienia (Faza 1 → Faza 4)
 
 **Co działało dobrze**
