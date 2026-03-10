@@ -16,13 +16,27 @@
 **Widok w toku:** BI.ZamNag — Faza 1–4 zakończona przez agenta (widok gotowy: `solutions/bi/views/ZamNag.sql`). Otwarte: ZaN_PromocjePar=3 (znaczenie nieznane), ZaN_DokZwiazane (bitmask surowy).
 
 **Backlog aktywny:**
-- [Arch] sygnatury narzędzi powielone w wielu miejscach
+- [Arch] Separacja pamięci między agentami wykonawczymi
+- [Agent] Baza wzorców numeracji dokumentów
+- [Workflow] ERP_SCHEMA_PATTERNS + ERP_VIEW_WORKFLOW — odkrycia z BI.Rozrachunki
+- [Dev] Komendy agenta blokowane przez hook
+- [Dev] Informacja o kontekście na końcu każdej wiadomości agenta
+- [Arch] Sygnatury narzędzi powielone w wielu miejscach
 
-**Następny krok:** [Arch] sygnatury narzędzi — decyzja o opcji (gen_docs.py / TOOLS.md / test CI)
+**Następny krok:** backlog — kolejne zadanie do ustalenia z userem
 
 ---
 
 ## Dziennik
+
+### 2026-03-10 — git_commit.py
+
+- `tools/git_commit.py` — git add + commit + push w jednym narzędziu (--all, --files, --push, --push-only)
+- DEVELOPER.md: sekcja GIT VERSION CONTROL — reguła używania narzędzia, poprawka ścieżki backlogu
+- 14 testów (+14), 319 łącznie, 100% zielone
+- Backlog: [Dev] git_commit.py zamknięty
+
+---
 
 ### 2026-03-10 — Analityk Danych KM1–KM4 (ZAKOŃCZONY)
 

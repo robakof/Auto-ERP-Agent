@@ -92,25 +92,6 @@ Reguła do AGENT.md: "przed numeracją inline — sprawdź wzorce w solutions/re
 
 ---
 
-### [Dev] git_commit.py — narzędzie do commitowania bez dialogów
-
-**Źródło:** developer_suggestions
-**Sesja:** 2026-03-10
-**Wartość:** wysoka
-**Pracochłonność:** mała
-
-Problem: `Write` tool na `.git/COMMIT_EDITMSG` zawsze pyta o nadpisanie.
-Rozwiązanie: narzędzie `tools/git_commit.py` które przyjmuje wiadomość jako argument
-i wykonuje git commit przez `subprocess` wewnętrznie — bez Write tool, bez dialogów.
-
-```
-python tools/git_commit.py --message "feat: opis" [--path "ścieżka repo"]
-```
-
-Obsługuje wieloliniowe wiadomości (argument `--message` przyjmuje newline).
-Usuwa potrzebę COMMIT_EDITMSG jako wzorca pracy.
-
----
 
 ### [Workflow] ERP_SCHEMA_PATTERNS + ERP_VIEW_WORKFLOW — odkrycia z sesji BI.Rozrachunki
 
@@ -191,6 +172,8 @@ Opcje:
 ---
 
 ## Archiwum
+
+**[Dev] git_commit.py** — zrealizowane 2026-03-10 (--all, --files, --push, --push-only, 14 testów)
 
 *(przeniesione z agent_reflections.md — zrealizowane)*
 
