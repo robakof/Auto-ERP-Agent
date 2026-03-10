@@ -15,6 +15,10 @@
 
 **Widok w toku:** BI.ZamNag — Faza 1–4 zakończona przez agenta (widok gotowy: `solutions/bi/views/ZamNag.sql`). Otwarte: ZaN_PromocjePar=3 (znaczenie nieznane), ZaN_DokZwiazane (bitmask surowy).
 
+**Widok w toku:** brak (agent sesja zakończona).
+
+**Następny krok:** KM3 — Kanał Telegram (`bot/channels/telegram_channel.py` + `bot/main.py`)
+
 **Backlog aktywny:**
 - [Arch] Separacja pamięci między agentami wykonawczymi
 - [Agent] Baza wzorców numeracji dokumentów
@@ -28,6 +32,20 @@
 ---
 
 ## Dziennik
+
+### 2026-03-10 — KM2: Bot core
+
+- `tools/lib/sql_client.py` — refaktor: `SqlCredentials` (frozen dataclass) + fabryki `create_erp_sql_client()` / `create_bot_sql_client()`. Backwards compatible.
+- `bot/pipeline/sql_validator.py` — guardrails domenowe: blokada CDN.*, wymuszenie TOP (domyślnie 50, max 200)
+- `bot/pipeline/conversation.py` — `ConversationManager`: 3 tury per user, TTL 15 min
+- `bot/sql_executor.py` — wykonanie SQL przez konto CEIM_AIBI (max 200 wierszy)
+- `bot/answer_formatter.py` — Claude API call 2: dane → odpowiedź PL. Model konfigurowalny przez `BOT_MODEL_FORMAT`
+- `bot/pipeline/nlp_pipeline.py` — orkiestrator pipeline + logowanie do `logs/bot/YYYY-MM-DD.jsonl` + CLI `--question`
+- `.env.example` + `requirements.txt` uzupełnione (anthropic>=0.40, zmienne BOT_*)
+- 59 nowych testów, 399 łącznie, 100% zielone
+- KM2 zamknięty
+
+---
 
 ### 2026-03-10 — KM1: search_bi.py
 
