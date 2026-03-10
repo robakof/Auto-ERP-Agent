@@ -11,9 +11,8 @@ Wzorce konwersji dat, tabel pomocniczych i nieoczywistych struktur CDN.
 
 | Format | Zakres wartości | Przykład kolumny | Konwersja |
 |---|---|---|---|
-| **Clarion DATE** | ~70000–100000 (dni od 1800-12-28) | Rez_DataRealizacji, Twr_DataUtworzenia, ZaN_DataRealizacji | `DATEADD(d, col, '18001228')` |
+| **Clarion DATE** | ~70000–100000 (dni od 1800-12-28) | Rez_DataRealizacji, Twr_DataUtworzenia, ZaN_DataRealizacji, **TrN_Data2, TrN_Data3** | `DATEADD(d, col, '18001228')` |
 | **Clarion TIMESTAMP** | ~10^9 (sekundy od 1990-01-01) | Rez_DataRezerwacji | `DATEADD(ss, col, '1990-01-01')` |
-| **SQL DATE** | format daty SQL | TrN_Data2, TrN_Data3 (TraNag) | bez konwersji |
 
 **Jak zidentyfikować:** `SELECT MIN(col), MAX(col) FROM CDN.Tabela`
 - ~70000–100000 → Clarion DATE
@@ -261,7 +260,14 @@ TrN_GIDNumer IN (SELECT TnO_TrnNumer FROM cdn.TrNOpisy WHERE UPPER(Tno_Opis) LIK
 
 -- Zamówienia (CDN.ZaNOpisy):
 ZaN_GIDNumer IN (SELECT ZnO_ZamNumer FROM cdn.ZaNOpisy WHERE ZnO_Opis LIKE '%SEZON%')
+
+-- Magazynowe — brak osobnej tabeli opisów; opis bezpośrednio w MaN_CechaOpis:
+UPPER(MaN_CechaOpis) LIKE '%SEZON%'
 ```
+
+**UWAGA:** CDN.MagNag nie ma odpowiednika TrNOpisy. Filtr
+`Okno dokumenty/Magazynowe/filters/Sezon w opisie dokumentu.sql` używa błędnie
+`TrN_GIDNumer` i `cdn.TrNOpisy` — należy go zastąpić `MaN_CechaOpis`.
 
 ### Operatorzy (CDN.OpeKarty)
 
