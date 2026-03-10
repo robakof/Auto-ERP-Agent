@@ -448,16 +448,19 @@ Przykład:
 Twr_DataUtworzenia/86400+69035 >= ??DataOd
 ```
 
-### Daty w CDN.TraNag — UWAGA: format SQL, nie Clarion
+### Daty w CDN.TraNag — format Clarion (integer), nie SQL date
 
 Kolumny datowe w `CDN.TraNag` (np. `TrN_Data2` — data wystawienia) przechowywane są
-jako **standardowe SQL date**, nie Clarion. Używaj bezpośrednio:
+jako **Clarion date (integer)**, tak samo jak w CDN.TwrKarty. Parametr `@D17` zwraca
+wartość Clarion date — porównanie działa bezpośrednio:
 
 ```sql
-TrN_Data2 BETWEEN ??DataOd AND ??DataDo
+(??DataOd=0 OR TrN_Data2>=??DataOd)
+AND (??DataDo=0 OR TrN_Data2<=??DataDo)
 ```
 
-Konwersja `/86400+69035` dotyczy tylko kolumn w `CDN.TwrKarty` i podobnych.
+Nie używaj stringów daty (`'2024-01-01'`) — powoduje błąd konwersji varchar→int.
+Konwersja `/86400+69035` dotyczy kolumn przechowujących UNIX timestamp (sekundy).
 
 ---
 
@@ -570,6 +573,18 @@ do filtrów po dokumentach (`TrN_`), z podmianą prefiksu.
 ### Zapisy kasy/banku (CDN.Zapisy)
 
 Prefiks `KAZ_`. Kolumny: `KAZ_NumerDokumentu`, `KAZ_Kwota`.
+
+### Opisy dokumentów magazynowych (CDN.MagNag)
+
+Dokumenty magazynowe nie mają osobnej tabeli opisów (brak odpowiednika `CDN.TrNOpisy`).
+Opis/cecha dokumentu przechowywana jest bezpośrednio w kolumnie `MaN_CechaOpis`:
+
+```sql
+UPPER(MaN_CechaOpis) LIKE '%SEZON%'
+```
+
+Istniejący filtr `Okno dokumenty/Magazynowe/filters/Sezon w opisie dokumentu.sql`
+używa błędnie `TrN_GIDNumer` i `cdn.TrNOpisy` — powinien używać `MaN_CechaOpis`.
 
 ### Prefiks widoku Kontrahenci/Grupy
 

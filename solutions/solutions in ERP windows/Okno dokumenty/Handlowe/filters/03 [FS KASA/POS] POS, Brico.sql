@@ -1,0 +1,9 @@
+@PAR ?@R(SELECT '(wszystkie)' AS KOD,'all' AS ID UNION ALL SELECT 'Z POS','tak' UNION ALL SELECT 'Bez POS','nie')|POS|&POS:REG=all @? PAR@
+@PAR ?@R(SELECT '(wszystkie)' AS KOD,'all' AS ID UNION ALL SELECT 'Tak','tak')|BricoKor|&Brico – korekty s-konto:REG=all @? PAR@
+@PAR ?@R(SELECT '(wszystkie)' AS KOD,'all' AS ID UNION ALL SELECT 'Tak','tak')|BricoSko|&Brico – do skorygowania:REG=all @? PAR@
+(??_QPOS='all'
+    OR (??_QPOS='tak' AND EXISTS(SELECT 1 FROM cdn.OpeKarty WHERE Ope_GIDTyp=TrN_OpeTypW AND Ope_GIDNumer=TrN_OpeNumerW AND UPPER(Ope_Ident) IN ('POSSYNC1','POSSYNC2')))
+    OR (??_QPOS='nie' AND NOT EXISTS(SELECT 1 FROM cdn.OpeKarty WHERE Ope_GIDTyp=TrN_OpeTypW AND Ope_GIDNumer=TrN_OpeNumerW AND UPPER(Ope_Ident) IN ('POSSYNC1','POSSYNC2')))
+)
+AND (??_QBricoKor='all' OR TrN_GIDNumer IN (SELECT Atr_ObiNumer FROM cdn.Atrybuty WHERE Atr_AtkId=50 AND Atr_wartosc='TAK'))
+AND (??_QBricoSko='all' OR TrN_GIDNumer IN (SELECT Trn_gidnumer FROM cdn.TraNag LEFT JOIN (SELECT knt.KGD_GIDNumer,ISNULL(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(gru.KGD_Kod,'01.',''),'02.',''),'03.',''),'04.',''),'05.',''),'06.',''),'07.',''),'08.',''),'09.',''),'10.',''),'Grupa Główna') [Knt_grupa] FROM cdn.KntGrupyDom knt LEFT JOIN cdn.KntGrupyDom gru ON knt.KGD_GrONumer=gru.KGD_GIDNumer AND knt.KGD_GrOTyp=gru.KGD_GIDTyp WHERE knt.KGD_GIDTyp=32) kg ON kg.KGD_GIDNumer=TrN_KntNumer JOIN cdn.TraPlat p ON TrN_GIDNumer=TrP_GIDNumer AND TrN_GIDTyp=TrP_GIDTyp JOIN cdn.KntKarty n ON TrN_KnPNumer=Knt_GIDNumer AND TrN_KnPTyp=Knt_GIDTyp LEFT JOIN cdn.Atrybuty a ON Atr_ObiTyp=TrN_GIDTyp AND Atr_ObiNumer=TrN_GIDNumer AND Atr_ObiLp=0 AND Atr_AtkId=50 AND Atr_wartosc='TAK' WHERE TrN_GIDTyp IN (2033,2037) AND Knt_grupa='BRICO' AND TrP_Rozliczona!=0 AND TrP_DataRozliczenia<=TrP_Termin AND Knt_LimitOkres=30 AND Atr_wartosc IS NULL))
