@@ -92,6 +92,30 @@ Reguła do AGENT.md: "przed numeracją inline — sprawdź wzorce w solutions/re
 
 ---
 
+### [Bot] Reload konfiguracji bez restartu
+
+**Źródło:** obserwacja sesji testowej
+**Sesja:** 2026-03-10
+**Wartość:** średnia
+**Pracochłonność:** mała
+
+Przy każdej zmianie promptu lub `.env` wymagany restart bota.
+Warto dodać mechanizm przeładowania konfiguracji bez restartu — np. komenda `/reload` przez Telegram (tylko dla admina) lub obserwowanie zmian w pliku `.env` przez watchdog.
+
+---
+
+### [Bot] Routing model — Haiku dla prostych pytań, Sonnet dla złożonych
+
+**Źródło:** obserwacja sesji testowej
+**Sesja:** 2026-03-10
+**Wartość:** średnia
+**Pracochłonność:** średnia
+
+Haiku wystarczy dla prostych pytań (NIP, email, prosta lista). Sonnet potrzebny dla analitycznych (GROUP BY, CASE WHEN, porównania r/r).
+Rozwiązanie: classifier w Call 1 — krótki prompt na Haiku ocenia złożoność pytania i wybiera model do generowania SQL.
+
+---
+
 ### [Bot] Fallback przy błędzie SQL — ponów z uproszczonym zapytaniem
 
 **Źródło:** obserwacja sesji testowej
