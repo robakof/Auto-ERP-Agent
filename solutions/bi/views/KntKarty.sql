@@ -4,16 +4,19 @@ WITH Sciezka_Grup AS (
     -- Anchor: grupy poziomu 1 (bezpośrednie dzieci korzenia GIDNumer=0)
     SELECT
         KGD_GIDNumer,
-        CAST(KGD_Kod AS NVARCHAR(2000)) AS Sciezka
+        CAST(KGD_Kod AS NVARCHAR(4000)) AS Sciezka,
+        0 AS Poziom
     FROM CDN.KntGrupyDom
     WHERE KGD_GIDTyp = -32 AND KGD_GrONumer = 0
     UNION ALL
     SELECT
         g.KGD_GIDNumer,
-        CAST(p.Sciezka + '\' + RTRIM(g.KGD_Kod) AS NVARCHAR(2000))
+        CAST(p.Sciezka + '\' + RTRIM(g.KGD_Kod) AS NVARCHAR(4000)),
+        p.Poziom + 1
     FROM CDN.KntGrupyDom g
     INNER JOIN Sciezka_Grup p ON p.KGD_GIDNumer = g.KGD_GrONumer
     WHERE g.KGD_GIDTyp = -32 AND g.KGD_GrONumer > 0
+      AND p.Poziom < 20  -- ochrona przed cyklem w drzewie grup
 )
 
 SELECT
@@ -41,7 +44,6 @@ SELECT
     k.Knt_NipE                                              AS NIP,
     k.Knt_NipPrefiks                                        AS NIP_Prefiks,
     k.Knt_Regon                                             AS REGON,
-    k.Knt_Pesel                                             AS PESEL,
     k.Knt_GLN                                               AS GLN,
     k.Knt_Ean                                               AS EAN,
     k.Knt_GUID                                              AS GUID,
@@ -72,8 +74,6 @@ SELECT
     k.Knt_URL                                               AS URL,
 
     -- === BANK ===
-    k.Knt_NrRachunku                                        AS Nr_Rachunku,
-    k.Knt_NRB                                               AS NRB,
     bnk.Bnk_Kod                                             AS Kod_Banku,
     bnk.Bnk_Nazwa                                           AS Nazwa_Banku,
 
@@ -228,17 +228,17 @@ SELECT
     ISNULL(sg.Sciezka, 'Grupa główna')                      AS Sciezka_Grupy,
 
     -- === DATY (Clarion DATE: DATEADD(d, col, '18001228')) ===
-    CASE WHEN k.Knt_VatDataRejestracji > 0
+    CASE WHEN k.Knt_VatDataRejestracji BETWEEN 1 AND 200000
         THEN DATEADD(d, k.Knt_VatDataRejestracji, '18001228') END   AS Data_Rejestracji_VAT,
-    CASE WHEN k.Knt_VatDataPrzywrocenia > 0
+    CASE WHEN k.Knt_VatDataPrzywrocenia BETWEEN 1 AND 200000
         THEN DATEADD(d, k.Knt_VatDataPrzywrocenia, '18001228') END  AS Data_Przywrocenia_VAT,
-    CASE WHEN k.Knt_VatDataOdmowy > 0
+    CASE WHEN k.Knt_VatDataOdmowy BETWEEN 1 AND 200000
         THEN DATEADD(d, k.Knt_VatDataOdmowy, '18001228') END       AS Data_Odmowy_VAT,
-    CASE WHEN k.Knt_VatDataUsuniecia > 0
+    CASE WHEN k.Knt_VatDataUsuniecia BETWEEN 1 AND 200000
         THEN DATEADD(d, k.Knt_VatDataUsuniecia, '18001228') END     AS Data_Usuniecia_VAT,
-    CASE WHEN k.Knt_DataOdLoj > 0
+    CASE WHEN k.Knt_DataOdLoj BETWEEN 1 AND 200000
         THEN DATEADD(d, k.Knt_DataOdLoj, '18001228') END           AS Data_Lojalnosci_Od,
-    CASE WHEN k.Knt_DataDoLoj > 0
+    CASE WHEN k.Knt_DataDoLoj BETWEEN 1 AND 200000
         THEN DATEADD(d, k.Knt_DataDoLoj, '18001228') END           AS Data_Lojalnosci_Do,
     -- LastMod — Clarion TIMESTAMP: DATEADD(ss, col, '1990-01-01')
     CASE WHEN k.Knt_LastModL > 0
@@ -352,12 +352,6 @@ SELECT
         ELSE 'Nieznane (' + CAST(k.Knt_Dzialalnosc AS VARCHAR) + ')'
     END                                                             AS Dzialalnosc_Gospodarcza,
 
-    -- === DOKUMENT TOŻSAMOŚCI ===
-    k.Knt_DokumentTozsamosci                                       AS Dokument_Tozsamosci,
-    CASE WHEN k.Knt_DataWydania > 0
-        THEN DATEADD(d, k.Knt_DataWydania, '18001228') END         AS Data_Wydania_Dokumentu,
-    k.Knt_OrganWydajacy                                            AS Organ_Wydajacy,
-
     -- === UMOWA / CRM ===
     k.Knt_Umowa                                                     AS Umowa,
     k.Knt_CechaOpis                                                AS Cecha_Opis,
@@ -365,10 +359,6 @@ SELECT
     -- === KONTA KSIĘGOWE ===
     k.Knt_KontoDostawcy                                            AS Konto_Ksiegowe_Dostawcy,
     k.Knt_KontoOdbiorcy                                            AS Konto_Ksiegowe_Odbiorcy,
-
-    -- === KARTA PŁATNICZA ===
-    k.Knt_TypKarty                                                  AS Typ_Karty_Platniczej,
-    k.Knt_NumerKarty                                               AS Numer_Karty_Platniczej
 
 FROM CDN.KntKarty k
 LEFT JOIN CDN.KntAdresy a
