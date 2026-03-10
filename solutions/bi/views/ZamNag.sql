@@ -243,13 +243,6 @@ SELECT
         WHEN 1 THEN 'Tak' WHEN 0 THEN 'Nie'
         ELSE 'Nieznane (' + CAST(n.ZaN_RealWCalosci AS VARCHAR) + ')'
     END                                                         AS Realizacja_W_Calosci,
-    CASE WHEN n.ZaN_StatusRealizacji = 0 THEN NULL
-         ELSE slw_stat.SLW_WartoscS
-    END                                                         AS Status_Realizacji,
-    CASE n.ZaN_Wyslano
-        WHEN 1 THEN 'Tak' WHEN 0 THEN 'Nie'
-        ELSE 'Nieznane (' + CAST(n.ZaN_Wyslano AS VARCHAR) + ')'
-    END                                                         AS Wyslano,
     CASE n.ZaN_RezerwacjeNaNiepotwierdzonym
         WHEN 1 THEN 'Tak' WHEN 0 THEN 'Nie'
         ELSE 'Nieznane (' + CAST(n.ZaN_RezerwacjeNaNiepotwierdzonym AS VARCHAR) + ')'
@@ -354,6 +347,3 @@ LEFT JOIN (
 LEFT JOIN CDN.Slowniki slw_fiask
     ON slw_fiask.SLW_ID = n.ZaN_FiaskoID
     AND n.ZaN_FiaskoID > 0
-LEFT JOIN CDN.Slowniki slw_stat
-    ON slw_stat.SLW_ID = n.ZaN_StatusRealizacji
-    AND n.ZaN_StatusRealizacji > 0

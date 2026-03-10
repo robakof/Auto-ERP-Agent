@@ -425,9 +425,12 @@
         "zamówienia anulowane w tym roku",
         "zamówienia z magazynu X",
         "zamówienia w EUR",
-        "kto wystawił zamówienie ZS-123"
+        "kto wystawił zamówienie ZS-123",
+        "zamówienia w trakcie realizacji",
+        "zamówienia potwierdzone",
+        "zamówienia zrealizowane"
       ],
-      "notes": "Typy: 1280=ZS (zamówienie sprzedaży), 1152=ZZ (zamówienie zakupu), 768=OFS, 640=OFZ. Stan: 2=Zamówienie, 3=Potwierdzone, 5=W realizacji, 21=Zrealizowane, 35=Anulowane. Numer_Dokumentu budowany inline (format: ZS-Numer/MM/RR/Seria). ZaN_ZrdNumer = self-ref (bezużyteczny). Dok_Zwiazane_Bitmask — surowy, znaczenie nierozpoznane. Sposob_Naliczania_Rabatow=Nieznane(3) — 3731 rekordów, znaczenie nieznane."
+      "notes": "Typy: 1280=ZS (zamówienie sprzedaży), 1152=ZZ (zamówienie zakupu), 768=OFS, 640=OFZ. Stan: tekstowe PL. Wartości: 'Zamówienie', 'Potwierdzone', 'W realizacji', 'Zrealizowane', 'Zamknięte w realizacji', 'Anulowane (potwierdzone)', 'Anulowane (arch.+potw.)', 'Oferta', 'Zaakceptowane'. Typy: 1280=ZS, 1152=ZZ, 768=OFS, 640=OFZ. Numer_Dokumentu budowany inline (format: ZS-Numer/MM/RR/Seria). ZaN_ZrdNumer = self-ref (bezużyteczny). Dok_Zwiazane_Bitmask — surowy, znaczenie nierozpoznane. Sposob_Naliczania_Rabatow=Nieznane(3) — 3731 rekordów, znaczenie nieznane."
     }
   ]
 }
