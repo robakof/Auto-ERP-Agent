@@ -19,6 +19,12 @@ Pytania pomocnicze:
 
 ## Wpisy
 
+*(brak aktywnych wpisów)*
+
+---
+
+## Archiwum
+
 ### 2026-03-10 — Sesja BI.Rozrachunki (Faza 2 → Faza 4)
 
 **CDN.UpoNag — Nota odsetkowa (typ 2832)**
@@ -87,8 +93,6 @@ Agent tej reguły nie wyabstrahował sam — wyciągnął ją dopiero po feedbac
 który kazał usunąć GIDFirma/GIDLp z gotowego widoku. Następnym razem: stosować od Fazy 1.
 
 ---
-
-## Archiwum
 
 ### 2026-03-10 — Sesja BI.Rozrachunki (Faza 0 + Faza 1)
 

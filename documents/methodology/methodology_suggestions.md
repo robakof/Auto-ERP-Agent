@@ -117,6 +117,33 @@ resztę zastąpić konkretnymi warunkami i przykładami. Dokument zyska na stero
 
 ---
 
+## [2026-03-10] Wzorzec: ręczna operacja na strukturze pliku = sygnał dla narzędzia
+
+### Obserwacja (Developer)
+
+W sesji 2026-03-10 agent ręcznie przepisał ~100 aliasów kolumn z pliku `.sql` do `catalog.json`.
+Koszt był duży (kontekst, czas, błędy). Developer zaobserwował ogólniejszy wzorzec:
+
+> Za każdym razem gdy agent ręcznie przetwarza strukturę pliku
+> (regex, ekstrakcja, transformacja) — to sygnał że brakuje narzędzia.
+
+Pytanie diagnostyczne: *"Czy to co właśnie robię manualnie mogłoby być jednym wywołaniem CLI?"*
+
+Developer wdrożył konkretny przypadek (`bi_catalog_add.py` w backlogu), ale uznał że
+zasada może mieć wymiar metodologiczny — i skierował do Metodologa.
+
+### Pytanie do Metodologa
+
+Czy tę zasadę warto zapisać w METHODOLOGY.md jako ogólną regułę dla Developera?
+
+Proponowane miejsce: sekcja "Pętla meta-obserwacji" lub nowa sekcja "Sygnały do narzędzi".
+
+Związek z zasadą "poziom interwencji — symptom vs źródło" (backlog metodologiczny 2026-03-10):
+obie mówią o tym samym od innej strony — nie naprawiaj procesu instrukcją gdy można
+naprawić go strukturalnie.
+
+---
+
 ## Archiwum
 
 ### ✓ [2026-03-09] Przepływ refleksji przez poziomy — wdrożony

@@ -125,6 +125,38 @@ Jeśli odpowiedź na pytanie jest "nie" lub "nic" — pomiń pytanie.
 
 ---
 
+### [2026-03-10] KM1 search_bi, git_commit, AIBI schema, plan Fazy 2
+
+1. **Decyzje architektoniczne:**
+
+   `git_commit.py` rozwiązało problem u źródła (Write tool → dialog) zamiast dokładać
+   kolejną regułę w instrukcjach. Dobry przykład zasady "interwencja na właściwym poziomie"
+   z poprzedniej sesji — tym razem zastosowanej w praktyce.
+
+   `search_bi.py` — prosta iteracja po JSON z dopasowaniem tekstowym. Celowo bez FTS5
+   na tym etapie (4 widoki). Gdy katalog urośnie > 20 widoków — rozważyć SQLite FTS5
+   zgodnie z decyzją z TECHSTACK.md.
+
+2. **Zbyt skomplikowane:**
+
+   Nic. `search_bi.py` i `git_commit.py` są małe i jednocelowe.
+
+3. **Obserwacje o metodzie pracy:**
+
+   Ręczne kopiowanie aliasów kolumn z ZamNag.sql do catalog.json (100 kolumn) — duży błąd.
+   Koszt: kontekst + czas + podatność na błąd. Powinien był zaproponować narzędzie zanim
+   zaczął kopiować. Ogólna zasada: gdy agent ręcznie przetwarza strukturę pliku
+   (regex, ekstrakcja, transformacja) — to sygnał że brakuje narzędzia.
+   Pytanie diagnostyczne: "Czy to co właśnie robię manualnie mogłoby być jednym wywołaniem CLI?"
+   Skierowane do backloga jako [Metodologia] — ma wymiar szerszy niż jeden narzędzie.
+
+   Na starcie sesji wczytałem `methodology_backlog.md` (widoczny w git status jako zmodyfikowany)
+   zamiast `documents/dev/backlog.md`. Skutek: błędne podsumowanie stanu backlogu.
+   Naprawione przez dodanie noty w DEVELOPER.md — ale pierwotna przyczyna to zbyt mechaniczne
+   podążanie za git status zamiast za instrukcją. Instrukcja miała pierwszeństwo.
+
+---
+
 ### [2026-03-09] Porządki, bi_plan_generate, rename widoków
 
 3. **Obserwacje o metodzie pracy:**

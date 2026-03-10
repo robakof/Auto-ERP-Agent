@@ -93,6 +93,58 @@ Reguła do AGENT.md: "przed numeracją inline — sprawdź wzorce w solutions/re
 ---
 
 
+### [Workflow] Obserwacje agenta z sesji BI.Rozrachunki (Faza 2–4)
+
+**Źródło:** agent_suggestions
+**Sesja:** 2026-03-10
+**Wartość:** wysoka
+**Pracochłonność:** mała
+
+Sześć obserwacji do wdrożenia w dokumentacji agenta:
+
+1. **CDN.UpoNag (typ 2832)** → `ERP_SCHEMA_PATTERNS.md`: nowa tabela dla not odsetkowych,
+   format numeru `NO-YY/Numer`, typ 2832 wykluczyć z NOT IN dla TraNag.
+
+2. **Artefakt wyścigu czasowego** → `ERP_VIEW_WORKFLOW.md`: małe liczby NULL w Nr_Dok
+   przy eksporcie z bazy produkcyjnej to nowe rekordy między zapytaniem a eksportem — nie błąd SQL.
+   Weryfikacja: `SELECT WHERE COALESCE(...) IS NULL`.
+
+3. **sql_query blokuje CREATE OR ALTER VIEW** → `ERP_VIEW_WORKFLOW.md`: walidacja widoku
+   możliwa tylko przez brudnopis (sam SELECT). Nigdy nie porzucaj brudnopisu przed Fazą 4.
+
+4. **Sprawdź że widok istnieje na bazie** → `AGENT.md`: przed użyciem widoku AIBI wykonaj
+   `SELECT COUNT(*) FROM AIBI.NazwaWidoku` — widok musi być wdrożony przez DBA.
+
+5. **Reguła GID w widokach BI** → `ERP_SCHEMA_PATTERNS.md` lub `ERP_VIEW_WORKFLOW.md`:
+   GIDFirma → pomiń; GIDTyp → tłumacz przez CASE; GIDNumer → zostaw; GIDLp → pomiń.
+
+6. **Typ_Dok — pełne nazwy od Fazy 1** → `ERP_VIEW_WORKFLOW.md`: w planie kolumna Typ_Dok
+   domyślnie z pełną nazwą (nie skrótem PA/FS/FSK) — widok BI służy też osobom spoza systemu.
+
+---
+
+### [Metodologia] Wzorzec: ręczne przetwarzanie struktury pliku = sygnał dla narzędzia
+
+**Źródło:** developer_suggestions
+**Sesja:** 2026-03-10
+**Wartość:** wysoka
+**Pracochłonność:** mała (jako reguła) / zależy od implementacji
+
+Obserwacja z sesji: agent ręcznie przepisał ~100 aliasów kolumn z pliku `.sql` do `catalog.json`.
+Koszt: duży (kontekst + czas + podatność na błędy). Narzędzie `bi_catalog_add.py` rozwiązuje
+konkretny przypadek, ale obserwacja jest szersza:
+
+**Za każdym razem gdy agent ręcznie przetwarza strukturę pliku (regex, ekstrakcja, transformacja)
+— to sygnał że brakuje narzędzia.**
+
+Pytanie diagnostyczne: "Czy to co właśnie robię manualnie mogłoby być jednym wywołaniem CLI?"
+Jeśli tak i jeśli sytuacja powtarza się lub jest kosztowna — napisz narzędzie.
+
+Potencjalny wymiar metodologiczny: czy ta zasada powinna być zapisana w metodologii jako
+ogólna reguła dla Developera? Handoff do Metodologa przygotowany.
+
+---
+
 ### [Dev] bi_catalog_add.py — automatyczne wyciąganie kolumn z widoku SQL
 
 **Źródło:** obserwacja sesji
