@@ -39,7 +39,12 @@ def create_erp_sql_client() -> "SqlClient":
 
 
 def create_bot_sql_client() -> "SqlClient":
-    return SqlClient(SqlCredentials.from_env("BOT_SQL_"))
+    return SqlClient(SqlCredentials(
+        server=os.getenv("SQL_SERVER", ""),
+        database=os.getenv("SQL_DATABASE", ""),
+        username=os.getenv("BOT_SQL_USERNAME", ""),
+        password=os.getenv("BOT_SQL_PASSWORD", ""),
+    ))
 
 
 class SqlClient:

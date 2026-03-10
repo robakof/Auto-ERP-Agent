@@ -265,9 +265,11 @@ class TestFactories:
         assert client.credentials.username == "erp_usr"
 
     def test_create_bot_sql_client(self, monkeypatch):
-        monkeypatch.setenv("BOT_SQL_SERVER", "bot_srv")
-        monkeypatch.setenv("BOT_SQL_DATABASE", "bot_db")
+        monkeypatch.setenv("SQL_SERVER", "srv")
+        monkeypatch.setenv("SQL_DATABASE", "db")
         monkeypatch.setenv("BOT_SQL_USERNAME", "CEIM_AIBI")
         monkeypatch.setenv("BOT_SQL_PASSWORD", "bot_pwd")
         client = create_bot_sql_client()
+        assert client.credentials.server == "srv"
+        assert client.credentials.database == "db"
         assert client.credentials.username == "CEIM_AIBI"
