@@ -41,6 +41,20 @@ Wszystkie pliki w `documents/agent/`. Ładuj tylko to co potrzebne do bieżąceg
 
 ---
 
+## Widoki AIBI — sprawdź zanim zbudujesz JOINy
+
+Przed budowaniem zapytania z `CDN.*` sprawdź czy widok `AIBI.*` już pokrywa potrzebę:
+
+```
+python tools/search_bi.py "fraza"
+python tools/search_bi.py ""   # wszystkie dostępne widoki
+```
+
+Jeśli widok istnieje — użyj `SELECT ... FROM AIBI.NazwaWidoku` zamiast budować JOINy z CDN.
+Widoki mają czytelne nazwy kolumn i przetłumaczone wartości — mniej pracy, mniej błędów.
+
+---
+
 ## Narzędzia
 
 ```
