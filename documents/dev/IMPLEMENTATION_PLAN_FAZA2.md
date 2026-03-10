@@ -15,9 +15,9 @@ Częściowo zrealizowana Faza 2a:
 | `solutions/bi/views/` — Rezerwacje, KntKarty, ZamNag, Rozrachunki | ✓ |
 | `solutions/bi/catalog.json` — Rezerwacje, KntKarty, Rozrachunki | ✓ (ZamNag brakuje) |
 | `tools/bi_verify.py` | ✓ |
-| `tools/search_bi.py` | ✗ |
+| `tools/search_bi.py` | ✓ |
 | Bot (`bot/`) | ✗ |
-| Konto `CEIM_AIBI` na SQL Server | ✗ (wymaga DBA) |
+| Konto `CEIM_AIBI` na SQL Server | ✓ |
 
 ---
 

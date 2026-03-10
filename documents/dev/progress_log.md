@@ -29,6 +29,17 @@
 
 ## Dziennik
 
+### 2026-03-10 — KM1: search_bi.py
+
+- `tools/search_bi.py` — wyszukiwanie widoków AIBI po frazie (name, description, columns, example_questions)
+- `solutions/bi/catalog.json` — dodano AIBI.ZamNag, wszystkie nazwy zaktualizowane do AIBI
+- AGENT.md — reguła: sprawdź search_bi.py przed budowaniem JOINów z CDN
+- Schema AIBI + konto CEIM_AIBI założone na SQL Server przez DBA
+- 11 testów (+11), 333 łącznie, 100% zielone
+- KM1 zamknięty
+
+---
+
 ### 2026-03-10 — git_commit.py
 
 - `tools/git_commit.py` — git add + commit + push w jednym narzędziu (--all, --files, --push, --push-only)
