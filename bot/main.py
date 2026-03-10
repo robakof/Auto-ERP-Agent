@@ -1,0 +1,52 @@
+"""
+Entry point bota ERP — Telegram.
+
+Uruchomienie:
+    python bot/main.py
+"""
+
+import logging
+import os
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from dotenv import load_dotenv
+
+from bot.channels.telegram_channel import TelegramChannel, load_allowed_users
+from bot.pipeline.nlp_pipeline import NlpPipeline
+
+load_dotenv()
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s — %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+ALLOWED_USERS_PATH = Path(__file__).parent / "config" / "allowed_users.txt"
+
+
+def main() -> None:
+    token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    if not token:
+        logger.error("Brak TELEGRAM_BOT_TOKEN w .env")
+        sys.exit(1)
+
+    try:
+        allowed_users = load_allowed_users(ALLOWED_USERS_PATH)
+    except ValueError as e:
+        logger.error("%s", e)
+        sys.exit(1)
+
+    if not allowed_users:
+        logger.warning("Whitelist jest pusta — bot nie odpowie nikomu")
+
+    pipeline = NlpPipeline()
+    channel = TelegramChannel(token=token, pipeline=pipeline, allowed_users=allowed_users)
+    channel.run()
+
+
+if __name__ == "__main__":
+    main()

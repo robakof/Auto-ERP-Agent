@@ -1,216 +1,130 @@
-# KM2 — Bot core (bez kanałów)
+# KM3 — Kanał Telegram
 
 *Data: 2026-03-10*
 
 ---
 
-## Zakres
+## Cel
 
-Zbudowanie pipeline bota od pytania do odpowiedzi, bez warstwy kanałów (Telegram/WhatsApp).
-Weryfikacja przez CLI: `python bot/pipeline/nlp_pipeline.py --question "..."`.
+Podłączyć `NlpPipeline` do Telegrama przez `python-telegram-bot` (async).
+
+Warunek ukończenia: pytanie przez Telegram → odpowiedź PL w < 30s.
 
 ---
 
 ## Otwarte wątki z poprzednich sesji
 
-Brak otwartych wątków blokujących KM2.
-Backlog (bi_catalog_add.py, obserwacje workflow, arch) — odkładamy na po KM2.
+Brak wątków zablokowanych dotyczących KM3.
+
+Backlog aktywny (nieblokujące, odkładamy):
+- [Workflow] ERP_SCHEMA_PATTERNS + ERP_VIEW_WORKFLOW — obserwacje z Rozrachunki
+- [Dev] Komendy agenta blokowane przez hook (docs_search + sql_query)
+- [Dev] Informacja o kontekście na końcu wiadomości agenta
+- [Arch] Separacja pamięci między agentami
+- [Arch] Sygnatury narzędzi powielone
+- [Agent] Baza wzorców numeracji
 
 ---
 
-## Struktura plików
+## Decyzje techniczne
 
-```
-bot/
-├── __init__.py
-├── pipeline/
-│   ├── __init__.py
-│   ├── nlp_pipeline.py       ← orkiestrator: pytanie → SQL → odpowiedź
-│   ├── sql_validator.py      ← guardrails domenowe (AIBI.* only, TOP)
-│   └── conversation.py       ← kontekst 3 tury per user, TTL 15 min
-├── sql_executor.py            ← pyodbc przez SqlClient, konto CEIM_AIBI
-└── answer_formatter.py        ← Claude API call 2: dane → odpowiedź PL
+**Biblioteka:** `python-telegram-bot >= 21` (async, PTB — największa społeczność, Application Builder API)
 
-tools/lib/
-└── sql_client.py              ← REFAKTOR: SqlCredentials + fabryki + SqlClient(credentials)
+**Whitelist:** `bot/config/allowed_users.txt` — jeden `user_id` na linię, linie `#` ignorowane.
+Dlaczego plik zamiast `.env`: whitelist zmienia się niezależnie od credentiali, łatwiej edytować bez restartowania bota z edycją `.env`.
 
-tests/
-└── test_bot/
-    ├── test_sql_validator.py
-    ├── test_conversation.py
-    ├── test_sql_executor.py
-    ├── test_answer_formatter.py
-    └── test_nlp_pipeline.py
-```
+**BOT_TOKEN:** `.env` → `TELEGRAM_BOT_TOKEN=`
+
+**user_id w pipeline:** Telegram daje unikalny numeryczny `user_id` — przekazujemy go jako string do `NlpPipeline.run(user_id=...)`. ConversationManager już obsługuje dowolny string.
+
+**Timeout odpowiedzi:** status "pisze..." (`ChatAction.TYPING`) wyświetlany podczas oczekiwania na pipeline.
+
+**Długie odpowiedzi:** Telegram limit 4096 znaków — jeśli odpowiedź dłuższa, wysyłamy w częściach.
 
 ---
 
-## Pliki do stworzenia / zmiany — szczegóły
+## Nowe pliki
 
-### tools/lib/sql_client.py — refaktor (KROK 0)
+### `bot/channels/telegram_channel.py`
 
-Dodajemy `SqlCredentials` i fabryki. `SqlClient.__init__` przyjmuje opcjonalne credentials
-— domyślnie `SqlCredentials.from_env("SQL_")` więc istniejące narzędzia działają bez zmian.
+Klasa `TelegramChannel`:
+- `__init__(token, pipeline, allowed_users)` — inicjalizacja Application
+- `run()` — `app.run_polling()` (blokujące, async event loop)
+- Handler `handle_message(update, context)`:
+  - sprawdza `user_id` w `allowed_users`
+  - wysyła `ChatAction.TYPING`
+  - wywołuje `pipeline.run(user_id, question)` w executor (async-safe)
+  - wysyła odpowiedź (split jeśli > 4096 znaków)
+  - nieautoryzowany → bez odpowiedzi (silent reject, log WARNING)
 
-```python
-@dataclass(frozen=True)
-class SqlCredentials:
-    server: str
-    database: str
-    username: str
-    password: str
+### `bot/config/allowed_users.txt`
 
-    @classmethod
-    def from_env(cls, prefix: str = "SQL_") -> "SqlCredentials":
-        return cls(
-            server=os.environ[f"{prefix}SERVER"],
-            database=os.environ[f"{prefix}DATABASE"],
-            username=os.environ[f"{prefix}USERNAME"],
-            password=os.environ[f"{prefix}PASSWORD"],
-        )
-
-class SqlClient:
-    def __init__(self, credentials: SqlCredentials | None = None):
-        self.credentials = credentials or SqlCredentials.from_env("SQL_")
-
-def create_erp_sql_client() -> SqlClient:
-    return SqlClient(SqlCredentials.from_env("SQL_"))
-
-def create_bot_sql_client() -> SqlClient:
-    return SqlClient(SqlCredentials.from_env("BOT_SQL_"))
+Plik tekstowy — jeden Telegram `user_id` na linię.
+Przykład:
+```
+# Administratorzy
+123456789
+987654321
 ```
 
-Istniejące narzędzia (`sql_query.py`, `excel_export.py` itd.) — bez zmian w kodzie.
-Nowe zmienne `.env`:
+### `bot/main.py`
+
+Entry point:
+- ładuje `.env`
+- czyta `TELEGRAM_BOT_TOKEN`
+- ładuje `allowed_users.txt`
+- tworzy `NlpPipeline()` i `TelegramChannel()`
+- uruchamia `channel.run()`
+
+---
+
+## Zmiany w istniejących plikach
+
+### `.env.example`
+
+Dodać:
 ```
-BOT_SQL_SERVER=
-BOT_SQL_DATABASE=
-BOT_SQL_USERNAME=CEIM_AIBI
-BOT_SQL_PASSWORD=
-```
-
-### bot/pipeline/sql_validator.py
-
-Rozszerza guardrails z `SqlClient.validate()` o reguły domenowe bota:
-- Blokada dostępu do CDN.* (tylko AIBI.* dozwolone)
-- Wymuszenie TOP max 200, domyślnie 50
-- Zwraca `ValidationResult(ok: bool, error: str | None, sql: str)`
-
-### bot/pipeline/conversation.py
-
-- `ConversationManager` — dict per `user_id`, lista `Turn(question, answer, ts)`
-- Ostatnie 3 tury per user
-- TTL 15 min od ostatniej aktywności — reset przy dostępie po TTL
-- Formatuje historię do stringa dla Claude API call 1
-- Stan w pamięci (akceptowalne — utracony przy restarcie)
-
-### bot/sql_executor.py
-
-- Używa `create_bot_sql_client()` (konto CEIM_AIBI)
-- Max 200 wierszy (inject_top=200)
-- Zwraca `ExecutionResult(ok, columns, rows, row_count, error, duration_ms)`
-
-### bot/answer_formatter.py
-
-- Claude API call 2: pytanie + historia + dane SQL → odpowiedź PL
-- Obsługuje: brak wyników, błąd SQL, pytanie poza zakresem
-- Model konfigurowalny przez `.env`: `BOT_MODEL_FORMAT`
-
-### bot/pipeline/nlp_pipeline.py
-
-Orkiestrator:
-```
-pytanie
-  → ConversationManager.get_context()
-  → Claude API call 1 (BOT_MODEL_GENERATE): pytanie + kontekst + catalog.json → SQL
-  → SqlValidator.validate(sql)
-  → SqlExecutor.execute(sql)
-  → AnswerFormatter.format(pytanie, dane, kontekst)
-  → ConversationManager.save_turn(pytanie, odpowiedź)
-  → zapis do logs/bot/YYYY-MM-DD.jsonl
-  → odpowiedź
+# Bot — Telegram
+TELEGRAM_BOT_TOKEN=
 ```
 
-Claude API call 1:
-- System prompt: schemat BI z catalog.json (nazwy, opisy, kolumny, example_questions)
-- Oczekiwany output: czysty SQL bez markdown
-- Pytanie poza zakresem → Claude zwraca marker `NO_SQL`
+### `requirements.txt`
 
-CLI:
+Dodać:
 ```
-python bot/pipeline/nlp_pipeline.py --question "jakie rezerwacje ma Bolsius"
-python bot/pipeline/nlp_pipeline.py --question "..." --verbose
+python-telegram-bot>=21.0
 ```
 
 ---
 
-## Zmienne .env do dodania
+## Testy
 
-```
-# Bot — SQL Server (konto CEIM_AIBI, dostęp tylko AIBI.*)
-BOT_SQL_SERVER=
-BOT_SQL_DATABASE=
-BOT_SQL_USERNAME=CEIM_AIBI
-BOT_SQL_PASSWORD=
+### `tests/bot/test_telegram_channel.py`
 
-# Bot — modele Claude (konfigurowalne bez zmiany kodu)
-BOT_MODEL_GENERATE=claude-sonnet-4-6
-BOT_MODEL_FORMAT=claude-haiku-4-5-20251001
+Unit testy z mockami (bez prawdziwego Telegrama):
 
-# Bot — Anthropic API
-ANTHROPIC_API_KEY=
-```
+1. **test_unauthorized_user_silent_reject** — wiadomość od user_id spoza whitelist → brak odpowiedzi, log WARNING
+2. **test_authorized_user_gets_answer** — wiadomość od user_id z whitelist → `pipeline.run()` wywołany, odpowiedź wysłana
+3. **test_long_answer_split** — odpowiedź > 4096 znaków → wysłana w częściach
+4. **test_load_allowed_users_ignores_comments** — `#komentarz` i puste linie ignorowane
+5. **test_load_allowed_users_missing_file** — brak pliku → ValueError z czytelnym komunikatem
 
 ---
 
-## Logowanie interakcji
+## Kolejność pracy
 
-Każda interakcja zapisywana do `logs/bot/YYYY-MM-DD.jsonl` (lokalne, nie w repo):
-```json
-{
-  "ts": "2026-03-10T10:15:00",
-  "user_id": "cli",
-  "question": "jakie rezerwacje ma Bolsius",
-  "generated_sql": "SELECT TOP 50 ...",
-  "row_count": 3,
-  "answer": "Bolsius ma 3 aktywne rezerwacje...",
-  "duration_ms": 8200
-}
-```
-
-`logs/` w `.gitignore`.
+1. Testy (TDD) → `tests/bot/test_telegram_channel.py`
+2. `bot/channels/telegram_channel.py`
+3. `bot/config/allowed_users.txt` (przykładowy pusty)
+4. `bot/main.py`
+5. `.env.example` + `requirements.txt`
+6. Testy zielone → commit + push
 
 ---
 
-## Zależności
+## Poza zakresem KM3
 
-Do `requirements.txt`:
-- `anthropic`
-
----
-
-## Kolejność implementacji (TDD)
-
-0. Refaktor `tools/lib/sql_client.py` + testy (backwards compatible)
-1. `bot/pipeline/sql_validator.py` + `test_sql_validator.py`
-2. `bot/pipeline/conversation.py` + `test_conversation.py`
-3. `bot/sql_executor.py` + `test_sql_executor.py` (mock pyodbc)
-4. `bot/answer_formatter.py` + `test_answer_formatter.py` (mock Claude API)
-5. `bot/pipeline/nlp_pipeline.py` + `test_nlp_pipeline.py` (mock wszystko)
-
----
-
-## Warunek ukończenia KM2
-
-```
-python bot/pipeline/nlp_pipeline.py --question "jakie rezerwacje ma Bolsius"
-```
-Zwraca odpowiedź w języku polskim z danymi z bazy.
-
----
-
-## Poza zakresem KM2
-
-- Telegram/WhatsApp channel (KM3)
-- Biblioteka raportów / search_reports.py (KM4)
-- health.py / watchdog (KM5)
+- KM4 (biblioteka raportów)
+- KM5 (deployment jako serwis Windows)
+- KM6 (WhatsApp)
+- Backlog developerski (wszystkie pozycje aktywne)
