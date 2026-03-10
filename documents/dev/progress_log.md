@@ -35,6 +35,18 @@
 
 ## Dziennik
 
+### 2026-03-10 — Bot: poprawki po testach
+
+- strip_markdown: Haiku owijał SQL w ```sql``` — stripped przed walidatorem
+- NO_SQL prompt: zmieniony na częściowe odpowiedzi zamiast odmowy
+- HTML formatting: parse_mode=HTML w Telegram, formatter używa <b> zamiast **/#
+- max_tokens: 500 → 1500 (złożone SQL analityczne były obcinane)
+- HAVING rule: prompt zakazuje HAVING z dzieleniem, sugeruje CASE WHEN w SELECT
+- ZamNag.sql: fix Typ_Zamowienia 'ZS'→'Zamówienie sprzedaży', 'ZZ'→'Zamówienie zakupu' (wymaga redeploymentu DBA)
+- Backlog: +3 nowe pozycje ([Bot] fallback retry, NO_SQL partial, kontekst firmowy+caching)
+
+---
+
 ### 2026-03-10 — KM3: Kanał Telegram
 
 - `bot/channels/telegram_channel.py` — TelegramChannel (async, long polling, whitelist, silent reject, TYPING, split)
