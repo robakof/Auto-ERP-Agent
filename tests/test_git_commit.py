@@ -132,3 +132,27 @@ def test_push_error_after_successful_commit():
 def test_message_required():
     with pytest.raises(ValueError, match="message"):
         git_commit(message="")
+
+
+def test_push_only():
+    with patch("subprocess.run", return_value=make_result()) as mock_run:
+        result = git_commit(push_only=True)
+    assert result["ok"] is True
+    mock_run.assert_called_once_with(
+        ["git", "push"],
+        capture_output=True, text=True, cwd="."
+    )
+
+
+def test_push_only_ignores_message():
+    with patch("subprocess.run", return_value=make_result()) as mock_run:
+        result = git_commit(message="", push_only=True)
+    assert result["ok"] is True
+    assert mock_run.call_count == 1
+
+
+def test_push_only_error():
+    with patch("subprocess.run", return_value=make_result(returncode=1, stderr="rejected")):
+        result = git_commit(push_only=True)
+    assert result["ok"] is False
+    assert "rejected" in result["error"]["message"]
