@@ -131,6 +131,23 @@ Tworzy plik Excel z dwiema zakładkami:
    ```
 3. Jeśli plik SQLite już istnieje — przeczytaj tabelę `findings` (wznowienie po przerwie)
 
+### Przegląd planu widoku (opcjonalnie, gdy widok BI ma plan)
+
+Jeśli analizowany zakres to widok BI z istniejącym planem:
+
+```
+python tools/excel_read_rows.py \
+  --file "solutions/bi/{Zakres}/{Zakres}_plan.xlsx" \
+  --columns CDN_Pole,Uwzglednic,Transformacja,Alias_w_widoku
+```
+
+Skrzyżuj plan z danymi w SQLite — szukaj rozbieżności:
+- kolumna oznaczona `Nie` ale faktycznie wypełniona w większości rekordów
+- alias lub transformacja nie odpowiadająca rzeczywistym wartościom
+- kolumna uwzględniona ale w danych stale pusta lub stała
+
+Znaleziska zapisuj identycznie jak przy analizie danych (`data_quality_save.py`).
+
 ### Analiza
 
 Dla każdej kolumny (lub grupy kolumn gdy kontekst tego wymaga):
