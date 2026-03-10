@@ -34,6 +34,17 @@ Przed KM3: stworzyć `bot/CLAUDE.md` do testów sesji bota w Claude Code.
 
 ## Dziennik
 
+### 2026-03-10 — testy bota + fix ZamNag.sql
+
+- Testy pipeline end-to-end (10 pytań) — 9/10 poprawnych, odmowa poza zakresem działa
+- Diagnoza: kolumny catalog.json nieaktualne → bi_catalog_add.py --all (fix)
+- Diagnoza: Stan vs Status_Realizacji — bot używał złej kolumny
+- Fix: usunięto martwe kolumny Status_Realizacji + Wyslano z ZamNag.sql (oba zawsze NULL/Nie)
+- UWAGA: ZamNag wymaga redeploymentu przez DBA + bi_catalog_add.py --view AIBI.ZamNag
+- bot/CLAUDE.md: instrukcja uruchomienia z --allowedTools
+
+---
+
 ### 2026-03-10 — bi_catalog_add.py + konfiguracja CEIM_AIBI
 
 - `tools/bi_catalog_add.py` — sync kolumn catalog.json z rzeczywistą strukturą widoków AIBI (--view / --all)
