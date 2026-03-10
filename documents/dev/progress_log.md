@@ -18,11 +18,20 @@
 **Backlog aktywny:**
 - [Arch] sygnatury narzędzi powielone w wielu miejscach
 
-**W toku:** Analityk Danych — KM3 (data_quality_report) → KM4 (ANALYST.md + routing CLAUDE.md)
+**Następny krok:** [Arch] sygnatury narzędzi — decyzja o opcji (gen_docs.py / TOOLS.md / test CI)
 
 ---
 
 ## Dziennik
+
+### 2026-03-10 — Analityk Danych KM1–KM4 (ZAKOŃCZONY)
+
+- KM3: `data_quality_report.py` — raport Excel z zakładkami Obserwacje + Rekordy (dynamiczne kolumny z JSON)
+- KM4: `documents/analyst/ANALYST.md` — instrukcje operacyjne roli, inline z metodologią
+- CLAUDE.md: routing Analityk Danych + plik chroniony
+- 308 testów łącznie, 100% zielone
+
+---
 
 ### 2026-03-10 — Analityk Danych KM1 + KM2
 
