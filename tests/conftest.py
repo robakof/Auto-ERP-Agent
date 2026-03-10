@@ -3,6 +3,16 @@
 from unittest.mock import MagicMock
 
 
+def make_mock_conn(columns: list[str], rows: list[list]) -> tuple[MagicMock, MagicMock]:
+    """Zwraca (mock_conn, mock_cursor) z zaprogramowanymi kolumnami i wierszami."""
+    mock_cursor = MagicMock()
+    mock_cursor.description = [(col, None, None, None, None, None, None) for col in columns]
+    mock_cursor.fetchall.return_value = [tuple(row) for row in rows]
+    mock_conn = MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
+    return mock_conn, mock_cursor
+
+
 def make_ws(rows: list[tuple]) -> MagicMock:
     """Tworzy mock arkusza Excel zwracający podane wiersze."""
     ws = MagicMock()

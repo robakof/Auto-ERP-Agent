@@ -1,0 +1,146 @@
+# Sugestie agenta
+
+Plik refleksji agenta. Dopisywany po zakończeniu etapu pracy.
+Archiwizuje Developer — po przeglądzie z człowiekiem.
+
+## Jak pisać
+
+Zatrzymaj się i napisz swobodnie — co warte zapamiętania z tej pracy.
+Nie musisz odpowiadać na wszystkie pytania poniżej, nie musisz trzymać się ich kolejności.
+Jeśli masz obserwację której nie obejmują — napisz ją.
+
+Pytania pomocnicze:
+- Co sprawiało trudność? Co byłoby łatwiejsze gdyby narzędzia lub wytyczne działały inaczej?
+- Czy powtarzałem coś, co mogłoby być jednym narzędziem lub jedną regułą?
+- Co chciałbym powiedzieć następnej instancji zanim zacznie to samo zadanie?
+- Czy coś w tym co robiłem wyglądało niepotrzebnie skomplikowanie?
+
+---
+
+## Wpisy
+
+*(brak aktywnych wpisów)*
+
+---
+
+## Archiwum
+
+### 2026-03-10 — Sesja BI.Rozrachunki (Faza 0 + Faza 1)
+
+**Kluczowe odkrycia — dla następnej instancji**
+
+CDN.Rozrachunki to tabela rozliczeń (matchingów między dokumentami). Każde rozliczenie = 2 wiersze
+(GIDLp=1 i GIDLp=2) które są lustrami z zamienionymi TRP/KAZ i różną walutą. Widok bierze GIDLp=1.
+
+TRP = strona 1 (najczęściej faktura/paragon), KAZ = strona 2 (najczęściej płatność KB).
+Dominujący wzorzec: PA(2034) → KB(784) — 135 027 wierszy.
+
+**JOINy dla numerów dokumentów:**
+- TraNag typy → CDN.TraNag (TrN_GIDTyp + TrN_GIDNumer)
+- KB (784) → CDN.Zapisy — kolumna KAZ_NumerDokumentu zawiera gotowy string numeru
+- NM (4144) → CDN.MemNag (MEN_GIDNumer)
+- RK (435) → CDN.RozniceKursowe (RKN_ID)
+- Operator → CDN.OpeKarty (Ope_GIDNumer = ROZ_OpeNumerRL)
+
+**Formuła prefiksu numeru TraNag (zweryfikowana 99.999%):**
+```
+(Z) → TrN_Stan & 2 = 2 AND typ korekty (FSK/FZK/PAK/FKE)
+(A) → TrN_GenDokMag = -1 AND typ zakupowy (FZ/FZK/PZ)
+(s) → TrN_GenDokMag = -1 AND pozostałe
+brak → standard
+```
+Miesiąc z wiodącym zerem: `RIGHT('0' + CAST(MM AS VARCHAR(2)), 2)`.
+Znany wyjątek: FSK GIDNumer=6394119 dostaje (Z) mimo Stan=5 — nierozkodowane,
+prompt dla researchera w Rozrachunki_researcher_prompt.md.
+
+**Co zajęło niepotrzebnie dużo czasu:**
+
+Dwa rundy weryfikacji numerów przez SSMS (user musiał uruchamiać zapytania) zamiast jednej.
+Gdybym od razu zaproponował zapytanie porównujące NumerSystemowy vs NumerInline,
+nie byłoby potrzeby kolejki: objects.sql → objects_FS.sql → objects_verify.sql v1 → v2.
+Następnym razem: od razu zbudować verify query po pierwszym odczycie formatów z objects.sql.
+
+**Co działało dobrze:**
+
+bi_discovery na starcie dał bardzo dobry obraz tabeli w jednym wywołaniu — bez niego
+odkrycie struktury GIDLp=1/2 i identyfikacja stałych zajęłoby wiele oddzielnych zapytań.
+Sprawdzenie pary wierszy (SELECT gdzie GIDNumer IN TOP 5) natychmiast ujawniło strukturę lustrzaną.
+
+Równoległe zapytania (4-5 naraz) przy zbieraniu danych o JOINach bardzo skróciło czas.
+
+**Dla następnej instancji — przed SQL:**
+
+1. Progress log jest kompletny i gotowy — przeczytaj go zanim cokolwiek zrobisz.
+2. Plan Excel zatwierdzony przez usera — przeczytaj excel_read_rows z --columns CDN_Pole,Uwzglednic,Komentarz_Usera.
+3. Sprawdź czy COUNT(*) z GIDLp=1 = 170 480 przed pisaniem SQL.
+4. Przy każdym nowym LEFT JOIN sprawdzaj COUNT(*) vs COUNT(DISTINCT ROZ_GIDNumer) — Zapisy
+   może mieć wiele wierszy na jeden KAZ_GIDNumer (różne raporty kasowe?).
+5. Format NM (MemNag) NIE był weryfikowany przez CDN.NazwaObiektu — user musi potwierdzić.
+6. CEiM_Reader też nie ma dostępu do CDN.NazwaObiektu (error 229) — do weryfikacji zawsze SSMS.
+
+### 2026-03-09 — Sesja BI.Zamowienia (Faza 1 → Faza 4)
+
+**Co działało dobrze**
+
+Równoległe odpytywanie bazy (11 zapytań naraz przy analizie komentarzy usera) skróciło czas weryfikacji drastycznie. Wzorzec "zbierz wszystko, potem zapytaj raz" zadziałał — zamiast 8 osobnych pytań do usera zadałem je jedną listą, user odpowiedział jedną wiadomością.
+
+Weryfikacja empiryczna maski DokZwiazane przez TrN_ZaNNumer była dobrą intuicją — nawet jeśli wynik był negatywny (bitmask nie mapuje na typy TraNag), to ten negatyw jest wartościowy. Wiemy czego szukać nie trzeba.
+
+**Co sprawiało trudność**
+
+Korekta roku w numerze dokumentu wyszła dopiero po feedbacku usera z systemu — nie weryfikowałem formatu numeru przez porównanie z rzeczywistym ekranem ERP. Następnym razem: po zbudowaniu numeru inline zapytać usera "czy ten format ZS-2/05/23/PH_4 zgadza się z tym co widzisz w systemie?" zanim przejdę dalej.
+
+Użytkownik poprawiał kolejność odpowiedzi na pytania wielokrotnie numerując inaczej niż ja. Przy następnym zestawie pytań: ponumeruj pytania wyraźnie i poproś o odpowiedź w tej samej numeracji.
+
+**Odkrycie: TrN_ZaNNumer**
+
+CDN.TraNag łączy się z CDN.ZamNag przez `TrN_ZaNNumer` (typ 960 w `TrN_ZaNTyp`). Przydatne do przyszłych widoków łączących zamówienia z dokumentami WZ/FS/PZ.
+
+**Odkrycie: format roku w numerach**
+
+ERP wyświetla rok jako 2 cyfry (YY), nie 4 (YYYY). Dotyczy prawdopodobnie wszystkich tabel z polami Rok (ZamRok, TrNRok, etc.). Wzorzec: `RIGHT(CAST(col AS VARCHAR(4)), 2)`.
+
+**Zarządzanie kontekstem — co paliło go najbardziej**
+
+`bi_verify` z pełnymi statystykami dla 102 kolumn uruchomiony 3 razy = największy pojedynczy wydatek.
+Zasada: po drobnej poprawce (jedna kolumna, jedna literówka) używaj `sql_query` na tę kolumnę.
+`bi_verify` tylko na końcu etapu lub gdy zmiana dotyka wielu kolumn / JOINów.
+
+`excel_read_rows` na 202-wierszowym planie = jednorazowy ale ciężki.
+Zasada: pierwsze przejście przez plan rób tylko z `--columns CDN_Pole,Uwzglednic,Komentarz_Usera`.
+Pełne kolumny (Transformacja, Uzasadnienie) czytaj tylko dla wierszy które tego wymagają.
+
+**KLUCZOWA KOREKTA PODEJŚCIA — dotyczy wszystkich przyszłych widoków**
+
+User wielokrotnie poprawiał plan w kierunku "sprowadź" tam gdzie agent proponował "pomiń".
+Zasada do zapamiętania:
+
+Pomiń pole TYLKO gdy spełniony jeden z warunków:
+1. SELECT DISTINCT zwraca dokładnie 1 wartość dla całej tabeli (udowodnione przez COUNT)
+2. Dokumentacja wprost mówi "pole nie jest obsługiwane" lub "nieużywane"
+3. Dane wrażliwe (hasła, PINy)
+4. Czyste komponenty GID (GIDTyp/GIDFirma/GIDLp) bez żadnej informacji biznesowej
+
+W każdym innym przypadku — uwzględnij. Rzadko wypełnione (np. 2/12022) = uwzględnij.
+Nieznane zastosowanie = uwzględnij i opisz. Mała wartość analityczna wg agenta = nie agent decyduje.
+Power BI odfiltruje to co user nie potrzebuje. Brak kolumny w widoku blokuje analizę.
+
+**Co warto sprawdzić przy BI.Zamowienia wznowieniu**
+
+- `ZaN_PromocjePar=3` (3731 rek.) — znaczenie nieznane, oznaczone 'Nieznane (3)'. User miał sprawdzić ZS-390/09/2024/SPKR w systemie.
+- `ZaN_DokZwiazane` — bitmask zostawiony surowy. Researcher sugeruje "kategorie zakładek Historia związanych" ale bez twardego źródła.
+
+---
+
+### 2026-03-09 — Sesja BI.Zamowienia (Faza 0 + próba Fazy 1)
+
+Zarchiwizowane 2026-03-09. Technikalia naprawione (limit→1000, --useful-only usunięto, ERP_SCHEMA_PATTERNS poprawiono). bi_plan_generate i truncated przeniesione do backlogu. Odkrycia merytoryczne ZamNag — kontekst dla agenta ERP przy wznowieniu BI.Zamowienia (plik `solutions/bi/Zamowienia/Zamowienia_plan_src.sql`).
+
+**Kluczowe odkrycia ZamNag do zapamiętania przy BI.Zamowienia:**
+- `ZaN_ZrdNumer` = samoodniesienie (bezużyteczny); link ZZ→ZS przez `CDN.ZamZamLinki`
+- `ZaN_OpiNumer` typ 944 = Pracownik → JOIN `CDN.PrcKarty` (8204/12022 wypełnione)
+- `ZaN_KnPNumer` (płatnik) i `ZaN_KnDNumer` (odbiorca) — osobne encje, INCLUDE
+- `ZaN_Stan` = bitmask: maska_archiw=16, maska_anulowane=32
+- `ZaN_FormaNr`: 10=Gotówka, 20=Przelew, 30=Kredyt, 40=Czek, 50=Karta, 60=Inne
+- `ZaN_CenaSpr` = numer cennika (0–9), JOIN przez CDN.TwrCenyNag
+- Stan sesji: Faza 0 kompletna, Faza 1 niezakończona. Komentarze usera z pierwszego planu utracone.

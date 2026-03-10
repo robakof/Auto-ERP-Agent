@@ -1,277 +1,201 @@
 # Progress Log
 
-## Status projektu: Inicjalizacja
+---
+
+## Stan bieżący
+
+**Aktualizacja:** 2026-03-09
+
+**Co działa:**
+- 13 toolsów CLI + `tools/lib/` (SqlClient, ExcelWriter, ExcelReader, output) — 253 testy, 100% zielone
+- `docs.db`: FTS5 z kolumnami, tabelami, relacjami, słownikami, 456 typami GID
+- `solutions/bi/views/`: Kontrahenci.sql ✓, Rezerwacje.sql ✓
+- Architektura wytycznych: CLAUDE.md (routing) → AGENT.md / DEVELOPER.md / METHODOLOGY.md
+- LOOM: `_loom/` — szablony metodologii do bootstrapu nowych projektów
+
+**Widok w toku:** BI.ZamNag — Faza 1–4 zakończona przez agenta (widok gotowy: `solutions/bi/views/ZamNag.sql`). Otwarte: ZaN_PromocjePar=3 (znaczenie nieznane), ZaN_DokZwiazane (bitmask surowy).
+
+**Backlog aktywny:**
+- [Arch] sygnatury narzędzi powielone w wielu miejscach
+
+**Następny krok:** [Arch] sygnatury narzędzi — decyzja o opcji (gen_docs.py / TOOLS.md / test CI)
 
 ---
 
-### 2026-02-26 — Inicjalizacja projektu
+## Dziennik
 
-- Utworzono PRD.md
-- Skonfigurowano AI_GUIDELINES.md (dostosowany do kontekstu projektu)
-- Utworzono strukturę folderów projektu
-- Utworzono README.md
+### 2026-03-10 — Analityk Danych KM1–KM4 (ZAKOŃCZONY)
 
-**Kolejny krok:** Weryfikacja dokumentacji przez użytkownika, potem EXPERIMENTS_PLAN.md i IMPLEMENTATION_PLAN.md
-
----
-
-### 2026-02-26 — TECHSTACK.md
-
-- Zapoznano się ze strukturą dokumentacji: plik `.xlsm` (12 arkuszy, ~90k wierszy łącznie) + tysiące plików HTML
-- Uzgodniono stack: Claude Code + MCP, pyodbc, openpyxl → SQLite FTS5, pliki .sql + index.json
-- Utworzono TECHSTACK.md
-
-### 2026-02-26 — ARCHITECTURE.md i CLAUDE.md
-
-- Uzgodniono Model A (skrypty CLI) dla narzędzi MCP
-- Uzgodniono model współdzielonego folderu sieciowego (solutions/, erp_docs/, erp_windows.json)
-- Zaprojektowano katalog okien ERP (erp_windows.json) + narzędzie search_windows.py
-- Zaprojektowano 4-warstwową strategię nawigacji po tabelach (okno → własne nazwy → słowniki → żywa baza)
-- Utworzono ARCHITECTURE.md i CLAUDE.md
-- Status: dokumentacja przekazana do weryfikacji
-
-### 2026-02-26 — Rewizja ARCHITECTURE.md po code review
-
-Uwzględniono 3 z 8 punktów recenzji (priorytet przed eksperymentami):
-- Baza rozwiązań: jeden plik .json per rozwiązanie zamiast centralnego index.json (eliminacja race condition)
-- Bezpieczeństwo sql_query.py: 3 warstwy (read-only DB user, blokada DML/EXEC, TOP 100 + timeout)
-- Kontrakty JSON: zdefiniowano schemat wyjścia dla wszystkich 5 narzędzi
-
-**Kolejny krok:** Wykonanie eksperymentów z EXPERIMENTS_PLAN.md, następnie IMPLEMENTATION_PLAN.md
-
-### 2026-02-26 — Repo Git + EXPERIMENTS_PLAN.md
-
-- Zainicjalizowano repo Git, wypchnięto na GitHub (CyperCyper/Auto-ERP-Agent)
-- Utworzono EXPERIMENTS_PLAN.md — 5 eksperymentów (pyodbc, xlsm parsing, FTS5, MCP tool, format ERP)
-- Kolejność: E-01 blokujący; E-02 i E-04 równolegle; E-03 po E-02; E-05 wymaga dostępu do ERP
-
-### 2026-02-27 — Eksperymenty E-01 do E-03 zakończone
-
-- E-01 SUKCES: pyodbc działa, CEiM_Reader read-only potwierdzone, 1403 tabele widoczne
-- E-02 SUKCES: openpyxl data_only=True zwraca wartości (0% formuł), header Kolumny na wierszu 5
-- E-04 SUKCES: SELECT+JSON, TOP 100, blokada DML, output 90KB — wszystko OK
-- E-03 SUKCES: FTS5 działa z unicode61 remove_diacritics=2 + prefix matching (kontrah* zamow*)
-  - Wniosek: agent musi budować zapytania jako rdzeń+* nie pełne formy
-  - Wniosek: własne nazwy z Excela krytyczne — bez nich wyniki słabe
-  - Zaktualizowano ARCHITECTURE.md o strategię formułowania zapytań
-
-### 2026-02-27 — E-05 + rewizja struktury solutions/
-
-- E-05 SUKCES: format SQL odkryty z przykładów w solutions/
-  - Kolumny: SELECT z aliasami [NAZWA] + JOINy + placeholder {filtrsql}
-  - Filtry: sam warunek WHERE + opcjonalny system @PAR (typy S/D/R)
-  - filtr.sql = kotwica widoku (główny filtr kontekstu)
-- Odkryto faktyczną strukturę solutions/ (hierarchia: Okno > Widok > columns/filters)
-  — inna niż pierwotnie zakładana (płaska)
-- search_solutions.py będzie odkrywać pliki przez traversal katalogów, metadane z ścieżki
-- Zaktualizowano ARCHITECTURE.md
-
-**Wszystkie eksperymenty zakończone.**
-
-### 2026-02-27 — ERP_SQL_SYNTAX.md + IMPLEMENTATION_PLAN.md
-
-- Utworzono ERP_SQL_SYNTAX.md — składnia kolumn, filtrów, parametrów @PAR (S/D/R), konwersja dat
-- Utworzono IMPLEMENTATION_PLAN.md — 5 kamieni milowych: tools/, erp_windows.json, CLAUDE.md, MVP test, deployment
-- Zaktualizowano CLAUDE.md o referencje do nowych dokumentów
-
-- Zmieniono nazwę IMPLEMENTATION_PLAN.md → MVP_IMPLEMENTATION_PLAN.md
-- Zaktualizowano przypadek testowy MVP: filtr "brak załączników .jpg" w Towary według EAN
-- Zaktualizowano CLAUDE.md o referencje do ERP_SQL_SYNTAX.md i MVP_IMPLEMENTATION_PLAN.md
-
-**Kolejny krok: Implementacja — Kamień milowy 1 (tools/)**
-**Status fazy: Phase 1 (Dokumentacja) i Phase 2 (Eksperymenty) — ZAKOŃCZONE**
+- KM3: `data_quality_report.py` — raport Excel z zakładkami Obserwacje + Rekordy (dynamiczne kolumny z JSON)
+- KM4: `documents/analyst/ANALYST.md` — instrukcje operacyjne roli, inline z metodologią
+- CLAUDE.md: routing Analityk Danych + plik chroniony
+- 308 testów łącznie, 100% zielone
 
 ---
 
-### 2026-02-27 — Kamień milowy 1 ZAKOŃCZONY (tools/)
+### 2026-03-10 — Analityk Danych KM1 + KM2
 
-Zaimplementowano wszystkie 6 narzędzi CLI + moduł pomocniczy + testy:
-
-| Moduł | Opis |
-|-------|------|
-| `sql_query.py` | SELECT na SQL Server, blokada DML, TOP 100, timeout, JSON |
-| `db.py` | Shared SQLite connection helper |
-| `build_index.py` | Parsowanie XLSM → SQLite FTS5 (Tabele/Kolumny/Relacje/Słownik/Przykładowe) |
-| `search_docs.py` | FTS5 prefix matching, filtr --table/--useful-only |
-| `search_solutions.py` | Traversal solutions/, filtr_sql z filtr.sql widoku w każdym wyniku |
-| `search_windows.py` | Wyszukiwanie po nazwie/aliasie z erp_windows.json |
-| `save_solution.py` | Zapis .sql do hierarchii solutions/, flaga --force |
-
-Łącznie: 92 testy jednostkowe, wszystkie zielone. Zewnętrzne zależności mockowane.
-Zaktualizowano `.env.example` o zmienną `XLSM_PATH`.
-
-**Następny krok: Kamień milowy 2 — katalog okien ERP (erp_windows.json)**
+- Architektura: `documents/analyst/ARCHITECTURE.md` + `IMPLEMENTATION_PLAN.md`
+- KM1: `data_quality_init.py` (eksport widoku/tabeli do SQLite) + `data_quality_query.py` (query lokalne)
+- KM2: `data_quality_save.py` (zapis obserwacji) + `data_quality_records.py` (zapis brudnych rekordów jako JSON)
+- 43 nowe testy, 296 łącznie, 100% zielone
+- W toku: KM3 (data_quality_report — raport Excel), KM4 (ANALYST.md + routing)
 
 ---
 
-### 2026-02-27 — Kamień milowy 2 ZAKOŃCZONY (erp_windows.json)
+### 2026-03-10 — [Workflow] ERP_VIEW_WORKFLOW + ERP_SCHEMA_PATTERNS
 
-Utworzono `solutions/erp_windows.json` z pierwszym wpisem:
-
-- Okno towary (`okno_towary`) — primary_table: CDN.TwrKarty
-  related_tables: CDN.TwrGrupy, CDN.Atrybuty
-  aliases: towary, kartoteki towarowe
-
-Pokrywa oba istniejące widoki w solutions/ (Towary według EAN, Towary według grup).
-search_windows.py działa poprawnie — wyszukiwanie po nazwie i aliasach.
-
-Dodano `update_window_catalog.py` — agent zarządza erp_windows.json w całości:
-upsert wpisów, dopisywanie aliasów z rozmowy (case-insensitive dedup).
-Usunięto `related_tables` z schematu — redundantne, relacje są w docs.db.
-13 nowych testów, łącznie 105 zielonych.
-
-**Następny krok: Kamień milowy 3 — ERP_AGENT.md (instrukcje operacyjne agenta)**
+- Zasada pominięcia pola: rozszerzona do 4 warunków
+- bi_verify vs sql_query: reguła kontekstu w Fazie 3
+- excel_read_rows: pierwsze przejście z CDN_Pole,Uwzglednic,Komentarz_Usera
+- ERP_SCHEMA_PATTERNS: nowa sekcja TrN_ZaNNumer, reguła formatu roku przez NazwaObiektu, poprawka przykładu ZamNag (YY)
+- backlog.md: [Workflow] i [Dev] zamknięte
 
 ---
 
-### 2026-02-27 — Kamień milowy 3 ZAKOŃCZONY (ERP_AGENT.md)
+### 2026-03-09 — restructuring progress_log
 
-Stworzono `ERP_AGENT.md` — instrukcje operacyjne dla agenta roboczego ERP.
-Oddzielony od `CLAUDE.md` (agent deweloperski). Przy deploymencie (KM5)
-kopiowany jako `CLAUDE.md` do folderu współdzielonego.
-
-Zawartość: sygnatury 7 narzędzi, 9-krokowy workflow, zarządzanie katalogiem okien,
-reguły FTS5, reguły eskalacji, pointer do ERP_SQL_SYNTAX.md.
-
-**Następny krok: Kamień milowy 4 — MVP end-to-end**
+- Wprowadzono sekcję "Stan bieżący" + Archiwum zgodnie z backlogiem [Docs]
+- Wpisy sprzed 2026-03-08 przeniesione do Archiwum
 
 ---
 
-### 2026-02-27 — Sesja robocza (refaktoryzacja + KM2 + KM3)
+### 2026-03-09 — bi_plan_generate.py
 
-Dodatkowe zmiany poza kamieniami milowymi:
-
-- Refaktoryzacja tools/: search_docs.py, search_solutions.py, save_solution.py
-  (wyekstrahowanie funkcji pomocniczych, usunięcie zagnieżdżeń)
-  Poprawka bugu: brak conn.close() przy pustej frazie w search_docs.py
-- 105 testów, 100% zielonych
-
-**Następny krok: Kamień milowy 4 — MVP end-to-end**
-Przypadek testowy: "Dodaj filtr do Okna Towary/Towary według EAN który wskaże
-kartoteki towarowe nie posiadające załączników w formacie .jpg"
+- `tools/bi_plan_generate.py` — generuje plan Excel z pliku `*_plan_src.sql`
+- Wykonanie SQL w SQLite in-memory (bez SQL Servera) — obsługuje polskie znaki i myślniki
+- Domyślna ścieżka output: `*_plan_src.sql` → `*_plan.xlsx` obok pliku src
+- 6 testów (+6), łącznie 253 zielone. AGENT.md zaktualizowany.
+- Poprawiono 2 wiersze w `Zamowienia_plan_src.sql` (nadmiarowa kolumna w wierszach 115 i 175)
 
 ---
 
-### 2026-02-27 — Kamień milowy 4 ZAKOŃCZONY (MVP end-to-end)
+### 2026-03-09 — System refleksji trójpoziomowej + przebudowa architektury wytycznych
 
-Agent wykonał pełny cykl autonomicznie, pierwszy shot, zero iteracji:
-- Zidentyfikował okno, odczytał filtr.sql, znalazł wzorce
-- Samodzielnie przebudował pusty docs.db (build_index.py) bez eskalacji
-- Odkrył łańcuch CDN.TwrKarty → CDN.DaneObiekty → CDN.DaneBinarne
-- Wygenerował filtr NOT EXISTS z LOWER() i Twr_GIDTyp z kolumny
-- Przetestował na żywej bazie, zapisał, zweryfikowany w ERP
+**System refleksji trójpoziomowej:**
+- Nowe pliki refleksji: `agent_suggestions.md`, `developer_suggestions.md`, `methodology_suggestions.md`
+- Nowe backlogi: `backlog.md`, `methodology_backlog.md`
+- `methodology_progress.md` — progress log warstwy metodologicznej
+- CLAUDE.md: krok refleksji po etapie pracy + lista plików chronionych
 
-Nowe rozwiązania w solutions/: brak jpg.sql + wyprzedane do archiwizacji.sql
-(w obu widokach Towary według EAN i Towary według grup)
-
-Znany bug: build_index.py exit code 1 przy polskich znakach w końcowym print
-(dane ładują się poprawnie, błąd tylko w wyjściu).
-
-**Następny krok: Kamień milowy 5 — Deployment**
+**Przebudowa architektury wytycznych:**
+- CLAUDE.md → czysty routing (~50 linii)
+- Nowy: `AGENT.md` — instrukcje operacyjne agenta ERP
+- Nowy: `PROJECT_START.md` — workflow inicjalizacji projektu
+- Rename: `AI_GUIDELINES.md` → `DEVELOPER.md` (git mv)
 
 ---
 
-### 2026-02-28 — Import kolumn z CDN.DefinicjeKolumn do solutions/
+### 2026-03-09 — LOOM — metodologia jako osobne repo
 
-Odkryto tabelę CDN.DefinicjeKolumn — przechowuje kolumny SQL analogicznie do CDN.Filtry.
-Kluczowe różnice: DFK_IDFormatki = FIL_ProcID (to samo ID okna), ale DFK_IDListy
-ma inną numerację niż FIL_ListaID.
-
-Ustalono mapowanie (IDFormatki, IDListy) → (okno, widok) przez analizę SQL + weryfikację w ERP.
-Dodano import_columns.py — dedupl. po treści SQL (kolumny per-operator → jeden plik).
-
-Zaimportowano 35 unikalnych kolumn SQL do solutions/:
-
-| Okno | Widoki |
-|------|--------|
-| Okno kontrahenci | Grupy, Wg akronimu |
-| Okno towary | Towary według EAN (+3), Towary według grup (+4) |
-| Okno dokumenty | Handlowe (+8), Magazynowe (+2), Elementy (+5) |
-| Okno historia towaru | Transakcje - Chronologicznie (+3) |
-| Okno lista zamówień sprzedaży | Zamówienia (+4) |
-| Okno zamówienie | Zamówienie (+2) |
-
-Pominięto: zakresy 2900–2997 (duplikaty EAN per-formatka dokumentu),
-okna nierozpoznane (2305/Retro, 2640/Samochody, 2760/Trasy, 8615/Memo, 30499).
-
-ERP_SQL_SYNTAX.md — rozbudowana sekcja kolumn:
-- {filtrsql} KRYTYCZNE — brak = ładowanie całej tabeli per wiersz (udokumentowane)
-- Wzorce: AND {filtrsql}, GROUP BY po filtrsql, TOP 1 (1:N), aliasy tej samej tabeli
-- Tabela mapowania DFK_IDListy ≠ FIL_ListaID dla tych samych okien
-- Marża.sql dodana do sekcji znanych problemów (brak filtrsql)
-
-**Następny krok: test generowania nowych kolumn przez agenta ERP**
+- `_loom/`: komplet szablonów do bootstrapu nowego projektu (seed.md, CLAUDE_template.md, DEVELOPER.md, PROJECT_START.md, METHODOLOGY.md, szablony refleksji/backlogów)
 
 ---
 
-### 2026-02-28 — Import filtrów z CDN.Filtry do solutions/
+### 2026-03-09 — docs_search: usunięcie --useful-only, limit 1000, fix ERP_SCHEMA_PATTERNS
 
-Odkryto strukturę tabeli CDN.Filtry: (FIL_ProcID, FIL_ListaID) = (okno, zakładka).
-Zbudowano mapowanie ProcID → nazwa okna na podstawie analizy SQL + weryfikacji w ERP.
-
-Zaimportowano 70 filtrów SQL do hierarchii solutions/:
-
-| Okno | Widoki |
-|------|--------|
-| Okno kontrahenci | Grupy, Wg akronimu |
-| Okno towary | Towary według EAN (+9 nowych), Towary według grup (+5 nowych) |
-| Okno rejestr VAT | Rejestr VAT |
-| Okno dokumenty | Handlowe (20), Magazynowe (4), Elementy (2) |
-| Okno zapisy bankowe | Zapisy bankowe |
-| Okno historia kontrahenta | Transakcje - Zbiorczo/Chronologicznie/Dla towaru |
-| Okno historia towaru | Transakcje - Chronologicznie/Dla kontrahenta/Wg kontrahentow, Magazyn |
-| Okno lista zamówień sprzedaży | Zamówienia |
-| Okno zamówienie | Zamówienie |
-| Okno dokument | Dokument |
-
-Pominięto 20 filtrów bez mapowania (zakres 2900–2997: identyczne picki towarowe
-w formatce dokumentu + 2 okna nieznane: 8503, 8615).
-
-Dodano import_filters.py — narzędzie do ponownego importu z flagą --force.
-Mapowanie w pliku: Mapowanie okien i filtrów.
+- `docs_search.py`: usunięto `--useful-only`; domyślny limit 20 → 1000
+- `ERP_SCHEMA_PATTERNS.md`: poprawiono błąd w wzorcu numeru ZamNag (WHEN 960 → WHEN 1280 dla ZS)
+- 247 testów (-1 test useful_only), 100% zielone
 
 ---
 
-### 2026-02-28 — erp_windows.json + ERP_SQL_SYNTAX.md po analizie filtrów
+### 2026-03-09 — P1 + P2 + P3 + P4 (backlog narzędzia)
 
-erp_windows.json: rozszerzony o 9 nowych okien (kontrahenci, dokumenty, rejestr VAT,
-zapisy bankowe, historia kontrahenta, historia towaru, lista zamówień sprzedaży,
-zamówienie, dokument).
-
-ERP_SQL_SYNTAX.md — nowe wzorce z analizy 70 zaimportowanych filtrów:
-- @O (opcje/radio), @n (numeryczny), @U() (uppercase), @RL/@RH (zakresy)
-- cdn.NazwaObiektu(typ, numer, 0, 2) — funkcja nazwy dokumentu
-- Daty w TraNag (TrN_Data2) = SQL date, nie Clarion
-- Nowe tabele: TrNOpisy, ZaNOpisy, OpeKarty, TraPlat, ZamNag/ZamElem, Zapisy
-- Prefiks Kontrahenci/Grupy: KnG_ (nie Knt_)
-- 3 uszkodzone filtry zidentyfikowane (Wystawiający w Zamówieniach, Sezon Magazynowe, stary format Zapisy bankowe)
+- **P1** `excel_export_bi.py --file` — alternatywa dla `--sql`
+- **P2** `sql_query.py --count-only + --quiet` — eliminuje 5.8 MB payload
+- **P3** `bi_verify.py` — test + eksport + statystyki w 1 kroku
+- **P4** `solutions_save_view.py` — draft → views/ bez ładowania treści
+- **bi_discovery.py** — raport discovery tabeli CDN (role: empty/constant/enum/id/Clarion_DATE/...)
+- Łącznie: 253 testów, 100% zielone
 
 ---
 
-### 2026-03-01 — Kamień milowy 5 ZAKOŃCZONY (Deployment)
+### 2026-03-08 — C: gid_types w docs.db + fix docs_search pusta fraza
 
-Model deploymentu: Git clone na każdej maszynie. Agent commituje zmiany lokalnie,
-developer pushuje nowe funkcjonalności, inni git pull.
-
-Zmiany:
-- .gitignore: odblokowano erp_docs/index/ → docs.db trackowany w git
-- erp_docs/index/docs.db (6.7 MB) dodany do repo — inni nie muszą uruchamiać build_index.py
-- README.md: pełne przepisanie (stary opisywał architekturę sprzed KM1)
-- INSTALL.md: instrukcja instalacji na nowej maszynie Windows (Git, Python, ODBC, Node.js, Claude Code, VS Code)
-- .env.example: usunięto 4 zbędne zmienne (tools używają hardcoded defaults)
-
-**Wszystkie 5 kamieni milowych MVP zakończone.**
+- `docs_build_index.py`: `parse_gid_types()` — 456 typów GID zaindeksowanych (symbol, internal_name, description)
+- `docs_search.py`: `_search_gid_types()` — wyszukiwanie po symbolu/numerze/opisie; `data.gid_types[]`
+- fix: `docs_search "" --table CDN.XXX` — zwraca wszystkie kolumny tabeli (bez FTS)
+- Testy: +11, łącznie 202 zielone
 
 ---
 
-### 2026-03-01 — Porządki w projekcie
+### 2026-03-08 — Poprawki workflow agenta BI (#5–#10)
 
-- Usunięto: import_columns.py, import_filters.py, experiments/ (5 plików), solutions/index.json, changes_propositions.md, CHANGELOG.md
-- Archiwum (documents/dev/archive/): EXPERIMENTS_PLAN.md, MVP_IMPLEMENTATION_PLAN.md, ARCHITECTURE_REVIEW.md, session_26_02.md
-- Dodano: verify.py — skrypt weryfikacji instalacji (3 testy: docs.db, solutions/, SQL Server)
-- INSTALL.md: zastąpiono experiments/ przez verify.py jako krok weryfikacji
-- Naprawiono nazwy plików w solutions/: filr.sql, brakujące .sql, podwójna kropka
-
-**Następny krok: praca bieżąca — rozbudowa bazy rozwiązań, nowe okna ERP**
+- **#5** `ExcelWriter`: Excel Table (zebra-stripes, Medium9), nazwa arkusza = `--view-name`
+- **#6** Struktura folderów per widok: `solutions/bi/{Widok}/`; usunięto `solutions/bi/drafts/`
+- **#7+A** `SqlClient.validate()`: średnik w stringu, strip komentarzy SQL
+- **#8** `tools/lib/output.py`: `print_json()` wymusza UTF-8 na stdout — 10 toolsów
+- **#9+E** `DEVELOPER.md`: reguły Bash + Edit zamiast Read
+- **#10** `ERP_SCHEMA_PATTERNS.md`: zasada `docs_search "[prefiks]GIDNumer"`
+- `sql_query.py`: dodano `--file` + `--export`; `excel_export.py`: dodano `--file`
+- 191 testów, 100% zielone
 
 ---
+
+### 2026-03-08 — Plan widoków BI + sesja BI.Kontrahenci
+
+- Agent zbudował BI.Kontrahenci (`solutions/bi/views/Kontrahenci.sql`)
+- Kolejność widoków: Kontrahenci ✓ → Zamowienia → Rozrachunki → DokumentyHandlowe
+
+---
+
+## Archiwum
+
+### 2026-03-07 — Refaktor tools/: lib/ + rename + excel_read_rows
+
+- Wyekstrahowano `tools/lib/`: SqlClient, ExcelWriter, ExcelReader
+- Rename toolsów z prefiksem domenowym (excel_*, docs_*, solutions_*, windows_*)
+- Nowy tool: `excel_read_rows.py`
+- 170 testów, 100% zielone
+
+---
+
+### 2026-03-07 — Przepisanie ERP_VIEW_WORKFLOW.md
+
+- Inicjalizacja: brudnopis `{Widok}.sql` + progress log przed startem
+- Faza 1: plan jako Excel (nie MD); analiza kolumna po kolumnie
+- Faza 2: SQL wyłącznie na pliku brudnopisu
+- Zasady tłumaczenia wartości, zarządzanie kontekstem, ochrona dokumentacji agenta
+
+---
+
+### 2026-03-04 — Implementacja planu restrukturyzacji
+
+- `excel_export_bi.py`, `read_excel_stats.py` — nowe narzędzia BI
+- Separacja `ERP_SQL_SYNTAX.md` → 5 plików (ERP_SQL_SYNTAX, ERP_COLUMNS_WORKFLOW, ERP_FILTERS_WORKFLOW, ERP_SCHEMA_PATTERNS, ERP_VIEW_WORKFLOW)
+- 166 testów, 100% zielone
+
+---
+
+### 2026-03-04 — export_excel.py + ERP_SQL_SYNTAX.md + BI.Rezerwacje
+
+- `export_excel.py` — SQL → .xlsx (guardrails, auto-timestamp, bold header)
+- `ERP_SQL_SYNTAX.md` — sekcje: parametry AI_ChatERP, funkcje dat CDN, arytmetyka Clarion, wzorce BI
+- BI.Rezerwacje: 28 kolumn, 1426 wierszy — odkrycia: ZaN_ZamTyp (960=ZS, 1152=ZZ), Clarion TIMESTAMP (sekundy od 1990-01-01)
+
+---
+
+### 2026-03-01 — Kamień milowy 5 ZAKOŃCZONY (Deployment) + porządki
+
+- Model deploymentu: Git clone, docs.db (6.7 MB) w repo, INSTALL.md + verify.py
+- Wszystkie 5 kamieni milowych MVP zakończone
+
+---
+
+### 2026-02-27/28 — Kamienie milowe 1–4 + import solutions/
+
+- KM1: 6 narzędzi CLI + 92 testy
+- KM2: `erp_windows.json` + `update_window_catalog.py`; 105 testów
+- KM3: `ERP_AGENT.md` (instrukcje agenta)
+- KM4: MVP end-to-end — filtr "brak załączników .jpg" — agent autonomicznie, zero iteracji
+- Import: 35 kolumn SQL (CDN.DefinicjeKolumn) + 70 filtrów SQL (CDN.Filtry) do solutions/
+- `ERP_SQL_SYNTAX.md` rozbudowany o wzorce @PAR, daty Clarion, CDN.NazwaObiektu
+
+---
+
+### 2026-02-26 — Faza 1 (Dokumentacja) + Faza 2 (Eksperymenty)
+
+- Stack: Claude Code + MCP, pyodbc, openpyxl → SQLite FTS5, pliki .sql
+- Eksperymenty E-01–E-05: pyodbc ✓, openpyxl ✓, FTS5 ✓, MCP tool ✓, format SQL ERP ✓
+- Dokumenty: PRD.md, TECHSTACK.md, ARCHITECTURE.md, ERP_SQL_SYNTAX.md, MVP_IMPLEMENTATION_PLAN.md

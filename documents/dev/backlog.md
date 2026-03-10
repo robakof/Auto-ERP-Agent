@@ -1,0 +1,206 @@
+# Backlog developerski
+
+Przetworzone i priorytetyzowane zadania developerskie.
+Źródło: `agent_suggestions.md` + techniczne wątki z `developer_suggestions.md`.
+
+Zarządza: Developer.
+
+## Format wpisu
+
+```
+### [P{n}] Tytuł
+
+**Źródło:** agent_suggestions | developer_suggestions
+**Sesja:** data
+**Wartość:** wysoka | średnia | niska
+**Pracochłonność:** mała | średnia | duża
+
+Opis problemu i propozycja rozwiązania.
+```
+
+---
+
+## Aktywne
+
+### [Arch] Separacja pamięci między agentami wykonawczymi
+
+**Źródło:** developer_suggestions
+**Sesja:** 2026-03-10
+**Wartość:** wysoka
+**Pracochłonność:** średnia
+
+Pojawienie się Analityka Danych obok Agenta ERP ujawniło dwa problemy:
+
+**1. Nazwa poziomu "Agent" jest zbyt wąska.**
+Mamy wiele ról wykonawczych (ERP, Analityk, potencjalnie więcej).
+Poziom powinien mieć nazwę ogólną (np. "Executor" lub "Agenci").
+Dotyczy: CLAUDE.md (tabela ról), METHODOLOGY.md (tabela poziomów), DEVELOPER.md.
+
+**2. Współdzielona pamięć refleksji jest błędna.**
+Obecny stan: Analityk i Agent ERP dzielą `agent_suggestions.md`.
+Problem: różne role mają różne wzorce obserwacji — mieszanie zaszumi plik.
+Każdy agent powinien mieć własny plik suggestions (np. `analyst_suggestions.md`).
+
+**3. Progress log analityka — otwarte pytanie.**
+Agent ERP: progress log na poziomie projektu (widok, filtr, kolumna).
+Analityk: co jest jednostką pracy? Per zakres (widok/tabela)? Sesja?
+Wymaga decyzji przed wdrożeniem.
+
+**Uwaga:** punkty 1 i 2 mają wymiar metodologiczny — warto rozważyć eskalację
+do sesji Metodologa przed wdrożeniem. Punkt 3 może być rozwiązany na poziomie Dev.
+
+---
+
+### [Agent] Baza wzorców numeracji dokumentów — usamodzielnienie agenta
+
+**Źródło:** developer_suggestions + obserwacja użytkownika
+**Sesja:** 2026-03-10
+**Wartość:** wysoka
+**Pracochłonność:** średnia
+
+**Problem:**
+CEiM_Reader nie ma EXECUTE na CDN.NazwaObiektu — agent zawsze musi prosić usera
+o uruchomienie zapytania przez SSMS. Każdy widok z numerami dokumentów = min. 1-2
+round-tripy. Agent robi oszczędne weryfikacje (TOP 20, jeden wzorzec) bo nie widzi
+pełnej różnorodności typów.
+
+**Rozwiązanie:**
+DBA uruchamia raz zapytanie zbiorcze przez CDN.NazwaObiektu — jeden przykład na każdą
+unikalną kombinację (tabela, typ dokumentu, seria, rok). Wynik zapisany jako statyczny plik
+referencyjny:
+
+```
+solutions/reference/numeracja_wzorce.xlsx
+```
+
+Kolumny: Tabela, Typ, Seria, Rok, NumerSystemowy, pola surowe (Numer, Miesiąc, Rok, Seria).
+
+Agent ładuje plik przez `excel_read_rows` na starcie każdego widoku z numerami dokumentów.
+Reguła do AGENT.md: "przed numeracją inline — sprawdź wzorce w solutions/reference/numeracja_wzorce.xlsx".
+
+**Zakres prac:**
+1. Developer pisze zapytanie zbiorcze pokrywające wszystkie tabele z numerami
+   (TraNag, ZamNag, ProdZlecenia, MemNag, RozniceKursowe, ZapNag i inne)
+2. User/DBA uruchamia przez SSMS i zapisuje wynik do solutions/reference/
+3. Reguła w AGENT.md (chroniony plik — wymaga zatwierdzenia)
+
+**Trade-offy:**
+- ✓ Agent samodzielny przy numerach — zero eskalacji do SSMS
+- ✓ Jednorazowy koszt, odświeżanie raz na rok lub przy nowych typach dokumentów
+- ✗ Statyczne — nowe typy nie pojawią się automatycznie
+- ✗ Wymaga DBA do pierwszego uruchomienia
+
+---
+
+### [Dev] git_commit.py — narzędzie do commitowania bez dialogów
+
+**Źródło:** developer_suggestions
+**Sesja:** 2026-03-10
+**Wartość:** wysoka
+**Pracochłonność:** mała
+
+Problem: `Write` tool na `.git/COMMIT_EDITMSG` zawsze pyta o nadpisanie.
+Rozwiązanie: narzędzie `tools/git_commit.py` które przyjmuje wiadomość jako argument
+i wykonuje git commit przez `subprocess` wewnętrznie — bez Write tool, bez dialogów.
+
+```
+python tools/git_commit.py --message "feat: opis" [--path "ścieżka repo"]
+```
+
+Obsługuje wieloliniowe wiadomości (argument `--message` przyjmuje newline).
+Usuwa potrzebę COMMIT_EDITMSG jako wzorca pracy.
+
+---
+
+### [Workflow] ERP_SCHEMA_PATTERNS + ERP_VIEW_WORKFLOW — odkrycia z sesji BI.Rozrachunki
+
+**Źródło:** agent_suggestions
+**Sesja:** 2026-03-10
+**Wartość:** wysoka
+**Pracochłonność:** mała
+
+**ERP_SCHEMA_PATTERNS.md — nowe wzorce:**
+
+1. KB (784) → CDN.Zapisy: kolumna `KAZ_NumerDokumentu` zawiera gotowy string numeru.
+   Nie trzeba budować inline — bezpośredni SELECT na CDN.Zapisy.
+
+2. Prefiks numeru TraNag — zweryfikowana formuła:
+   - `(Z)` → TrN_Stan & 2 = 2 AND typ korekty (FSK/FZK/PAK/FKE)
+   - `(A)` → TrN_GenDokMag = -1 AND typ zakupowy (FZ/FZK/PZ)
+   - `(s)` → TrN_GenDokMag = -1 AND pozostałe
+   - brak → standard
+   Miesiąc z wiodącym zerem: `RIGHT('0' + CAST(MM AS VARCHAR(2)), 2)`.
+
+3. CDN.Rozrachunki — struktura GIDLp=1/2: każde rozliczenie = 2 lustrzane wiersze.
+   Widok bierze GIDLp=1. TRP = strona 1 (faktura/paragon), KAZ = strona 2 (płatność KB).
+
+**ERP_VIEW_WORKFLOW.md — sekcja e) weryfikacja numerów:**
+
+4. Przy pierwszym odczycie formatów z objects.sql — od razu buduj query porównujące
+   NumerSystemowy vs NumerInline. Nie czekaj na feedback usera żeby dopiero wtedy
+   zaproponować verify query. Jedna runda zamiast dwóch.
+
+---
+
+### [Dev] Komendy agenta blokowane przez hook
+
+**Źródło:** developer_suggestions
+**Sesja:** 2026-03-10
+**Wartość:** wysoka
+**Pracochłonność:** mała
+
+Dwa wzorce blokowane u agenta ERP:
+
+1. `python tools/docs_search.py "" --table CDN.X` — pusty string `""` przed `--table`.
+   Fix: zrobić argument `fraza` opcjonalnym w `docs_search.py` (nargs='?', default='').
+   Wtedy: `python tools/docs_search.py --table CDN.X` bez cudzysłowów.
+
+2. `$(cat plik.sql)` zamiast `--file` przy sql_query.py.
+   Fix: reguła w `AGENT.md` — zawsze używaj `--file`, nigdy `$(cat ...)`.
+
+---
+
+### [Dev] Informacja o kontekście na końcu każdej wiadomości
+
+**Źródło:** developer_suggestions
+**Sesja:** 2026-03-10
+**Wartość:** wysoka
+**Pracochłonność:** mała
+
+Agent powinien kończyć każdą wiadomość informacją o aktualnym zużyciu kontekstu
+(np. "Kontekst: ~54%"). Cel: świadomość co zużywa kontekst, sygnał do optymalizacji,
+bezpieczeństwo przy długich sesjach. Wpisać jako regułę do DEVELOPER.md.
+
+---
+
+### [Arch] Sygnatury narzędzi powielone w wielu miejscach
+
+**Źródło:** developer_suggestions
+**Sesja:** 2026-03-08
+**Wartość:** średnia
+**Pracochłonność:** mała (opcja 3) / duża (opcja 1)
+
+Nazwy i sygnatury narzędzi zapisane w AGENT.md, ERP_VIEW_WORKFLOW.md,
+ERP_COLUMNS_WORKFLOW.md, ERP_FILTERS_WORKFLOW.md i docstringach tools/*.py.
+
+Opcje:
+1. gen_docs.py generuje sekcję Narzędzia z docstringów (eliminuje problem u źródła)
+2. Jeden plik referencyjny TOOLS.md + dyscyplina
+3. Test CI sprawdzający czy narzędzia w AGENT.md istnieją jako pliki w tools/
+
+---
+
+## Archiwum
+
+*(przeniesione z agent_reflections.md — zrealizowane)*
+
+Pozycje #1–#10 z sesji 2026-03-08: zrealizowane, szczegóły w `agent_reflections.md`.
+
+**[P1] excel_export_bi.py — brak --file** — zrealizowane 2026-03-09
+**[P2] sql_query.py — --count-only + --quiet** — zrealizowane 2026-03-09
+**[P3] bi_verify.py** — zrealizowane 2026-03-09
+**[P4] solutions_save_view.py** — zrealizowane 2026-03-09
+**[Prompt] Agent edytuje pliki dokumentacji bez zgody** — zrealizowane przez Metodologa
+**[Narzędzia] bi_discovery.py** — zrealizowane 2026-03-09
+**[Dev] Komendy powłoki** — zrealizowane 2026-03-09 (git -C, mv zamiast git mv, Read zamiast head/cat)
+**[Workflow] ERP_VIEW_WORKFLOW + ERP_SCHEMA_PATTERNS** — zrealizowane 2026-03-10 (zasada pominięcia pola, bi_verify/sql_query, excel_read_rows, TrN_ZaNNumer, format roku przez NazwaObiektu)

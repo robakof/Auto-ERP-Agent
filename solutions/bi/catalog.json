@@ -1,0 +1,98 @@
+{
+  "views": [
+    {
+      "name": "BI.Rezerwacje",
+      "file": "views/Rezerwacje.sql",
+      "description": "Rezerwacje towarów z pełnymi danymi towaru, kontrahenta, magazynu, dokumentu źródłowego i statusu. Ilości: zarezerwowana, zrealizowana, na dok. mag., do pokrycia. Daty po konwersji z Clarion. Typy dokumentów źródłowych: 960=Zamówienie(ZS/ZZ), 14345=ZPC, 14346=ZPZ→ZP, 2592=BkRez.",
+      "primary_table": "CDN.Rezerwacje",
+      "joins": [
+        "CDN.TwrKarty",
+        "CDN.KntKarty",
+        "CDN.Magazyny",
+        "CDN.ZamNag",
+        "CDN.ProdZasoby",
+        "CDN.ProdZlecenia",
+        "CDN.Dostawy",
+        "CDN.TraNag",
+        "CDN.Obiekty",
+        "CDN.FrmStruktura",
+        "CDN.ProdTechnologiaZasoby"
+      ],
+      "columns": [
+        "Typ_Rezerwacji", "ID_Rezerwacji",
+        "Kod_Towaru", "Nazwa_Towaru", "Jm_Towaru",
+        "Akronim_Kontrahenta", "Nazwa_Kontrahenta",
+        "Typ_Dokumentu_Zrodlowego", "Opis_Dokumentu_Zrodlowego", "Numer_Dokumentu_Zrodlowego", "Pozycja_Na_Dok_Zrodlowym",
+        "ID_Magazynu", "Kod_Magazynu",
+        "Numer_Dokumentu_Dostawy",
+        "Ilosc_Zarezerwowana", "Ilosc_Zrealizowana", "Ilosc_Na_Dok_Magazynowych",
+        "Data_Wprowadzenia", "Data_Realizacji", "Data_Waznosci", "Data_Aktywacji",
+        "Aktywna",
+        "Zrodlo_Rezerwacji", "Opis_Zrodla",
+        "Data_Planowanej_Dostawy",
+        "ID_Centrum_Praw", "Nazwa_Centrum_Praw",
+        "Typ_Rez",
+        "Priorytet",
+        "Data_Rezerwacji",
+        "ID_Zasobu_Technologii", "Nazwa_Zasobu_Technologii",
+        "ID_Klasy_Cechy",
+        "Ilosc_Do_Pokrycia"
+      ],
+      "example_questions": [
+        "jakie są rezerwacje towaru X",
+        "ile sztuk towaru X jest zarezerwowane",
+        "rezerwacje dla kontrahenta Y",
+        "przeterminowane rezerwacje",
+        "rezerwacje z zamówienia ZS-9/09/2025/ZTHK",
+        "rezerwacje ze zlecenia produkcji ZP-1/08/23/OTO",
+        "co jest zarezerwowane na magazynie X",
+        "niezrealizowane rezerwacje",
+        "ile zostało do pokrycia z rezerwacji towaru X",
+        "rezerwacje powiązane z dostawą"
+      ],
+      "notes": "Aktywna='Tak' AND Ilosc_Do_Pokrycia>0 — bieżące otwarte. Typ_Rez: 'Rezerwacja'/'Nierezerwacja'. Typ_Rezerwacji (GIDTyp): 'Rezerwacja'/'Rezerwacja u dostawcy'. Zrodlo_Rezerwacji: 5=ZamWew, 6=RecznaWew, 9=ZamZew (najczęstsze), 10=RecznaZew, 16=DokMag. Numer_Dokumentu_Dostawy: NULL gdy brak (format: Skrot-Numer/MM/RR[/Seria]; typy: PZ/FZ/PW). Numer_Dokumentu_Zrodlowego: NULL dla BkRez (typ=2592 — samoreferencja). ID_Klasy_Cechy: 0=brak cechy. Nazwa_Centrum_Praw/Nazwa_Zasobu_Technologii: NULL gdy brak powiązania."
+    }
+  ,
+    {
+      "name": "BI.KntKarty",
+      "file": "views/KntKarty.sql",
+      "description": "Kartoteka kontrahentów z pełnymi danymi identyfikacyjnymi, adresowymi, handlowymi i kontaktowymi. Flagi przetłumaczone na Tak/Nie, enumeracje na etykiety PL. Grupa główna jako ścieżka rekurencyjna (CDN.KntGrupyDom).",
+      "primary_table": "CDN.KntKarty",
+      "joins": [
+        "CDN.KntAdresy", "CDN.Banki", "CDN.OpeKarty",
+        "CDN.FrmStruktura", "CDN.KntKarty (self: akwizytor, płatnik)",
+        "CDN.Rejestry", "CDN.KntGrupyDom", "CDN.TwrCenyNag", "CDN.Slowniki"
+      ],
+      "columns": [
+        "ID_Kontrahenta", "Typ", "Status", "Akronim", "Nazwa1", "Nazwa2", "Nazwa3",
+        "NIP", "NIP_Prefiks", "REGON", "PESEL", "GLN", "EAN", "GUID",
+        "Kod_Pocztowy", "Miasto", "Ulica", "Adres", "Kraj", "Wojewodztwo", "Powiat", "Gmina", "Region_CRM",
+        "Adres_Dodatkowy_*", "Telefon1", "Telefon2", "Fax", "Email", "URL",
+        "Nr_Rachunku", "NRB", "Kod_Banku", "Nazwa_Banku",
+        "Forma_Platnosci_Sprzedaz", "Forma_Platnosci_Zakup",
+        "Termin_Platnosci_*", "Limit_*",
+        "Rabat", "Marza", "ID_Cennika_Sprzedazy", "Nazwa_Cennika_Sprzedazy", "Waluta",
+        "Eksport_Rodzaj", "Typ_Rachunku", "Platnik_VAT", "Archiwalny", "Dewizowy",
+        "Blokada_Transakcji", "Blokada_Zamowien", "Split_Payment",
+        "ID_Operatora_Zalozenia", "Login_Operatora_Zalozenia",
+        "ID_Firmy_Handlowej", "Nazwa_Firmy_Handlowej",
+        "ID_Akwizytora", "Akronim_Akwizytora", "Prowizja_Akwizytora",
+        "ID_Platnika", "Akronim_Platnika",
+        "ID_Grupy", "Sciezka_Grupy",
+        "Data_Rejestracji_VAT", "Data_Ostatniej_Modyfikacji", "EFaktura_VAT_Data_Waznosci",
+        "Rodzaj_Kontrahenta", "Dzialalnosc_Gospodarcza",
+        "Konto_Ksiegowe_Dostawcy", "Konto_Ksiegowe_Odbiorcy"
+      ],
+      "example_questions": [
+        "podaj dane kontrahenta Bolsius",
+        "jaki NIP ma firma X",
+        "którzy kontrahenci są jednocześnie klientami i dostawcami",
+        "kontrahenci z blokadą transakcji",
+        "kontrahenci w grupie 01.KLIENCI",
+        "aktywni płatnicy VAT",
+        "dane adresowe firmy X"
+      ],
+      "notes": "Sciezka_Grupy: ścieżka rekurencyjna z CDN.KntGrupyDom separator '\\', brak grupy = 'Grupa główna'. Typ: Odbiorca/Dostawca/Dostawca-Odbiorca/Nieokreślono. Archiwalny='Tak' — nieaktywne kartoteki. EFaktura_VAT_Data_Waznosci: NULL = bezterminowo (sentinel >109211). Cenniki: 1=CENA100, 2=CMENTARZ, 3=FRANOWO, 4=BRICO, 5=INTER, 6=mrówka, 7=CHATA POLSKA, 8=AT, 9=PRYZMAT."
+    }
+  ]
+}

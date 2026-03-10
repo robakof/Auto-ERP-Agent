@@ -1,236 +1,258 @@
-# PRD: Automatyczny Konfigurator Systemu ERP
+# PRD Faza 2: Warstwa Semantyczna BI + Bot Pytań
 
-## 1. Cel projektu
+*Dokument przygotowany: 2026-03-03*
+*Status: Wersja robocza*
 
-Zbudowanie środowiska deweloperskiego wewnątrz VS Code, w którym agent LLM autonomicznie przeprowadza cały proces konfiguracji systemu ERP (kolumny, filtry, raporty, widoki) — od analizy wymagań, przez eksplorację bazy danych i dokumentacji, po wygenerowanie i zwalidowanie gotowego kodu SQL — ograniczając rolę człowieka wyłącznie do czynności niemożliwych do wykonania programistycznie.
+---
+
+## 1. Cel fazy
+
+Zbudowanie warstwy semantycznej nad bazą ERP (widoki SQL z czytelnymi nazwami),
+która służy trzem celom jednocześnie:
+
+1. **Raportowanie** — Power BI i Excel łączą się z `BI.*` bezpośrednio, bez znajomości schematu CDN
+2. **Bot pytań** — pracownicy zadają pytania w języku naturalnym, bot odpytuje `BI.*`
+3. **Szybszy agent ERP** — agent Fazy 1 używa `BI.*` zamiast budować JOINy z CDN.*
 
 ---
 
 ## 2. Kontekst i problem
 
-### Obecny proces (AS-IS)
+### AS-IS
 
-| Krok | Czynność | Osoba/Narzędzie |
-|------|----------|-----------------|
-| 1 | Dostarczenie LLM przykładów kodu i fragmentów dokumentacji | Człowiek |
-| 2 | Generowanie kodu SQL | LLM (chat) |
-| 3 | Ręczne przeklejanie kodu do SSMS, uruchomienie, odczyt wyników | Człowiek |
-| 4 | Przeklejanie wyników z powrotem do czatu LLM | Człowiek |
-| 5 | Cykl poprawek — powtarzany wielokrotnie | Człowiek + LLM |
-| 6 | Wklejenie finalnego kodu do systemu ERP | Człowiek |
-| 7 | Debugowanie błędów zwracanych przez ERP, dostarczanie nowych przykładów | Człowiek |
+Agent konfigurujący ERP (Faza 1) odpytuje bezpośrednio tabele `CDN.*`.
+Każde zapytanie wymaga znajomości schematu: złożone JOINy, nieczytelne nazwy
+kolumn (`ZaN_KntGIDNumer`), konieczność przeglądania dokumentacji.
 
-**Kluczowe problemy:**
-- Wysoki nakład czasu człowieka na mechaniczne przeklejanie danych między narzędziami
-- Brak pamięci między sesjami — agent za każdym razem zaczyna od zera
-- Brak dostępu agenta do bazy rozwiązań i dokumentacji w czasie rzeczywistym
-- Ryzyko błędów przy ręcznym przepisywaniu/kopiowaniu kodu
-- Długi czas od wymagania do działającego rozwiązania
+Pracownicy chcący uzyskać informacje z systemu (np. "kto ostatnio zamawiał
+Bolsiusa?") muszą każdorazowo angażować konfiguratora lub developera.
 
-### Docelowy proces (TO-BE)
+### TO-BE
 
-Agent LLM samodzielnie:
-1. Pobiera i analizuje wymaganie
-2. Odpytuje bazę danych ERP w celu rozpoznania struktury
-3. Przeszukuje bazę gotowych rozwiązań (wzorce, przykłady)
-4. Przeszukuje dokumentację (Excel, pliki tekstowe, wytyczne)
-5. Generuje i iteracyjnie testuje kod SQL
-6. Zgłasza człowiekowi wyłącznie akcje wymagające ręcznej interwencji (np. wklejenie do GUI ERP)
+```
+Pracownik (WhatsApp)
+    │  "Kto ostatnio zamawiał Bolsiusa?"
+    ▼
+Bot Backend
+    ├── identyfikuje intencję
+    ├── sprawdza bibliotekę raportów (gotowe zapytania)
+    │       hit → wykonuje gotowy SQL z parametrami
+    │       miss → generuje SQL ad-hoc z BI views
+    ├── wykonuje SELECT na schema BI (read-only)
+    └── formułuje odpowiedź w języku naturalnym
+    │
+    ▼
+Pracownik otrzymuje odpowiedź w ~10 sekund
+```
+
+Warstwa BI skraca agenta — zamiast budować JOINy przez `CDN.TwrKarty`
++ `CDN.ZamNag` + `CDN.KntKarty`, pyta `BI.Zamowienia` gdzie wszystko jest już złączone.
 
 ---
 
-## 3. Zakres projektu
+## 3. Zakres
 
-### W zakresie (in scope)
-- Środowisko agentowe w VS Code (Claude Code lub kompatybilny agent)
-- Narzędzia agenta do odpytywania bazy SQL Server (SSMS-compatible)
-- Baza rozwiązań (solution store) — przeszukiwalna kolekcja wcześniej napisanych fragmentów kodu
-- Indeksowana baza dokumentacji ERP (struktury tabel, opisy pól, wytyczne konfiguracji)
-- Automatyczny cykl testowania podzapytań weryfikujących poprawność generowanego kodu
-- Mechanizm raportowania akcji wymagających interwencji człowieka
-- Logi i historia sesji agenta
+### W zakresie
 
-### Poza zakresem (out of scope)
-- Bezpośrednia integracja z GUI systemu ERP (klik automatyczny, RPA)
-- Wdrożenie produkcyjne kodu bez akceptacji człowieka
-- Modyfikacja struktury bazy danych ERP
-- Obsługa baz innych niż SQL Server
+- Schema `BI` z semantycznymi widokami SQL (tworzone przez człowieka)
+- Dokumentacja widoków w repozytorium (agent i deweloper wiedzą co jest dostępne)
+- Bot backend: NLP → SQL → odpowiedź w języku naturalnym (polskim)
+- Kanał testowy: Telegram
+- Kanał docelowy: WhatsApp Business
+- Biblioteka raportów SQL (gotowe zapytania dla częstych pytań)
+- Rozszerzenie agenta ERP o wyszukiwanie w BI views
+
+### Poza zakresem
+
+- Comarch API (kolejna faza)
+- Zapis danych przez bota (wyłącznie odczyt)
+- Tworzenie widoków BI przez agenta (człowiek tworzy, agent dokumentuje i używa)
+- Budowa dashboardów Power BI (warstwa BI *umożliwia* to — sama budowa poza zakresem)
 
 ---
 
 ## 4. Użytkownicy i role
 
-| Rola | Opis | Interakcja z systemem |
-|------|------|-----------------------|
-| **Konfigurator ERP** | Specjalista konfigurujący kolumny, filtry, raporty | Podaje wymaganie, zatwierdza wynik, wykonuje ręczne akcje w ERP |
-| **Developer** | Utrzymuje środowisko, rozszerza bazę rozwiązań i dokumentację | Zarządza narzędziami agenta, aktualizuje indeks dokumentacji |
+| Rola | Opis | Interakcja |
+|------|------|-----------|
+| **Pracownik** | Zadaje pytania o dane w języku naturalnym | WhatsApp / Telegram |
+| **Konfigurator ERP** | Rozszerza agent o nowe widoki i raporty | VS Code + Claude Code |
+| **Developer** | Tworzy i utrzymuje widoki BI, zarządza infrastrukturą | SQL Server + Git |
 
 ---
 
 ## 5. Wymagania funkcjonalne
 
-### F-01 — Interfejs wejścia wymagania
-- Agent przyjmuje wymaganie w języku naturalnym (polskim) opisujące cel konfiguracji
-- Wymaganie może zawierać: opis kolumny/filtru/raportu, źródłowe tabele, warunki biznesowe
-- Opcjonalnie: załączenie fragmentu dokumentacji lub przykładu bezpośrednio w wymaganiu
+### F-01 — Schema BI (widoki semantyczne)
 
-### F-02 — Narzędzie: Zapytanie do bazy SQL Server
-- Agent wykonuje zapytania SQL do wskazanej bazy danych ERP przez dedykowany skrypt
-- Obsługuje: SELECT na widokach i tabelach, sprawdzanie struktury (`INFORMATION_SCHEMA`), testowanie podzapytań
-- Wyniki zwracane do agenta w formacie czytelnym (JSON lub tabela)
-- Wykonywanie wyłącznie operacji odczytu (SELECT) — zakaz DML/DDL bez jawnej zgody
+- Dedykowany schema SQL (`BI`) na istniejącym SQL Serverze
+- Widoki pokrywają kluczowe encje biznesowe: towary, kontrahenci, zamówienia,
+  dokumenty handlowe, historia transakcji
+- Czytelne nazwy widoków i kolumn (np. `BI.Zamowienia.NazwaKontrahenta`)
+- Tworzone i modyfikowane przez człowieka (Developer)
+- Definicje widoków wersjonowane w repozytorium Git (`solutions/bi/views/`)
+- Konto agenta/bota: read-only na schema `BI`, brak dostępu do `CDN.*`
+- **Kompatybilność z Power BI i Excel z definicji** — połączenie przez DirectQuery
+  (Power BI) lub Power Query / ODBC (Excel) bez żadnej dodatkowej pracy
 
-### F-03 — Narzędzie: Przeszukiwanie bazy rozwiązań
-- Baza rozwiązań to kolekcja wcześniej napisanych i zatwierdzonych fragmentów kodu SQL wraz z metadanymi
-- Metadane: typ konfiguracji (kolumna/filtr/raport), tabele źródłowe, słowa kluczowe, data dodania
-- Agent przeszukuje bazę semantycznie (dopasowanie do kontekstu wymagania) i strukturalnie (słowa kluczowe, tabele)
-- Format bazy: katalog plików `.sql` + plik indeksu `.json` lub lekka baza SQLite
+### F-02 — Dokumentacja widoków BI
 
-### F-04 — Narzędzie: Przeszukiwanie dokumentacji
-- Dokumentacja przechowywana lokalnie: pliki Excel (`.xlsx`), pliki tekstowe/Markdown, wytyczne PDF
-- Agent indeksuje dokumentację przy starcie (lub na żądanie) i przeszukuje ją semantycznie
-- Zwraca relevantne fragmenty: opis pola, dozwolone wartości, logika biznesowa, przykłady
+- Każdy widok opisany w pliku YAML/SQL z komentarzem: cel, kolumny, przykładowe pytania
+- Narzędzie `search_bi.py` — agent przeszukuje dostępne widoki po słowach kluczowych
+- Integracja z istniejącym workflow agenta (Krok 2: odczytaj kontekst → sprawdź BI views)
 
-### F-05 — Generowanie i iteracyjne testowanie kodu SQL
-- Agent generuje kod SQL na podstawie: wymagania + wyników eksploracji bazy + znalezionych wzorców
-- Automatycznie uruchamia podzapytania testujące (np. sprawdzenie czy wynik nie jest pusty, czy typy danych się zgadzają)
-- W przypadku błędów SQL: analizuje komunikat błędu, poprawia kod, ponawia test
-- Maksymalna liczba iteracji automatycznych: konfigurowalna (domyślnie 5)
+### F-03 — Bot backend
 
-### F-06 — Mechanizm eskalacji do człowieka
-- Agent zgłasza interwencję, gdy:
-  - Wyczerpał limit iteracji bez sukcesu
-  - Potrzebuje informacji niemożliwych do uzyskania z bazy/dokumentacji
-  - Kod wymaga wklejenia do GUI ERP (krok manualny)
-  - Wynik wymaga zatwierdzenia przed zapisem do bazy rozwiązań
-- Eskalacja: wyraźny komunikat w terminalu VS Code z opisem potrzebnej akcji i stanem obecnym
+- Uruchomiony jako serwis Windows (serwer firmowy, sieć lokalna)
+- Przyjmuje pytanie w języku naturalnym (polskim)
+- Pipeline (2 wywołania Claude API):
+  1. **Dopasuj lub wygeneruj SQL** (Claude API, jedno wywołanie):
+     dopasowanie do biblioteki raportów + fallback generowanie ad-hoc z BI views
+  2. **Walidacja SQL**: blokada DML/EXEC, wymuszenie TOP, timeout
+     (te same guardrails co sql_query.py z Fazy 1)
+  3. **Wykonaj SELECT** (read-only, schema BI)
+  4. **Sformułuj odpowiedź** w języku naturalnym (Claude API, drugie wywołanie)
+- Kontekst konwersacji: ostatnie 3 tury per użytkownik (reset po 15 min
+  nieaktywności) — umożliwia doprecyzowanie ("A ile u nich?")
+- Loguje pytania i odpowiedzi (źródło danych do budowy biblioteki raportów)
+- Obsługuje brak wyników, błędy SQL, pytania poza zakresem
+- Endpoint `/health` — monitoring dostępności (ping co 5 min, alert na Telegram)
 
-### F-07 — Zapis do bazy rozwiązań
-- Po akceptacji przez człowieka agent zapisuje nowe rozwiązanie do bazy rozwiązań z pełnymi metadanymi
-- Umożliwia tagowanie i kategoryzację nowego rozwiązania
+### F-04 — Kanał Telegram (testowy)
 
-### F-08 — Historia i logi sesji
-- Każda sesja agenta logowana: wymaganie wejściowe, kroki pośrednie, wygenerowany kod, wyniki testów
-- Logi przechowywane lokalnie w katalogu `logs/` w formacie Markdown lub JSON
+- Telegram Bot API (bez weryfikacji biznesowej)
+- Cel: weryfikacja całego pipeline przed wdrożeniem WhatsApp
+- Dostęp: tylko zdefiniowane ID użytkowników (whitelist)
+
+### F-05 — Kanał WhatsApp Business (docelowy)
+
+- Meta WhatsApp Business API (Cloud API lub BSP)
+- Wymaga: zweryfikowane konto Meta Business
+- Ten sam backend co Telegram — kanał to tylko warstwa transportowa
+- Dostęp: numer telefonu na whiteliście lub autoryzacja przez komendę /start
+
+### F-06 — Biblioteka raportów SQL
+
+- Zbiór gotowych, przetestowanych zapytań SQL z parametrami
+- Format: pliki `.sql` w `solutions/bi/reports/` z metadanymi (przykładowe pytania,
+  parametry, opis)
+- Budowana iteracyjnie na podstawie logów pytań bota
+- Bot sprawdza bibliotekę przed generowaniem ad-hoc → szybciej i pewniej
+- Narzędzie `search_reports.py` — dopasowanie pytania do gotowego raportu
+
+### F-07 — Rozszerzenie agenta ERP
+
+- Agent ERP (Faza 1) otrzymuje dostęp do `search_bi.py` i `search_reports.py`
+- Workflow: przed budowaniem JOIN z CDN.* sprawdź czy BI views pokrywają zapytanie
+- Zapisuje nowe raporty do biblioteki po zatwierdzeniu przez człowieka
 
 ---
 
 ## 6. Wymagania niefunkcjonalne
 
-| ID | Wymaganie | Miara sukcesu |
-|----|-----------|---------------|
-| NF-01 | Czas do pierwszego wygenerowanego kodu | < 2 minuty dla typowych wymagań |
-| NF-02 | Bezpieczeństwo bazy ERP | Agent wykonuje wyłącznie SELECT; brak możliwości DML/DDL bez jawnego zezwolenia |
-| NF-03 | Odtwarzalność | Każdą sesję można odtworzyć z logów |
-| NF-04 | Lokalność | Wszystkie dane (dokumentacja, baza rozwiązań, logi) przechowywane lokalnie |
-| NF-05 | Rozszerzalność | Dodanie nowego narzędzia agenta nie wymaga modyfikacji rdzenia systemu |
+| ID | Wymaganie | Miara |
+|----|-----------|-------|
+| NF-01 | Czas odpowiedzi bota | < 15 sekund dla gotowego raportu, < 30 s ad-hoc |
+| NF-02 | Bezpieczeństwo danych | Bot i agent: read-only na schema BI, zero dostępu do CDN.*; walidacja SQL przed wykonaniem |
+| NF-03 | Prywatność danych | Do Claude API trafia: (1) pytanie + schemat BI, (2) wyniki zapytania do sformułowania odpowiedzi. Zapytania SQL wykonywane lokalnie. Decyzja zaakceptowana przez właściciela projektu |
+| NF-04 | Dostępność bota | Serwis Windows z auto-restartem (99% uptime w godzinach pracy) |
+| NF-05 | Audytowalność | Wszystkie pytania i odpowiedzi logowane lokalnie |
 
 ---
 
-## 7. Architektura systemu
+## 7. Architektura
 
 ```
-VS Code (środowisko agenta)
+Serwer firmowy (Windows, sieć lokalna)
 │
-├── Agent LLM (Claude Code / MCP Agent)
-│   ├── Tool: sql_query          → SQL Server (read-only)
-│   ├── Tool: search_solutions   → Solution Store (lokalny katalog)
-│   ├── Tool: search_docs        → Doc Index (lokalny indeks)
-│   └── Tool: escalate_human     → Terminal output / notyfikacja
+├── Bot Backend (Python serwis)
+│   ├── Moduł kanałów
+│   │   ├── telegram_channel.py    ← Telegram Bot API
+│   │   └── whatsapp_channel.py    ← Meta Cloud API
+│   ├── nlp_pipeline.py            ← pytanie → SQL (Claude API)
+│   ├── report_matcher.py          ← dopasowanie do biblioteki raportów
+│   └── sql_executor.py            ← SELECT na schema BI (read-only)
 │
-├── Solution Store
-│   ├── solutions/               → pliki .sql z kodem
-│   └── index.json               → metadane rozwiązań
+└── SQL Server (istniejący)
+    ├── schema CDN.*               ← baza ERP (bot: brak dostępu)
+    └── schema BI.*                ← widoki semantyczne (bot: read-only)
+        ├── BI.Towary
+        ├── BI.Kontrahenci
+        ├── BI.Zamowienia
+        ├── BI.DokumentyHandlowe
+        └── ...
+
+Repozytorium Git
+├── solutions/bi/
+│   ├── views/                     ← definicje CREATE VIEW (wersjonowane)
+│   │   ├── Towary.sql
+│   │   ├── Kontrahenci.sql
+│   │   └── Zamowienia.sql
+│   ├── reports/                   ← biblioteka raportów SQL
+│   │   └── [nazwa].sql
+│   └── catalog.json               ← metadane widoków (dla search_bi.py)
 │
-├── Documentation Index
-│   ├── raw/                     → oryginalne pliki (Excel, MD, PDF)
-│   └── index/                   → sparsowane i zindeksowane dane
-│
-└── Logs
-    └── sessions/                → logi sesji w formacie MD/JSON
+└── tools/
+    ├── search_bi.py               ← wyszukiwanie widoków BI
+    └── search_reports.py          ← dopasowanie pytania do raportu
 ```
 
-### Technologie
+---
 
-| Komponent | Technologia |
-|-----------|-------------|
-| Agent | Claude Code (MCP) lub LangChain/AutoGen |
-| Połączenie z SQL Server | `pyodbc` / `mssql-scripter` / skrypt PowerShell |
-| Indeks dokumentacji | Lokalne embeddingi (`sentence-transformers`) lub plik JSON z FTS |
-| Baza rozwiązań | Katalog plików `.sql` + `index.json` (SQLite opcjonalnie) |
-| Środowisko | VS Code + Python 3.11+ |
+## 8. Kwestie otwarte
+
+| # | Pytanie | Wpływ | Status |
+|---|---------|-------|--------|
+| O-01 | Autoryzacja użytkowników bota — whitelist numerów/ID, czy coś innego? | Bezpieczeństwo | Otwarte |
+| O-02 | Nazwa konta SQL dla bota (read-only na BI) — istniejące czy nowe? | Deployment | Otwarte |
+| O-03 | Priorytet pierwszych widoków BI — jakie encje najpilniej potrzebne? | Zakres Fazy 2a | Otwarte |
+| O-04 | Rejestracja Meta Business Account — kto to robi i kiedy? | Harmonogram F-05 | Otwarte |
+| ~~O-05~~ | ~~Odpowiedzi opisowe vs tabelaryczne~~ | ~~UX~~ | Rozstrzygnięte: opisowe (Claude formatuje odpowiedź z danych SQL) |
+| ~~O-06~~ | ~~Prywatność: dane wynikowe do Claude API~~ | ~~Compliance~~ | Rozstrzygnięte: akceptowalne — wyniki SQL trafiają do Claude API do formatowania |
 
 ---
 
-## 8. Integracje
+## 9. Etapy realizacji
 
-| System | Typ integracji | Uprawnienia |
-|--------|----------------|-------------|
-| SQL Server (baza ERP) | ODBC / pyodbc | Read-only (`SELECT`) |
-| System ERP (GUI) | Brak automatycznej — człowiek wykonuje ręcznie | N/A |
-| Dokumentacja Excel | Lokalny plik — parsowanie przez `openpyxl` | Odczyt |
+### Faza 2a — Fundament BI (widoki + narzędzia)
+
+- [ ] Struktura `solutions/bi/` w repozytorium
+- [ ] Pierwsze widoki BI (priorytety z O-03)
+- [ ] `search_bi.py` — narzędzie przeszukiwania katalogu widoków
+- [ ] `verify_bi.py` — weryfikacja widoków (`SELECT TOP 1` z każdego), wykrywanie driftu
+- [ ] Rozszerzenie agenta ERP o `search_bi.py`
+
+### Faza 2b — Bot backend + Telegram
+
+- [ ] Bot backend jako serwis Windows (Python)
+- [ ] Pipeline NLP → SQL → odpowiedź (2 wywołania Claude API)
+- [ ] Walidacja SQL (guardrails z Fazy 1)
+- [ ] Kontekst konwersacji (3 tury per user, 15 min TTL)
+- [ ] Kanał Telegram (whitelist użytkowników)
+- [ ] Logowanie pytań i odpowiedzi
+- [ ] Health check (`/health` + watchdog + alert Telegram)
+- [ ] Testy end-to-end (5+ pytań reprezentatywnych)
+
+### Faza 2c — Biblioteka raportów
+
+- [ ] Analiza logów bota → identyfikacja częstych pytań
+- [ ] `search_reports.py` + format plików raportów
+- [ ] Rozszerzenie agenta ERP o zapis nowych raportów
+- [ ] Integracja z pipeline bota (raport → ad-hoc fallback)
+
+### Faza 2d — WhatsApp Business
+
+- [ ] Rejestracja Meta Business Account
+- [ ] `whatsapp_channel.py` (ten sam backend)
+- [ ] Testy i wdrożenie produkcyjne
 
 ---
 
-## 9. Definicja sukcesu (Kryteria akceptacji)
+## 10. Definicja sukcesu
 
 | Kryterium | Miara |
 |-----------|-------|
-| Redukcja ręcznych kroków | ≥ 80% kroków procesu AS-IS wykonywanych przez agenta bez interwencji człowieka |
-| Skuteczność generowania | ≥ 70% wymagań rozwiązanych bez eskalacji do człowieka w fazie SQL |
-| Brak incydentów bezpieczeństwa | Zero przypadków wykonania DML/DDL na bazie ERP przez agenta |
-| Adopcja bazy rozwiązań | Po 3 miesiącach ≥ 50 zatwierdzonych rozwiązań w bazie |
-
----
-
-## 10. Ryzyka i mitygacje
-
-| Ryzyko | Prawdopodobieństwo | Wpływ | Mitygacja |
-|--------|-------------------|-------|-----------|
-| Agent generuje błędny SQL wklejony do ERP przez człowieka bez weryfikacji | Średnie | Wysoki | Obligatoryjny krok zatwierdzenia + podgląd diff przed akcją |
-| Dokumentacja Excel nieaktualna lub niekompletna | Wysokie | Średni | Mechanizm flagowania brakujących danych + eskalacja do człowieka |
-| Limit tokenów LLM przy dużych schematach bazy | Średnie | Średni | Chunking wyników SQL, priorytetyzacja relevantnych fragmentów |
-| Brak dostępu sieciowego do SQL Server z VS Code | Niskie | Wysoki | Konfiguracja connection string w `.env`, testy połączenia przy starcie |
-
----
-
-## 11. Etapy realizacji (Roadmap)
-
-### Faza 1 — Fundament (MVP)
-- [ ] Konfiguracja środowiska VS Code + Python
-- [ ] Narzędzie `sql_query`: połączenie z SQL Server, wykonywanie SELECT, zwrot wyników
-- [ ] Prymitywna baza rozwiązań: katalog `.sql` + ręczny `index.json`
-- [ ] Podstawowy agent (Claude Code) z dostępem do `sql_query` i `search_solutions`
-- [ ] Mechanizm eskalacji do człowieka (komunikat w terminalu)
-
-### Faza 2 — Dokumentacja i pamięć
-- [ ] Parser dokumentacji Excel (`openpyxl`)
-- [ ] Indeks dokumentacji z wyszukiwaniem pełnotekstowym
-- [ ] Narzędzie `search_docs` dla agenta
-- [ ] Logowanie sesji do pliku Markdown
-
-### Faza 3 — Inteligentne testowanie
-- [ ] Automatyczny generator podzapytań testujących
-- [ ] Pętla iteracyjna z limitem prób
-- [ ] Analiza komunikatów błędów SQL i auto-korekta
-
-### Faza 4 — Optymalizacja i skalowanie
-- [ ] Semantyczne wyszukiwanie w bazie rozwiązań (embeddingi)
-- [ ] Dashboard historii sesji
-- [ ] Automatyczny zapis zatwierdzonych rozwiązań do bazy
-- [ ] Metryki skuteczności agenta
-
----
-
-## 12. Otwarte pytania
-
-1. Czy agent ma mieć dostęp do wielu baz (DEV/TEST/PROD) i dynamicznie przełączać środowisko?
-2. Jaki format ma dokumentacja Excel — jeden plik z wieloma arkuszami, czy wiele plików?
-3. Czy kod wklejany do ERP jest SQL wyzwalany przez GUI, czy inny format (np. XML, skrypt VBA)?
-4. Czy wymagana jest obsługa multi-tenancy (wielu klientów ERP z różnymi schematami)?
-5. Czy logi sesji mają trafiać do systemu kontroli wersji (Git)?
-
----
-
-*Dokument przygotowany: 2026-02-26*
-*Status: Wersja robocza — do weryfikacji przez zespół*
+| Pokrycie BI views | Widoki pokrywają ≥ 80% pytań zadawanych przez pracowników |
+| Skuteczność bota | ≥ 70% pytań odpowiedzianych poprawnie bez interwencji człowieka |
+| Adopcja | Po 1 miesiącu ≥ 5 aktywnych użytkowników bota |
+| Czas odpowiedzi | Mediana < 15 s |
