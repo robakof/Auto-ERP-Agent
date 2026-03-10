@@ -42,7 +42,23 @@ Weryfikacja: osobny `SELECT WHERE COALESCE(...) IS NULL` zwróci 0 gdy SQL jest 
 `solutions/bi/views/Rozrachunki.sql`, `catalog.json` zaktualizowany.
 22 kolumny, ~170k wierszy. Pełne tłumaczenia typów dokumentów na PL.
 
-**Refleksje końcowe**
+**Refleksje końcowe — walidacja i deployment**
+
+Walidacja widoku przez sql_query nie zadziała na pliku z CREATE OR ALTER VIEW — narzędzie
+blokuje słowo CREATE. Jedyna opcja weryfikacji SQL przed wdrożeniem to wyciągnięcie samego
+SELECT z brudnopisu (który jest osobnym plikiem). To dobry powód żeby nigdy nie porzucać
+brudnopisu przed Fazą 4 — jest jedynym plikiem który można przetestować bez DBA.
+
+Widok na bazie istnieje dopiero po ręcznym uruchomieniu pliku SQL przez DBA w SSMS.
+Agent nie może tego zrobić (brak uprawnień DDL). Następna instancja powinna zawsze sprawdzić
+`SELECT COUNT(*) FROM AIBI.NazwaWidoku` zanim założy że widok działa.
+
+Schema BI → AIBI: user zmienił nazwę schematu ręcznie w catalog.json i KntKarty.sql.
+Rozrachunki.sql i Rezerwacje.sql mają już AIBI (zapisane przez solutions_save_view.py
+z aktualną nazwą). Wszystkie trzy pliki views/ są spójne z AIBI.
+Przy każdej zmianie schematu: sprawdź grep "CREATE OR ALTER VIEW" solutions/bi/views/*.sql.
+
+**Refleksje końcowe
 
 Progress log z poprzedniej sesji był kompletny — wejście w Fazę 2 zajęło minuty zamiast
 godzin. To dowód że warto go pisać dokładnie. Zasada potwierdzona.
