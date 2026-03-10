@@ -358,7 +358,7 @@ SELECT
 
     -- === KONTA KSIĘGOWE ===
     k.Knt_KontoDostawcy                                            AS Konto_Ksiegowe_Dostawcy,
-    k.Knt_KontoOdbiorcy                                            AS Konto_Ksiegowe_Odbiorcy,
+    k.Knt_KontoOdbiorcy                                            AS Konto_Ksiegowe_Odbiorcy
 
 FROM CDN.KntKarty k
 LEFT JOIN CDN.KntAdresy a

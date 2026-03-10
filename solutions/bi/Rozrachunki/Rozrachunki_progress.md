@@ -182,8 +182,17 @@ Format numeru NO (ZWERYFIKOWANY przez CDN.NazwaObiektu):
 - Operator 18 distinct, 0 null ✓
 - Waluta PLN/EUR, Strona_RK Brak/Winien/Ma ✓
 
-### Faza 4 — zapisane pliki
+### Faza 4 — ZAKOŃCZONA
 
-- `solutions/bi/views/Rozrachunki.sql` — CREATE OR ALTER VIEW BI.Rozrachunki
-- `solutions/bi/catalog.json` — wpis dodany
-- Commit: feat: widok BI.Rozrachunki
+- `solutions/bi/views/Rozrachunki.sql` — CREATE OR ALTER VIEW AIBI.Rozrachunki
+- `solutions/bi/catalog.json` — wpis dodany (nazwa AIBI.Rozrachunki)
+- Schema zmieniona z BI → AIBI (user zmienił catalog.json ręcznie)
+- Widok NIE jest jeszcze wdrożony na bazie — plik SQL gotowy, wymaga uruchomienia w SSMS
+- AIBI.KntKarty działa na bazie ✓, AIBI.Rozrachunki i AIBI.Rezerwacje jeszcze nie
+
+### Reguła GID (potwierdzona przez usera, zapisana w ERP_VIEW_WORKFLOW.md)
+
+- GIDFirma → pomijamy
+- GIDTyp → tłumaczymy przez CASE
+- GIDNumer → zostawiamy
+- GIDLp → pomijamy
