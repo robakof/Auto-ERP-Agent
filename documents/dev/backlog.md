@@ -92,6 +92,71 @@ Reguła do AGENT.md: "przed numeracją inline — sprawdź wzorce w solutions/re
 
 ---
 
+### [Bot] Fallback przy błędzie SQL — ponów z uproszczonym zapytaniem
+
+**Źródło:** obserwacja sesji testowej
+**Sesja:** 2026-03-10
+**Wartość:** średnia
+**Pracochłonność:** średnia
+
+**Problem:**
+Gdy model generuje zbyt złożony SQL (np. HAVING z dzieleniem) i baza go odrzuci,
+bot zwraca błąd zamiast spróbować uproszczonej wersji.
+
+**Rozwiązanie:**
+Gdy `execution_result.ok = False` — pipeline ponawia Call 1 z dodatkową instrukcją:
+"Poprzedni SQL zwrócił błąd. Wygeneruj prostszą wersję bez HAVING, bez dzielenia."
+Max 1 retry żeby nie generować pętli.
+
+---
+
+### [Bot] NO_SQL zbyt agresywne — częściowe odpowiedzi
+
+**Źródło:** obserwacja sesji testowej
+**Sesja:** 2026-03-10
+**Wartość:** wysoka
+**Pracochłonność:** mała
+
+**Problem:**
+Bot zwraca NO_SQL gdy pytanie zawiera dane częściowo niedostępne (np. "ilość i kwota zamówień" —
+ilość jest, kwoty nie ma w widoku). Powinien odpowiedzieć na część pytania i poinformować
+o braku pozostałych danych.
+
+**Fix:**
+Zmiana instrukcji w `SYSTEM_PROMPT_TEMPLATE` w `nlp_pipeline.py`:
+- Obecne: "Jeśli pytanie jest poza zakresem → odpowiedz NO_SQL"
+- Poprawione: "Jeśli pytanie jest częściowo poza zakresem → wygeneruj SQL dla dostępnej części
+  i zaznacz w odpowiedzi co jest niedostępne. NO_SQL tylko gdy pytanie jest całkowicie poza zakresem."
+
+---
+
+### [Bot] Kontekst firmowy + prompt caching — optymalizacja kosztów i jakości
+
+**Źródło:** obserwacja sesji testowej Haiku
+**Sesja:** 2026-03-10
+**Wartość:** wysoka
+**Pracochłonność:** mała–średnia
+
+**Problem:**
+Bot nie zna wartości słownikowych bazy (np. `Nazwa_Magazynu = 'Buszewo (WMS)'` zamiast `'Buszewo'`),
+akronimów handlowców, ani innych faktów firmowych. Skutkuje błędnymi WHERE i zerowym row_count.
+Dodatkowo koszty API są wysokie przy dużym system promptcie bez cachowania.
+
+**Rozwiązanie:**
+1. `bot/config/business_context.txt` — statyczny plik z faktami firmowymi (magazyny, handlowcy, słowniki)
+2. Prompt caching (Anthropic `cache_control: ephemeral`) na system promptcie — kolejne zapytania kosztują ~10% ceny tokenów systemowych
+
+**Zakres prac:**
+1. Plik `business_context.txt` z kluczowymi faktami (do uzupełnienia przez usera)
+2. Wstrzyknięcie do system promptu w `nlp_pipeline.py`
+3. Dodanie `cache_control` do wywołań API (Call 1 i Call 2)
+
+**Trade-offy:**
+- ✓ Sonnet zna dokładne wartości → mniej błędnych zapytań
+- ✓ Caching redukuje koszt ~10x dla statycznej części promptu
+- ✗ Plik kontekstu trzeba ręcznie utrzymywać przy zmianach w bazie
+
+---
 
 ### [Workflow] Obserwacje agenta z sesji BI.Rozrachunki (Faza 2–4)
 

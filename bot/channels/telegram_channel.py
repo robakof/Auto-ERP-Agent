@@ -78,7 +78,7 @@ class TelegramChannel:
 
     async def _send_reply(self, update: Update, text: str) -> None:
         for chunk in self._split(text):
-            await update.message.reply_text(chunk)
+            await update.message.reply_text(chunk, parse_mode="HTML")
 
     @staticmethod
     def _split(text: str) -> list[str]:

@@ -48,7 +48,10 @@ Zasady:
 - Generuj WYŁĄCZNIE zapytania SELECT na schemacie AIBI.*
 - Nie używaj innych schematów (CDN.*, dbo.* itp.)
 - Zawsze dodaj TOP N (max 200) jeśli pytanie nie wymaga pełnych danych
-- Jeśli pytanie jest poza zakresem dostępnych danych — odpowiedz dokładnie: NO_SQL
+- Jeśli pytanie jest częściowo poza zakresem — wygeneruj SQL dla dostępnej części (pomiń niedostępne dane)
+- NO_SQL tylko gdy pytanie jest CAŁKOWICIE poza zakresem (np. pogoda, kadrowe, tematy niezwiązane z ERP)
+- Unikaj HAVING z dzieleniem i złożonymi wyrażeniami — zamiast tego używaj prostego GROUP BY + ORDER BY
+- Do porównań rok-do-roku używaj SUM(CASE WHEN YEAR(...)=X THEN 1 ELSE 0 END) w SELECT, bez HAVING
 - Zwróć TYLKO czysty SQL bez markdown, bez wyjaśnień, bez komentarzy"""
 
 
@@ -131,11 +134,21 @@ class NlpPipeline:
 
         message = self._client.messages.create(
             model=self.model,
-            max_tokens=500,
+            max_tokens=1500,
             system=system,
             messages=[{"role": "user", "content": user_content}],
         )
-        return message.content[0].text.strip()
+        return self._strip_markdown(message.content[0].text.strip())
+
+    @staticmethod
+    def _strip_markdown(text: str) -> str:
+        """Usuwa owijanie ```sql ... ``` które niektóre modele dodają mimo instrukcji."""
+        if text.startswith("```"):
+            lines = text.splitlines()
+            # usuń pierwszą linię (```sql lub ```) i ostatnią (```)
+            inner = lines[1:-1] if lines[-1].strip() == "```" else lines[1:]
+            return "\n".join(inner).strip()
+        return text
 
     def _log(self, user_id: str, question: str, sql: str | None, row_count: int, answer: str, duration_s: float) -> None:
         self.log_dir.mkdir(parents=True, exist_ok=True)

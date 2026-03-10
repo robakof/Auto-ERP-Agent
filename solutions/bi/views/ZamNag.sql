@@ -9,8 +9,8 @@ SELECT
     CASE n.ZaN_ZamTyp
         WHEN 640  THEN 'Oferta zakupu'
         WHEN 768  THEN 'Oferta sprzedaży'
-        WHEN 1152 THEN 'ZZ'
-        WHEN 1280 THEN 'ZS'
+        WHEN 1152 THEN 'Zamówienie zakupu'
+        WHEN 1280 THEN 'Zamówienie sprzedaży'
         WHEN 2688 THEN 'Zapytanie ofertowe zakupu'
         WHEN 2816 THEN 'Zapytanie ofertowe sprzedaży'
         ELSE 'Nieznane (' + CAST(n.ZaN_ZamTyp AS VARCHAR) + ')'

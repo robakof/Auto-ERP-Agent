@@ -1,3 +1,4 @@
 # Whitelist uzytkownikow Telegram (jeden user_id na linie)
 # Linie zaczynajace sie od # sa ignorowane
 # Telegram user_id mozna sprawdzic przez @userinfobot
+8613685854
