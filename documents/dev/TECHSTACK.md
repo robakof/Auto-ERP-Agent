@@ -17,8 +17,8 @@
 | SQL execution | pyodbc | sqlalchemy | Spójność z Fazą 1, zero ORM |
 | Katalog BI views | JSON + FTS5 (sqlite3) | Tylko JSON | Spójność z docs.db; FTS gdy katalog urośnie |
 | Biblioteka raportów | pliki .sql + JSON metadata | SQLite | Spójność z solutions/ |
-| Power BI | DirectQuery → SQL Server BI.* | Import mode | Dane zawsze aktualne |
-| Excel | Power Query / ODBC → SQL Server BI.* | Eksport CSV | Dane zawsze aktualne |
+| Power BI | DirectQuery → SQL Server AIBI.* | Import mode | Dane zawsze aktualne |
+| Excel | Power Query / ODBC → SQL Server AIBI.* | Eksport CSV | Dane zawsze aktualne |
 
 ---
 
@@ -132,7 +132,7 @@ SQL Server pozostaje całkowicie niedostępny z zewnątrz.
    - Claude: dopasowuje raport LUB generuje SQL ad-hoc
         ↓
 3. SQL Validator (lokalnie, bez API)
-   - Blokada DML/EXEC, wymuszenie TOP 100, timeout 30s, tylko BI.*
+   - Blokada DML/EXEC, wymuszenie TOP 100, timeout 30s, tylko AIBI.*
         ↓
 4. SQL Executor (pyodbc, read-only, BI schema)
         ↓
@@ -150,13 +150,13 @@ SQL Server pozostaje całkowicie niedostępny z zewnątrz.
 
 ## 5. Schema BI — SQL Server
 
-**Decyzja:** Dedykowany schema `BI` na istniejącym SQL Serverze SQLSERVER\SQLEXPRESS.
+**Decyzja:** Dedykowany schema `AIBI` na istniejącym SQL Serverze SQLSERVER\SQLEXPRESS.
 
 **Konta SQL:**
 | Konto | Uprawnienia | Zastosowanie |
 |-------|-------------|-------------|
 | `CEiM_Reader` | SELECT na CDN.* | Agent ERP Faza 1 (bez zmian) |
-| `CEiM_BI` | SELECT na BI.* (brak CDN.*) | Bot + Power BI + Excel |
+| `CEIM_AIBI` | SELECT na AIBI.* (brak CDN.*) | Bot + Power BI + Excel |
 
 **Zasady projektowania widoków:**
 - Nazwy widoków: rzeczowniki w liczbie mnogiej (`Towary`, `Zamowienia`)
@@ -175,7 +175,7 @@ SQL Server pozostaje całkowicie niedostępny z zewnątrz.
 {
   "views": [
     {
-      "name": "BI.Zamowienia",
+      "name": "AIBI.Zamowienia",
       "description": "Zamówienia sprzedaży z danymi kontrahenta i pozycjami",
       "columns": ["ID", "NumerZamowienia", "DataZamowienia", "NazwaKontrahenta", ...],
       "example_questions": ["kto zamawiał X", "zamówienia z tego miesiąca", ...]
@@ -200,7 +200,7 @@ Nagłówek pliku (komentarz SQL):
 -- example_questions: kto zamawiał X, ostatnie zamówienia od X
 -- params: kontrahent:string, limit:int=10
 SELECT TOP ??limit ...
-FROM BI.Zamowienia
+FROM AIBI.Zamowienia
 WHERE NazwaKontrahenta LIKE '%' + ??kontrahent + '%'
 ORDER BY DataZamowienia DESC
 ```
@@ -216,14 +216,14 @@ ORDER BY DataZamowienia DESC
 z SQL Serverem przez istniejącą infrastrukturę.
 
 **Power BI:**
-- Połączenie: `Get Data → SQL Server → serwer\instancja → schema BI`
+- Połączenie: `Get Data → SQL Server → serwer\instancja → schema AIBI`
 - Tryb: DirectQuery (dane zawsze aktualne, bez schedulowania odświeżania)
-- Konto: `CEiM_BI` (read-only na BI.*)
+- Konto: `CEIM_AIBI` (read-only na AIBI.*)
 
 **Excel:**
 - Połączenie: `Data → Get Data → From Database → SQL Server`
 - Lub przez ODBC Data Source (dla użytkowników bez Power Query)
-- Konto: `CEiM_BI`
+- Konto: `CEIM_AIBI`
 
 **Dla użytkowników Power BI:** semantyczne nazwy kolumn eliminują potrzebę
 transformacji w Power Query — tabele są gotowe do użycia od razu.

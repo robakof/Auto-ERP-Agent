@@ -10,9 +10,9 @@
 Zbudowanie warstwy semantycznej nad bazą ERP (widoki SQL z czytelnymi nazwami),
 która służy trzem celom jednocześnie:
 
-1. **Raportowanie** — Power BI i Excel łączą się z `BI.*` bezpośrednio, bez znajomości schematu CDN
-2. **Bot pytań** — pracownicy zadają pytania w języku naturalnym, bot odpytuje `BI.*`
-3. **Szybszy agent ERP** — agent Fazy 1 używa `BI.*` zamiast budować JOINy z CDN.*
+1. **Raportowanie** — Power BI i Excel łączą się z `AIBI.*` bezpośrednio, bez znajomości schematu CDN
+2. **Bot pytań** — pracownicy zadają pytania w języku naturalnym, bot odpytuje `AIBI.*`
+3. **Szybszy agent ERP** — agent Fazy 1 używa `AIBI.*` zamiast budować JOINy z CDN.*
 
 ---
 
@@ -38,7 +38,7 @@ Bot Backend
     ├── sprawdza bibliotekę raportów (gotowe zapytania)
     │       hit → wykonuje gotowy SQL z parametrami
     │       miss → generuje SQL ad-hoc z BI views
-    ├── wykonuje SELECT na schema BI (read-only)
+    ├── wykonuje SELECT na schema AIBI (read-only)
     └── formułuje odpowiedź w języku naturalnym
     │
     ▼
@@ -46,7 +46,7 @@ Pracownik otrzymuje odpowiedź w ~10 sekund
 ```
 
 Warstwa BI skraca agenta — zamiast budować JOINy przez `CDN.TwrKarty`
-+ `CDN.ZamNag` + `CDN.KntKarty`, pyta `BI.Zamowienia` gdzie wszystko jest już złączone.
++ `CDN.ZamNag` + `CDN.KntKarty`, pyta `AIBI.Zamowienia` gdzie wszystko jest już złączone.
 
 ---
 
@@ -54,7 +54,7 @@ Warstwa BI skraca agenta — zamiast budować JOINy przez `CDN.TwrKarty`
 
 ### W zakresie
 
-- Schema `BI` z semantycznymi widokami SQL (tworzone przez człowieka)
+- Schema `AIBI` z semantycznymi widokami SQL (tworzone przez człowieka)
 - Dokumentacja widoków w repozytorium (agent i deweloper wiedzą co jest dostępne)
 - Bot backend: NLP → SQL → odpowiedź w języku naturalnym (polskim)
 - Kanał testowy: Telegram
@@ -88,10 +88,10 @@ Warstwa BI skraca agenta — zamiast budować JOINy przez `CDN.TwrKarty`
 - Dedykowany schema SQL (`BI`) na istniejącym SQL Serverze
 - Widoki pokrywają kluczowe encje biznesowe: towary, kontrahenci, zamówienia,
   dokumenty handlowe, historia transakcji
-- Czytelne nazwy widoków i kolumn (np. `BI.Zamowienia.NazwaKontrahenta`)
+- Czytelne nazwy widoków i kolumn (np. `AIBI.Zamowienia.NazwaKontrahenta`)
 - Tworzone i modyfikowane przez człowieka (Developer)
 - Definicje widoków wersjonowane w repozytorium Git (`solutions/bi/views/`)
-- Konto agenta/bota: read-only na schema `BI`, brak dostępu do `CDN.*`
+- Konto agenta/bota: read-only na schema `AIBI`, brak dostępu do `CDN.*`
 - **Kompatybilność z Power BI i Excel z definicji** — połączenie przez DirectQuery
   (Power BI) lub Power Query / ODBC (Excel) bez żadnej dodatkowej pracy
 
@@ -110,7 +110,7 @@ Warstwa BI skraca agenta — zamiast budować JOINy przez `CDN.TwrKarty`
      dopasowanie do biblioteki raportów + fallback generowanie ad-hoc z BI views
   2. **Walidacja SQL**: blokada DML/EXEC, wymuszenie TOP, timeout
      (te same guardrails co sql_query.py z Fazy 1)
-  3. **Wykonaj SELECT** (read-only, schema BI)
+  3. **Wykonaj SELECT** (read-only, schema AIBI)
   4. **Sformułuj odpowiedź** w języku naturalnym (Claude API, drugie wywołanie)
 - Kontekst konwersacji: ostatnie 3 tury per użytkownik (reset po 15 min
   nieaktywności) — umożliwia doprecyzowanie ("A ile u nich?")
@@ -153,7 +153,7 @@ Warstwa BI skraca agenta — zamiast budować JOINy przez `CDN.TwrKarty`
 | ID | Wymaganie | Miara |
 |----|-----------|-------|
 | NF-01 | Czas odpowiedzi bota | < 15 sekund dla gotowego raportu, < 30 s ad-hoc |
-| NF-02 | Bezpieczeństwo danych | Bot i agent: read-only na schema BI, zero dostępu do CDN.*; walidacja SQL przed wykonaniem |
+| NF-02 | Bezpieczeństwo danych | Bot i agent: read-only na schema AIBI, zero dostępu do CDN.*; walidacja SQL przed wykonaniem |
 | NF-03 | Prywatność danych | Do Claude API trafia: (1) pytanie + schemat BI, (2) wyniki zapytania do sformułowania odpowiedzi. Zapytania SQL wykonywane lokalnie. Decyzja zaakceptowana przez właściciela projektu |
 | NF-04 | Dostępność bota | Serwis Windows z auto-restartem (99% uptime w godzinach pracy) |
 | NF-05 | Audytowalność | Wszystkie pytania i odpowiedzi logowane lokalnie |
@@ -171,15 +171,15 @@ Serwer firmowy (Windows, sieć lokalna)
 │   │   └── whatsapp_channel.py    ← Meta Cloud API
 │   ├── nlp_pipeline.py            ← pytanie → SQL (Claude API)
 │   ├── report_matcher.py          ← dopasowanie do biblioteki raportów
-│   └── sql_executor.py            ← SELECT na schema BI (read-only)
+│   └── sql_executor.py            ← SELECT na schema AIBI (read-only)
 │
 └── SQL Server (istniejący)
     ├── schema CDN.*               ← baza ERP (bot: brak dostępu)
-    └── schema BI.*                ← widoki semantyczne (bot: read-only)
-        ├── BI.Towary
-        ├── BI.Kontrahenci
-        ├── BI.Zamowienia
-        ├── BI.DokumentyHandlowe
+    └── schema AIBI.*                ← widoki semantyczne (bot: read-only)
+        ├── AIBI.Towary
+        ├── AIBI.Kontrahenci
+        ├── AIBI.Zamowienia
+        ├── AIBI.DokumentyHandlowe
         └── ...
 
 Repozytorium Git

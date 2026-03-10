@@ -17,7 +17,7 @@ Częściowo zrealizowana Faza 2a:
 | `tools/bi_verify.py` | ✓ |
 | `tools/search_bi.py` | ✗ |
 | Bot (`bot/`) | ✗ |
-| Konto `CEiM_BI` na SQL Server | ✗ (wymaga DBA) |
+| Konto `CEIM_AIBI` na SQL Server | ✗ (wymaga DBA) |
 
 ---
 
@@ -38,12 +38,12 @@ Częściowo zrealizowana Faza 2a:
 
 **Zakres:**
 - `bot/pipeline/nlp_pipeline.py` — match+generate (Claude API call 1): dopasowanie raportu LUB generowanie SQL ad-hoc
-- `bot/pipeline/sql_validator.py` — guardrails: blokada DML/EXEC, wymuszenie TOP, tylko `BI.*`
-- `bot/sql_executor.py` — pyodbc read-only na `BI.*` (konto CEiM_BI)
+- `bot/pipeline/sql_validator.py` — guardrails: blokada DML/EXEC, wymuszenie TOP, tylko `AIBI.*`
+- `bot/sql_executor.py` — pyodbc read-only na `AIBI.*` (konto CEIM_AIBI)
 - `bot/pipeline/answer_formatter.py` — Claude API call 2: pytanie + dane → odpowiedź PL
 - `bot/pipeline/conversation.py` — kontekst 3 tury per user, TTL 15 min
 
-**Zależność:** konto `CEiM_BI` na SQL Server (DBA).
+**Zależność:** konto `CEIM_AIBI` na SQL Server (DBA).
 
 **Warunek ukończenia:** `python bot/pipeline/nlp_pipeline.py --question "jakie rezerwacje ma Bolsius"` zwraca poprawną odpowiedź.
 
@@ -76,7 +76,7 @@ Częściowo zrealizowana Faza 2a:
 - `bot/health.py` — endpoint `/health` + watchdog ping co 5 min
 - Rozszerzenie `requirements.txt` o zależności bota
 - Konfiguracja NSSM (instrukcja w INSTALL.md)
-- Rozszerzenie `verify.py` o weryfikację konta CEiM_BI i widoków BI
+- Rozszerzenie `verify.py` o weryfikację konta CEIM_AIBI i widoków BI
 
 **Warunek ukończenia:** bot działa jako serwis Windows, restart automatyczny.
 
@@ -99,5 +99,5 @@ Realizacja po uruchomieniu Telegrama i potwierdzeniu działania pipeline.
 KM1 (search_bi) → KM2 (bot core) → KM3 (Telegram) → KM4 (raporty) → KM5 (deployment) → KM6 (WhatsApp)
 ```
 
-KM2 jest zablokowane na konto CEiM_BI od DBA — można je realizować równolegle z KM1
+KM2 jest zablokowane na konto CEIM_AIBI od DBA — można je realizować równolegle z KM1
 używając CEiM_Reader jako tymczasowe konto testowe.

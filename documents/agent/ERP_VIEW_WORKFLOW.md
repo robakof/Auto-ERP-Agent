@@ -253,7 +253,12 @@ Przejdź przez **każdą** kolumnę CDN.MainTable. Dla każdej zadaj sobie kolej
    zgodnie z zasadami tłumaczenia wartości poniżej.
 3. **Data?** → zidentyfikuj typ Clarion, zastosuj odpowiednią konwersję inline.
 4. **Pole opisowe?** (Opis, Nazwa, Kod, Uwagi) → bez zmian, uwzględnij.
-5. **Pole techniczne?** (GIDTyp, GIDFirma, GIDLp, GUID, TStamp) → domyślnie uwzględnij
+5. **Komponenty GID?** → stosuj regułę:
+   - `GIDFirma` → **pomijamy**
+   - `GIDTyp`   → **tłumaczymy** przez CASE (typ obiektu ERP — niesie sens biznesowy)
+   - `GIDNumer` → **zostawiamy** (klucz do ad-hoc zapytań i JOINów)
+   - `GIDLp`    → **pomijamy**
+6. **Inne pole techniczne?** (GUID, TStamp) → domyślnie uwzględnij
    z adnotacją "techniczne". Pomiń tylko gdy wartość jest stałą dla całej tabeli
    i nie niesie żadnej informacji (udowodnij przez COUNT DISTINCT = 1).
 

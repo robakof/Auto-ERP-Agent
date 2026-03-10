@@ -1,7 +1,7 @@
 {
   "views": [
     {
-      "name": "BI.Rezerwacje",
+      "name": "AIBI.Rezerwacje",
       "file": "views/Rezerwacje.sql",
       "description": "Rezerwacje towarów z pełnymi danymi towaru, kontrahenta, magazynu, dokumentu źródłowego i statusu. Ilości: zarezerwowana, zrealizowana, na dok. mag., do pokrycia. Daty po konwersji z Clarion. Typy dokumentów źródłowych: 960=Zamówienie(ZS/ZZ), 14345=ZPC, 14346=ZPZ→ZP, 2592=BkRez.",
       "primary_table": "CDN.Rezerwacje",
@@ -54,7 +54,7 @@
     }
   ,
     {
-      "name": "BI.KntKarty",
+      "name": "AIBI.KntKarty",
       "file": "views/KntKarty.sql",
       "description": "Kartoteka kontrahentów z pełnymi danymi identyfikacyjnymi, adresowymi, handlowymi i kontaktowymi. Flagi przetłumaczone na Tak/Nie, enumeracje na etykiety PL. Grupa główna jako ścieżka rekurencyjna (CDN.KntGrupyDom).",
       "primary_table": "CDN.KntKarty",
@@ -96,7 +96,7 @@
     }
   ,
     {
-      "name": "BI.Rozrachunki",
+      "name": "AIBI.Rozrachunki",
       "file": "views/Rozrachunki.sql",
       "description": "Rozliczenia dokumentów (matchingi). Każde rozliczenie = para dokumentów: Dok1 (strona rozliczana, TRP) i Dok2 (strona kasowa/bankowa, KAZ). Dominujący wzorzec: Paragon → Zapis kasowy/bankowy. Typy przetłumaczone na pełne nazwy PL. Numery dokumentów budowane inline z CDN.TraNag, CDN.Zapisy, CDN.MemNag, CDN.UpoNag, CDN.RozniceKursowe.",
       "primary_table": "CDN.Rozrachunki",

@@ -1,6 +1,6 @@
-CREATE OR ALTER VIEW BI.Rozrachunki AS
+CREATE OR ALTER VIEW AIBI.Rozrachunki AS
 
--- BI.Rozrachunki — brudnopis SELECT
+-- AIBI.Rozrachunki — brudnopis SELECT
 -- Faza 2 — iteracja 4 (pełne nazwy typów, usunięto zbędne kolumny, rename ParID)
 -- Baseline: ~170 480 wierszy (ROZ_GIDLp = 1)
 

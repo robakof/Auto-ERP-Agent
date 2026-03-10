@@ -196,10 +196,10 @@ Zewnętrznie:
 
 SQL Server (ten sam serwer lub sieć lokalna):
 ├── schema CDN.*    ← baza ERP (bot: brak dostępu)
-└── schema BI.*     ← widoki semantyczne (bot: read-only)
+└── schema AIBI.*     ← widoki semantyczne (bot: read-only)
 
 Power BI / Excel:
-└── DirectQuery / ODBC → SQL Server, schema BI.* (konto CEiM_BI)
+└── DirectQuery / ODBC → SQL Server, schema AIBI.* (konto CEIM_AIBI)
 ```
 
 ---
@@ -222,12 +222,12 @@ Pytanie użytkownika (PL) + kontekst (ostatnie 3 tury)
            ▼
 ┌──────────────────────┐
 │ SQL Validator        │  blokada DML/EXEC, wymuszenie TOP,
-│ (lokalny, bez API)   │  timeout 30s, tylko BI.* schema
+│ (lokalny, bez API)   │  timeout 30s, tylko AIBI.* schema
 └──────────┬───────────┘
            │ zwalidowany SQL
            ▼
 ┌──────────────────────┐
-│ SQL Executor         │ ──► SQL Server, schema BI.* (pyodbc, read-only)
+│ SQL Executor         │ ──► SQL Server, schema AIBI.* (pyodbc, read-only)
 │ (pyodbc)             │
 └──────────┬───────────┘
            │ wyniki JSON
@@ -261,7 +261,7 @@ Odpowiedź do użytkownika (PL)
 | Konto | Uprawnienia | Zastosowanie |
 |-------|-------------|-------------|
 | `CEiM_Reader` | SELECT na CDN.* | Agent ERP (Faza 1, bez zmian) |
-| `CEiM_BI` | SELECT na BI.* (brak CDN.*) | Bot + Power BI + Excel |
+| `CEIM_AIBI` | SELECT na AIBI.* (brak CDN.*) | Bot + Power BI + Excel |
 
 **Zasady projektowania widoków:**
 - Nazwy widoków: rzeczowniki w liczbie mnogiej, bez prefiksów (`Towary`, `Zamowienia`)
@@ -271,13 +271,13 @@ Odpowiedź do użytkownika (PL)
 - Definicje wersjonowane w `solutions/bi/views/*.sql`
 
 **Priorytety pierwszych widoków:**
-1. `BI.Towary` — kartoteki towarowe z grupami, jednostkami, atrybutami
-2. `BI.Kontrahenci` — kartoteki kontrahentów z grupami i danymi adresowymi
-3. `BI.Zamowienia` — nagłówki zamówień sprzedaży z danymi kontrahenta
-4. `BI.PozycjeZamowien` — pozycje zamówień z danymi towaru
-5. `BI.DokumentyHandlowe` — faktury, WZ, PZ z nagłówkami
-6. `BI.PozycjeDokumentow` — pozycje dokumentów
-7. `BI.HistoriaTransakcji` — historia zakupów/sprzedaży per kontrahent/towar
+1. `AIBI.Towary` — kartoteki towarowe z grupami, jednostkami, atrybutami
+2. `AIBI.Kontrahenci` — kartoteki kontrahentów z grupami i danymi adresowymi
+3. `AIBI.Zamowienia` — nagłówki zamówień sprzedaży z danymi kontrahenta
+4. `AIBI.PozycjeZamowien` — pozycje zamówień z danymi towaru
+5. `AIBI.DokumentyHandlowe` — faktury, WZ, PZ z nagłówkami
+6. `AIBI.PozycjeDokumentow` — pozycje dokumentów
+7. `AIBI.HistoriaTransakcji` — historia zakupów/sprzedaży per kontrahent/towar
 
 ---
 
@@ -310,7 +310,7 @@ bot/
 │   └── whatsapp_channel.py
 ├── pipeline/
 │   ├── nlp_pipeline.py            ← match+generate (call 1) + format (call 2)
-│   ├── sql_validator.py           ← guardrails: DML block, TOP, timeout, BI.* only
+│   ├── sql_validator.py           ← guardrails: DML block, TOP, timeout, AIBI.* only
 │   └── conversation.py            ← kontekst 3 tury per user, TTL 15 min
 ├── sql_executor.py
 └── health.py                      ← /health endpoint + watchdog
@@ -347,21 +347,21 @@ Wymagania przed uruchomieniem:
 
 ### 2.6 Power BI i Excel
 
-Brak dodatkowych komponentów. Schema `BI.*` jest bezpośrednio dostępna
+Brak dodatkowych komponentów. Schema `AIBI.*` jest bezpośrednio dostępna
 przez standardowe konekcje SQL Server.
 
 **Power BI Desktop:**
 ```
 Get Data → SQL Server → SQLSERVER\SQLEXPRESS → BI → wybierz widoki
 Tryb: DirectQuery (dane zawsze aktualne)
-Konto: CEiM_BI
+Konto: CEIM_AIBI
 ```
 
 **Excel:**
 ```
 Data → Get Data → From Database → From SQL Server Database
-Server: SQLSERVER\SQLEXPRESS | Database: ERPXL_CEIM | Schema: BI
-Konto: CEiM_BI
+Server: SQLSERVER\SQLEXPRESS | Database: ERPXL_CEIM | Schema: AIBI
+Konto: CEIM_AIBI
 ```
 
 Semantyczne nazwy kolumn eliminują potrzebę transformacji w Power Query.
@@ -379,7 +379,7 @@ pip install -r requirements.txt
 
 # 3. Konfiguracja
 copy .env.example .env
-# Uzupełnij: SQL credentials (CEiM_BI), TELEGRAM_TOKEN,
+# Uzupełnij: SQL credentials (CEIM_AIBI), TELEGRAM_TOKEN,
 # WHATSAPP_TOKEN, ANTHROPIC_API_KEY
 
 # 4. Cloudflare Tunnel (jednorazowo dla WhatsApp)
@@ -422,9 +422,9 @@ analiza najczęstszych pytań bez dopasowania do gotowego raportu.
 
 | Warstwa | Zabezpieczenie |
 |---------|---------------|
-| SQL Server CDN.* | Konto `CEiM_BI` nie ma dostępu — fizyczna separacja |
-| SQL Server BI.* | Konto `CEiM_BI`: SELECT only, bez DDL/DML |
-| Generowany SQL | Walidator: blokada DML/EXEC, wymuszenie TOP 100, timeout 30s, tylko schema BI.* |
+| SQL Server CDN.* | Konto `CEIM_AIBI` nie ma dostępu — fizyczna separacja |
+| SQL Server AIBI.* | Konto `CEIM_AIBI`: SELECT only, bez DDL/DML |
+| Generowany SQL | Walidator: blokada DML/EXEC, wymuszenie TOP 100, timeout 30s, tylko schema AIBI.* |
 | Bot endpoint | Cloudflare Tunnel — serwer nie ma publicznego IP |
 | Claude API (call 1) | Pytanie + schemat BI + lista raportów. Zero danych z bazy |
 | Claude API (call 2) | Pytanie + wyniki SQL (dane biznesowe). Zaakceptowane przez właściciela projektu |

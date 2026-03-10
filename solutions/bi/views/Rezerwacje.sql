@@ -1,4 +1,4 @@
-CREATE OR ALTER VIEW BI.Rezerwacje AS
+CREATE OR ALTER VIEW AIBI.Rezerwacje AS
 SELECT
     -- === TYP REZERWACJI ===
     CASE r.Rez_GIDTyp
