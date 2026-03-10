@@ -218,6 +218,7 @@ Bash tylko dla operacji systemowych które nie mają dedykowanego narzędzia (ur
 Hook bezpieczeństwa blokuje zbyt złożone komendy. Trzymaj się prostych form:
 
 1. **Nie używaj `$()`** — zamiast tego zapisz SQL do pliku i podaj ścieżkę jako argument
+   - Wyjątek: wieloliniowe wiadomości commitów — zapisz treść przez `Write` do `.git/COMMIT_EDITMSG`, następnie `git commit -F .git/COMMIT_EDITMSG`
 2. **Nie używaj `python -c "..."`** z wieloliniowym kodem — zapisz do pliku tymczasowego
 3. **Maksymalnie 2 komendy w łańcuchu `&&`** — dłuższe podziel na osobne wywołania
 4. **Pusty string `""` jako argument** — zastąp pojedynczym znakiem lub usuń
