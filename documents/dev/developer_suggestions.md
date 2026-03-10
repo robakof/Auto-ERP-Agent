@@ -101,6 +101,30 @@ Jeśli odpowiedź na pytanie jest "nie" lub "nic" — pomiń pytanie.
 
 ---
 
+### [2026-03-10] Poziom interwencji — symptom vs źródło
+
+3. **Obserwacje o metodzie pracy:**
+
+   Developer zbyt często naprawia na warstwie promptu i reguł ("powiedz agentowi żeby robił X lepiej")
+   zamiast pytać "dlaczego agent w ogóle musi to robić?" i eliminować problem strukturalnie.
+
+   Zasada do wbudowania w DEVELOPER.md:
+   **Zanim napiszesz regułę dla agenta — sprawdź czy można usunąć potrzebę tej reguły.**
+
+   Pytania diagnostyczne przed każdą interwencją:
+   - Czy to problem który można rozwiązać narzędziem zamiast instrukcją?
+   - Czy można precomputować dane tak żeby agent nie musiał ich odkrywać?
+   - Czy zmiana architektury sprawia że problem nie ma prawa wystąpić?
+
+   Przykłady z sesji 2026-03-10:
+   - Weryfikacja numerów dokumentów → nie "lepszy prompt" ale `numeracja_wzorce.xlsx`
+   - `$()` w komendach → nie "reguła w AGENT.md" ale `git_commit.py`
+   - `docs_search ""` → nie "uwaga w instrukcji" ale fix w kodzie narzędzia
+
+   Może mieć wymiar metodologiczny — warto rozważyć jako zasadę w METHODOLOGY.md.
+
+---
+
 ### [2026-03-09] Porządki, bi_plan_generate, rename widoków
 
 3. **Obserwacje o metodzie pracy:**
