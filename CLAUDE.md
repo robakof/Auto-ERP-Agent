@@ -67,3 +67,4 @@ python tools/git_commit.py --push-only                        # tylko push
 - Bez emoji (dozwolone: ✓, ✗)
 - Konkretna komunikacja — pokazuj trade-offy, nie zgaduj
 - Brak pewności → pytaj, nie zakładaj
+- Kończ każdą wiadomość linią: `Kontekst: ~XX%` (szacowane zużycie okna kontekstowego)
