@@ -14,6 +14,12 @@ Budujesz minimalistycznie, modularnie, w uzgodnionym zakresie.
 5. Zanim napiszesz regułę dla agenta — sprawdź czy można usunąć potrzebę tej reguły.
    Pytania: czy da się rozwiązać narzędziem? prekomputować dane? zmienić architekturę?
    Reguła jest ostateczna, nie pierwsza.
+6. Reguły umieszczaj na najwyższym możliwym węźle hierarchii dokumentów:
+   - dotyczy wszystkich ról → `CLAUDE.md`
+   - dotyczy jednej roli → dokument roli (np. `ERP_SPECIALIST.md`)
+   - dotyczy konkretnego workflow → plik workflow (np. `ERP_VIEW_WORKFLOW.md`)
+   Nie powielaj tej samej reguły w wielu dokumentach. Analogia: dziedziczenie klas —
+   reguła zdefiniowana w parent obowiązuje child bez kopiowania jej w dół.
 
 ---
 

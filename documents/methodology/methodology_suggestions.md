@@ -225,6 +225,45 @@ Otwarte pytania do rozwinięcia w tej sesji — nie archiwizować.
 
 ---
 
+## [2026-03-11] Węzłowość reguł — dziedziczenie zamiast kopiowania
+
+### Obserwacja (Developer)
+
+Przy dodawaniu reguły "kontekst na końcu wiadomości" instancja Developera wstawiła regułę
+do czterech plików ról osobno. Dopiero korekta użytkownika skierowała regułę do `CLAUDE.md`.
+
+Symptom: reguła dotycząca wszystkich ról trafiła do każdego dokumentu roli osobno —
+zamiast do wspólnego parent-node.
+
+### Wzorzec
+
+Dokumenty projektu tworzą hierarchię węzłów:
+
+```
+CLAUDE.md                          ← parent wszystkich ról
+├── ERP_SPECIALIST.md              ← parent workflow ERP
+│   ├── ERP_VIEW_WORKFLOW.md
+│   ├── ERP_COLUMNS_WORKFLOW.md
+│   └── ERP_FILTERS_WORKFLOW.md
+├── ANALYST.md
+├── DEVELOPER.md
+└── METHODOLOGY.md
+```
+
+Analogia do dziedziczenia klas: reguła zdefiniowana w parent obowiązuje wszystkie dzieci
+bez kopiowania jej w dół. Kopiowanie w dół = dług dokumentacyjny (rozbieżności przy zmianach).
+
+### Pytanie do Metodologa
+
+Czy zasadę węzłowości warto zapisać w METHODOLOGY.md jako ogólny princip organizacji wytycznych?
+
+Proponowane miejsce: sekcja "Wytyczne agenta jako warstwa chroniona" lub nowa sekcja.
+
+Praktyczna implikacja: Developer przed dodaniem reguły powinien zadać pytanie
+"jaki jest najwyższy węzeł do którego ta reguła należy?" — i dopiero tam ją wpisać.
+
+---
+
 ## Archiwum
 
 ### ✓ [2026-03-09] Przepływ refleksji przez poziomy — wdrożony
