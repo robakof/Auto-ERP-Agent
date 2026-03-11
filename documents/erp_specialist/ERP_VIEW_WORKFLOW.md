@@ -448,19 +448,20 @@ CREATE OR ALTER VIEW BI.NazwaWidoku AS
 <SELECT z brudnopisu>
 ```
 
-Zapisz do `solutions/bi/views/NazwaWidoku.sql`, zaktualizuj `solutions/bi/catalog.json`:
+Zapisz do `solutions/bi/views/NazwaWidoku.sql`:
 
-```json
-{
-  "name": "BI.NazwaWidoku",
-  "file": "views/NazwaWidoku.sql",
-  "description": "...",
-  "primary_table": "CDN.XXX",
-  "joins": ["CDN.YYY"],
-  "columns": ["ID_Encji", "Kolumna1"],
-  "notes": "Wskazówki: wartości kodowane, warunki filtrowania dla bota"
-}
+```bash
+python tools/solutions_save_view.py --draft NazwaWidoku.sql
 ```
+
+Zaktualizuj `catalog.json` z rzeczywistą strukturą wdrożonego widoku:
+
+```bash
+python tools/bi_catalog_add.py --view AIBI.NazwaWidoku
+```
+
+Widok musi być wdrożony przez DBA zanim uruchomisz `bi_catalog_add` — narzędzie odpytuje bazę.
+Następnie ręcznie uzupełnij w `catalog.json`: `description`, `example_questions`, `notes`.
 
 ```bash
 git add solutions/bi/

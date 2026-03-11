@@ -223,22 +223,6 @@ Dodatkowo koszty API są wysokie przy dużym system promptcie bez cachowania.
 
 ---
 
-### [Dev] bi_catalog_add.py — automatyczne wyciąganie kolumn z widoku SQL
-
-**Źródło:** obserwacja sesji
-**Sesja:** 2026-03-10
-**Wartość:** wysoka
-**Pracochłonność:** mała
-
-Ręczne kopiowanie aliasów kolumn z pliku `.sql` do `catalog.json` jest drogie kontekstowo i podatne na błędy.
-
-Narzędzie `tools/bi_catalog_add.py`:
-- Czyta plik widoku `.sql`
-- Wyciąga kolumny regexem `AS (\w+)`
-- Generuje szkielet wpisu JSON (name, file, columns) gotowy do uzupełnienia o description/example_questions
-- Opcjonalnie: dodaje wpis bezpośrednio do `catalog.json`
-
----
 
 
 ### [Arch] arch_check.py — walidator ścieżek w dokumentach
@@ -278,6 +262,8 @@ Opcje:
 (ERP_SCHEMA_PATTERNS: UpoNag/KB/TraNag-prefiks/Rozrachunki; ERP_VIEW_WORKFLOW: Typ_Dok/artefakt/brudnopis/verify-query; docs_search phrase opcjonalny)
 
 **[Metodologia] Ręczne przetwarzanie struktury = sygnał dla narzędzia** — zrealizowane przez Metodologa 2026-03-11 (dodane do METHODOLOGY.md sekcja Pętla meta-obserwacji)
+
+**[Dev] bi_catalog_add.py** — WONTDO 2026-03-11 (narzędzie istnieje; problem był w braku kroku w Faza 4 ERP_VIEW_WORKFLOW — naprawione)
 
 **[Dev] Kontekst na końcu wiadomości + węzłowość reguł** — zrealizowane 2026-03-11
 (CLAUDE.md: reguła kontekstu; DEVELOPER.md: zasada węzłowości; methodology_suggestions: refleksja dla Metodologa)
