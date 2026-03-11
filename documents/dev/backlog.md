@@ -5,6 +5,28 @@ Przetworzone i priorytetyzowane zadania developerskie.
 
 Zarządza: Developer.
 
+## Przegląd
+
+| # | Tytuł | Obszar | Wartość | Praca |
+|---|---|---|---|---|
+| 1 | LOOM — publikacja na GitHub | Dev | średnia | mała |
+| 2 | Baza wzorców numeracji dokumentów | ERP Specialist | wysoka | średnia |
+| 3 | Reload konfiguracji bez restartu | Bot | średnia | mała |
+| 4 | Routing model Haiku/Sonnet | Bot | średnia | średnia |
+| 5 | Fallback przy błędzie SQL | Bot | średnia | średnia |
+| 6 | NO_SQL zbyt agresywne | Bot | wysoka | mała |
+| 7 | Kontekst firmowy + prompt caching | Bot | wysoka | mała–średnia |
+| 8 | Obserwacje z sesji BI.Rozrachunki (wdrożenie do docs) | Workflow | wysoka | mała |
+| 9 | Ręczne przetwarzanie struktury = sygnał dla narzędzia | Metodologia | wysoka | mała |
+| 10 | bi_catalog_add.py — wyciąganie kolumn z SQL | Dev | wysoka | mała |
+| 11 | ERP_SCHEMA_PATTERNS + ERP_VIEW_WORKFLOW — odkrycia Rozrachunki | Workflow | wysoka | mała |
+| 12 | Komendy ERP Specialist blokowane przez hook | Dev | wysoka | mała |
+| 13 | Informacja o kontekście na końcu wiadomości | Dev | wysoka | mała |
+| 14 | Sygnatury narzędzi powielone w wielu miejscach | Arch | średnia | mała/duża |
+| 15 | arch_check.py — walidator ścieżek w dokumentach | Arch | średnia | mała |
+
+---
+
 ## Format wpisu
 
 ```
@@ -296,6 +318,20 @@ Dwa wzorce blokowane u agenta ERP:
 Agent powinien kończyć każdą wiadomość informacją o aktualnym zużyciu kontekstu
 (np. "Kontekst: ~54%"). Cel: świadomość co zużywa kontekst, sygnał do optymalizacji,
 bezpieczeństwo przy długich sesjach. Wpisać jako regułę do DEVELOPER.md.
+
+---
+
+### [Arch] arch_check.py — walidator ścieżek w dokumentach
+
+**Źródło:** obserwacja sesji 2026-03-11 (refaktor erp_specialist)
+**Sesja:** 2026-03-11
+**Wartość:** średnia
+**Pracochłonność:** mała
+
+Skanuje pliki `.md` w poszukiwaniu wzorców `` `documents/...` `` i sprawdza czy ścieżki istnieją na dysku.
+Uruchamiany przed commitem po każdym refaktorze struktury katalogów.
+
+Do wdrożenia przy kolejnym dużym refaktorze — nie teraz.
 
 ---
 
