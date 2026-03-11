@@ -34,6 +34,14 @@
 
 ## Dziennik
 
+### 2026-03-11 — Węzłowość reguł + kontekst na końcu wiadomości
+
+- CLAUDE.md: reguła `Kontekst: ~XX%` na końcu każdej wiadomości (zasada wspólna dla wszystkich ról)
+- DEVELOPER.md: zasada #6 — reguły umieszczaj na najwyższym możliwym węźle hierarchii (analogia dziedziczenia klas)
+- methodology_suggestions.md: refleksja "Węzłowość reguł" dla Metodologa
+
+---
+
 ### 2026-03-11 — Dokumentacja ERP Specialist + fix docs_search
 
 - ERP_SCHEMA_PATTERNS: TraNag prefiks (Z)/(A)/(s), KB→CDN.Zapisy, CDN.UpoNag typ 2832, CDN.Rozrachunki GIDLp

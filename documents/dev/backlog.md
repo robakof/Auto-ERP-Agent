@@ -224,18 +224,6 @@ Narzędzie `tools/bi_catalog_add.py`:
 
 ---
 
-### [Dev] Informacja o kontekście na końcu każdej wiadomości
-
-**Źródło:** developer_suggestions
-**Sesja:** 2026-03-10
-**Wartość:** wysoka
-**Pracochłonność:** mała
-
-Agent powinien kończyć każdą wiadomość informacją o aktualnym zużyciu kontekstu
-(np. "Kontekst: ~54%"). Cel: świadomość co zużywa kontekst, sygnał do optymalizacji,
-bezpieczeństwo przy długich sesjach. Wpisać jako regułę do DEVELOPER.md.
-
----
 
 ### [Arch] arch_check.py — walidator ścieżek w dokumentach
 
@@ -274,6 +262,9 @@ Opcje:
 (ERP_SCHEMA_PATTERNS: UpoNag/KB/TraNag-prefiks/Rozrachunki; ERP_VIEW_WORKFLOW: Typ_Dok/artefakt/brudnopis/verify-query; docs_search phrase opcjonalny)
 
 **[Metodologia] Ręczne przetwarzanie struktury = sygnał dla narzędzia** — zrealizowane przez Metodologa 2026-03-11 (dodane do METHODOLOGY.md sekcja Pętla meta-obserwacji)
+
+**[Dev] Kontekst na końcu wiadomości + węzłowość reguł** — zrealizowane 2026-03-11
+(CLAUDE.md: reguła kontekstu; DEVELOPER.md: zasada węzłowości; methodology_suggestions: refleksja dla Metodologa)
 
 **[Arch] Separacja pamięci między agentami wykonawczymi** — zrealizowane 2026-03-11
 (analyst_suggestions.md, progress log per-zakres, etykieta "Wykonawcy" w CLAUDE.md/METHODOLOGY.md)
