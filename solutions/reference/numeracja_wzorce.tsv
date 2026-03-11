@@ -1,0 +1,33 @@
+Tabela	GIDTyp	TypNazwa	PrzykladNumeru
+CDN.TraNag	1232	Koszt dodatkowy zakupu	KDZ-1/01/26/ZTHKK
+CDN.TraNag	1489	Przyjęcie zewnętrzne	PZ-1/06/23
+CDN.TraNag	1497	Korekta przyjęcia zewnętrznego	PZK-1/06/23/ZTHKK
+CDN.TraNag	1521	Faktura zakupu	FZ-1/06/23
+CDN.TraNag	1529	Korekta faktury zakupu	(A)FZK-1/06/23/ZKKRK
+CDN.TraNag	1603	Przesunięcie międzymagazynowe wydanie	MMW-1/06/23
+CDN.TraNag	1604	Przesunięcie międzymagazynowe przyjęcie	MMP-1/06/23
+CDN.TraNag	1616	Rozchód wewnętrzny	RW-1/06/23
+CDN.TraNag	1617	Przychód wewnętrzny	PW-1/05/23
+CDN.TraNag	1624	Korekta rozchodu wewnętrznego	RWK-10/06/23
+CDN.TraNag	1625	Korekta przychodu wewnętrznego	PWK-166/06/23
+CDN.TraNag	2001	Wydanie zewnętrzne	WZ-1/06/23
+CDN.TraNag	2003	Korekta kosztu	KK-1/06/23
+CDN.TraNag	2004	Deprecjacja	DP-1/05/24
+CDN.TraNag	2005	Wydanie zewnętrzne eksportowe	WZE-1/03/25/SPKR
+CDN.TraNag	2009	Korekta wydania zewnętrznego	WZK-96/06/23
+CDN.TraNag	2013	Korekta wydania eksportowego	WKE-1/09/25/SPUEK
+CDN.TraNag	2033	Faktura sprzedaży	FS-1/06/23/FRA
+CDN.TraNag	2034	Paragon	PA-1/06/23/FRA
+CDN.TraNag	2035	Faktura do paragonu	RA-1/10/23/CME
+CDN.TraNag	2037	Faktura eksportowa	FSE-1/07/24/SPKR
+CDN.TraNag	2039	Raport sprzedaży	RS-1/06/23
+CDN.TraNag	2041	Korekta faktury sprzedaży	FSK-7/06/23/FRA
+CDN.TraNag	2042	Korekta paragonu	PAK-1255/06/23/CME
+CDN.TraNag	2045	Korekta faktury eksportowej	(s)FKE-1/09/25/SPUEK
+CDN.ZamNag	960	Zamówienie	ZS-2/05/23/PH_4
+CDN.ProdZlecenia	14343	Zlecenie produkcyjne	ZP-29/06/23/OTO
+CDN.MemNag	4144	Nota memoriałowa	NM-INN/2023/05/1
+CDN.UpoNag	2832	Nota odsetkowa	NO-25/3
+CDN.UpoNag	2833	Upomnienie	UP-26/1
+CDN.Zapisy	784	Zapis kasowy/bankowy	KB-23/KASAF/2/1
+CDN.RozniceKursowe	435	Różnica kursowa	RK-1/23
