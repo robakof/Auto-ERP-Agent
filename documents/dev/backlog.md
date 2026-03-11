@@ -38,35 +38,6 @@ Kroki:
 
 ---
 
-### [Arch] Separacja pamięci między agentami wykonawczymi
-
-**Źródło:** developer_suggestions
-**Sesja:** 2026-03-10
-**Wartość:** wysoka
-**Pracochłonność:** średnia
-
-Pojawienie się Analityka Danych obok Agenta ERP ujawniło dwa problemy:
-
-**1. Nazwa poziomu "Agent" jest zbyt wąska.**
-Mamy wiele ról wykonawczych (ERP, Analityk, potencjalnie więcej).
-Poziom powinien mieć nazwę ogólną (np. "Executor" lub "Agenci").
-Dotyczy: CLAUDE.md (tabela ról), METHODOLOGY.md (tabela poziomów), DEVELOPER.md.
-
-**2. Współdzielona pamięć refleksji jest błędna.**
-Obecny stan: Analityk i Agent ERP dzielą `agent_suggestions.md`.
-Problem: różne role mają różne wzorce obserwacji — mieszanie zaszumi plik.
-Każdy agent powinien mieć własny plik suggestions (np. `analyst_suggestions.md`).
-
-**3. Progress log analityka — otwarte pytanie.**
-Agent ERP: progress log na poziomie projektu (widok, filtr, kolumna).
-Analityk: co jest jednostką pracy? Per zakres (widok/tabela)? Sesja?
-Wymaga decyzji przed wdrożeniem.
-
-**Uwaga:** punkty 1 i 2 mają wymiar metodologiczny — warto rozważyć eskalację
-do sesji Metodologa przed wdrożeniem. Punkt 3 może być rozwiązany na poziomie Dev.
-
----
-
 ### [Agent] Baza wzorców numeracji dokumentów — usamodzielnienie agenta
 
 **Źródło:** developer_suggestions + obserwacja użytkownika
@@ -346,6 +317,10 @@ Opcje:
 ---
 
 ## Archiwum
+
+**[Arch] Separacja pamięci między agentami wykonawczymi** — zrealizowane 2026-03-11
+(analyst_suggestions.md, progress log per-zakres, etykieta "Wykonawcy" w CLAUDE.md/METHODOLOGY.md)
+
 
 **[Dev] git_commit.py** — zrealizowane 2026-03-10 (--all, --files, --push, --push-only, 14 testów)
 

@@ -38,11 +38,13 @@ Nie modyfikuj poniższych plików bez jawnego zatwierdzenia przez użytkownika:
 - `documents/dev/DEVELOPER.md`
 - `documents/methodology/METHODOLOGY.md`
 
-Wyjątek: `documents/agent/agent_suggestions.md` — agent dopisuje autonomicznie po etapie pracy.
+Wyjątki — dopisywane autonomicznie po etapie pracy:
+- `documents/agent/agent_suggestions.md` (Agent ERP)
+- `documents/analyst/analyst_suggestions.md` (Analityk Danych)
 
 ### Eskalacja między poziomami
 
-Projekt działa na trzech poziomach (Agent / Developer / Metodolog).
+Projekt działa na trzech poziomach (Wykonawcy / Developer / Metodolog).
 Eskalacja idzie wyłącznie w górę. Jeśli zadanie nie pasuje do Twojej roli:
 
 1. Nazwij obserwację: "To wymaga decyzji na poziomie Developera / Metodologa."

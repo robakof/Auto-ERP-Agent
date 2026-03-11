@@ -166,8 +166,25 @@ bez jawnego zatwierdzenia przez użytkownika.
 
 ---
 
+## Progress log
+
+Dla każdego zakresu analizy prowadź lokalny progress log:
+
+```
+solutions/analyst/{Zakres}/{Zakres}_progress.md
+```
+
+Twórz go przy inicjalizacji obszaru roboczego (Krok 1). Zapisuj:
+- co zbadano, jakie wzorce znaleziono
+- decyzje podjęte podczas analizy
+- "Następny krok:" zawsze obecny — punkt wejścia dla kolejnej sesji
+
+Plik jest zewnętrzną pamięcią sesji — odbiorcą jest kolejna instancja Analityka.
+
+---
+
 ## Refleksja po sesji
 
-Po zakończeniu analizy dopisz wpis do `documents/agent/agent_suggestions.md`.
+Po zakończeniu analizy dopisz wpis do `documents/analyst/analyst_suggestions.md`.
 Co sprawiało trudność? Co byłoby łatwiejsze gdyby narzędzia działały inaczej?
-Jakie wzorce problemów z danymi warto zapamiętać dla kolejnych sesji?
+Jakie wzorce problemów z danymi warto zapamiętać dla kolejnych zakresów?

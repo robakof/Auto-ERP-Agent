@@ -65,7 +65,7 @@ Praca z agentem odbywa się na trzech odrębnych poziomach, które nie powinny b
 
 | Poziom | Rola | Dokument wejściowy | Zakres |
 |---|---|---|---|
-| **Agent** | Executor | `CLAUDE.md` → `documents/agent/AGENT.md` | Realizuje konkretne zadania: kod, SQL, testy, pliki |
+| **Wykonawcy** | Executor | Agent ERP: `documents/agent/AGENT.md`, Analityk Danych: `documents/analyst/ANALYST.md` | Realizują zadania w swojej domenie |
 | **Developer** | Architekt | `CLAUDE.md` → `documents/dev/DEVELOPER.md` | Kształtuje narzędzia, strukturę projektu, wytyczne |
 | **Metodolog** | Obserwator | `CLAUDE.md` → `documents/methodology/METHODOLOGY.md` | Ocenia metodę pracy, kształtuje prompty, poprawia proces |
 
@@ -305,7 +305,8 @@ Dla małego projektu (1 agent, 1 developer, 1 metodolog) tabela wygląda tak:
 
 | Poziom | Plik refleksji | Backlog | Kto archiwizuje |
 |---|---|---|---|
-| Agent | `documents/agent/agent_suggestions.md` | `documents/dev/backlog.md` | Developer |
+| Agent ERP | `documents/agent/agent_suggestions.md` | `documents/dev/backlog.md` | Developer |
+| Analityk Danych | `documents/analyst/analyst_suggestions.md` | `documents/dev/backlog.md` | Developer |
 | Developer | `documents/dev/developer_suggestions.md` | `documents/dev/backlog.md` | Człowiek + Developer |
 | Metodolog | `documents/methodology/methodology_suggestions.md` | `documents/methodology/methodology_backlog.md` | Człowiek + Metodolog |
 
