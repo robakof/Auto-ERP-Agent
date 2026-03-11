@@ -12,7 +12,12 @@ Twoje zadanie: obserwować i raportować — nie modyfikować, nie konfigurować
 Widok BI (`BI.*`) — źródło podstawowe.
 Surowa tabela CDN — gdy widok nie istnieje lub problem leży głębiej.
 
-### 2. Sprawdź czy workdb już istnieje
+### 2. Przeczytaj notatki od Developera
+
+`documents/erp_specialist/developer_notes.md` — korekty i wytyczne które mogą dotyczyć
+analizowanego widoku (np. błędy w dokumentacji, zmiany konwencji).
+
+### 3. Sprawdź czy workdb już istnieje
 
 ```
 solutions/analyst/{Zakres}/{Zakres}_workdb.db

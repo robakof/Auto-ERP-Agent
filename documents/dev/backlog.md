@@ -132,22 +132,6 @@ Reguła do AGENT.md: "przed numeracją inline — sprawdź wzorce w solutions/re
 
 ---
 
-### [Analityk] Analityk jako weryfikator konwencji widoku
-
-**Źródło:** obserwacja sesji 2026-03-11
-**Sesja:** 2026-03-11
-**Wartość:** wysoka
-**Pracochłonność:** średnia
-
-Analityk sprawdza gotowy widok (po Fazie 3 ERP Specialist, przed wdrożeniem) pod kątem
-zgodności z konwencjami projektu. Konwencje zdefiniowane w `ERP_VIEW_WORKFLOW.md`.
-
-Do ustalenia:
-- Checklist konwencji (GID, Typ_Dok, nullowalność, nazewnictwo) — osobny plik czy sekcja w ANALYST.md?
-- Wynik: lista uwag → ERP Specialist poprawia → ponowny przegląd czy jednorazowo?
-- Punkt wejścia: plik brudnopisu `.sql` czy eksport Excel?
-
----
 
 ### [Bot] Reload konfiguracji bez restartu
 
@@ -287,7 +271,9 @@ Opcje:
 
 **[Dev] Agent edytuje pliki chronione bez jawnego zatwierdzenia** — zrealizowane 2026-03-11 (CLAUDE.md: protokół pytania przed edycją)
 
-**[Arch] Kanał Developer → ERP Specialist** — częściowo zrealizowane 2026-03-11 (plik `documents/erp_specialist/developer_notes.md` gotowy; otwarte: dodać odczyt tego pliku do ERP_SPECIALIST.md na starcie sesji — wymaga zatwierdzenia)
+**[Arch] Kanał Developer → ERP Specialist** — zrealizowane 2026-03-11 (`developer_notes.md` + routing w ERP_SPECIALIST.md + ANALYST.md)
+
+**[Analityk] Weryfikator konwencji** — zrealizowane 2026-03-11 (`analyst_start.md`: dwie role, audyt istniejących widoków, format review; otwarte: krok review w ERP_VIEW_WORKFLOW.md po pierwszym przebiegu)
 
 **[Dev] Kontekst na końcu wiadomości + węzłowość reguł** — zrealizowane 2026-03-11
 (CLAUDE.md: reguła kontekstu; DEVELOPER.md: zasada węzłowości; methodology_suggestions: refleksja dla Metodologa)

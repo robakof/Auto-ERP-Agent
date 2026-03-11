@@ -34,6 +34,14 @@
 
 ## Dziennik
 
+### 2026-03-11 — Rozruch Analityka
+
+- `documents/analyst/analyst_start.md` — dokument rozruchowy: dwie role (weryfikator konwencji pre-prod + data quality post-prod), pierwsze zadanie (audyt istniejących widoków), format handoff i review
+- `ANALYST.md` — dodany odczyt `developer_notes.md` na starcie sesji
+- Otwarte: krok "Analityk review" do dodania w `ERP_VIEW_WORKFLOW.md` po pierwszym przebiegu
+
+---
+
 ### 2026-03-11 — Weryfikacja prefiksów + kanał Developer→ERP Specialist
 
 - `nieznane_prefiksy_query.sql` — zapytanie wykrywające nieznane prefiksy we wszystkich tabelach nagłówkowych (TraNag smart grouping + MIN/MAX próbka dla ZamNag/MemNag/UpoNag/Prod/Zapisy/RK)
