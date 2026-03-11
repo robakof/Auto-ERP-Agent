@@ -34,6 +34,18 @@
 
 ## Dziennik
 
+### 2026-03-11 — Weryfikacja prefiksów + kanał Developer→ERP Specialist
+
+- `nieznane_prefiksy_query.sql` — zapytanie wykrywające nieznane prefiksy we wszystkich tabelach nagłówkowych (TraNag smart grouping + MIN/MAX próbka dla ZamNag/MemNag/UpoNag/Prod/Zapisy/RK)
+- Wynik: pusty — prefiksy `(s)/(A)/(Z)/brak` są kompletne i wyłączne
+- Odkrycie: GenDokMag=-1 ma wyższy priorytet niż Stan&2 (ERP_SCHEMA_PATTERNS CASE odwrócony — do korekty)
+- Odkrycie: `TrN_TypNumeracji` nie istnieje w CDN.TraNag — prawidłowo `TrN_GIDTyp IN (...)` (jak w Rozrachunki.sql)
+- `documents/erp_specialist/developer_notes.md` — nowy kanał Developer→ERP Specialist (dwa wpisy: TrN_TypNumeracji + priorytet prefiksów)
+- `ERP_SPECIALIST.md` — dodany odczyt `developer_notes.md` na starcie sesji
+- Otwarte: korekta CASE w ERP_SCHEMA_PATTERNS.md (priorytet GenDokMag przed Stan&2) — wymaga zatwierdzenia
+
+---
+
 ### 2026-03-11 — Baza wzorców numeracji dokumentów
 
 - `solutions/reference/numeracja_wzorce_query.sql` — zapytanie dla DBA (CDN.NazwaObiektu 4 params, Format=2)

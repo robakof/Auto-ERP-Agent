@@ -281,7 +281,7 @@ Opcje:
 
 **[Dev] bi_catalog_add.py** — WONTDO 2026-03-11 (narzędzie istnieje; problem był w braku kroku w Faza 4 ERP_VIEW_WORKFLOW — naprawione)
 
-**[Agent] Baza wzorców numeracji** — częściowo zrealizowane 2026-03-11 (pliki reference gotowe; otwarte: reguła w ERP_SPECIALIST.md)
+**[Agent] Baza wzorców numeracji** — zrealizowane 2026-03-11 (pliki reference gotowe, prefiksy zweryfikowane empirycznie we wszystkich tabelach nagłówkowych — wynik pusty, dokumentacja kompletna)
 
 **[Dev] Zasada "zbadaj strukturę przed budowaniem"** — zrealizowane 2026-03-11 (DEVELOPER.md zasada #6)
 
