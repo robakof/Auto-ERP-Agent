@@ -17,13 +17,12 @@ Zarządza: Developer.
 | 6 | NO_SQL zbyt agresywne | Bot | wysoka | mała |
 | 7 | Kontekst firmowy + prompt caching | Bot | wysoka | mała–średnia |
 | 8 | Obserwacje z sesji BI.Rozrachunki (wdrożenie do docs) | Workflow | wysoka | mała |
-| 9 | Ręczne przetwarzanie struktury = sygnał dla narzędzia | Metodologia | wysoka | mała |
-| 10 | bi_catalog_add.py — wyciąganie kolumn z SQL | Dev | wysoka | mała |
-| 11 | ERP_SCHEMA_PATTERNS + ERP_VIEW_WORKFLOW — odkrycia Rozrachunki | Workflow | wysoka | mała |
-| 12 | Komendy ERP Specialist blokowane przez hook | Dev | wysoka | mała |
-| 13 | Informacja o kontekście na końcu wiadomości | Dev | wysoka | mała |
-| 14 | Sygnatury narzędzi powielone w wielu miejscach | Arch | średnia | mała/duża |
-| 15 | arch_check.py — walidator ścieżek w dokumentach | Arch | średnia | mała |
+| 9 | bi_catalog_add.py — wyciąganie kolumn z SQL | Dev | wysoka | mała |
+| 10 | ERP_SCHEMA_PATTERNS + ERP_VIEW_WORKFLOW — odkrycia Rozrachunki | Workflow | wysoka | mała |
+| 11 | Komendy ERP Specialist blokowane przez hook | Dev | wysoka | mała |
+| 12 | Informacja o kontekście na końcu wiadomości | Dev | wysoka | mała |
+| 13 | Sygnatury narzędzi powielone w wielu miejscach | Arch | średnia | mała/duża |
+| 14 | arch_check.py — walidator ścieżek w dokumentach | Arch | średnia | mała |
 
 ---
 
@@ -221,28 +220,6 @@ Sześć obserwacji do wdrożenia w dokumentacji agenta:
 
 ---
 
-### [Metodologia] Wzorzec: ręczne przetwarzanie struktury pliku = sygnał dla narzędzia
-
-**Źródło:** developer_suggestions
-**Sesja:** 2026-03-10
-**Wartość:** wysoka
-**Pracochłonność:** mała (jako reguła) / zależy od implementacji
-
-Obserwacja z sesji: agent ręcznie przepisał ~100 aliasów kolumn z pliku `.sql` do `catalog.json`.
-Koszt: duży (kontekst + czas + podatność na błędy). Narzędzie `bi_catalog_add.py` rozwiązuje
-konkretny przypadek, ale obserwacja jest szersza:
-
-**Za każdym razem gdy agent ręcznie przetwarza strukturę pliku (regex, ekstrakcja, transformacja)
-— to sygnał że brakuje narzędzia.**
-
-Pytanie diagnostyczne: "Czy to co właśnie robię manualnie mogłoby być jednym wywołaniem CLI?"
-Jeśli tak i jeśli sytuacja powtarza się lub jest kosztowna — napisz narzędzie.
-
-Potencjalny wymiar metodologiczny: czy ta zasada powinna być zapisana w metodologii jako
-ogólna reguła dla Developera? Handoff do Metodologa przygotowany.
-
----
-
 ### [Dev] bi_catalog_add.py — automatyczne wyciąganie kolumn z widoku SQL
 
 **Źródło:** obserwacja sesji
@@ -353,6 +330,8 @@ Opcje:
 ---
 
 ## Archiwum
+
+**[Metodologia] Ręczne przetwarzanie struktury = sygnał dla narzędzia** — zrealizowane przez Metodologa 2026-03-11 (dodane do METHODOLOGY.md sekcja Pętla meta-obserwacji)
 
 **[Arch] Separacja pamięci między agentami wykonawczymi** — zrealizowane 2026-03-11
 (analyst_suggestions.md, progress log per-zakres, etykieta "Wykonawcy" w CLAUDE.md/METHODOLOGY.md)
