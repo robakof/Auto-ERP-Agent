@@ -47,14 +47,11 @@ z_numerem AS (
 z_prefiksem AS (
     SELECT
         *,
+        -- Prefiks to wszystko do pierwszego ')' włącznie, jeśli numer zaczyna się od '('.
+        -- Unikamy PATINDEX('%[A-Z]%') który na collacji CI łapie też małe litery.
         CASE
-            WHEN Numer IS NOT NULL
-                 AND CHARINDEX('-', Numer) > 1
-                 AND PATINDEX('%[A-Z]%', LEFT(Numer, CHARINDEX('-', Numer) - 1)) > 1
-            THEN LEFT(
-                    LEFT(Numer, CHARINDEX('-', Numer) - 1),
-                    PATINDEX('%[A-Z]%', LEFT(Numer, CHARINDEX('-', Numer) - 1)) - 1
-                 )
+            WHEN Numer IS NOT NULL AND LEFT(Numer, 1) = '('
+            THEN LEFT(Numer, CHARINDEX(')', Numer))
             ELSE ''
         END AS Prefiks
     FROM z_numerem

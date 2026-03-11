@@ -22,8 +22,10 @@ Nie zakładaj że "brak wyników" znaczy "brak danych w ERP". To może być prob
 
 ### 2. Odczytaj kontekst
 
-Przeczytaj `documents/erp_specialist/erp_specialist_suggestions.md` — sprawdź czy poprzednia instancja
-zostawiła obserwacje istotne dla Twojego zadania.
+Przeczytaj w tej kolejności:
+
+1. `documents/erp_specialist/developer_notes.md` — wytyczne i korekty od Developera (czytaj zawsze, mogą zawierać poprawki do dokumentacji ERP)
+2. `documents/erp_specialist/erp_specialist_suggestions.md` — obserwacje poprzednich instancji ERP Specialist
 
 ---
 

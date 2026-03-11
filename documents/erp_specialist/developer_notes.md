@@ -24,5 +24,26 @@ Mapowanie akronimów → GIDTyp: `solutions/reference/numeracja_wzorce.tsv` kolu
 
 ---
 
+### 2026-03-11 — Priorytet prefiksów: GenDokMag = -1 jest ważniejszy niż Stan & 2
+
+Zweryfikowane empirycznie przez CDN.NazwaObiektu:
+
+GIDTyp 2041 (FSK), Stan=6 (bit2=1), GenDokMag=-1 → funkcja zwraca `(s)FSK`, nie `(Z)FSK`.
+
+Oznacza to że gdy dokument ma jednocześnie GenDokMag=-1 i Stan&2=2,
+prefiks pochodzi od GenDokMag, nie od Stan. Prawidłowa kolejność CASE:
+
+```
+1. WHEN GenDokMag = -1 AND typ zakupowy (FZ/FZK/PZ) → (A)
+2. WHEN GenDokMag = -1                               → (s)
+3. WHEN Stan & 2 = 2 AND typ korekty                 → (Z)
+4. ELSE                                              → brak
+```
+
+ERP_SCHEMA_PATTERNS.md ma odwróconą kolejność (Z) przed (s)/(A) — wymaga korekty.
+Do zatwierdzenia przez Developera przed edycją (plik chroniony).
+
+---
+
 ## Archiwum
 
