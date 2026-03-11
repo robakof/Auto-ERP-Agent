@@ -293,7 +293,15 @@ zanim szczegóły znikną z własnego kontekstu.
 
 ### Przepływ refleksji przez poziomy
 
-Każdy poziom ma dedykowany plik refleksji (append-only) i odpowiadający mu backlog:
+Zasada ogólna: **1 jednostka organizacyjna = 1 plik refleksji**. Jednostka to rola
+w konkretnej domenie — nie poziom abstrakcji. Przy wielu rolach na tym samym poziomie
+(wielu agentów, wielu developerów) każda rola ma własny plik.
+
+Przepływ odzwierciedla strukturę organizacyjną — każda warstwa filtruje i agreguje,
+przekazując w górę tylko to czego nie mogła rozwiązać samodzielnie. Konkretna struktura
+plików i katalogów zależy od projektu.
+
+Dla małego projektu (1 agent, 1 developer, 1 metodolog) tabela wygląda tak:
 
 | Poziom | Plik refleksji | Backlog | Kto archiwizuje |
 |---|---|---|---|
@@ -301,11 +309,8 @@ Każdy poziom ma dedykowany plik refleksji (append-only) i odpowiadający mu bac
 | Developer | `documents/dev/developer_suggestions.md` | `documents/dev/backlog.md` | Człowiek + Developer |
 | Metodolog | `documents/methodology/methodology_suggestions.md` | `documents/methodology/methodology_backlog.md` | Człowiek + Metodolog |
 
-Zasada: **1 poziom — 1 plik refleksji**. Pliki refleksyjne nie są czyszczone — przetworzone
-wpisy przenoszone są do sekcji Archiwum w tym samym pliku.
-
-Metodolog czyta `developer_suggestions.md` i wyłuskuje z niego obserwacje metodologiczne
-do własnego `methodology_suggestions.md`. Developer nie pisze bezpośrednio do pliku Metodologa.
+Pliki refleksyjne nie są czyszczone — przetworzone wpisy przenoszone są do sekcji
+Archiwum w tym samym pliku. Developer nie pisze bezpośrednio do pliku Metodologa.
 
 ---
 

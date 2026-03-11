@@ -34,27 +34,33 @@ Zostawić jedną ramę orientacyjną, resztę zastąpić konkretnymi warunkami.
 
 ---
 
-### Wielość ról wykonawczych — zasada 1 rola = 1 plik refleksji
+### Model wirtualnej firmy AI — zasady do METHODOLOGY.md
 
-**Źródło:** developer_suggestions + backlog.md ([Arch] Separacja pamięci między agentami)
+**Źródło:** methodology_suggestions (sesja 2026-03-11)
 **Sesja:** 2026-03-11
-**Dokument do zmiany:** METHODOLOGY.md (sekcja "Przepływ refleksji przez poziomy")
+**Dokument do zmiany:** METHODOLOGY.md (nowa sekcja lub rozszerzenie "Trzy poziomy działania")
 
-Obecna tabela przepływu refleksji zakłada jeden poziom "Agent" z jednym plikiem sugestii.
-Projekt ma już dwie role wykonawcze (Agent ERP, Analityk Danych) — każda z innymi wzorcami
-obserwacji. Mieszanie zaszumi plik refleksji.
+Wypracowane zasady czekające na wdrożenie:
 
-Pytania do rozstrzygnięcia przed wdrożeniem:
-- Czy poziom "Agent" przemianować na "Executor" / "Agenci" w tabeli poziomów?
-- Zasada: każda rola wykonawcza = własny plik sugestii (np. agent_erp_suggestions.md,
-  analyst_suggestions.md)?
-- Co jest jednostką pracy dla Analityka (per sesja? per zakres/widok)?
+1. Podział ról człowiek/AI — rola trafia do tego kto lepiej ją wypełnia w danym momencie.
+   Warunek przydziału do AI: decyzje przewidywalne i weryfikowalne.
 
-Ref. dev backlog: [Arch] Separacja pamięci między agentami wykonawczymi (2026-03-10).
+2. Jednostka pracy — zdefiniuj zanim zaczniesz zbierać refleksje. Definicja należy
+   do dokumentu roli w projekcie, nie do metodologii.
+
+3. Struktura organizacyjna przy skali — przepływ refleksji odzwierciedla org chart.
+   PM jako warstwa agregująca między developerami a metodologiem.
+
+Ref. methodology_suggestions.md: [2026-03-11] Wirtualna firma AI.
 
 ---
 
 ## Archiwum
+
+### ✓ [2026-03-11] Wielość ról — zasada 1 jednostka org. = 1 plik refleksji — wdrożona 2026-03-11
+
+Zasada ogólna dodana do METHODOLOGY.md, sekcja "Przepływ refleksji przez poziomy".
+Tabela małego projektu zachowana jako przykład.
 
 ### ✓ [2026-03-08] Reguła zamykania wątków — wdrożona 2026-03-11
 

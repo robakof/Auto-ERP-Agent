@@ -208,6 +208,13 @@ Jeśli odkryjesz nowy wzorzec SQL, ograniczenie ERP lub nieoczywiste zachowanie 
 
 ---
 
+## Ręczne przetwarzanie jako sygnał
+
+Gdy ręcznie przetwarzasz strukturę pliku (regex, ekstrakcja, transformacja) — zatrzymaj się
+i zapytaj użytkownika czy warto zapisać jako sugestię stworzenia dedykowanego narzędzia.
+
+---
+
 ## Refleksja po etapie pracy
 
 Po zakończeniu etapu pracy dopisz wpis do `documents/agent/agent_suggestions.md`.

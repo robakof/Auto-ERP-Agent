@@ -144,6 +144,87 @@ naprawić go strukturalnie.
 
 ---
 
+## [2026-03-11] Wirtualna firma AI — przepływ refleksji w skali organizacji
+
+### Obserwacja
+
+Obecna zasada "1 poziom = 1 plik refleksji" zakłada małą strukturę (1 agent, 1 developer,
+1 metodolog). Przy skalowaniu (wiele ról na każdym poziomie) przestaje działać.
+
+Model docelowy: wirtualna firma AI z warstwową strukturą ról:
+- 100 agentów wykonawczych — pogrupowani w domeny
+- 10 developerów — każdy właściciel domeny
+- Projekt Manager — koordynuje developerów, agreguje dla metodologa
+- Metodolog — obserwuje metodę pracy całej firmy
+
+### Zasada
+
+Przepływ refleksji odzwierciedla strukturę organizacyjną. Każda warstwa filtruje
+i agreguje — przekazuje w górę tylko to, czego nie mogła rozwiązać samodzielnie.
+
+```
+Agent → suggestions domeny
+Developer domeny → czyta agentów, agreguje → dev_suggestions
+PM → czyta developerów, agreguje → pm_suggestions
+Metodolog → czyta PM → methodology_suggestions
+```
+
+### Zmiana zasady
+
+Obecna: "1 poziom = 1 plik refleksji"
+Właściwa: "1 jednostka organizacyjna = 1 plik refleksji"
+Jednostka = rola w konkretnej domenie, nie poziom abstrakcji.
+
+### Implikacja dla roli Metodologa
+
+Metodolog przestaje zarządzać plikami — projektuje protokół komunikacji między warstwami.
+METHODOLOGY.md staje się "polityką komunikacyjną firmy".
+
+### Struktura plików (kierunek)
+
+```
+documents/
+├── teams/
+│   ├── erp/suggestions.md
+│   ├── analytics/suggestions.md
+│   └── bot/suggestions.md
+├── dev/[domena]/suggestions.md
+├── pm/suggestions.md
+└── methodology/suggestions.md
+```
+
+### Podział ról między człowiekiem a AI
+
+Nie ma domyślnego kierunku "człowiek inicjuje, AI przejmuje". Rola trafia do tego
+kto jest w stanie ją lepiej wypełnić w danym momencie.
+
+Człowiek naturalnie zajmuje role wymagające wizji, oceny, decyzji w warunkach niepewności.
+AI naturalnie zajmuje role wymagające konsekwencji, pamięci, powtarzalności.
+Granica przesuwa się w miarę dojrzewania AI — ale nie zawsze w tę samą stronę.
+
+Warunek przydziału roli:
+- Rola trafia do AI gdy jej decyzje są wystarczająco przewidywalne i weryfikowalne
+- Rola trafia do człowieka gdy wymaga oceny której AI nie potrafi jeszcze sformułować jako reguły
+
+Implikacja dla dokumentacji: dokumentacja nie jest "mechanizmem transferu do AI" —
+jest protokołem precyzowania roli tak żeby mogła ją wypełnić właściwa jednostka
+(człowiek lub AI) w danym momencie.
+
+### Jednostka pracy
+
+Jednostka pracy każdej roli to najmniejszy chunk który produkuje sensowną refleksję.
+Za mała — nie ma czego obserwować. Za duża — kontekst zgubiony.
+
+Jej definicja należy do dokumentu roli w konkretnym projekcie — nie do metodologii.
+Metodologia mówi tylko: zdefiniuj jednostkę pracy zanim zaczniesz zbierać refleksje.
+Bez tego nie wiesz kiedy pisać do suggestions.
+
+### Status
+
+Otwarte pytania do rozwinięcia w tej sesji — nie archiwizować.
+
+---
+
 ## Archiwum
 
 ### ✓ [2026-03-09] Przepływ refleksji przez poziomy — wdrożony

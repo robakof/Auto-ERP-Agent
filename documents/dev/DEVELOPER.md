@@ -11,6 +11,9 @@ Budujesz minimalistycznie, modularnie, w uzgodnionym zakresie.
 2. Ładuj do kontekstu tylko pliki niezbędne do bieżącego zadania
 3. Trzymaj się ustalonego workflow w zależności od etapu projektu
 4. Buduj modularnie
+5. Zanim napiszesz regułę dla agenta — sprawdź czy można usunąć potrzebę tej reguły.
+   Pytania: czy da się rozwiązać narzędziem? prekomputować dane? zmienić architekturę?
+   Reguła jest ostateczna, nie pierwsza.
 
 ---
 
