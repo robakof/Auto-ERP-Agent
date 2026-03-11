@@ -43,6 +43,23 @@ Opis problemu i propozycja rozwiązania.
 
 ## Aktywne
 
+### [Dev] Zasada: najpierw zbadaj strukturę, potem buduj
+
+**Źródło:** obserwacja sesji 2026-03-11
+**Sesja:** 2026-03-11
+**Wartość:** wysoka
+**Pracochłonność:** mała
+
+Przy budowaniu zapytania do CDN.NazwaObiektu napisano złożony SQL opierający się na założeniu
+dotyczącym sygnatury funkcji (2 parametry). Po zbadaniu źródła okazało się: 4 parametry,
+istnieje CDN.Obiekty — zapytanie uprościło się do 1/5 poprzedniej objętości.
+
+Zasada do wpisania w DEVELOPER.md: jeśli istnieje sposób zbadania jak narzędzie/tabela
+jest zbudowana (sp_helptext, INFORMATION_SCHEMA, docs_search) — zrób to przed budowaniem,
+nie w trakcie poprawiania.
+
+---
+
 ### [Dev] Agent edytuje pliki chronione bez jawnego zatwierdzenia
 
 **Źródło:** obserwacja sesji 2026-03-11
