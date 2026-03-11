@@ -45,6 +45,33 @@ Wdrożenie pozycji z `methodology_backlog.md`:
 
 ---
 
+## 2026-03-11 — Wdrożenie zasad do METHODOLOGY.md + porządki backlogu
+
+### Co zrobiono
+
+**METHODOLOGY.md — nowe zasady:**
+- Sekcja "Cykl pracy": Zasada zamykania wątków (termin przeglądu, archiwizacja jako świadoma decyzja)
+- Sekcja "Zarządzanie oknem kontekstowym": zasada rytmu sesji (duże zadania na starcie, małe gdy kontekst się kończy)
+- Sekcja "Pętla meta-obserwacji": Poziom interwencji — symptom vs źródło (pytania diagnostyczne przed nową regułą)
+- Sekcja "Pętla meta-obserwacji": Ręczne przetwarzanie jako sygnał brakującego narzędzia
+
+**Porządki:**
+- `methodology_backlog.md`: 3 pozycje zarchiwizowane, 1 nowa (wielość ról wykonawczych)
+- `backlog.md` (dev): LOOM przeniesiony z otwartych wątków metodologicznych
+- `methodology_suggestions.md`: niezmieniony — "przycinanie ramy teoretycznej" nadal aktywne
+
+### Otwarte
+
+- Wielość ról wykonawczych — zasada 1 rola = 1 plik refleksji (methodology_backlog.md)
+- Przycinanie ramy teoretycznej (methodology_backlog.md, niska pilność)
+
+### Następny krok
+
+Rozstrzygnąć kwestię wielości ról wykonawczych (Agent ERP, Analityk) przed kolejną sesją
+developerską dotyczącą Analityka. Ref. dev backlog [Arch] Separacja pamięci.
+
+---
+
 ## 2026-03-09 — Przebudowa architektury wytycznych + inicjalizacja LOOM
 
 ### Co zrobiono

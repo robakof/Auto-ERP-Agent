@@ -21,18 +21,6 @@ Opis obserwacji i propozycja zmiany.
 
 ## Aktywne
 
-### Reguła zamykania otwartych wątków
-
-**Źródło:** methodology_suggestions
-**Sesja:** 2026-03-08
-**Dokument do zmiany:** METHODOLOGY.md (sekcja "Cykl pracy")
-
-Każdy otwarty wątek powinien mieć warunek zamknięcia lub datę przeglądu.
-Po tej dacie można archiwizować bez poczucia utraty.
-Warto zapisać wprost: archiwizacja to nie utrata — to świadoma decyzja.
-
----
-
 ### Przycinanie ramy teoretycznej
 
 **Źródło:** methodology_suggestions
@@ -46,47 +34,36 @@ Zostawić jedną ramę orientacyjną, resztę zastąpić konkretnymi warunkami.
 
 ---
 
-### Poziom interwencji — symptom vs. źródło
+### Wielość ról wykonawczych — zasada 1 rola = 1 plik refleksji
 
-**Źródło:** developer_suggestions
-**Sesja:** 2026-03-10
-**Dokument do zmiany:** METHODOLOGY.md (sekcja "Pętla meta-obserwacji")
+**Źródło:** developer_suggestions + backlog.md ([Arch] Separacja pamięci między agentami)
+**Sesja:** 2026-03-11
+**Dokument do zmiany:** METHODOLOGY.md (sekcja "Przepływ refleksji przez poziomy")
 
-Przed zapisaniem obserwacji jako nowej reguły należy ustalić poziom interwencji.
-Pytania diagnostyczne:
-- Czy to problem który można rozwiązać narzędziem zamiast instrukcją?
-- Czy można prekomputować dane tak żeby agent nie musiał ich odkrywać?
-- Czy zmiana architektury sprawia że problem nie ma prawa wystąpić?
+Obecna tabela przepływu refleksji zakłada jeden poziom "Agent" z jednym plikiem sugestii.
+Projekt ma już dwie role wykonawcze (Agent ERP, Analityk Danych) — każda z innymi wzorcami
+obserwacji. Mieszanie zaszumi plik refleksji.
 
-Jeśli odpowiedź na którekolwiek brzmi "tak" — sygnał dla Developera, nie nowa reguła.
-Reguła jest ostatnim narzędziem: właściwa gdy strukturalne rozwiązanie jest nieproporcjonalnie kosztowne lub niemożliwe.
+Pytania do rozstrzygnięcia przed wdrożeniem:
+- Czy poziom "Agent" przemianować na "Executor" / "Agenci" w tabeli poziomów?
+- Zasada: każda rola wykonawcza = własny plik sugestii (np. agent_erp_suggestions.md,
+  analyst_suggestions.md)?
+- Co jest jednostką pracy dla Analityka (per sesja? per zakres/widok)?
 
-Uzasadnienie: obecne pytania pętli meta-obserwacji działają na poziomie single-loop
-("co powiedzieć agentowi żeby było lepiej?"). Brakuje pytań double-loop — czy interwencja
-powinna istnieć. To jest zastosowanie Argyris/Schön już cytowanych we wprowadzeniu.
-
----
-
-### Ręczne przetwarzanie jako sygnał brakującego narzędzia
-
-**Źródło:** developer_suggestions
-**Sesja:** 2026-03-10
-**Dokument do zmiany:** METHODOLOGY.md (sekcja "Pętla meta-obserwacji")
-
-Gdy agent ręcznie przetwarza strukturę pliku (regex, ekstrakcja, transformacja) —
-to sygnał że brakuje narzędzia, nie że należy zrobić to dokładniej.
-
-Pytanie diagnostyczne dla agenta w trakcie pracy:
-"Czy to co właśnie robię manualnie mogłoby być jednym wywołaniem CLI?"
-
-Jeśli tak — zatrzymaj się i zgłoś do Developera zanim zaczniesz kopiować.
-
-Uzasadnienie: osobna zasada od "symptom vs. źródło" z backlogu —
-tamta dotyczy Developera przy projektowaniu reguł, ta dotyczy Agenta
-w trakcie sesji roboczej. Różny moment i poziom zastosowania.
+Ref. dev backlog: [Arch] Separacja pamięci między agentami wykonawczymi (2026-03-10).
 
 ---
 
 ## Archiwum
 
-*(brak wpisów)*
+### ✓ [2026-03-08] Reguła zamykania wątków — wdrożona 2026-03-11
+
+Dodana do METHODOLOGY.md, sekcja "Cykl pracy" jako "Zasada zamykania wątków".
+
+### ✓ [2026-03-10] Poziom interwencji — symptom vs źródło — wdrożony 2026-03-11
+
+Dodany do METHODOLOGY.md, sekcja "Pętla meta-obserwacji".
+
+### ✓ [2026-03-10] Ręczne przetwarzanie jako sygnał narzędzia — wdrożone 2026-03-11
+
+Dodane do METHODOLOGY.md, sekcja "Pętla meta-obserwacji".

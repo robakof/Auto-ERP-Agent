@@ -190,6 +190,11 @@ zakres bieżącego zadania, ale również **wszystkie otwarte wątki z poprzedni
 nie zostały jeszcze zrealizowane. Brak tego wymogu prowadzi do gubienia zadań w momencie
 rozrostu zakresu lub utraty ciągłości.
 
+**Zasada zamykania wątków:** każdy otwarty wątek powinien mieć warunek zamknięcia lub termin
+przeglądu. Po terminie wątek można archiwizować bez poczucia utraty — archiwizacja to
+świadoma decyzja, nie utrata. Rejestr wszystkiego bez mechanizmu wygaszania imituje kontrolę,
+a faktycznie zatruwa fokus.
+
 ---
 
 ## Ciągłość jako zasada architektoniczna
@@ -227,6 +232,11 @@ Okno kontekstowe jest zasobem, nie nieskończoną przestrzenią. Należy nim zar
   wersje generowane w odpowiedziach.
 - Ładuj do kontekstu tylko to, co agent musi aktualnie wiedzieć.
 - Metodologia i wytyczne są ważniejsze niż historia rozmowy — ładuj je na początku sesji.
+- Kontekst to zasób który warto w pełni wykorzystać — ładowanie wytycznych i dokumentacji
+  na starcie kosztuje, więc sesja powinna być możliwie gęsta. Równocześnie urwana sesja
+  to ryzyko niedokończonej pracy. Zasada: na początku sesji podejmuj największe zadania;
+  gdy kontekst zbliża się do wyczerpania — wybieraj mniejsze, domykalne kawałki. Nie kończ
+  przedwcześnie, ale nie zaczynaj dużego zadania gdy zostało mało miejsca.
 
 ---
 
@@ -257,6 +267,25 @@ Pytania pętli meta-obserwacji:
 - Co musiałem zmienić w prompcie, żeby uzyskać właściwy wynik?
 - Czy to co poprawiłem jest symptomem brakującej reguły w wytycznych?
 - Czy ta sytuacja zdarzyła się już wcześniej?
+
+**Poziom interwencji — symptom vs źródło.** Przed zapisaniem obserwacji jako nowej reguły
+należy ustalić poziom interwencji. Pytania diagnostyczne:
+
+- Czy to problem który można rozwiązać narzędziem zamiast instrukcją?
+- Czy można prekomputować dane tak żeby agent nie musiał ich odkrywać?
+- Czy zmiana architektury sprawia że problem nie ma prawa wystąpić?
+
+Jeśli odpowiedź na którekolwiek brzmi "tak" — sygnał dla Developera, nie nowa reguła.
+Reguła jest ostatnim narzędziem: właściwa gdy rozwiązanie strukturalne jest nieproporcjonalnie
+kosztowne lub niemożliwe.
+
+**Ręczne przetwarzanie struktury pliku jako sygnał.** Gdy agent ręcznie przetwarza strukturę
+pliku (regex, ekstrakcja, transformacja) — to sygnał że brakuje narzędzia, nie że należy
+zrobić to dokładniej.
+
+Pytanie diagnostyczne: "Czy to co właśnie robię manualnie mogłoby być jednym wywołaniem CLI?"
+Jeśli tak — zatrzymaj się, zapisz jako sugestię do właściwego pliku refleksji i zapytaj
+użytkownika czy warto najpierw zbudować narzędzie.
 
 Obserwacje z tej pętli są źródłem aktualizacji metodologii i wytycznych (`DEVELOPER.md`).
 Nie należy ich odkładać — każda taka obserwacja powinna zostać zapisana możliwie szybko,

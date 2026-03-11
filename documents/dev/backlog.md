@@ -22,6 +22,22 @@ Opis problemu i propozycja rozwiązania.
 
 ## Aktywne
 
+### [Dev] LOOM — publikacja na GitHub
+
+**Źródło:** methodology_progress (przeniesione z otwartych wątków metodologicznych)
+**Sesja:** 2026-03-11
+**Wartość:** średnia
+**Pracochłonność:** mała
+
+Folder `_loom/` zawiera komplet plików gotowych do wypchnięcia jako osobne repo.
+
+Kroki:
+1. Utwórz repo GitHub (np. `CyperCyper/loom`)
+2. Wypchnij zawartość `_loom/` jako root repo
+3. Zaktualizuj placeholder URL w `_loom/seed.md`
+
+---
+
 ### [Arch] Separacja pamięci między agentami wykonawczymi
 
 **Źródło:** developer_suggestions
