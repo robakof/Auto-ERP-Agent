@@ -286,6 +286,34 @@ głębszego w sposobie myślenia agenta o granicach autonomii?
 
 ---
 
+## [2026-03-11] Komunikacja między agentami i skalowalność backlogu
+
+### Obserwacja 1 — Komunikacja między agentami nie skaluje się
+
+Obecna struktura (wpisy w plikach .md) działa na małej skali, ale:
+- Brak możliwości monitorowania przepływu komunikacji w skali
+- Brak narzędzi do wyciągania wniosków z samego przepływu (kto pisze do kogo, jak często, jakie wzorce)
+- Ręczne dopisywanie do pliku jest podatne na pominięcia i brak spójności formatów
+- Przy wielu widokach / wielu instancjach Analityka — pliki suggestions.md będą za duże
+
+Kierunek do rozważenia: ustrukturyzowany mechanizm programistyczny (baza danych, API, event log)
+zamiast plików md. Pozwoliłby monitorować przepływ, agregować wnioski, analizować wzorce komunikacji.
+
+### Obserwacja 2 — Backlog niespójny strukturalnie
+
+Tabela przeglądowa (#1–14 w nagłówku backlog.md) nie aktualizuje się automatycznie —
+wymaga ręcznej synchronizacji z sekcją Aktywne. Efekt: spis jest nieaktualny.
+
+Szerzej: brak jasnych reguł co trafia do backlogu, w jakiej formie, kto decyduje o priorytecie.
+Przy wielu rolach domenowe zadania mieszają się z architektonicznymi.
+
+Do rozstrzygnięcia przez Metodologa:
+- Czy backlog per-rola (osobne pliki) vs tagi domenowe w jednym?
+- Jak zapobiec rozjechaniu się spisu przeglądowego?
+- Długoterminowo: czy backlog.md to właściwy format czy potrzebne coś programistycznego?
+
+---
+
 ## Archiwum
 
 ### ✓ [2026-03-09] Przepływ refleksji przez poziomy — wdrożony
