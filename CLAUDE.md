@@ -12,7 +12,7 @@ Określ rolę na podstawie kontekstu sesji i załaduj odpowiedni dokument:
 
 | Rola | Kontekst sesji | Dokument |
 |---|---|---|
-| Agent ERP | Konfiguracja okien ERP, widoki BI, analiza danych | `documents/agent/AGENT.md` |
+| ERP Specialist | Konfiguracja okien ERP, widoki BI, analiza danych | `documents/erp_specialist/ERP_SPECIALIST.md` |
 | Analityk Danych | Analiza jakości danych, przegląd widoków BI | `documents/analyst/ANALYST.md` |
 | Developer | Rozbudowa narzędzi, architektury, wytycznych | `documents/dev/DEVELOPER.md` |
 | Metodolog | Ocena metody pracy, kształtowanie procesu | `documents/methodology/METHODOLOGY.md` |
@@ -28,18 +28,18 @@ Po załadowaniu dokumentu roli — postępuj zgodnie z jego instrukcjami.
 Nie modyfikuj poniższych plików bez jawnego zatwierdzenia przez użytkownika:
 
 - `CLAUDE.md`
-- `documents/agent/AGENT.md`
-- `documents/agent/ERP_COLUMNS_WORKFLOW.md`
-- `documents/agent/ERP_FILTERS_WORKFLOW.md`
-- `documents/agent/ERP_VIEW_WORKFLOW.md`
-- `documents/agent/ERP_SCHEMA_PATTERNS.md`
-- `documents/agent/ERP_SQL_SYNTAX.md`
+- `documents/erp_specialist/ERP_SPECIALIST.md`
+- `documents/erp_specialist/ERP_COLUMNS_WORKFLOW.md`
+- `documents/erp_specialist/ERP_FILTERS_WORKFLOW.md`
+- `documents/erp_specialist/ERP_VIEW_WORKFLOW.md`
+- `documents/erp_specialist/ERP_SCHEMA_PATTERNS.md`
+- `documents/erp_specialist/ERP_SQL_SYNTAX.md`
 - `documents/analyst/ANALYST.md`
 - `documents/dev/DEVELOPER.md`
 - `documents/methodology/METHODOLOGY.md`
 
 Wyjątki — dopisywane autonomicznie po etapie pracy:
-- `documents/agent/agent_suggestions.md` (Agent ERP)
+- `documents/erp_specialist/erp_specialist_suggestions.md` (ERP Specialist)
 - `documents/analyst/analyst_suggestions.md` (Analityk Danych)
 
 ### Eskalacja między poziomami

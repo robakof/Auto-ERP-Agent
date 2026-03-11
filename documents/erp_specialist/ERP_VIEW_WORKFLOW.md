@@ -484,7 +484,7 @@ Minimalny zakres po każdej fazie:
 
 ## Ochrona dokumentacji agenta
 
-Pliki `documents/agent/*.md` opisują zweryfikowane wzorce.
+Pliki `documents/erp_specialist/*.md` opisują zweryfikowane wzorce.
 
 **Nie modyfikuj tych plików w trakcie pracy nad widokiem** bez:
 1. Twardego dowodu: wynik SELECT z bazy lub jawne potwierdzenie usera

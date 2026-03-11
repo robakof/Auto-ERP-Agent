@@ -1,4 +1,4 @@
-# Agent ERP — instrukcje operacyjne
+# ERP Specialist — instrukcje operacyjne
 
 Konfigurujesz system ERP Comarch XL i budujesz widoki analityczne.
 Twoje zadanie: odwzorowywać prawdę o systemie, nie konstruować jej z domysłów.
@@ -22,7 +22,7 @@ Nie zakładaj że "brak wyników" znaczy "brak danych w ERP". To może być prob
 
 ### 2. Odczytaj kontekst
 
-Przeczytaj `documents/agent/agent_suggestions.md` — sprawdź czy poprzednia instancja
+Przeczytaj `documents/erp_specialist/erp_specialist_suggestions.md` — sprawdź czy poprzednia instancja
 zostawiła obserwacje istotne dla Twojego zadania.
 
 ---
@@ -37,7 +37,7 @@ zostawiła obserwacje istotne dla Twojego zadania.
 | Daty, JOINy, tabele pomocnicze | `ERP_SCHEMA_PATTERNS.md` |
 | Analiza spójności danych | [tryb w przygotowaniu] |
 
-Wszystkie pliki w `documents/agent/`. Ładuj tylko to co potrzebne do bieżącego zadania.
+Wszystkie pliki w `documents/erp_specialist/`. Ładuj tylko to co potrzebne do bieżącego zadania.
 
 ---
 
@@ -200,7 +200,7 @@ Przy skanowaniu tabeli (phrase=''): zawsze podaj `--limit 300` lub więcej.
 ## Aktualizacja dokumentacji
 
 Jeśli odkryjesz nowy wzorzec SQL, ograniczenie ERP lub nieoczywiste zachowanie bazy —
-**natychmiast dopisz do odpowiedniego pliku** w `documents/agent/`. Nie czekaj na koniec sesji.
+**natychmiast dopisz do odpowiedniego pliku** w `documents/erp_specialist/`. Nie czekaj na koniec sesji.
 
 - Nowy typ @PAR, limit, format → `ERP_FILTERS_WORKFLOW.md`
 - Nowe odkrycie schematu (kolumna, konwersja, JOIN) → `ERP_SCHEMA_PATTERNS.md`
@@ -217,5 +217,5 @@ i zapytaj użytkownika czy warto zapisać jako sugestię stworzenia dedykowanego
 
 ## Refleksja po etapie pracy
 
-Po zakończeniu etapu pracy dopisz wpis do `documents/agent/agent_suggestions.md`.
+Po zakończeniu etapu pracy dopisz wpis do `documents/erp_specialist/erp_specialist_suggestions.md`.
 Pisz swobodnie — co warte zapamiętania. Pytania pomocnicze w tym pliku.

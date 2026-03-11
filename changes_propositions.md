@@ -1,130 +1,132 @@
-# KM3 — Kanał Telegram
+# Plan zmian — separacja pamięci między agentami wykonawczymi
 
-*Data: 2026-03-10*
-
----
-
-## Cel
-
-Podłączyć `NlpPipeline` do Telegrama przez `python-telegram-bot` (async).
-
-Warunek ukończenia: pytanie przez Telegram → odpowiedź PL w < 30s.
+**Sesja:** 2026-03-11
+**Zakres:** architektura refleksji, etykiety poziomów, progress log Analityka
 
 ---
 
 ## Otwarte wątki z poprzednich sesji
 
-Brak wątków zablokowanych dotyczących KM3.
-
-Backlog aktywny (nieblokujące, odkładamy):
-- [Workflow] ERP_SCHEMA_PATTERNS + ERP_VIEW_WORKFLOW — obserwacje z Rozrachunki
-- [Dev] Komendy agenta blokowane przez hook (docs_search + sql_query)
-- [Dev] Informacja o kontekście na końcu wiadomości agenta
-- [Arch] Separacja pamięci między agentami
-- [Arch] Sygnatury narzędzi powielone
-- [Agent] Baza wzorców numeracji
+Brak innych otwartych wątków blokujących ten zakres.
 
 ---
 
-## Decyzje techniczne
+## 1. Nowy plik suggestions dla Analityka
 
-**Biblioteka:** `python-telegram-bot >= 21` (async, PTB — największa społeczność, Application Builder API)
+**Plik:** `documents/analyst/analyst_suggestions.md`
 
-**Whitelist:** `bot/config/allowed_users.txt` — jeden `user_id` na linię, linie `#` ignorowane.
-Dlaczego plik zamiast `.env`: whitelist zmienia się niezależnie od credentiali, łatwiej edytować bez restartowania bota z edycją `.env`.
-
-**BOT_TOKEN:** `.env` → `TELEGRAM_BOT_TOKEN=`
-
-**user_id w pipeline:** Telegram daje unikalny numeryczny `user_id` — przekazujemy go jako string do `NlpPipeline.run(user_id=...)`. ConversationManager już obsługuje dowolny string.
-
-**Timeout odpowiedzi:** status "pisze..." (`ChatAction.TYPING`) wyświetlany podczas oczekiwania na pipeline.
-
-**Długie odpowiedzi:** Telegram limit 4096 znaków — jeśli odpowiedź dłuższa, wysyłamy w częściach.
+Nowy plik refleksji Analityka Danych — analogiczna struktura do `agent_suggestions.md`.
+Nagłówek z opisem jak pisać + sekcja Wpisy + sekcja Archiwum.
 
 ---
 
-## Nowe pliki
+## 2. ANALYST.md — dwie zmiany
 
-### `bot/channels/telegram_channel.py`
+**Plik chroniony — wymaga zatwierdzenia.**
 
-Klasa `TelegramChannel`:
-- `__init__(token, pipeline, allowed_users)` — inicjalizacja Application
-- `run()` — `app.run_polling()` (blokujące, async event loop)
-- Handler `handle_message(update, context)`:
-  - sprawdza `user_id` w `allowed_users`
-  - wysyła `ChatAction.TYPING`
-  - wywołuje `pipeline.run(user_id, question)` w executor (async-safe)
-  - wysyła odpowiedź (split jeśli > 4096 znaków)
-  - nieautoryzowany → bez odpowiedzi (silent reject, log WARNING)
+**a) Sekcja "Refleksja po sesji" (linia 171):**
 
-### `bot/config/allowed_users.txt`
-
-Plik tekstowy — jeden Telegram `user_id` na linię.
-Przykład:
 ```
-# Administratorzy
-123456789
-987654321
+# przed
+Po zakończeniu analizy dopisz wpis do `documents/agent/agent_suggestions.md`.
+
+# po
+Po zakończeniu analizy dopisz wpis do `documents/analyst/analyst_suggestions.md`.
 ```
 
-### `bot/main.py`
+**b) Nowa sekcja "Progress log" (przed "Refleksja po sesji"):**
 
-Entry point:
-- ładuje `.env`
-- czyta `TELEGRAM_BOT_TOKEN`
-- ładuje `allowed_users.txt`
-- tworzy `NlpPipeline()` i `TelegramChannel()`
-- uruchamia `channel.run()`
-
----
-
-## Zmiany w istniejących plikach
-
-### `.env.example`
-
-Dodać:
 ```
-# Bot — Telegram
-TELEGRAM_BOT_TOKEN=
-```
+## Progress log
 
-### `requirements.txt`
+Dla każdego zakresu analizy prowadź lokalny progress log:
 
-Dodać:
-```
-python-telegram-bot>=21.0
+  solutions/analyst/{Zakres}/{Zakres}_progress.md
+
+Twórz go przy inicjalizacji obszaru roboczego (Krok 1). Zapisuj:
+- co zbadano, jakie wzorce znaleziono
+- decyzje podjęte podczas analizy
+- "Następny krok:" zawsze obecny — punkt wejścia dla kolejnej sesji
+
+Plik jest zewnętrzną pamięcią sesji — odbiorcą jest kolejna instancja Analityka.
 ```
 
 ---
 
-## Testy
+## 3. CLAUDE.md — dwie zmiany
 
-### `tests/bot/test_telegram_channel.py`
+**Plik chroniony — wymaga zatwierdzenia.**
 
-Unit testy z mockami (bez prawdziwego Telegrama):
+**a) Linia 41 — rozszerzenie wyjątku o oba pliki suggestions:**
 
-1. **test_unauthorized_user_silent_reject** — wiadomość od user_id spoza whitelist → brak odpowiedzi, log WARNING
-2. **test_authorized_user_gets_answer** — wiadomość od user_id z whitelist → `pipeline.run()` wywołany, odpowiedź wysłana
-3. **test_long_answer_split** — odpowiedź > 4096 znaków → wysłana w częściach
-4. **test_load_allowed_users_ignores_comments** — `#komentarz` i puste linie ignorowane
-5. **test_load_allowed_users_missing_file** — brak pliku → ValueError z czytelnym komunikatem
+```
+# przed
+Wyjątek: `documents/agent/agent_suggestions.md` — agent dopisuje autonomicznie po etapie pracy.
+
+# po
+Wyjątki — dopisywane autonomicznie po etapie pracy:
+- `documents/agent/agent_suggestions.md` (Agent ERP)
+- `documents/analyst/analyst_suggestions.md` (Analityk Danych)
+```
+
+**b) Linia 45 — zmiana etykiety poziomu "Agent" → "Wykonawcy":**
+
+```
+# przed
+Projekt działa na trzech poziomach (Agent / Developer / Metodolog).
+
+# po
+Projekt działa na trzech poziomach (Wykonawcy / Developer / Metodolog).
+```
 
 ---
 
-## Kolejność pracy
+## 4. METHODOLOGY.md — dwie zmiany
 
-1. Testy (TDD) → `tests/bot/test_telegram_channel.py`
-2. `bot/channels/telegram_channel.py`
-3. `bot/config/allowed_users.txt` (przykładowy pusty)
-4. `bot/main.py`
-5. `.env.example` + `requirements.txt`
-6. Testy zielone → commit + push
+**Plik chroniony — wymaga zatwierdzenia.**
+
+**a) Tabela ról (linia 67-70) — zaktualizować żeby pokazywała wielość ról na poziomie Wykonawcy:**
+
+```
+# przed
+| **Agent** | Executor | `CLAUDE.md` → `documents/agent/AGENT.md` | Realizuje konkretne zadania |
+
+# po — jeden zbiorczy wiersz
+| **Wykonawcy** | Executor | Agent ERP: `documents/agent/AGENT.md`, Analityk Danych: `documents/analyst/ANALYST.md` | Realizują zadania w swojej domenie |
+```
+
+**b) Tabela przepływu refleksji (linia 304-310) — dodać wiersz Analityka:**
+
+```
+# przed
+| Agent | `documents/agent/agent_suggestions.md` | `documents/dev/backlog.md` | Developer |
+
+# po
+| Agent ERP | `documents/agent/agent_suggestions.md` | `documents/dev/backlog.md` | Developer |
+| Analityk Danych | `documents/analyst/analyst_suggestions.md` | `documents/dev/backlog.md` | Developer |
+```
 
 ---
 
-## Poza zakresem KM3
+## 5. backlog.md — archiwizacja po wdrożeniu
 
-- KM4 (biblioteka raportów)
-- KM5 (deployment jako serwis Windows)
-- KM6 (WhatsApp)
-- Backlog developerski (wszystkie pozycje aktywne)
+Przenieść `[Arch] Separacja pamięci między agentami wykonawczymi` do sekcji Archiwum.
+
+---
+
+## Poza zakresem
+
+- Zmiana struktury progress logu Agenta ERP (nadal w globalnym `documents/dev/progress_log.md`) — nie ruszamy.
+- Migracja zawartości `agent_suggestions.md` — nie ruszamy, tylko zaprzestajemy kierowania Analityka do tego pliku.
+- Zmiana nazwy folderu `documents/agent/` — nie ruszamy (folder zawiera wytyczne tylko dla Agent ERP).
+
+---
+
+## Kolejność implementacji
+
+1. Utwórz `documents/analyst/analyst_suggestions.md`
+2. Zaktualizuj `ANALYST.md`
+3. Zaktualizuj `CLAUDE.md`
+4. Zaktualizuj `METHODOLOGY.md`
+5. Zarchiwizuj w `backlog.md`
+6. Commit + push
