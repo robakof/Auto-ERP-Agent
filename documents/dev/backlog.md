@@ -16,10 +16,10 @@ Zarządza: Developer.
 | 5 | Fallback przy błędzie SQL | Bot | średnia | średnia |
 | 6 | NO_SQL zbyt agresywne | Bot | wysoka | mała |
 | 7 | Kontekst firmowy + prompt caching | Bot | wysoka | mała–średnia |
-| 8 | Obserwacje z sesji BI.Rozrachunki (wdrożenie do docs) | Workflow | wysoka | mała |
-| 9 | bi_catalog_add.py — wyciąganie kolumn z SQL | Dev | wysoka | mała |
-| 10 | ERP_SCHEMA_PATTERNS + ERP_VIEW_WORKFLOW — odkrycia Rozrachunki | Workflow | wysoka | mała |
-| 11 | Komendy ERP Specialist blokowane przez hook | Dev | wysoka | mała |
+| 8 | bi_catalog_add.py — wyciąganie kolumn z SQL | Dev | wysoka | mała |
+| 9 | Sygnatury narzędzi powielone w wielu miejscach | Arch | średnia | mała/duża |
+| 10 | arch_check.py — walidator ścieżek w dokumentach | Arch | średnia | mała |
+| 11 | Analityk jako weryfikator konwencji widoku | Analityk | wysoka | średnia |
 | 12 | Informacja o kontekście na końcu wiadomości | Dev | wysoka | mała |
 | 13 | Sygnatury narzędzi powielone w wielu miejscach | Arch | średnia | mała/duża |
 | 14 | arch_check.py — walidator ścieżek w dokumentach | Arch | średnia | mała |
@@ -97,6 +97,23 @@ Reguła do AGENT.md: "przed numeracją inline — sprawdź wzorce w solutions/re
 - ✓ Jednorazowy koszt, odświeżanie raz na rok lub przy nowych typach dokumentów
 - ✗ Statyczne — nowe typy nie pojawią się automatycznie
 - ✗ Wymaga DBA do pierwszego uruchomienia
+
+---
+
+### [Analityk] Analityk jako weryfikator konwencji widoku
+
+**Źródło:** obserwacja sesji 2026-03-11
+**Sesja:** 2026-03-11
+**Wartość:** wysoka
+**Pracochłonność:** średnia
+
+Analityk sprawdza gotowy widok (po Fazie 3 ERP Specialist, przed wdrożeniem) pod kątem
+zgodności z konwencjami projektu. Konwencje zdefiniowane w `ERP_VIEW_WORKFLOW.md`.
+
+Do ustalenia:
+- Checklist konwencji (GID, Typ_Dok, nullowalność, nazewnictwo) — osobny plik czy sekcja w ANALYST.md?
+- Wynik: lista uwag → ERP Specialist poprawia → ponowny przegląd czy jednorazowo?
+- Punkt wejścia: plik brudnopisu `.sql` czy eksport Excel?
 
 ---
 
@@ -190,36 +207,6 @@ Dodatkowo koszty API są wysokie przy dużym system promptcie bez cachowania.
 
 ---
 
-### [Workflow] Obserwacje agenta z sesji BI.Rozrachunki (Faza 2–4)
-
-**Źródło:** agent_suggestions
-**Sesja:** 2026-03-10
-**Wartość:** wysoka
-**Pracochłonność:** mała
-
-Sześć obserwacji do wdrożenia w dokumentacji agenta:
-
-1. **CDN.UpoNag (typ 2832)** → `ERP_SCHEMA_PATTERNS.md`: nowa tabela dla not odsetkowych,
-   format numeru `NO-YY/Numer`, typ 2832 wykluczyć z NOT IN dla TraNag.
-
-2. **Artefakt wyścigu czasowego** → `ERP_VIEW_WORKFLOW.md`: małe liczby NULL w Nr_Dok
-   przy eksporcie z bazy produkcyjnej to nowe rekordy między zapytaniem a eksportem — nie błąd SQL.
-   Weryfikacja: `SELECT WHERE COALESCE(...) IS NULL`.
-
-3. **sql_query blokuje CREATE OR ALTER VIEW** → `ERP_VIEW_WORKFLOW.md`: walidacja widoku
-   możliwa tylko przez brudnopis (sam SELECT). Nigdy nie porzucaj brudnopisu przed Fazą 4.
-
-4. **Sprawdź że widok istnieje na bazie** → `AGENT.md`: przed użyciem widoku AIBI wykonaj
-   `SELECT COUNT(*) FROM AIBI.NazwaWidoku` — widok musi być wdrożony przez DBA.
-
-5. **Reguła GID w widokach BI** → `ERP_SCHEMA_PATTERNS.md` lub `ERP_VIEW_WORKFLOW.md`:
-   GIDFirma → pomiń; GIDTyp → tłumacz przez CASE; GIDNumer → zostaw; GIDLp → pomiń.
-
-6. **Typ_Dok — pełne nazwy od Fazy 1** → `ERP_VIEW_WORKFLOW.md`: w planie kolumna Typ_Dok
-   domyślnie z pełną nazwą (nie skrótem PA/FS/FSK) — widok BI służy też osobom spoza systemu.
-
----
-
 ### [Dev] bi_catalog_add.py — automatyczne wyciąganie kolumn z widoku SQL
 
 **Źródło:** obserwacja sesji
@@ -234,54 +221,6 @@ Narzędzie `tools/bi_catalog_add.py`:
 - Wyciąga kolumny regexem `AS (\w+)`
 - Generuje szkielet wpisu JSON (name, file, columns) gotowy do uzupełnienia o description/example_questions
 - Opcjonalnie: dodaje wpis bezpośrednio do `catalog.json`
-
----
-
-### [Workflow] ERP_SCHEMA_PATTERNS + ERP_VIEW_WORKFLOW — odkrycia z sesji BI.Rozrachunki
-
-**Źródło:** agent_suggestions
-**Sesja:** 2026-03-10
-**Wartość:** wysoka
-**Pracochłonność:** mała
-
-**ERP_SCHEMA_PATTERNS.md — nowe wzorce:**
-
-1. KB (784) → CDN.Zapisy: kolumna `KAZ_NumerDokumentu` zawiera gotowy string numeru.
-   Nie trzeba budować inline — bezpośredni SELECT na CDN.Zapisy.
-
-2. Prefiks numeru TraNag — zweryfikowana formuła:
-   - `(Z)` → TrN_Stan & 2 = 2 AND typ korekty (FSK/FZK/PAK/FKE)
-   - `(A)` → TrN_GenDokMag = -1 AND typ zakupowy (FZ/FZK/PZ)
-   - `(s)` → TrN_GenDokMag = -1 AND pozostałe
-   - brak → standard
-   Miesiąc z wiodącym zerem: `RIGHT('0' + CAST(MM AS VARCHAR(2)), 2)`.
-
-3. CDN.Rozrachunki — struktura GIDLp=1/2: każde rozliczenie = 2 lustrzane wiersze.
-   Widok bierze GIDLp=1. TRP = strona 1 (faktura/paragon), KAZ = strona 2 (płatność KB).
-
-**ERP_VIEW_WORKFLOW.md — sekcja e) weryfikacja numerów:**
-
-4. Przy pierwszym odczycie formatów z objects.sql — od razu buduj query porównujące
-   NumerSystemowy vs NumerInline. Nie czekaj na feedback usera żeby dopiero wtedy
-   zaproponować verify query. Jedna runda zamiast dwóch.
-
----
-
-### [Dev] Komendy agenta blokowane przez hook
-
-**Źródło:** developer_suggestions
-**Sesja:** 2026-03-10
-**Wartość:** wysoka
-**Pracochłonność:** mała
-
-Dwa wzorce blokowane u agenta ERP:
-
-1. `python tools/docs_search.py "" --table CDN.X` — pusty string `""` przed `--table`.
-   Fix: zrobić argument `fraza` opcjonalnym w `docs_search.py` (nargs='?', default='').
-   Wtedy: `python tools/docs_search.py --table CDN.X` bez cudzysłowów.
-
-2. `$(cat plik.sql)` zamiast `--file` przy sql_query.py.
-   Fix: reguła w `AGENT.md` — zawsze używaj `--file`, nigdy `$(cat ...)`.
 
 ---
 
@@ -330,6 +269,9 @@ Opcje:
 ---
 
 ## Archiwum
+
+**[Workflow] Obserwacje z BI.Rozrachunki (8+10) + komendy hook (11)** — zrealizowane 2026-03-11
+(ERP_SCHEMA_PATTERNS: UpoNag/KB/TraNag-prefiks/Rozrachunki; ERP_VIEW_WORKFLOW: Typ_Dok/artefakt/brudnopis/verify-query; docs_search phrase opcjonalny)
 
 **[Metodologia] Ręczne przetwarzanie struktury = sygnał dla narzędzia** — zrealizowane przez Metodologa 2026-03-11 (dodane do METHODOLOGY.md sekcja Pętla meta-obserwacji)
 

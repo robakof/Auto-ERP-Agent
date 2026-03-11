@@ -172,9 +172,55 @@ LEFT JOIN CDN.ProdZlecenia pzl ON pzl.PZL_Id = pza.PZA_PZLId
 
 ### TraNag (FS/FZ/WZ/PZ)
 
+Numer podstawowy:
 ```sql
 RTRIM(n.TrN_Seria) + '/' + CAST(n.TrN_NumerTrN AS VARCHAR(10))
 + '/' + CAST(n.TrN_Rok AS VARCHAR(4))
+```
+
+Prefiks dokumentu (zweryfikowana formuła, baza ERPXL_CEIM):
+```sql
+CASE
+    WHEN n.TrN_Stan & 2 = 2
+         AND n.TrN_TypNumeracji IN ('FSK','FZK','PAK','FKE') THEN '(Z) '
+    WHEN n.TrN_GenDokMag = -1
+         AND n.TrN_TypNumeracji IN ('FZ','FZK','PZ')         THEN '(A) '
+    WHEN n.TrN_GenDokMag = -1                                THEN '(s) '
+    ELSE ''
+END
++ RTRIM(n.TrN_Seria) + '/' + CAST(n.TrN_NumerTrN AS VARCHAR(10))
++ '/' + CAST(n.TrN_Rok AS VARCHAR(4))
+```
+
+Znany wyjątek: FSK GIDNumer=6394119 dostaje (Z) mimo Stan=5 — niezidentyfikowane.
+
+### KB (784) → CDN.Zapisy
+
+Nie buduj numeru inline — `KAZ_NumerDokumentu` zawiera gotowy string:
+
+```sql
+LEFT JOIN CDN.Zapisy kaz ON kaz.KAZ_GIDNumer = r.ROZ_KAZNumer
+-- numer: kaz.KAZ_NumerDokumentu  (gotowy string, bez transformacji)
+```
+
+### CDN.UpoNag (typ 2832) — Nota odsetkowa
+
+Typ 2832 (NO) **nie jest w CDN.TraNag** — jest w CDN.UpoNag (tabela upomnień/not odsetkowych).
+
+```sql
+LEFT JOIN CDN.UpoNag upo ON upo.UPN_GIDNumer = r.ROZ_TrpNumer  -- lub KAZNumer
+WHERE r.ROZ_TrpTyp = 2832  -- lub ROZ_KAZTyp = 2832
+```
+
+Format numeru (zweryfikowany CDN.NazwaObiektu):
+```sql
+'NO-' + RIGHT(CAST(upo.UPN_Rok AS VARCHAR(4)), 2) + '/' + CAST(upo.UPN_Numer AS VARCHAR(10))
+-- Wynik: NO-25/3  (YY/Numer — rok przed numerem, odwrotnie niż w większości typów)
+```
+
+W klauzuli NOT IN dla TraNag wyklucz typ 2832:
+```sql
+r.ROZ_TrpTyp NOT IN (784, 4144, 435, 2832)
 ```
 
 ---
@@ -317,6 +363,24 @@ LEFT JOIN Sciezka_Grup sg ON sg.KGD_GIDNumer = kgd.KGD_GrONumer
 
 `KGD_GIDNumer` (type=32) = `Knt_GIDNumer` kontrahenta (nie `Knt_KnGNumer`!).
 `KGD_GrONumer` = GIDNumer grupy nadrzędnej w hierarchii type=-32.
+
+---
+
+## CDN.Rozrachunki — struktura GIDLp
+
+Każde rozliczenie = **2 lustrzane wiersze** (GIDLp=1 i GIDLp=2) z zamienionymi stronami TRP/KAZ.
+Widok bierze wyłącznie `GIDLp=1`.
+
+```sql
+WHERE r.ROZ_GIDLp = 1
+```
+
+- TRP = strona 1 (najczęściej faktura/paragon — typy TraNag, UpoNag)
+- KAZ = strona 2 (najczęściej płatność KB — typ 784 → CDN.Zapisy)
+- Dominujący wzorzec w ERPXL_CEIM: PA(2034) → KB(784) — ~135k wierszy
+
+Przy dodawaniu JOIN sprawdź czy `COUNT(*) = COUNT(DISTINCT ROZ_GIDNumer)` —
+CDN.Zapisy może mieć wiele wierszy na jeden KAZ_GIDNumer (raporty kasowe).
 
 ---
 

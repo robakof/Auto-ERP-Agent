@@ -131,6 +131,19 @@ ORDER BY TypDok;
 
 Jedno zapytanie — po jednym przykładzie na każdy podtyp. Nie wracaj z częściowymi pytaniami.
 
+**Od razu po odczycie podtypów skompiluj też zapytanie weryfikacyjne** porównujące
+NumerSystemowy (z CDN.NazwaObiektu) vs NumerInline (Twoja formuła):
+
+```sql
+SELECT TOP 20
+    [CDN].[NazwaObiektu](TypPole, NumerPole, 0, 2) AS NumerERP,
+    <Twoja formuła inline>                          AS NumerInline,
+    CASE WHEN <inline> = [CDN].[NazwaObiektu](...) THEN 'OK' ELSE 'ROZNI SIE' END AS Status
+FROM CDN.MainTable
+```
+
+Przekaż oba pliki userowi razem — jedna runda zamiast dwóch.
+
 **Zapisz zapytanie do pliku przed przekazaniem userowi:**
 
 ```
@@ -258,7 +271,10 @@ Przejdź przez **każdą** kolumnę CDN.MainTable. Dla każdej zadaj sobie kolej
    - `GIDTyp`   → **tłumaczymy** przez CASE (typ obiektu ERP — niesie sens biznesowy)
    - `GIDNumer` → **zostawiamy** (klucz do ad-hoc zapytań i JOINów)
    - `GIDLp`    → **pomijamy**
-6. **Inne pole techniczne?** (GUID, TStamp) → domyślnie uwzględnij
+6. **Pole Typ_Dok / typ dokumentu?** → domyślnie **pełna nazwa**, nie skrót.
+   Widok BI służy też osobom spoza systemu — `'Faktura sprzedaży'` zamiast `'FS'`.
+   Zapisz w planie od razu jako pełną nazwę — nie poprawiaj po feedbacku usera.
+7. **Inne pole techniczne?** (GUID, TStamp) → domyślnie uwzględnij
    z adnotacją "techniczne". Pomiń tylko gdy wartość jest stałą dla całej tabeli
    i nie niesie żadnej informacji (udowodnij przez COUNT DISTINCT = 1).
 
@@ -414,6 +430,14 @@ python tools/excel_read_stats.py \
 - Daty: czy wyglądają jak daty (nie surowe liczby Clarion)
 - Enumeracje: czy `distinct` ≤ oczekiwana liczba typów, czy etykiety sensowne
 - Metryki: czy wartości w rozsądnym zakresie
+
+**Artefakt wyścigu czasowego:** kilka NULLi w kolumnie Nr_Dok przy eksporcie z bazy produkcyjnej
+to normalne — nowe rekordy dodane między zapytaniem a eksportem, nie błąd SQL.
+Weryfikacja: `SELECT ... WHERE COALESCE(Nr_Dok, '') = ''` zwróci 0 gdy SQL jest poprawny.
+
+**sql_query blokuje CREATE OR ALTER VIEW:** `sql_query.py` odrzuca słowo `CREATE` —
+walidacja widoku możliwa tylko na brudnopisie (sam SELECT). Nigdy nie porzucaj brudnopisu
+przed Fazą 4 — jest jedynym plikiem który można przetestować bez DBA.
 
 ---
 

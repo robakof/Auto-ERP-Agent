@@ -163,7 +163,7 @@ def search_docs(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Przeszukuje indeks dokumentacji ERP.")
-    parser.add_argument("phrase", help="Fraza do wyszukania")
+    parser.add_argument("phrase", nargs="?", default="", help="Fraza do wyszukania (opcjonalna gdy podano --table)")
     parser.add_argument("--table", default=None, help="Ogranicz do tabeli (np. CDN.ZamNag)")
     parser.add_argument("--limit", type=int, default=1000, help="Maks. liczba wyników (domyślnie 1000)")
     args = parser.parse_args()

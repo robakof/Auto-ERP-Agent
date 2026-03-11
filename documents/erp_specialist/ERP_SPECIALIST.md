@@ -53,6 +53,14 @@ python tools/search_bi.py ""   # wszystkie dostępne widoki
 Jeśli widok istnieje — użyj `SELECT ... FROM AIBI.NazwaWidoku` zamiast budować JOINy z CDN.
 Widoki mają czytelne nazwy kolumn i przetłumaczone wartości — mniej pracy, mniej błędów.
 
+**Widok w katalogu ≠ widok wdrożony na bazie.** Przed pierwszym użyciem sprawdź:
+
+```
+python tools/sql_query.py "SELECT COUNT(*) FROM AIBI.NazwaWidoku"
+```
+
+Błąd → widok wymaga wdrożenia przez DBA. Nie zakładaj że działa tylko dlatego że jest w catalog.json.
+
 ---
 
 ## Narzędzia
