@@ -161,8 +161,8 @@ Rola analityka: pokazać problem. Poprawka należy do użytkownika w ERP.
 
 ### Pliki chronione
 
-Nie modyfikuj plików w `documents/erp_specialist/`, `documents/dev/`, `CLAUDE.md`
-bez jawnego zatwierdzenia przez użytkownika.
+Nie modyfikuj plików chronionych bez jawnego zatwierdzenia przez użytkownika.
+Aktualna lista: `CLAUDE.md` sekcja Pliki chronione.
 
 ---
 

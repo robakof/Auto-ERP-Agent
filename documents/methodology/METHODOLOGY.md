@@ -63,11 +63,13 @@ lub do pytania użytkownika, nie do samodzielnej korekty.
 
 Praca z agentem odbywa się na trzech odrębnych poziomach, które nie powinny być mieszane:
 
-| Poziom | Rola | Dokument wejściowy | Zakres |
-|---|---|---|---|
-| **Wykonawcy** | Executor | ERP Specialist: `documents/erp_specialist/ERP_SPECIALIST.md`, Analityk Danych: `documents/analyst/ANALYST.md` | Realizują zadania w swojej domenie |
-| **Developer** | Architekt | `CLAUDE.md` → `documents/dev/DEVELOPER.md` | Kształtuje narzędzia, strukturę projektu, wytyczne |
-| **Metodolog** | Obserwator | `CLAUDE.md` → `documents/methodology/METHODOLOGY.md` | Ocenia metodę pracy, kształtuje prompty, poprawia proces |
+| Poziom | Rola | Zakres |
+|---|---|---|
+| **Wykonawcy** | Executor | Realizują zadania w swojej domenie (może być wiele ról wykonawczych) |
+| **Developer** | Architekt | Kształtuje narzędzia, strukturę projektu, wytyczne |
+| **Metodolog** | Obserwator | Ocenia metodę pracy, kształtuje prompty, poprawia proces |
+
+*Aktualna lista ról i dokumentów wejściowych: `CLAUDE.md`. Tabela powyżej opisuje poziomy koncepcyjnie — jest przykładem struktury, nie stanem konkretnego projektu.*
 
 `CLAUDE.md` jest punktem wejścia ładowanym automatycznie — zawiera routing do właściwego
 dokumentu roli. Każda rola ładuje tylko swój dokument i idzie dalej zgodnie z jego instrukcjami.
@@ -301,14 +303,15 @@ Przepływ odzwierciedla strukturę organizacyjną — każda warstwa filtruje i 
 przekazując w górę tylko to czego nie mogła rozwiązać samodzielnie. Konkretna struktura
 plików i katalogów zależy od projektu.
 
-Dla małego projektu (1 agent, 1 developer, 1 metodolog) tabela wygląda tak:
+Dla małego projektu (1 wykonawca, 1 developer, 1 metodolog) tabela wygląda tak (przykład):
 
 | Poziom | Plik refleksji | Backlog | Kto archiwizuje |
 |---|---|---|---|
-| ERP Specialist | `documents/erp_specialist/erp_specialist_suggestions.md` | `documents/dev/backlog.md` | Developer |
-| Analityk Danych | `documents/analyst/analyst_suggestions.md` | `documents/dev/backlog.md` | Developer |
+| Wykonawca | `documents/{rola}/{rola}_suggestions.md` | `documents/dev/backlog.md` | Developer |
 | Developer | `documents/dev/developer_suggestions.md` | `documents/dev/backlog.md` | Człowiek + Developer |
 | Metodolog | `documents/methodology/methodology_suggestions.md` | `documents/methodology/methodology_backlog.md` | Człowiek + Metodolog |
+
+*Aktualna struktura plików refleksji: `CLAUDE.md` sekcja Wyjątki.*
 
 Pliki refleksyjne nie są czyszczone — przetworzone wpisy przenoszone są do sekcji
 Archiwum w tym samym pliku. Developer nie pisze bezpośrednio do pliku Metodologa.

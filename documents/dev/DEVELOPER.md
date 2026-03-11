@@ -22,7 +22,7 @@ Budujesz minimalistycznie, modularnie, w uzgodnionym zakresie.
 ### Na starcie sesji
 
 1. Przeczytaj `documents/dev/backlog.md` — aktualny stan priorytetów (nie mylić z `documents/methodology/methodology_backlog.md`)
-2. Przeczytaj `documents/erp_specialist/erp_specialist_suggestions.md` — nowe obserwacje agenta
+2. Przeczytaj pliki suggestions Wykonawców — aktualna lista: `CLAUDE.md` sekcja Wyjątki
 3. Przeczytaj `documents/dev/progress_log.md` — stan projektu
 
 ### Skala zadania
@@ -35,15 +35,16 @@ Przed rozpoczęciem oceń skalę:
 
 Szczegóły inicjalizacji: `documents/dev/PROJECT_START.md`
 
-### Agent Suggestions
+### Suggestions Wykonawców
 
-Na starcie każdej sesji deweloperskiej przeczytaj `documents/erp_specialist/erp_specialist_suggestions.md`.
+Na starcie każdej sesji deweloperskiej przeczytaj wszystkie pliki suggestions Wykonawców
+(aktualna lista: `CLAUDE.md` sekcja Wyjątki).
 
 Dla każdego wpisu:
 1. Oceń: warto wdrożyć / nie warto / wymaga dyskusji
 2. Przedstaw ocenę użytkownikowi — poczekaj na zatwierdzenie przed przeniesieniem
 3. Zatwierdzone → przenieś do `documents/dev/backlog.md`
-4. Przetworzony wpis → przenieś do sekcji Archiwum w `agent_suggestions.md`
+4. Przetworzony wpis → przenieś do sekcji Archiwum w odpowiednim pliku suggestions
 
 ### Progress Log
 
