@@ -282,6 +282,8 @@ Opcje:
 
 **[Dev] bi_catalog_add.py** — WONTDO 2026-03-11 (narzędzie istnieje; problem był w braku kroku w Faza 4 ERP_VIEW_WORKFLOW — naprawione)
 
+**[Agent] Baza wzorców numeracji** — częściowo zrealizowane 2026-03-11 (pliki reference gotowe; otwarte: reguła w ERP_SPECIALIST.md + zasada "zbadaj strukturę przed budowaniem" w DEVELOPER.md)
+
 **[Dev] Kontekst na końcu wiadomości + węzłowość reguł** — zrealizowane 2026-03-11
 (CLAUDE.md: reguła kontekstu; DEVELOPER.md: zasada węzłowości; methodology_suggestions: refleksja dla Metodologa)
 

@@ -34,6 +34,17 @@
 
 ## Dziennik
 
+### 2026-03-11 — Baza wzorców numeracji dokumentów
+
+- `solutions/reference/numeracja_wzorce_query.sql` — zapytanie dla DBA (CDN.NazwaObiektu 4 params, Format=2)
+- `solutions/reference/obiekty.tsv` — pełna lista 280+ typów GID z CDN.Obiekty
+- `solutions/reference/numeracja_wzorce.tsv` — wzorce formatów z bazy (TraNag 25 typów + ZamNag/ZP/NM/NO/UP/KB/RK)
+- Kluczowe odkrycie: CDN.NazwaObiektu(@ObiTyp, @ObiNumer, @ObiLp, @Format) — nie 2 a 4 parametry
+- Reguła w ERP_SPECIALIST.md i backlog: dodać zasadę "zbadaj strukturę przed budowaniem"
+- Backlog item [Agent] Baza wzorców numeracji — GOTOWY do zamknięcia po dodaniu reguły do ERP_SPECIALIST.md
+
+---
+
 ### 2026-03-11 — Węzłowość reguł + kontekst na końcu wiadomości
 
 - CLAUDE.md: reguła `Kontekst: ~XX%` na końcu każdej wiadomości (zasada wspólna dla wszystkich ról)

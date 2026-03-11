@@ -27,6 +27,24 @@ Rozważyć: czy `--all` przy starcie sesji bota powinno być częścią weryfika
 
 ---
 
+### 2026-03-11 — CDN.NazwaObiektu + CDN.Obiekty
+
+Sygnatura: `CDN.NazwaObiektu(@ObiTyp smallint, @ObiNumer int, @ObiLp smallint, @Format smallint)`
+- `@ObiLp = 0` dla nagłówka, `@Format = 2` zwraca tylko numer dokumentu (Akronim)
+- Nie 2 parametry jak zakładano — sprawdzenie sp_helptext zanim się cokolwiek napisze
+
+`CDN.Obiekty` zawiera pełną listę typów GID (`Ob_GIDTyp`, `Ob_Skrot`, `Ob_Nazwa`).
+Zapisana jako `solutions/reference/obiekty.tsv` — przydatna do mapowania GIDTyp → nazwa.
+
+Wzorce formatów zweryfikowane empirycznie — `solutions/reference/numeracja_wzorce.tsv`.
+Przed pisaniem inline formatu numeru: sprawdź czy typ jest w pliku. Jeśli tak — użyj wzorca.
+Jeśli nie — poproś usera o CDN.NazwaObiektu przez SSMS i dopisz do pliku.
+
+Format MemNag (NM): `NM-INN/2023/05/1` — inny niż pozostałe (pełny rok, nie YY).
+Format KB: `KB-23/KASAF/2/1` — zawiera nr raportu i nr pozycji, nie tylko Numer/Rok.
+
+---
+
 ## Archiwum
 
 ### 2026-03-10 — Sesja BI.Rozrachunki (Faza 2 → Faza 4)
