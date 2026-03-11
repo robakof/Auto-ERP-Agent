@@ -43,6 +43,52 @@ Opis problemu i propozycja rozwiązania.
 
 ## Aktywne
 
+### [Arch] Brak mechanizmu refleksji top-down (Developer → Executor)
+
+**Źródło:** obserwacja sesji 2026-03-11
+**Sesja:** 2026-03-11
+**Wartość:** wysoka
+**Pracochłonność:** mała
+
+Architektura obsługuje tylko przepływ w górę (Executor → Developer → Metodolog).
+Brak kanału na wytyczne z Developera do Executora — odkrycia developerskie dotyczące
+narzędzi ERP lądują w złym pliku (erp_specialist_suggestions zamiast ERP_SCHEMA_PATTERNS).
+
+Do ustalenia z Metodologiem: czy to osobny plik (developer_to_erp.md), czy rozszerzenie
+istniejącego przepływu, czy po prostu Developer edytuje SCHEMA_PATTERNS bezpośrednio.
+
+---
+
+### [Arch] Brak backlogu per-rola
+
+**Źródło:** obserwacja sesji 2026-03-11
+**Sesja:** 2026-03-11
+**Wartość:** średnia
+**Pracochłonność:** mała–średnia
+
+Wszystkie zadania trafiają do jednego `backlog.md`. Przy wielu rolach wykonawczych
+(ERP Specialist, Analityk) zadania domenowe mieszają się z architektonicznymi.
+
+Opcje: osobne pliki backlog per-rola, lub tagi domenowe w istniejącym pliku.
+Eskalować do Metodologa.
+
+---
+
+### [ERP] Sesja inspekcji schematu CDN
+
+**Źródło:** obserwacja sesji 2026-03-11
+**Sesja:** 2026-03-11
+**Wartość:** średnia
+**Pracochłonność:** mała
+
+Niezbadane: inne funkcje użytkowe w schemacie CDN (poza NazwaObiektu/NumerDokumentu),
+widoki CDN.* vs tabele, tabele słownikowe powtarzalne w każdym widoku BI.
+
+Propozycja: krótka sesja inspekcji przed kolejnym widokiem BI — INFORMATION_SCHEMA
++ sp_helptext na kluczowych funkcjach. Nie blokuje bieżącej pracy.
+
+---
+
 ### [Dev] Zasada: najpierw zbadaj strukturę, potem buduj
 
 **Źródło:** obserwacja sesji 2026-03-11
