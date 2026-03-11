@@ -26,6 +26,34 @@ Jeśli odpowiedź na pytanie jest "nie" lub "nic" — pomiń pytanie.
 
 ## Wpisy
 
+### 2026-03-11 — Sesja architektoniczna (separacja ról, refaktor struktury)
+
+**Co działało dobrze**
+
+Odczyt METHODOLOGY.md przed podjęciem decyzji architektonicznych był trafny — zasada
+"1 jednostka = 1 plik refleksji" już tam była. Nie trzeba było zgadywać.
+
+Zasada "informacje zmienne żyją tylko w CLAUDE.md" — prosta, ale niegotowa przed tą sesją.
+Wynikła naturalnie z bólu refaktoru (6 plików do zmiany przy rename folderu).
+Warto ją stosować od pierwszego projektu, nie odkrywać po kosztownym refaktorze.
+
+**Obserwacja architektoniczna**
+
+Zmiana nazwy folderu `documents/agent/` → `documents/erp_specialist/` dotknęła 18 plików.
+Z czego po usunięciu archiwów i _loom pozostało 6 aktywnych.
+Redukcja do CLAUDE.md jako jedynego źródła prawdy dla ścieżek sprowadziłaby to do 1-2.
+arch_check.py w backlogu — dobry sygnał że problem jest realny, nie hipotetyczny.
+
+**Naming "Wykonawcy"**
+
+Użytkownik zaproponował "Wykonawcy" zamiast "Agenci" — argument "mogą to też być ludzie"
+jest trafny i wychodzi poza techniczny kontekst. Dobra intuicja nazewnicza.
+
+**Co warto sprawdzić przy kolejnej sesji**
+
+Backlog ma pozycję [Dev] Informacja o kontekście na końcu wiadomości — prosta reguła do DEVELOPER.md,
+warto zrobić na starcie kolejnej sesji zanim wejdziemy w widoki (mała, wysoka wartość).
+
 ### [2026-03-09] P1–P4 + bi_discovery + docs_search refactor
 
 1. **Decyzje architektoniczne:**

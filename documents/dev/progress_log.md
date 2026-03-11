@@ -28,11 +28,21 @@
 - [Dev] Informacja o kontekście na końcu każdej wiadomości agenta
 - [Arch] Sygnatury narzędzi powielone w wielu miejscach
 
-**Następny krok:** backlog — kolejne zadanie do ustalenia z userem
+**Następny krok:** kolejna tura widoków BI (ERP Specialist) lub pozycje z backlogu
 
 ---
 
 ## Dziennik
+
+### 2026-03-11 — Dokumentacja ERP Specialist + fix docs_search
+
+- ERP_SCHEMA_PATTERNS: TraNag prefiks (Z)/(A)/(s), KB→CDN.Zapisy, CDN.UpoNag typ 2832, CDN.Rozrachunki GIDLp
+- ERP_VIEW_WORKFLOW: Typ_Dok pełne nazwy od Fazy 1, artefakt wyścigu, sql_query blokuje CREATE, verify query od razu
+- ERP_SPECIALIST: sprawdź COUNT(*) FROM AIBI.* przed użyciem widoku
+- docs_search.py: phrase opcjonalny (nargs='?') — `docs_search.py --table CDN.X` bez `""`
+- backlog.md: Analityk jako weryfikator konwencji widoku (nowa pozycja)
+
+---
 
 ### 2026-03-11 — Separacja pamięci + rename erp_specialist
 
