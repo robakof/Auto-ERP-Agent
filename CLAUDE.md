@@ -25,7 +25,9 @@ Po załadowaniu dokumentu roli — postępuj zgodnie z jego instrukcjami.
 
 ### Pliki chronione
 
-Nie modyfikuj poniższych plików bez jawnego zatwierdzenia przez użytkownika:
+Nie modyfikuj poniższych plików bez jawnego zatwierdzenia przez użytkownika.
+Przed każdą edycją pliku chronionego agent MUSI napisać: "To plik chroniony — zatwierdzasz tę zmianę?"
+i poczekać na odpowiedź twierdzącą. Wskazanie pliku jako celu nie jest zatwierdzeniem.
 
 - `CLAUDE.md`
 - `documents/erp_specialist/ERP_SPECIALIST.md`

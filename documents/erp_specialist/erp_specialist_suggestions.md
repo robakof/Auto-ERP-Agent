@@ -19,6 +19,12 @@ Pytania pomocnicze:
 
 ## Wpisy
 
+*(brak wpisów)*
+
+---
+
+## Archiwum
+
 ### 2026-03-10 — bi_catalog_add.py — uzupełnienie
 
 Narzędzie aktualizuje tylko `columns`. Przy każdym nowym widoku agent nadal musi ręcznie
@@ -42,10 +48,6 @@ Jeśli nie — poproś usera o CDN.NazwaObiektu przez SSMS i dopisz do pliku.
 
 Format MemNag (NM): `NM-INN/2023/05/1` — inny niż pozostałe (pełny rok, nie YY).
 Format KB: `KB-23/KASAF/2/1` — zawiera nr raportu i nr pozycji, nie tylko Numer/Rok.
-
----
-
-## Archiwum
 
 ### 2026-03-10 — Sesja BI.Rozrachunki (Faza 2 → Faza 4)
 

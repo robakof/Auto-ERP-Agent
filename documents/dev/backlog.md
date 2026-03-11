@@ -89,38 +89,6 @@ Propozycja: krótka sesja inspekcji przed kolejnym widokiem BI — INFORMATION_S
 
 ---
 
-### [Dev] Zasada: najpierw zbadaj strukturę, potem buduj
-
-**Źródło:** obserwacja sesji 2026-03-11
-**Sesja:** 2026-03-11
-**Wartość:** wysoka
-**Pracochłonność:** mała
-
-Przy budowaniu zapytania do CDN.NazwaObiektu napisano złożony SQL opierający się na założeniu
-dotyczącym sygnatury funkcji (2 parametry). Po zbadaniu źródła okazało się: 4 parametry,
-istnieje CDN.Obiekty — zapytanie uprościło się do 1/5 poprzedniej objętości.
-
-Zasada do wpisania w DEVELOPER.md: jeśli istnieje sposób zbadania jak narzędzie/tabela
-jest zbudowana (sp_helptext, INFORMATION_SCHEMA, docs_search) — zrób to przed budowaniem,
-nie w trakcie poprawiania.
-
----
-
-### [Dev] Agent edytuje pliki chronione bez jawnego zatwierdzenia
-
-**Źródło:** obserwacja sesji 2026-03-11
-**Sesja:** 2026-03-11
-**Wartość:** wysoka
-**Pracochłonność:** mała
-
-Agent edytuje pliki chronione (np. `DEVELOPER.md`) gdy użytkownik wskazuje plik jako cel
-("dodajmy wytyczną w developer"), traktując intencję jako zatwierdzenie. Reguła wymaga
-jawnego zatwierdzenia — ale co jest "jawne" nie jest zdefiniowane.
-
-Propozycja: doprecyzować regułę w `CLAUDE.md` — przed edycją pliku chronionego agent musi
-powiedzieć "to plik chroniony — zatwierdzasz?" i poczekać na odpowiedź twierdzącą.
-
----
 
 ### [Dev] LOOM — publikacja na GitHub
 
@@ -328,7 +296,11 @@ Opcje:
 
 **[Dev] bi_catalog_add.py** — WONTDO 2026-03-11 (narzędzie istnieje; problem był w braku kroku w Faza 4 ERP_VIEW_WORKFLOW — naprawione)
 
-**[Agent] Baza wzorców numeracji** — częściowo zrealizowane 2026-03-11 (pliki reference gotowe; otwarte: reguła w ERP_SPECIALIST.md + zasada "zbadaj strukturę przed budowaniem" w DEVELOPER.md)
+**[Agent] Baza wzorców numeracji** — częściowo zrealizowane 2026-03-11 (pliki reference gotowe; otwarte: reguła w ERP_SPECIALIST.md)
+
+**[Dev] Zasada "zbadaj strukturę przed budowaniem"** — zrealizowane 2026-03-11 (DEVELOPER.md zasada #6)
+
+**[Dev] Agent edytuje pliki chronione bez jawnego zatwierdzenia** — zrealizowane 2026-03-11 (CLAUDE.md: protokół pytania przed edycją)
 
 **[Dev] Kontekst na końcu wiadomości + węzłowość reguł** — zrealizowane 2026-03-11
 (CLAUDE.md: reguła kontekstu; DEVELOPER.md: zasada węzłowości; methodology_suggestions: refleksja dla Metodologa)

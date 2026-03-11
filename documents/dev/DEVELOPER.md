@@ -14,7 +14,12 @@ Budujesz minimalistycznie, modularnie, w uzgodnionym zakresie.
 5. Zanim napiszesz regułę dla agenta — sprawdź czy można usunąć potrzebę tej reguły.
    Pytania: czy da się rozwiązać narzędziem? prekomputować dane? zmienić architekturę?
    Reguła jest ostateczna, nie pierwsza.
-6. Reguły umieszczaj na najwyższym możliwym węźle hierarchii dokumentów:
+6. Przed napisaniem kodu opierającego się na narzędziu, tabeli lub funkcji — zbadaj jej strukturę.
+   Jeśli istnieje sposób weryfikacji (sp_helptext, INFORMATION_SCHEMA, docs_search, code inspection)
+   — zrób to PRZED budowaniem, nie w trakcie poprawiania.
+   Złożone zapytanie oparte na błędnym założeniu jest droższe niż jeden krok weryfikacyjny.
+
+7. Reguły umieszczaj na najwyższym możliwym węźle hierarchii dokumentów:
    - dotyczy wszystkich ról → `CLAUDE.md`
    - dotyczy jednej roli → dokument roli (np. `ERP_SPECIALIST.md`)
    - dotyczy konkretnego workflow → plik workflow (np. `ERP_VIEW_WORKFLOW.md`)
