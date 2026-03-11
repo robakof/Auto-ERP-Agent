@@ -1,0 +1,383 @@
+Ob_GIDTyp	Ob_Skrot	Ob_Nazwa
+-14400	DAB	Grupa załączników
+-14341	WO	Wzorzec operacji
+-8257	GBDZ	Grupa definicji budżetu
+-8210	Tabel	Tabela Vat na potrzeby atrybutów
+-8209	PLT	Płatność na potrzeby atrybutów
+-6144	Grupa	Grupa czynności serisowych
+-4592	GPRJ	Projekt - węzeł
+-4272	Struk	Centra i lokalizacje w strukturze
+-368	SRTG	Grupa środków trwałych
+-33	GrKW	Wirtualna grupa kontrahentów
+-32	GrK	Grupa kontrahentów
+-16	GrT	Grupa towarów
+16	Twr	Towar
+32	Knt	Kontrahent
+48	Bnk	Bank
+64	Cen	Cena
+80	Kca	Kaucja
+96	Wal	Waluta
+112	Rec	Receptura
+128	Ope	Operator
+129	OpeNo	Operator NOD
+144	JM	Jednostka miary
+160	Dst	Dostawa
+176	KrK	Karta kredytowa
+192	CCh	Klasa cechy
+208	Mag	Magazyn
+209	MgO	Obszar magazynowy
+210	MgA	Adres magazynowy
+224	Sta	Stanowisko operatora
+240	RPG	Warstwa w pliku GrupyTemp
+256	EAN	Kod EAN
+272	Ser	Seria
+320	Nts	Notatnik
+336	SC	Skład celny
+337	WYS	Wysyłka
+338	Spe	Spedytor
+339	Knw	Konwersacja
+340	PC	Paczka
+342	SaM	Samochód
+343	TsA	Trasa
+344	SaP	Przejazd
+368	SRT	Karta środka trwałego
+369	SRT	Element zestawu środka trwałego
+432	DT	Dekret księgowy
+433	ROZ	Rozrachunek
+434	KMP	Kompensata
+435	RK	Różnica kursowa
+448	KONTO	Konto księgowe
+449	SCH	Schemat księgowania
+464	Dzien	Dziennik księgowań
+480	Bufor	Bufor księgowań
+496	Ksieg	Księga inwentarzowa
+512	Stawk	Stawka amortyzacji
+528	OT_zd	OT_zdarzenia
+544	PK_zd	PK_zdarzenia
+560	LT_zd	LT_zdarzenia
+576	Rejes	Rejestr VAT
+592	Okres	Okres obrachunkowy
+608	Rep_n	Rep_nagłówek_algorytmu
+624	Stawk	Stawka VAT
+640	Srodk	Środki trwałe - operacje
+666	KrN	Nagłówek kreatora kodów
+736	Forma	Forma płatności
+752	REJ	Rejestr kasowy
+768	OPK	Operacja kasowa
+784	KB	Zapis kasowy/bankowy
+800	RAP	Raport kasowy/bankowy
+816	Ciag_	Ciąg numeracji kasy
+848	Piecz	Pieczątka firmy
+864	Adr	Adres kontrahenta (podstawowy)
+880	PAP	Paczka przelewów
+896	AdrAl	Adres kontrahenta (inny)
+912	AnlRa	Analizy: Raport
+928	AnlZe	Analizy: Zestaw wyników
+944	Prc	Pracownik
+945	PrcEm	Adres email pracownika
+948	Rej	Rejony
+960	Zam	Zamówienie
+976	Sposo	Sposób dostawy
+992	Branz	Branża
+1008	Regio	Region
+1088	TCN	Nagłówek cennika
+1089	PM	Przyjęcie magazynowe
+1093	AWD	Awizo dostawy
+1232	KDZ	Koszt dodatkowy zakupu
+1312	FZL	Faktura zakupu zaliczkowa
+1320	KZL	Korekta faktury zakupu zaliczkowej
+1489	PZ	Przyjęcie zewnętrzne
+1490	PZI	Przyjęcie zewnętrzne importowe
+1497	PZK	Korekta przyjęcia zewnętrznego
+1498	PKI	Korekta przyjęcia importowego
+1520	FRR	Faktura VAT RR
+1521	FZ	Faktura zakupu
+1528	FRK	Korekta faktury VAT RR
+1529	FZK	Korekta faktury zakupu
+1536	INW	Inwentaryzacja
+1600	MM	Przesunięcie międzymagazynowe
+1601	WM	Wydanie magazynowe
+1602	MP	Przesunięcie wewnątrzmagazynowe
+1603	MMW	Przesunięcie międzymagazynowe wydanie
+1604	MMP	Przesunięcie międzymagazynowe przyjęcie
+1605	ZWM	Zlecenie wydania z magazynu
+1616	RW	Rozchód wewnętrzny
+1617	PW	Przychód wewnętrzny
+1624	RWK	Korekta rozchodu wewnętrznego
+1625	PWK	Korekta przychodu wewnętrznego
+1648	RkB	Rachunek bankowy
+1824	FSL	Faktura sprzedaży zaliczkowa
+1828	FEL	Faktura eksportowa zaliczkowa
+1832	KSL	Korekta faktury sprzedaży zaliczkowej
+1836	KEL	Korekta faktury eksportowej zaliczkowej
+1968	TF	Tax Free
+2000	WKA	Wydanie towarów kaucjonowanych
+2001	WZ	Wydanie zewnętrzne
+2002	PKA	Przyjęcie towarów kaucjonowanych
+2003	KK	Korekta kosztu
+2004	DP	Deprecjacja
+2005	WZE	Wydanie zewnętrzne eksportowe
+2008	WKK	Korekta wydania towarów kaucjonowanych
+2009	WZK	Korekta wydania zewnętrznego
+2010	PKK	Korekta przyjęcia towarów kaucjonowanych
+2013	WKE	Korekta wydania eksportowego
+2033	FS	Faktura sprzedaży
+2034	PA	Paragon
+2035	RA	Faktura do paragonu
+2036	FW	Dokument wewnętrzny
+2037	FSE	Faktura eksportowa
+2039	RS	Raport sprzedaży
+2041	FSK	Korekta faktury sprzedaży
+2042	PAK	Korekta paragonu
+2043	RAK	Korekta faktury do paragonu
+2044	FWK	Korekta dokumentu wewnętrznego
+2045	FKE	Korekta faktury eksportowej
+2047	RSK	Korekta raportu sprzedaży
+2048	OT	Dokument OT
+2050	SST	stan srodka trwalego
+2051	MWP	modyfikacja wartosci przylaczenie
+2052	MWO	modyfikacja wartosci odlaczenie
+2064	AM	Dokument AM
+2080	PK	Dokument PK
+2096	LT	Dokument LT
+2112	WN	Dokument WN
+2128	RN	Dokument RN
+2144	ZO	Dokument ZO
+2160	ZM	Dokument ZM
+2176	OTK	Dokument OTK
+2192	AMK	Dokument AMK
+2224	LTK	Dokument LTK
+2288	ZW	Dokument ZW
+2304	AK	Dokument AK
+2432	MW	Dokument MW
+2496	MWK	Dokument MWK
+2532	RT	Dokument RT
+2548	ZMT	Dokument ZMT
+2552	ZKZ	Dokument ZKZ
+2556	ZSA	Dokument ZSA
+2576	Rez	Rezerwacja
+2592	BkRez	Rezerwacja u dostawcy
+2600	UML	Dokument UML
+2624	SQLRa	Szybki raport
+2640	AnlNa	Analizy: Nagłówek
+2650	IMT	Dokument IMT
+2656	Okres	Okres liczenia raportu
+2672	Druka	Drukarka fiskalna
+2688	Rodza	Rodzaj upomnienia
+2704	DKKF	DKK_Format
+2720	CECHa	Cecha transakcji
+2736	SIS	Zmienna SIS
+2752	KOK	Księgowanie okresowe
+2768	VAT7	Deklaracja VAT-7
+2769	ORDZU	Załacznik deklaracji VAT-7
+2770	VATZZ	Załacznik deklaracji VAT-7
+2771	VATZT	Załacznik deklaracji VAT-7
+2784	ZKS	Zestawienie księgowe
+2800	WID	Widok zestawienia
+2816	SKAS	Schemat kasy
+2832	NO	Nota odsetkowa
+2833	UP	Upomnienie
+2848	ODS	Odsetki
+2896	KLASA	Klasa konta
+2912	SrtSe	SrtSerie
+2928	SSRT	Schemat SRT
+2944	OpisD	Opis dekretu
+2960	SLP	Schemat LP
+2974	LPL	Schemat LPL
+2976	LP	Lista płac
+2977	LPK	Korekta listy płac
+2978	LPE	Lista płac etatowa
+2979	LPU	Lista płac umów cywilnoprawnych
+2980	LPI	Lista innych wypłat
+2981	LPZ	Lista wypłat zaliczek
+2982	UMW	Umowy Cywilnoprawne
+2983	WNO	Wniosek pracownika
+2984	DLG	Delegacja pracownika
+2992	SIMP	Schemat Import
+3008	SSAD	Schemat SAD
+3024	Sposo	Sposób zakupu
+3040	Sposo	Sposób likwidacji
+3056	Miejs	Miejsce użytkowania
+3344	FAI	Faktura importowa
+3352	FKI	Korekta faktury importowej
+3376	SAD	SAD
+3377	SSC	SAD składu celnego
+3378	FWZ	Dokument wewnętrzny
+3379	FWS	Dokument wewnętrzny
+3386	FKZ	Korekta dokumentu wewnętrznego
+3387	FKS	Korekta dokumentu wewnętrznego
+3584	RLS	Reklamacja sprzedaży
+3585	RLZ	Reklamacja zakupu
+3586	RLE	Element reklamacji
+3587	RLR	Realizacja reklamacji
+3840	IST	Intrastat
+3848	ISK	Korekta Intrastat
+4096	Seria	Seria kompensaty
+4097	Seria	Seria prolongaty
+4112	SMEM	Schemat Mem
+4113	SMNU	Schemat MNU
+4128	DNOTA	Definicja noty
+4144	NM	Nota memoriałowa
+4145	UNM	Uproszczona nota memoriałowa
+4146	UNK	Korekta uproszczonej noty memoriałowej
+4160	Seria	Seria noty
+4176	KM	Kampania marketingowa
+4177	WK	Wzorzec kampanii CRM
+4178	CDZ	Wzorzec zadania CRM
+4179	CED	Wzorzec etapu CRM
+4180	WH	Wizyta handlowa
+4181	CWW	Wzorzec wizyty handlowej
+4182	CEW	Wzorzec elementu wizyty
+4183	WPR	Wydatek pracownika
+4184	CRD	Definicja raportu CRM
+4192	ZK	Zlecenie kompletacji
+4208	ZD	Zlecenie dekompletacji
+4224	SZLC	Schemat Zlc
+4240	ZLS	Zlecenie serwisowe
+4256	SODS	Schemat Ods
+4272	Struk	inne elementy struktury
+4288	PK	Przeszacowanie
+4304	Urzad	Urząd (1-skarbowy 2-ZUS 3-celny 4-inny)
+4320	DokDe	DokDefinicja
+4336	ZWN	Zlecenie wewnętrzne
+4345	ZSE	Zlecenie remontowo-serwisowe
+4346	ZRE	Zlecenie remontowe
+4347	KZL	Karta pracy zlecenia
+4348	PZL	Pracownik do zlecenia
+4349	CZL	Operacja zlecenia
+4350	MZL	Materiał do zlecenia
+4351	PZL	Usterka do zlecenia
+4592	PRJ	Projekt
+4595	BDT	Budżet projektu
+4597	ZPT	Zgłoszenie przewozu towarów wrażliwych
+4608	KBN	Kompensata braków i nadwyżek
+4700	ZSR	Zlecenie serwisowe
+4701	SrU	Serwisowane urządzenia
+4702	SZC	Czynności w zleceniu serwisowym
+4703	SZS	Składniki (materiały i usługi) zlecenia
+4704	SZU	Urządzenia w zleceniu serwisowym
+4705	SZK	Koszty kalkulacji w zleceniu serwisowym
+4706	SUR	Rodzaj serwisowanych urządzeń
+4710	PLP	Plan przeglądu technicznego
+4800	UM	Umowy
+5056	KGT	Grupa iMall
+5057	PIA	Progi ilościowe aplikacji
+5088	TAP	Aplikacje
+5104	PRM	Promocja
+5112	TPR	TwrPromocja
+5113	RTK	Rabat retrospektywny
+5114	RKO	Okres retrospektywny
+6144	Czynn	Czynność serwisowa
+6208	AMP	Dokument AMP
+6272	PIT	Deklaracja PIT
+6336	DEKL	Schemat Dekl
+6337	SPZL	Schemat Produkcji
+6339	SRKN	Schemat Dokumentu Różnicy kursowej
+6343	SDLG	Schemat Delegacji
+6351	SKBN	Schemat KBN
+6367	SPRG	Schemat PRG
+6400	DRA	Deklaracja DRA
+6401	ZUS	Deklaracja ZUS
+6402	PPK	Deklaracja PPK
+6560	Zgo	Zgody
+6656	SOb	Serwisowany obiekt
+6912	Plan	Plan przeglądu technicznego
+7040	WypO	Wyposażenie obiektu
+7104	SRE	Receptury serwisowe
+7141	SRC	Czynności receptury serwisowej
+7142	SRS	Składniki receptury serwisowej
+7143	SCZ	Część zamienna
+7168	PD	Podzielnik wynagrodzeń
+7680	BO	Bilans otwarcia
+7681	BOK	Korekta bilansu otwarcia
+7682	BOA	Automatyczny bilans otwarcia
+7683	BOAK	Automatyczna korekta bilansu otwarcia
+7684	PRP	Preliminarz płatności
+7685	WYM	Wymiar analityczny
+7686	VATUE	Deklaracja VAT-UE
+7687	VATUE	Deklaracja VAT-UE/A
+7688	VATUE	Deklaracja VAT-UE/B
+7689	VATUE	Deklaracja_VAT-UEK
+7690	PRW	Preliminarz wpływów i wydatków
+7691	DKL	Deklaracja
+7692	VATUE	Deklaracja VAT-UE miesieczna
+7693	VATUE	Deklaracja_VAT-UEK miesieczna
+7696	VAT7K	Deklaracja VAT-7K
+7697	VAT27	Deklaracja VAT-27
+7698	VAT27	Deklaracja VAT-27K
+7712	VAT7D	Deklaracja_VAT-7D
+7713	NADZP	Załacznik_deklaracji VAT-7D
+7714	VATZD	Załacznik_deklaracji VAT-7
+7941	OpisW	Wzorzec opisu analitycznego
+7942	PRG	Prolongata
+7943	PRK	Korekta prolongaty
+8211	Osoba	Osoba kontrahenta
+8224	KSl	Słownik kadr i płac
+8225	SLW	Słownik
+8226	LOK	Lokalizacja
+8227	KOL	Kolory obiektow
+8257	BDZ	Definicja budżetu
+8288	RK	Różnica kursowa
+8289	Seria	Seria dokumentów Różnic Kursowych
+8290	Seria	Seria umów cywilnoprwanych
+8291	Seria	Seria dokumentów upomnień
+8832	OZ	Oferta na zakup
+8960	OS	Oferta sprzedaży
+9344	ZZ	Zamówienie zakupu
+9472	ZS	Zamówienie sprzedaży
+9473	ZW	Zamówienie wewnętrzne
+10880	ZOZ	Zapytanie ofertowe na zakup
+11008	ZOS	Zapytanie ofertowe na sprzedaż
+11392	PZZ	Potwierdzenie zamówienia zakupu
+11520	PZS	Potwierdzenie zamówienia sprzedaży
+11521	PZW	Potwierdzenie zamówienia wewnętrznego
+12288	WDP	Definicja procesu
+12289	WFP	Proces
+12290	WDS	Status procesu
+12291	WDO	Opiekun procesu
+12292	WDA	Akcja
+12293	WFZ	Zadanie
+12305	ZAD	Zadanie terminarza
+14337	POB	Obiekt do produkcji
+14338	PFU	Funkcja obiektu
+14339	PKA	Kalendarz obiektu
+14340	TP	Technologia produkcji
+14341	TPC	Operacja technologii produkcji
+14342	TPZ	Zasób technologii produkcji
+14343	ZP	Zlecenie produkcyjne
+14344	ZPP	Proces produkcyjny
+14345	ZPC	Operacja procesu produkcyjnego
+14346	ZPZ	Zasób procesu produkcyjnego
+14347	PLZ	Plan zapotrzebowania
+14348	ZPE	Pozycja zlecenia produkcyjnego
+14349	KPR	Kosztorys projektu
+14350	HPR	Harmonogram projektu
+14360	PP	Plan produkcyjny
+14361	PPP	Plan produkcyjny produkt
+14362	POG	Plan obciążenia gniazd
+14363	RDP	Rekomendacja do produkcji
+14364	RDZ	Rekomendacja do zamówienia
+14366	NAR	Normatyw a realizacja
+14367	PTG	Zasoby gniazd w czynnościach
+14368	NZP	Nadzlecenie produkcyjne
+14370	KTP	Konfigurator produktu
+14375	KLK	Kalkulacja kosztu
+14380	PPKJ	Parametr kontroli jakości
+14381	WKJ	Wzorzec kontroli jakości
+14383	PKJ	Protokół kontroli jakości
+14390	PCZU	Czujnik IoT
+14400	DAB	Załącznik
+14401	SKD	Definicja kwoty SAD
+14402	BSF	Definicja składnika bilansu
+14448	BST	Bilans stanu towarów
+14451	DWD	Dokument wychodzący
+14452	DWW	Dokument wewnętrzny
+14453	DPD	Dokument przychodzący
+14460	ANT	Ankieta
+14461	PYT	Pytanie
+14462	PYT	PytanieAnkiety
+14500	OSW	Wykształcenie
+14501	OZH	Zatrudnienie
+14502	KSt	Stanowisko
+14550	BON	Bon
+14551	RB	Rodzaj bonu
