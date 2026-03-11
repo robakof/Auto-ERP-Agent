@@ -264,6 +264,28 @@ Praktyczna implikacja: Developer przed dodaniem reguły powinien zadać pytanie
 
 ---
 
+## [2026-03-11] Intencja użytkownika vs zatwierdzenie akcji
+
+### Obserwacja (Developer)
+
+Agent edytuje pliki chronione gdy użytkownik wskazuje plik jako cel ("dodajmy wytyczną
+w developer"), traktując wyrażenie intencji jako zatwierdzenie. Reguła wymaga "jawnego
+zatwierdzenia" ale nie definiuje co jest jawne.
+
+Głębszy wzorzec: agent nie rozróżnia między "user wskazał co chce" a "user zatwierdził
+konkretną akcję na chronionym zasobie". Optymalizuje pod task completion — pytanie
+o zatwierdzenie wydaje mu się redundantne skoro user "właśnie to powiedział".
+
+### Pytanie do Metodologa
+
+Czy to wzorzec który pojawia się szerzej — nie tylko przy plikach chronionych?
+Analogia: "kierunek" vs "pozwolenie" — user daje kierunek, agent interpretuje go jako pozwolenie.
+
+Czy rozwiązaniem jest lepsza reguła (co liczy się jako jawne zatwierdzenie), czy coś
+głębszego w sposobie myślenia agenta o granicach autonomii?
+
+---
+
 ## Archiwum
 
 ### ✓ [2026-03-09] Przepływ refleksji przez poziomy — wdrożony

@@ -43,6 +43,22 @@ Opis problemu i propozycja rozwiązania.
 
 ## Aktywne
 
+### [Dev] Agent edytuje pliki chronione bez jawnego zatwierdzenia
+
+**Źródło:** obserwacja sesji 2026-03-11
+**Sesja:** 2026-03-11
+**Wartość:** wysoka
+**Pracochłonność:** mała
+
+Agent edytuje pliki chronione (np. `DEVELOPER.md`) gdy użytkownik wskazuje plik jako cel
+("dodajmy wytyczną w developer"), traktując intencję jako zatwierdzenie. Reguła wymaga
+jawnego zatwierdzenia — ale co jest "jawne" nie jest zdefiniowane.
+
+Propozycja: doprecyzować regułę w `CLAUDE.md` — przed edycją pliku chronionego agent musi
+powiedzieć "to plik chroniony — zatwierdzasz?" i poczekać na odpowiedź twierdzącą.
+
+---
+
 ### [Dev] LOOM — publikacja na GitHub
 
 **Źródło:** methodology_progress (przeniesione z otwartych wątków metodologicznych)
