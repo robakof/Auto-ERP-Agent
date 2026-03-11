@@ -181,18 +181,33 @@ RTRIM(n.TrN_Seria) + '/' + CAST(n.TrN_NumerTrN AS VARCHAR(10))
 Prefiks dokumentu (zweryfikowana formuła, baza ERPXL_CEIM):
 ```sql
 CASE
+    -- (Z) = korekta zbiorcza rabatowa: do dokumentu spięte są WZK/WKE/PZK przez spinacz
+    WHEN n.TrN_GIDTyp IN (2041, 2045, 1529)
+         AND EXISTS (
+             SELECT 1 FROM CDN.TraNag s
+             WHERE s.TrN_SpiTyp   = n.TrN_GIDTyp
+               AND s.TrN_SpiNumer = n.TrN_GIDNumer
+               AND (
+                    (n.TrN_GIDTyp = 2041 AND s.TrN_GIDTyp = 2009) OR  -- (Z)FSK <- WZK
+                    (n.TrN_GIDTyp = 2045 AND s.TrN_GIDTyp = 2013) OR  -- (Z)FKE <- WKE
+                    (n.TrN_GIDTyp = 1529 AND s.TrN_GIDTyp = 1497)     -- (Z)FZK <- PZK
+               )
+         )                                                   THEN '(Z)'
     WHEN n.TrN_Stan & 2 = 2
-         AND n.TrN_TypNumeracji IN ('FSK','FZK','PAK','FKE') THEN '(Z) '
+         AND n.TrN_GIDTyp IN (2041, 2045, 1529)             THEN '(Z)'  -- fallback heurystyczny
     WHEN n.TrN_GenDokMag = -1
-         AND n.TrN_TypNumeracji IN ('FZ','FZK','PZ')         THEN '(A) '
-    WHEN n.TrN_GenDokMag = -1                                THEN '(s) '
+         AND n.TrN_GIDTyp IN (1521, 1529, 1489)             THEN '(A)'
+    WHEN n.TrN_GenDokMag = -1                               THEN '(s)'
     ELSE ''
 END
 + RTRIM(n.TrN_Seria) + '/' + CAST(n.TrN_NumerTrN AS VARCHAR(10))
-+ '/' + CAST(n.TrN_Rok AS VARCHAR(4))
++ '/' + RIGHT(CAST(n.TrN_Rok AS VARCHAR(4)), 2)
 ```
 
-Znany wyjątek: FSK GIDNumer=6394119 dostaje (Z) mimo Stan=5 — niezidentyfikowane.
+Uwagi:
+- `TrN_TypNumeracji` nie istnieje — używaj `TrN_GIDTyp IN (lista numeryczna)`
+- `(Z)` = korekta zbiorcza rabatowa, nie "zwrot/anulowanie" (źródło: dok. Comarch 2018.1)
+- Rozrachunki.sql używa starej heurystyki Stan & 2 — wymaga aktualizacji przez ERP Specialist
 
 ### KB (784) → CDN.Zapisy
 
