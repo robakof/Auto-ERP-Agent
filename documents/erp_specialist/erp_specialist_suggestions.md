@@ -19,7 +19,6 @@ Pytania pomocnicze:
 
 ## Wpisy
 
-*(brak wpisów)*
 
 ---
 

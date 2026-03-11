@@ -43,21 +43,6 @@ Opis problemu i propozycja rozwiązania.
 
 ## Aktywne
 
-### [Arch] Brak mechanizmu refleksji top-down (Developer → Executor)
-
-**Źródło:** obserwacja sesji 2026-03-11
-**Sesja:** 2026-03-11
-**Wartość:** wysoka
-**Pracochłonność:** mała
-
-Architektura obsługuje tylko przepływ w górę (Executor → Developer → Metodolog).
-Brak kanału na wytyczne z Developera do Executora — odkrycia developerskie dotyczące
-narzędzi ERP lądują w złym pliku (erp_specialist_suggestions zamiast ERP_SCHEMA_PATTERNS).
-
-Do ustalenia z Metodologiem: czy to osobny plik (developer_to_erp.md), czy rozszerzenie
-istniejącego przepływu, czy po prostu Developer edytuje SCHEMA_PATTERNS bezpośrednio.
-
----
 
 ### [Arch] Brak backlogu per-rola
 
@@ -301,6 +286,8 @@ Opcje:
 **[Dev] Zasada "zbadaj strukturę przed budowaniem"** — zrealizowane 2026-03-11 (DEVELOPER.md zasada #6)
 
 **[Dev] Agent edytuje pliki chronione bez jawnego zatwierdzenia** — zrealizowane 2026-03-11 (CLAUDE.md: protokół pytania przed edycją)
+
+**[Arch] Kanał Developer → ERP Specialist** — częściowo zrealizowane 2026-03-11 (plik `documents/erp_specialist/developer_notes.md` gotowy; otwarte: dodać odczyt tego pliku do ERP_SPECIALIST.md na starcie sesji — wymaga zatwierdzenia)
 
 **[Dev] Kontekst na końcu wiadomości + węzłowość reguł** — zrealizowane 2026-03-11
 (CLAUDE.md: reguła kontekstu; DEVELOPER.md: zasada węzłowości; methodology_suggestions: refleksja dla Metodologa)
