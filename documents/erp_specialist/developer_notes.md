@@ -24,24 +24,50 @@ Mapowanie akronimów → GIDTyp: `solutions/reference/numeracja_wzorce.tsv` kolu
 
 ---
 
-### 2026-03-11 — Priorytet prefiksów: GenDokMag = -1 jest ważniejszy niż Stan & 2
+### 2026-03-11 — (Z) = korekta zbiorcza rabatowa (spinacz), nie Stan & 2
 
-Zweryfikowane empirycznie przez CDN.NazwaObiektu:
+Źródło: research Comarch + analiza TrN_SpiTyp/TrN_SpiNumer.
 
-GIDTyp 2041 (FSK), Stan=6 (bit2=1), GenDokMag=-1 → funkcja zwraca `(s)FSK`, nie `(Z)FSK`.
+**(Z)FSK / (Z)FKE / (Z)FZK to korekty zbiorcze rabatowe** — dokumenty do których
+są "spięte" dokumenty WZK/WKE/PZK przez mechanizm spinacza.
+NIE oznacza "anulowania korekty" ani nie wynika z TrN_Stan & 2 = 2.
 
-Oznacza to że gdy dokument ma jednocześnie GenDokMag=-1 i Stan&2=2,
-prefiks pochodzi od GenDokMag, nie od Stan. Prawidłowa kolejność CASE:
+Wcześniejsza obserwacja (FSK Stan=6, GenDokMag=-1 → (s)FSK) była prawidłowa ale
+niepełna: ten dokument nie miał spinacza, więc GenDokMag=-1 wygrał → (s).
+Dla FSK z spinaczem WZK → wynik byłby (Z).
 
+**Prawidłowa kolejność CASE (do wdrożenia w ERP_SCHEMA_PATTERNS.md):**
+
+```sql
+CASE
+    WHEN t.TrN_GIDTyp IN (2041, 2045, 1529)
+         AND EXISTS (
+             SELECT 1 FROM CDN.TraNag s
+             WHERE s.TrN_SpiTyp   = t.TrN_GIDTyp
+               AND s.TrN_SpiNumer = t.TrN_GIDNumer
+               AND (
+                    (t.TrN_GIDTyp = 2041 AND s.TrN_GIDTyp = 2009) OR  -- (Z)FSK <- WZK
+                    (t.TrN_GIDTyp = 2045 AND s.TrN_GIDTyp = 2013) OR  -- (Z)FKE <- WKE
+                    (t.TrN_GIDTyp = 1529 AND s.TrN_GIDTyp = 1497)     -- (Z)FZK <- PZK
+               )
+         )
+    THEN '(Z)'
+    WHEN t.TrN_Stan & 2 = 2
+         AND t.TrN_GIDTyp IN (2041, 2045, 1529)
+    THEN '(Z)'   -- fallback heurystyczny
+    WHEN t.TrN_GenDokMag = -1
+         AND t.TrN_GIDTyp IN (1521, 1529, 1489)
+    THEN '(A)'
+    WHEN t.TrN_GenDokMag = -1
+    THEN '(s)'
+    ELSE ''
+END
 ```
-1. WHEN GenDokMag = -1 AND typ zakupowy (FZ/FZK/PZ) → (A)
-2. WHEN GenDokMag = -1                               → (s)
-3. WHEN Stan & 2 = 2 AND typ korekty                 → (Z)
-4. ELSE                                              → brak
-```
 
-ERP_SCHEMA_PATTERNS.md ma odwróconą kolejność (Z) przed (s)/(A) — wymaga korekty.
-Do zatwierdzenia przez Developera przed edycją (plik chroniony).
+**Stopień pewności:** EXISTS (spinacz) — wysoki (udokumentowane w Comarch).
+Stan & 2 = 2 jako fallback — średni (heurystyka, niezweryfikowana w źródle).
+
+Do zatwierdzenia przez Developera przed edycją ERP_SCHEMA_PATTERNS.md (plik chroniony).
 
 ---
 
