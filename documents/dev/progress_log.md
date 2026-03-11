@@ -4,7 +4,7 @@
 
 ## Stan bieżący
 
-**Aktualizacja:** 2026-03-10
+**Aktualizacja:** 2026-03-11
 
 **Co działa:**
 - 13 toolsów CLI + `tools/lib/` (SqlClient, ExcelWriter, ExcelReader, output) — 253 testy, 100% zielone
@@ -22,7 +22,6 @@
 **Następny krok:** KM4 — Biblioteka raportów (`solutions/bi/reports/` + `tools/search_reports.py`) lub backlog.
 
 **Backlog aktywny:**
-- [Arch] Separacja pamięci między agentami wykonawczymi
 - [Agent] Baza wzorców numeracji dokumentów
 - [Workflow] ERP_SCHEMA_PATTERNS + ERP_VIEW_WORKFLOW — odkrycia z BI.Rozrachunki
 - [Dev] Komendy agenta blokowane przez hook
@@ -34,6 +33,16 @@
 ---
 
 ## Dziennik
+
+### 2026-03-11 — Separacja pamięci + rename erp_specialist
+
+- `documents/agent/` → `documents/erp_specialist/` (8 plików, git rename)
+- `AGENT.md` → `ERP_SPECIALIST.md`, `agent_suggestions.md` → `erp_specialist_suggestions.md`
+- Nowy plik: `documents/analyst/analyst_suggestions.md`
+- ANALYST.md: własny plik suggestions + sekcja progress log per-zakres
+- CLAUDE.md, METHODOLOGY.md, DEVELOPER.md: etykiety "Agent ERP" → "ERP Specialist", "Agent" → "Wykonawcy"
+
+---
 
 ### 2026-03-10 — Bot: poprawki po testach
 
