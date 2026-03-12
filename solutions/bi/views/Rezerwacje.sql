@@ -141,7 +141,9 @@ SELECT
 
 FROM CDN.Rezerwacje r
 INNER JOIN CDN.TwrKarty      t   ON t.Twr_GIDNumer  = r.Rez_TwrNumer
-LEFT  JOIN CDN.KntKarty      k   ON k.Knt_GIDNumer  = r.Rez_KntNumer   AND r.Rez_KntNumer > 0
+LEFT  JOIN CDN.KntKarty      k   ON k.Knt_GIDNumer  = r.Rez_KntNumer
+                                 AND k.Knt_GIDTyp   = r.Rez_KntTyp
+                                 AND r.Rez_KntNumer > 0
 INNER JOIN CDN.OpeKarty      o   ON o.Ope_GIDNumer  = r.Rez_OpeNumer
 LEFT  JOIN CDN.Magazyny      m   ON m.Mag_GIDNumer  = r.Rez_MagNumer   AND r.Rez_MagNumer > 0
 LEFT  JOIN CDN.FrmStruktura  frs ON frs.FRS_ID       = r.Rez_FrsID

@@ -42,6 +42,7 @@ i poczekać na odpowiedź twierdzącą. Wskazanie pliku jako celu nie jest zatwi
 - `documents/analyst/ANALYST.md`
 - `documents/dev/DEVELOPER.md`
 - `documents/methodology/METHODOLOGY.md`
+- `documents/methodology/SPIRIT.md`
 
 Wyjątki — dopisywane autonomicznie po etapie pracy:
 - `documents/erp_specialist/erp_specialist_suggestions.md` (ERP Specialist)

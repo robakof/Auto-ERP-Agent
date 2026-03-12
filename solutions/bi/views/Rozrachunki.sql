@@ -32,11 +32,22 @@ SELECT
         -- TraNag (FS, PA, FSE, FSK, PAK, FKE, FZ, FZK, PZ)
         CASE WHEN trn1.TrN_GIDNumer IS NOT NULL THEN
             CASE
+                WHEN trn1.TrN_GIDTyp IN (2041, 2045, 1529)
+                     AND EXISTS (
+                         SELECT 1 FROM CDN.TraNag s
+                         WHERE s.TrN_SpiTyp   = trn1.TrN_GIDTyp
+                           AND s.TrN_SpiNumer = trn1.TrN_GIDNumer
+                           AND (
+                                (trn1.TrN_GIDTyp = 2041 AND s.TrN_GIDTyp = 2009) OR  -- (Z)FSK <- WZK
+                                (trn1.TrN_GIDTyp = 2045 AND s.TrN_GIDTyp = 2013) OR  -- (Z)FKE <- WKE
+                                (trn1.TrN_GIDTyp = 1529 AND s.TrN_GIDTyp = 1497)     -- (Z)FZK <- PZK
+                           )
+                     )                                               THEN '(Z)'
                 WHEN trn1.TrN_Stan & 2 = 2
-                     AND trn1.TrN_GIDTyp IN (2041,1529,2042,2045) THEN '(Z)'
+                     AND trn1.TrN_GIDTyp IN (2041, 2045, 1529)      THEN '(Z)'  -- fallback heurystyczny
                 WHEN trn1.TrN_GenDokMag = -1
-                     AND trn1.TrN_GIDTyp IN (1521,1529,1489)      THEN '(A)'
-                WHEN trn1.TrN_GenDokMag = -1                       THEN '(s)'
+                     AND trn1.TrN_GIDTyp IN (1521, 1529, 1489)      THEN '(A)'
+                WHEN trn1.TrN_GenDokMag = -1                        THEN '(s)'
                 ELSE ''
             END
             + ob1.OB_Skrot + '-'
@@ -87,11 +98,22 @@ SELECT
         -- TraNag (FS, PA, FSE, FSK, PAK, FKE, FZ, FZK, PZ)
         CASE WHEN trn2.TrN_GIDNumer IS NOT NULL THEN
             CASE
+                WHEN trn2.TrN_GIDTyp IN (2041, 2045, 1529)
+                     AND EXISTS (
+                         SELECT 1 FROM CDN.TraNag s
+                         WHERE s.TrN_SpiTyp   = trn2.TrN_GIDTyp
+                           AND s.TrN_SpiNumer = trn2.TrN_GIDNumer
+                           AND (
+                                (trn2.TrN_GIDTyp = 2041 AND s.TrN_GIDTyp = 2009) OR  -- (Z)FSK <- WZK
+                                (trn2.TrN_GIDTyp = 2045 AND s.TrN_GIDTyp = 2013) OR  -- (Z)FKE <- WKE
+                                (trn2.TrN_GIDTyp = 1529 AND s.TrN_GIDTyp = 1497)     -- (Z)FZK <- PZK
+                           )
+                     )                                               THEN '(Z)'
                 WHEN trn2.TrN_Stan & 2 = 2
-                     AND trn2.TrN_GIDTyp IN (2041,1529,2042,2045) THEN '(Z)'
+                     AND trn2.TrN_GIDTyp IN (2041, 2045, 1529)      THEN '(Z)'  -- fallback heurystyczny
                 WHEN trn2.TrN_GenDokMag = -1
-                     AND trn2.TrN_GIDTyp IN (1521,1529,1489)      THEN '(A)'
-                WHEN trn2.TrN_GenDokMag = -1                       THEN '(s)'
+                     AND trn2.TrN_GIDTyp IN (1521, 1529, 1489)      THEN '(A)'
+                WHEN trn2.TrN_GenDokMag = -1                        THEN '(s)'
                 ELSE ''
             END
             + ob2.OB_Skrot + '-'

@@ -1,5 +1,7 @@
 # ERP — Workflow tworzenia widoków BI
 
+Przed rozpoczęciem pracy przeczytaj: `documents/erp_specialist/ERP_VIEW_CONVENTIONS.md`
+
 Widoki BI tworzone są w schemacie `BI` przez konto DBA i udostępniane kontu `CEiM_BI`.
 Tworzenie widoku to operacja złożona — wymaga fazy discovery, zatwierdzonego planu
 i iteracyjnej pracy na pliku roboczym.

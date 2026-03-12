@@ -20,6 +20,9 @@ Zarządza: Developer.
 | 9 | Brak backlogu per-rola | Arch/Metodolog | średnia | mała–średnia |
 | 10 | Sesja inspekcji schematu CDN | ERP | średnia | mała |
 | 11 | Research prompts -- plik odpowiedzi + rola Researcher | Arch/Metodolog | średnia | mała-średnia |
+| 12 | Eval harness -- golden tasks dla widoków BI i bota | Arch | wysoka | średnia |
+| 13 | Audit trail / trace -- logowanie decyzji agentów | Arch | wysoka | średnia |
+| 14 | Model abstraction layer -- multi-model + fallback | Arch | średnia | średnia |
 
 ---
 
@@ -187,6 +190,76 @@ która czyta prompt badawczy i autonomicznie zapisuje wyniki. Routing w CLAUDE.m
 
 Niezbadane: inne funkcje CDN, widoki CDN.* vs tabele, tabele słownikowe powtarzalne w widokach BI.
 Propozycja: INFORMATION_SCHEMA + sp_helptext przed kolejnym widokiem BI.
+
+---
+
+### [Arch] Eval harness -- golden tasks dla widoków BI i bota
+
+**Źródło:** research AGI horizon + sesja metodologiczna 2026-03-12
+**Sesja:** 2026-03-12
+**Wartość:** wysoka
+**Pracochłonność:** średnia
+
+Zestaw golden tasks z oczekiwanym wynikiem, wykonywanych automatycznie po zmianach.
+Testuje zachowanie systemu jako całości, nie pojedyncze narzędzia.
+
+Zakres:
+- Golden tasks BI: "zbuduj widok dla X" → oczekiwany SQL, count, brak NULL w kluczach
+- Golden tasks bot: pytanie → oczekiwany SQL, poprawne kolumny, poprawny wynik
+- Golden tasks konfiguracja: "znajdź prefiksy w tabeli Y" → oczekiwany komplet
+
+Istniejący fundament: 253+ testów jednostkowych, 10 pytań testowych bota.
+Brakuje: format golden task, runner end-to-end, raport pass/fail, porównanie z wzorcem.
+
+Moat: evale na realnych zadaniach ERP z prawdziwymi danymi -- tego vendor nie skopiuje.
+Rośnie organicznie z każdym zrealizowanym zadaniem.
+
+---
+
+### [Arch] Audit trail / trace -- logowanie decyzji agentów
+
+**Źródło:** research AGI horizon + sesja metodologiczna 2026-03-12
+**Sesja:** 2026-03-12
+**Wartość:** wysoka
+**Pracochłonność:** średnia
+
+Structured log każdego kroku agenta: co przeczytał, jakie narzędzie wywołał,
+jaką decyzję podjął i dlaczego, jaki był wynik.
+
+Cele:
+- Debugging: odtworzenie ścieżki gdy widok/konfiguracja ma błąd
+- Uczenie się: wzorce z 50+ sesji (gdzie agent się myli, co traci kontekst)
+- Regulacje: EU AI Act wymaga audytowalności dla produktu enterprise (horyzont 2)
+- Skala: jedyny sposób na monitoring mrowiska przy wielu agentach (horyzont 3)
+
+Istniejący fundament: `logs/bot/YYYY-MM-DD.jsonl`, progress_log, suggestions.
+Brakuje: ujednolicony format, narzędzie do odtwarzania sesji, trace per-task.
+
+Łączy się z: handoff DB architecture (tabela `state`/`audit`), architektura agentocentryczna.
+
+---
+
+### [Arch] Model abstraction layer -- multi-model + fallback
+
+**Źródło:** research AGI horizon + sesja metodologiczna 2026-03-12
+**Sesja:** 2026-03-12
+**Wartość:** średnia
+**Pracochłonność:** średnia
+
+Cienka warstwa abstrakcji między logiką biznesową a dostawcą modelu.
+Umożliwia multi-model routing, fallback i łatwą zmianę dostawcy.
+
+Interfejs: `llm.complete(task, context, tier)` gdzie tier mapuje na model:
+- "heavy" → Claude Opus (złożone zadania)
+- "standard" → Claude Sonnet (typowe zadania)
+- "cheap" → Haiku (proste klasyfikacje, routing)
+- "fallback" → lokalne Llama/Ollama (gdy API niedostępne)
+
+Istniejący fundament: `BOT_MODEL_FORMAT` env var w bocie, backlog #5 (routing Haiku/Sonnet).
+Brakuje: ujednolicony interfejs, konfiguracja per-tier, fallback logic, support open-weight.
+
+Priorytet niższy niż eval/audit -- Claude działa stabilnie, nie pali się.
+Staje się krytyczny przy: zmianie pricingu, awarii API, wejściu na rynek (horyzont 2).
 
 ---
 

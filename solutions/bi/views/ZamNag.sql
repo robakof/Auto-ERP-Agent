@@ -5,7 +5,6 @@ CREATE OR ALTER VIEW AIBI.ZamNag AS
 SELECT
     -- === IDENTYFIKACJA ===
     n.ZaN_GIDNumer                                              AS ID_Zamowienia,
-    'Zamówienie'                                                AS Typ_GID,
     CASE n.ZaN_ZamTyp
         WHEN 640  THEN 'Oferta zakupu'
         WHEN 768  THEN 'Oferta sprzedaży'
@@ -74,7 +73,6 @@ SELECT
                + '/' + RIGHT(CAST(zrd.ZaN_ZamRok AS VARCHAR(4)), 2)
                + '/' + RTRIM(zrd.ZaN_ZamSeria)
     END                                                         AS Numer_Dokumentu_Zrodlowego,
-    'Zamówienie'                                                AS Typ_Dokumentu_Zrodlowego,
 
     -- Korekta (2/12022 nonzero) — jako raw ID
     CASE WHEN n.ZaN_KorNumer > 0 THEN n.ZaN_KorNumer END       AS ID_Dokumentu_Korekty,

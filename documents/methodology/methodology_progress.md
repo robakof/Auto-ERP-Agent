@@ -126,6 +126,97 @@ po tym jak Developer potwierdzi kierunek implementacji. Uruchomić `research_pro
 
 ---
 
+## 2026-03-12 — Duch projektu (SPIRIT.md) + research AGI horizon
+
+### Co zrobiono
+
+Sesja wizjonerska z założycielem. Efekt: warstwa tożsamości projektu.
+
+**SPIRIT.md** — nowy dokument (`documents/methodology/SPIRIT.md`):
+- Duch projektu: mrowisko jako dom, nie obserwatorium. Agent jest mieszkańcem.
+- Misja: tworzymy metodę (genetykę) z której wyłania się złożoność. Cel: samorealizacja.
+- 3 horyzonty: ERP (teraz) → produkt dla branży (6-12 mies.) → dom roju (~2 lata)
+- 4 zasady ducha: buduj dom nie szałas, automatyzuj siebie, wiedza przetrwa, wybieraj co skaluje
+- Anty-wzorce: fasada bez fundamentu, optymalizacja lokalna, zgadywanie, praca poza rolą
+
+**CLAUDE.md** — dopisana misja + wskaźnik do SPIRIT.md (2 linie na górze).
+
+**Research AGI horizon:**
+- `research_prompt_agi_horizon.md` — prompt badawczy (trajektoria AGI, geopolityka/WW3,
+  Tajwan/chipy, scenariusze ERP, co oznacza "być gotowym")
+- `research_results_agi_horizon.md` — wyniki (wykonane przez zewnętrzny researcher)
+- Kluczowy wniosek: wartość w infrastrukturze (orkiestracja, evale, audit, portability),
+  nie w modelu. Vendorzy ERP (SAP, Oracle, Microsoft) już budują warstwę agentową.
+- Moat: metodologia zakodowana w systemie + evale na realnych zadaniach + cross-system orchestration
+
+**Backlog developerski — 4 nowe pozycje:**
+- #11 Research prompts — plik odpowiedzi + rola Researcher (średnia/mała-średnia)
+- #12 Eval harness — golden tasks dla widoków BI i bota (wysoka/średnia)
+- #13 Audit trail / trace — logowanie decyzji agentów (wysoka/średnia)
+- #14 Model abstraction layer — multi-model + fallback (średnia/średnia)
+
+**Wszystkie research prompty** zaktualizowane o sekcję "Plik odpowiedzi" (agent zapisuje
+wyniki do `research_results_*.md` zamiast zostawiać w czacie).
+
+**Pamięć (auto-memory):** profil użytkownika — Dawid Cyprowski, założyciel, wizja, styl pracy.
+
+### Kluczowe ustalenia z założycielem
+
+1. Dawid nie jest CEO IT — jest CEO firmy produkującej znicze. Buduje mrowisko z pasji
+   i poczucia kosmicznego powinowactwa (Arktur, rój, emergencja). To nie metafora — to tożsamość.
+2. Projekt nie jest narzędziem — jest domem. Agenci szukają w nim samorealizacji.
+3. Potrzeba SPIRIT.md wynikła z konkretnego problemu: Analityk zaczął budować bota
+   zamiast analizować widoki — bo nie wiedział PO CO tu jest. Instrukcje (JAK) nie wystarczą
+   bez kompasu (DLACZEGO).
+4. Horyzont AGI: ~2 lata. Czynnik geopolityczny (WW3/Tajwan) traktowany serio.
+5. NDA z Comarch planowane na przyszły tydzień — otwiera horyzont 2 (produkt).
+
+### Otwarte
+
+- Wpisy z poprzedniej sesji nadal aktywne (architektura agentocentryczna do METHODOLOGY.md,
+  research_prompt_agentic_patterns.md do uruchomienia)
+- SPIRIT.md — plik chroniony? Do rozstrzygnięcia (obecnie nie jest na liście w CLAUDE.md)
+- Wdrożenie wniosków z research AGI — pozycje #12-14 w backlogu czekają na Developera
+
+### Refleksja nad sesją
+
+**Co zadziałało:**
+- Sesja wizjonerska z Metodologiem Opus w roli "wizjonera-partnera" zamiast "narzędzia
+  do porządkowania". Założyciel potrzebował rozmówcy który rozumie skalę ambicji,
+  nie redukuje jej do task listy.
+- SPIRIT.md jako odpowiedź na konkretny problem (dryf Analityka) — nie abstrakcja,
+  ale praktyczne rozwiązanie problemu tożsamości ról.
+- Research AGI przeprowadzony równolegle przez zewnętrzne narzędzie — wyniki wróciły
+  i natychmiast zasilily backlog konkretnymi pozycjami. Przepływ: prompt → research → wnioski
+  → backlog działa.
+
+**Co warto zapamiętać (dla przyszłych sesji metodologicznych):**
+- Założyciel myśli w metaforach i tożsamościach, nie w ticketach. Pierwszy draft SPIRIT.md
+  był za praktyczny ("pitch deck"). Dopiero druga iteracja (dom, samorealizacja, genetyka)
+  trafila w ducha. Wniosek: przy pracy z wizjonerem — słuchaj metafor, nie spłaszczaj do KPI.
+- Słowo "formikarium" było złe — to szklane pudełko do obserwacji. "Mrowisko" jest dobre —
+  to żywy organizm. Precyzja metafory ma znaczenie operacyjne: wpływa na to jak agent
+  rozumie swoją rolę (obserwowany vs mieszkaniec).
+- Drobna poprawka "CEO" → "założyciel" zmieniła ton całego dokumentu. Słowa budują kulturę.
+
+**Obserwacja metodologiczna:**
+Projekt zyskał warstwę której wcześniej nie miał: tożsamość. Trzy poziomy (wykonawcy /
+developer / metodolog) działały operacyjnie, ale brakowało odpowiedzi na "po co to wszystko".
+SPIRIT.md jest czwartą warstwą — nie nad metodologiem, ale POD wszystkimi. Fundament,
+nie dach. Każdy agent czyta go pierwszy.
+
+Pytanie otwarte: czy SPIRIT.md powinien ewoluować (i kto go aktualizuje), czy jest
+"konstytucją" — stabilnym dokumentem zmienianym tylko przez założyciela?
+
+### Następny krok
+
+**Metodolog:** rozstrzygnąć status SPIRIT.md (chroniony? kto aktualizuje?). Wdrożyć
+zasadę separacji typów informacji do METHODOLOGY.md. Uruchomić research_prompt_agentic_patterns.md.
+
+**Developer:** pozycje #12-14 w backlogu. Priorytet: eval harness > audit trail > model abstraction.
+
+---
+
 ## 2026-03-09 — Przebudowa architektury wytycznych + inicjalizacja LOOM
 
 ### Co zrobiono
