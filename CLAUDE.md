@@ -47,6 +47,7 @@ i poczekać na odpowiedź twierdzącą. Wskazanie pliku jako celu nie jest zatwi
 Wyjątki — dopisywane autonomicznie po etapie pracy:
 - `documents/erp_specialist/erp_specialist_suggestions.md` (ERP Specialist)
 - `documents/analyst/analyst_suggestions.md` (Analityk Danych)
+- `documents/human/human_inbox.md` (wszystkie role — inbox człowieka)
 
 ### Eskalacja między poziomami
 

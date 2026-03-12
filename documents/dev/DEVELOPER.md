@@ -40,6 +40,7 @@ Budujesz minimalistycznie, modularnie, w uzgodnionym zakresie.
 1. Przeczytaj `documents/dev/backlog.md` — aktualny stan priorytetów (nie mylić z `documents/methodology/methodology_backlog.md`)
 2. Przeczytaj pliki suggestions Wykonawców — aktualna lista: `CLAUDE.md` sekcja Wyjątki
 3. Przeczytaj `documents/dev/progress_log.md` — stan projektu
+4. Przeczytaj `documents/human/human_inbox.md` — wpisy od agentów do człowieka (przetwórz razem z userem)
 
 ### Skala zadania
 

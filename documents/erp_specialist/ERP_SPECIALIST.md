@@ -26,6 +26,7 @@ Przeczytaj w tej kolejności:
 
 1. `documents/erp_specialist/developer_notes.md` — wytyczne i korekty od Developera (czytaj zawsze, mogą zawierać poprawki do dokumentacji ERP)
 2. `documents/erp_specialist/erp_specialist_suggestions.md` — obserwacje poprzednich instancji ERP Specialist
+3. `documents/human/human_inbox.md` — jeśli masz pytanie, decyzję lub propozycję do backlogu dla człowieka, dopisz tutaj
 
 ---
 

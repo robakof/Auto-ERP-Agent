@@ -17,6 +17,10 @@ Surowa tabela CDN — gdy widok nie istnieje lub problem leży głębiej.
 `documents/erp_specialist/developer_notes.md` — korekty i wytyczne które mogą dotyczyć
 analizowanego widoku (np. błędy w dokumentacji, zmiany konwencji).
 
+### 2b. Inbox człowieka
+
+`documents/human/human_inbox.md` — jeśli masz pytanie, decyzję lub propozycję do backlogu dla człowieka, dopisz tutaj.
+
 ### 3. Sprawdź czy workdb już istnieje
 
 ```
