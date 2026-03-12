@@ -19,6 +19,7 @@ Zarządza: Developer.
 | 8 | arch_check.py — walidator ścieżek | Arch | średnia | mała |
 | 9 | Brak backlogu per-rola | Arch/Metodolog | średnia | mała–średnia |
 | 10 | Sesja inspekcji schematu CDN | ERP | średnia | mała |
+| 11 | Research prompts -- plik odpowiedzi + rola Researcher | Arch/Metodolog | średnia | mała-średnia |
 
 ---
 
@@ -156,6 +157,24 @@ Do wdrożenia przy kolejnym dużym refaktorze.
 Zadania domenowe (ERP, Bot) mieszają się z architektonicznymi w jednym pliku.
 Opcje: osobne pliki per-rola vs tagi domenowe.
 Decyzja należy do Metodologa.
+
+---
+
+### [Arch/Metodolog] Research prompts -- plik odpowiedzi + rola Researcher
+
+**Źródło:** sesja metodologiczna 2026-03-12
+**Sesja:** 2026-03-12
+**Wartość:** średnia
+**Pracochłonność:** mała-średnia
+
+Obecnie research prompty (documents/methodology/research_prompt_*.md) są wykonywane
+przez zewnętrzne narzędzie przeglądarkowe, a wyniki wklejane ręcznie.
+
+Krótkoterminowo (zrobione): każdy prompt zawiera sekcję "Plik odpowiedzi" z instrukcją
+zapisu wyników do `research_results_*.md`.
+
+Długoterminowo: rola agenturalna Researcher z dostępem do WebSearch/WebFetch,
+która czyta prompt badawczy i autonomicznie zapisuje wyniki. Routing w CLAUDE.md.
 
 ---
 

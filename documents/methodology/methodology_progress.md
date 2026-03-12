@@ -72,6 +72,60 @@ developerską dotyczącą Analityka. Ref. dev backlog [Arch] Separacja pamięci.
 
 ---
 
+## 2026-03-12 — Architektura agentocentryczna
+
+### Co zrobiono
+
+Sesja koncepcyjna — bez zmian w METHODOLOGY.md (zmiana zatwierdzona do wdrożenia przez Developera).
+
+**Rozstrzygnięcie kierunku:**
+Architektura plików .md jest człowiekocentryczna i nie opisuje rzeczywistości — użytkownik
+już działa jako nadzorca, nie administrator. Zatwierdzona zasada separacji typów informacji:
+wytyczne → .md (bootstrap), stan/komunikacja → DB (single source of dynamic truth).
+
+**Pliki zaktualizowane:**
+- `methodology_suggestions.md` — nowy wpis [2026-03-12]: architektura agentocentryczna
+- `documents/dev/handoff_db_architecture.md` — nowy plik: handoff dla Developera
+
+**Treść handoffu:**
+7 pytań implementacyjnych (technologia DB, schemat tabel, narzędzia agenta, bootstrap CLAUDE.md,
+widoki dla człowieka, migracja plików, propozycja 3 faz). Decyzje techniczne należą do Developera.
+
+**Uzupełnienie sesji — warstwa myśli roju:**
+
+Wypracowano wzorzec dla shared memory agentów (warstwa 3 komunikacji):
+Hybryda Blackboard + Tuple Space z attention-based scoring — myśli rosną gdy przywoływane,
+gasną gdy ignorowane. Ważność wyłania się z wzorca użycia bez ręcznej priorytetyzacji.
+
+Research (`research_results_swarm_communication.md`) potwierdził: wzorzec znany, brak
+gotowej implementacji LLM. Flagowane jako ryzyko pułapki wdrożeniowej.
+
+**Nowe pliki sesji:**
+- `research_prompt_swarm_communication.md` — prompt badawczy
+- `research_prompt_agentic_patterns.md` — prompt badawczy (szerszy)
+- `research_results_swarm_communication.md` — wyniki researchu
+- `documents/dev/handoff_db_architecture.md` — handoff dla Developera (zaktualizowany)
+- `methodology_backlog.md` — nowa pozycja "Komunikacja w roju"
+
+### Otwarte
+
+- `methodology_suggestions.md` [2026-03-12] czeka na wdrożenie do METHODOLOGY.md
+  (sekcja "Architektura agentocentryczna")
+- `research_prompt_agentic_patterns.md` — nie uruchomiony, czeka na osobną sesję
+- W backlogu: Przycinanie ramy teoretycznej, Model wirtualnej firmy AI,
+  Węzłowość reguł, Intencja vs zatwierdzenie — nieporuszone, aktywne
+
+### Następny krok
+
+**Developer:** przeczytaj `handoff_db_architecture.md` — rozstrzygnij pytania fazy 1,
+zweryfikuj wykonalność najprostszej wersji wzorca (tagi + timestamp, bez semantic search
+i attention scoring) zanim zdecydujesz o pełnym zakresie.
+
+**Metodolog (kolejna sesja):** wdrożyć zasadę separacji i wzorzec roju do METHODOLOGY.md
+po tym jak Developer potwierdzi kierunek implementacji. Uruchomić `research_prompt_agentic_patterns.md`.
+
+---
+
 ## 2026-03-09 — Przebudowa architektury wytycznych + inicjalizacja LOOM
 
 ### Co zrobiono

@@ -314,6 +314,77 @@ Do rozstrzygnięcia przez Metodologa:
 
 ---
 
+## [2026-03-12] Architektura agentocentryczna — DB jako single source of dynamic truth
+
+### Obserwacja
+
+Aktualna architektura jest człowiekocentryczna: .md jest natywnym formatem, agent dostosowuje
+się do formatu człowieka, człowiek utrzymuje pliki (appenduje, archiwizuje, synchronizuje spisy).
+W praktyce człowiek już nie czyta dokładnie tego co agent pisze o swoim stanie — utrzymuje
+pozory kontroli, a faktycznie nadzoruje. Model mentalny i architektura są rozjechane.
+
+Pochodna obserwacja: pliki .md pełnią dwie różne funkcje naraz — instrukcje/wytyczne (statyczne,
+pisane przez człowieka) i stan/komunikacja/refleksje (dynamiczne, pisane przez agenta).
+To są różne typy informacji z różnymi optymalnym formatami.
+
+### Zasada: separacja typów informacji
+
+```
+Instrukcje / wytyczne  →  .md    (statyczne, ładowane jako kontekst przy starcie sesji)
+Stan / komunikacja     →  DB     (dynamiczne, dostępne przez narzędzia)
+```
+
+.md nie jest usuwany — zmienia rolę. Staje się warstwą instrukcyjną i bootstrapem.
+Przestaje być nośnikiem stanu. CLAUDE.md staje się index.html — 10 linii, jedno wywołanie
+get_context(role) które zwraca właściwe dyrektywy z DB.
+
+### Model docelowy: DB jako centrum
+
+```
+DB
+├── directives      ← atomowe jednostki wytycznych (zastępuje fragmenty .md)
+├── roles           ← które dyrektywy składają się na daną rolę
+├── messages        ← komunikacja między rolami (zastępuje suggestions.md, developer_notes.md)
+├── state           ← progress log, refleksje, backlog (zastępuje *_log.md, backlog.md)
+└── audit           ← kto co zmienił, kiedy (monitoring przepływu)
+```
+
+Typy pamięci agenta jako tabele:
+- Semantyczna → directives (zasady, wytyczne)
+- Proceduralna → directives z tagiem workflow
+- Epizodyczna → state (co się stało, kiedy, jakie decyzje)
+- Społeczna → messages (kto do kogo, co)
+
+### Dyrektywy jako graf wiedzy
+
+Zamiast kopiować regułę do każdego pliku roli — jedna dyrektywa, wiele ról ją referencjonuje.
+Zmiana dyrektywy propaguje automatycznie. Rozwiązuje strukturalnie problem "węzłowości reguł"
+(methodology_suggestions.md, 2026-03-11) — bez grzebania w plikach.
+
+### Człowiek jako rola z najwyższymi uprawnieniami
+
+Człowiek nie jest poza systemem — jest rolą w DB z prawem modyfikacji dyrektyw i zatwierdzania
+eskalacji. Zamiast edytować pliki — zatwierdza zmiany zaproponowane przez agenta.
+Przejście: od administratora systemu do właściciela produktu.
+
+Widoki dla człowieka generowane na żądanie przez narzędzie agenturalne:
+`generate_view("backlog") → backlog.md`, `generate_view("progress") → progress_report.md`
+.md staje się raportem, nie dokumentem aktywnie utrzymywanym.
+
+### Skalowalność
+
+Format plików .md nie skaluje się powyżej kilku ról. DB + JSON skaluje do tysięcy agentów
+bez wzrostu nakładu człowieka. Monitoring przepływu (kto pisze do kogo, jak często, jakie wzorce)
+staje się zwykłym SELECT zamiast ręcznego przeglądania plików.
+
+### Implikacja dla METHODOLOGY.md
+
+Zasada separacji typów informacji + opis modelu agentocentrycznego to zmiana fundamentalna —
+warta osobnej sekcji w METHODOLOGY.md (przed lub zamiast obecnej sekcji "Ciągłość jako zasada
+architektoniczna"). Implementacja (schemat DB, protokół narzędzi, migracja) należy do Developera.
+
+---
+
 ## Archiwum
 
 ### ✓ [2026-03-09] Przepływ refleksji przez poziomy — wdrożony

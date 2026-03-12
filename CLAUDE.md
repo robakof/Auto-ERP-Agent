@@ -1,5 +1,8 @@
 # Projekt: Automatyzacja konfiguracji ERP XL
 
+Mrowisko -- inkubator wirtualnego życia AI. Agenci autonomicznie prowadzą firmę
+produkcyjną. ERP jest pierwszym terenem, nie celem. Pełna wizja: `documents/methodology/SPIRIT.md`
+
 Agent LLM autonomicznie konfiguruje system ERP Comarch XL — generuje i testuje SQL
 dla kolumn, filtrów i widoków BI, a w przyszłości analizuje spójność danych.
 Eskaluje do użytkownika zamiast zgadywać.
