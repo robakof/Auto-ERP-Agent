@@ -6,7 +6,6 @@ CREATE OR ALTER VIEW AIBI.Rozrachunki AS
 
 SELECT
     -- === Identyfikatory rozliczenia ===
-    r.ROZ_GIDFirma                                              AS ID_Firma,
     r.ROZ_GIDNumer                                              AS ID_Rozliczenia,
 
     -- === Dokument 1 (TRP — strona rozliczana) ===
@@ -167,7 +166,7 @@ SELECT
         ELSE NULL
     END                                                         AS Data_Rozliczenia,
     CASE WHEN r.ROZ_DataRozliczenia > 84000 THEN 'Tak' ELSE 'Nie' END
-                                                                AS Data_Podejrzana,
+                                                                AS Data_Podejrzana,  -- 84000 = Clarion 2030-12-22; 4 rekordy w bazie (w tym rok 7025)
 
     -- === Powiązania ===
     r.ROZ_ParID                                                 AS ID_Rozliczenia_Nadrzednego
