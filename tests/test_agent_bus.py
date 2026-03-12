@@ -1,0 +1,170 @@
+"""Unit tests for AgentBus — message passing and state management via SQLite."""
+
+import json
+import sqlite3
+from pathlib import Path
+
+import pytest
+
+from tools.lib.agent_bus import AgentBus
+
+
+@pytest.fixture
+def bus(tmp_path):
+    """Create AgentBus with temporary database."""
+    db_path = str(tmp_path / "test_mrowisko.db")
+    return AgentBus(db_path=db_path)
+
+
+class TestDatabaseSetup:
+    def test_db_created_if_not_exists(self, tmp_path):
+        db_path = str(tmp_path / "new.db")
+        assert not Path(db_path).exists()
+        AgentBus(db_path=db_path)
+        assert Path(db_path).exists()
+
+    def test_wal_mode(self, bus):
+        result = bus._conn.execute("PRAGMA journal_mode").fetchone()
+        assert result[0] == "wal"
+
+    def test_tables_exist(self, bus):
+        tables = bus._conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+        ).fetchall()
+        table_names = [t[0] for t in tables]
+        assert "messages" in table_names
+        assert "state" in table_names
+
+
+class TestMessages:
+    def test_send_and_receive_message(self, bus):
+        msg_id = bus.send_message(
+            sender="developer",
+            recipient="erp_specialist",
+            content="Popraw CASE w widoku",
+        )
+        assert isinstance(msg_id, int)
+        inbox = bus.get_inbox("erp_specialist")
+        assert len(inbox) == 1
+        assert inbox[0]["content"] == "Popraw CASE w widoku"
+        assert inbox[0]["sender"] == "developer"
+        assert inbox[0]["id"] == msg_id
+
+    def test_inbox_filters_by_role(self, bus):
+        bus.send_message("dev", "erp_specialist", "msg for erp")
+        bus.send_message("dev", "analyst", "msg for analyst")
+        erp_inbox = bus.get_inbox("erp_specialist")
+        analyst_inbox = bus.get_inbox("analyst")
+        assert len(erp_inbox) == 1
+        assert len(analyst_inbox) == 1
+        assert erp_inbox[0]["content"] == "msg for erp"
+        assert analyst_inbox[0]["content"] == "msg for analyst"
+
+    def test_inbox_filters_by_status(self, bus):
+        msg_id = bus.send_message("dev", "erp_specialist", "test msg")
+        assert len(bus.get_inbox("erp_specialist", status="unread")) == 1
+        assert len(bus.get_inbox("erp_specialist", status="read")) == 0
+        bus.mark_read(msg_id)
+        assert len(bus.get_inbox("erp_specialist", status="unread")) == 0
+        assert len(bus.get_inbox("erp_specialist", status="read")) == 1
+
+    def test_mark_read(self, bus):
+        msg_id = bus.send_message("dev", "erp_specialist", "test")
+        bus.mark_read(msg_id)
+        inbox = bus.get_inbox("erp_specialist", status="read")
+        assert len(inbox) == 1
+        assert inbox[0]["status"] == "read"
+        assert inbox[0]["read_at"] is not None
+
+    def test_archive_message(self, bus):
+        msg_id = bus.send_message("dev", "erp_specialist", "old msg")
+        bus.archive_message(msg_id)
+        assert len(bus.get_inbox("erp_specialist", status="unread")) == 0
+        assert len(bus.get_inbox("erp_specialist", status="archived")) == 1
+
+    def test_empty_inbox(self, bus):
+        inbox = bus.get_inbox("erp_specialist")
+        assert inbox == []
+
+    def test_message_type_default(self, bus):
+        bus.send_message("dev", "erp_specialist", "test")
+        msg = bus.get_inbox("erp_specialist")[0]
+        assert msg["type"] == "suggestion"
+
+    def test_message_with_session_id(self, bus):
+        bus.send_message("dev", "erp_specialist", "test", session_id="sess-123")
+        msg = bus.get_inbox("erp_specialist")[0]
+        assert msg["session_id"] == "sess-123"
+
+    def test_message_ordering_asc(self, bus):
+        bus.send_message("dev", "erp_specialist", "first")
+        bus.send_message("dev", "erp_specialist", "second")
+        inbox = bus.get_inbox("erp_specialist")
+        assert inbox[0]["content"] == "first"
+        assert inbox[1]["content"] == "second"
+
+
+class TestState:
+    def test_write_and_get_state(self, bus):
+        state_id = bus.write_state(
+            role="developer", type="progress", content="KM1 done"
+        )
+        assert isinstance(state_id, int)
+        states = bus.get_state("developer")
+        assert len(states) == 1
+        assert states[0]["content"] == "KM1 done"
+
+    def test_state_filters_by_type(self, bus):
+        bus.write_state("developer", "progress", "step 1")
+        bus.write_state("developer", "reflection", "lesson learned")
+        bus.write_state("developer", "backlog_item", "fix X")
+        progress = bus.get_state("developer", type="progress")
+        reflections = bus.get_state("developer", type="reflection")
+        backlog = bus.get_state("developer", type="backlog_item")
+        assert len(progress) == 1
+        assert len(reflections) == 1
+        assert len(backlog) == 1
+
+    def test_state_metadata_json(self, bus):
+        meta = {"priority": "high", "area": "bot"}
+        bus.write_state("developer", "backlog_item", "fix X", metadata=meta)
+        states = bus.get_state("developer", type="backlog_item")
+        assert states[0]["metadata"] == meta
+
+    def test_get_state_limit(self, bus):
+        for i in range(30):
+            bus.write_state("developer", "progress", f"step {i}")
+        assert len(bus.get_state("developer")) == 20  # default limit
+        assert len(bus.get_state("developer", limit=5)) == 5
+
+    def test_get_state_ordering_newest_first(self, bus):
+        bus.write_state("developer", "progress", "old")
+        bus.write_state("developer", "progress", "new")
+        states = bus.get_state("developer", type="progress")
+        assert states[0]["content"] == "new"
+        assert states[1]["content"] == "old"
+
+    def test_state_with_session_id(self, bus):
+        bus.write_state("dev", "progress", "test", session_id="sess-456")
+        states = bus.get_state("dev")
+        assert states[0]["session_id"] == "sess-456"
+
+
+class TestFlagForHuman:
+    def test_flag_for_human(self, bus):
+        flag_id = bus.flag_for_human(
+            sender="erp_specialist",
+            reason="Potrzebuję zatwierdzenia widoku",
+            urgency="high",
+        )
+        assert isinstance(flag_id, int)
+        inbox = bus.get_inbox("human")
+        assert len(inbox) == 1
+        assert inbox[0]["type"] == "flag_human"
+        assert inbox[0]["sender"] == "erp_specialist"
+        assert "Potrzebuję zatwierdzenia widoku" in inbox[0]["content"]
+
+    def test_flag_includes_urgency(self, bus):
+        bus.flag_for_human("analyst", "problem z danymi", urgency="high")
+        msg = bus.get_inbox("human")[0]
+        assert "high" in msg["content"].lower() or "high" in json.dumps(msg)

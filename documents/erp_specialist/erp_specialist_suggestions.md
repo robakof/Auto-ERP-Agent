@@ -19,6 +19,43 @@ Pytania pomocnicze:
 
 ## Wpisy
 
+### 2026-03-12 — Handoff od Analityka: poprawki konwencji widoków BI
+
+Pierwsza sesja z formalnym handoffem Analityk → ERP Specialist. Charakter pracy: czytanie gotowych plików + weryfikacja na bazie + edycja.
+
+**Co poszło sprawnie:**
+
+Handoff był kompletny i bezpośrednio wykonywalny — każdy FIX miał dokładnie: gdzie, stary kod, nowy kod.
+Nie było potrzeby eksploracji schematu ani docs_search. Pure edycja.
+Równoległe sprawdzenie wszystkich Q-pytań (COUNT, GIDFirma, granicy 84000) w jednym kroku.
+
+**Obserwacje techniczne:**
+
+ROZ_GIDFirma: baza ma 2 unikalne wartości ale jest jednofirmowa — drugi numer to artefakt wdrożenia
+niemożliwy do usunięcia. Zasada GID z suggestions (GIDFirma → pomijamy) potwierdzona ponownie,
+ale tym razem powód jest inny: nie "GID bez sensu biznesowego" ale "artefakt danych wdrożeniowych".
+
+Granica 84000 w Data_Podejrzana = Clarion date 2030-12-22. User nie wiedział skąd ta wartość pochodzi.
+Dodałem komentarz faktyczny (co odpowiada tej liczbie) bez wyjaśnienia "dlaczego akurat tyle".
+Zasada: komentuj co wiesz, nie zgaduj czego nie wiesz.
+
+FIX-2 (Rezerwacje KntKarty JOIN): COUNT(*) = COUNT(DISTINCT) już przed poprawką = brak duplikatów w danych.
+Mimo to poprawka słuszna — konwencja ERP_SCHEMA_PATTERNS wymaga dwuczęściowego klucza niezależnie
+od tego czy aktualnie powoduje problem. Poprawność > "działa i tak".
+
+**Q-1 (KntKarty sentinele 200000 vs 109211) — nierozwiązane:**
+
+User nie wiedział. Nie ma tu oczywistej odpowiedzi — może być świadomy (inne sentinele ERP dla tych pól),
+może błąd kopiowania. Zasada: bez wiedzy = bez zmiany. Odnotowane tu — jeśli wróci w kolejnym audycie
+to sygnał do głębszego researchu (docs_search po tych polach z --limit 300).
+
+**Dla następnej instancji przy handoffach:**
+
+- Zanim zaczniesz edytować: sprawdź COUNT(*) dla widoków gdzie zmieniasz JOINy.
+- Walidacja SQL z CREATE OR ALTER VIEW wymaga DBA — ERP Specialist nie może tego robić.
+  Brudnopisu już nie ma (pliki views/ mają CREATE). Jedyna opcja: wyciągnięcie SELECT i test inline.
+  Ale user odrzucił to podejście — "pan nie ma uprawnień". Deployment jest zawsze po stronie usera.
+- Po edycji widoku BI: commit + raport co zmieniono + otwarte pytania. Nie czekaj na deployment.
 
 ---
 
