@@ -16,6 +16,7 @@
 - LOOM: `_loom/` — szablony metodologii do bootstrapu nowych projektów
 
 **Agent bus:** Faza 1.5 zakończona. Nowy schemat: suggestions + backlog + session_log. Tabela state zostaje (archiwum, nie używana). Faza 2 (dyrektywy w DB) — backlog.
+**agent_bus_server:** FastAPI HTTP API gotowe (tools/agent_bus_server.py, localhost:8765). Uruchamiane ręcznie — narzędzie dla człowieka, nie agenta. /docs dostępne po starcie.
 
 **Widok w toku:** BI.ZamNag — Faza 1–4 zakończona przez agenta (widok gotowy: `solutions/bi/views/ZamNag.sql`). Otwarte: ZaN_PromocjePar=3 (znaczenie nieznane), ZaN_DokZwiazane (bitmask surowy).
 
