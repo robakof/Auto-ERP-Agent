@@ -4,14 +4,22 @@
 
 ## Stan bieżący
 
-**Aktualizacja:** 2026-03-11
+**Aktualizacja:** 2026-03-13
 
 **Co działa:**
+- `tools/lib/agent_bus.py` — AgentBus (SQLite, WAL, messages + state, flag_for_human)
+- `tools/agent_bus_cli.py` — CLI wrapper (send, inbox, state, write-state, flag)
+- `documents/human/human_inbox.md` — inbox człowieka (dopisywany autonomicznie przez wszystkie role)
+- 430 testów łącznie (26 nowych agent_bus), 429 zielone (1 pre-istniejący fail w telegram_channel)
+
+
 - 13 toolsów CLI + `tools/lib/` (SqlClient, ExcelWriter, ExcelReader, output) — 253 testy, 100% zielone
 - `docs.db`: FTS5 z kolumnami, tabelami, relacjami, słownikami, 456 typami GID
 - `solutions/bi/views/`: Kontrahenci.sql ✓, Rezerwacje.sql ✓
 - Architektura wytycznych: CLAUDE.md (routing) → AGENT.md / DEVELOPER.md / METHODOLOGY.md
 - LOOM: `_loom/` — szablony metodologii do bootstrapu nowych projektów
+
+**Agent bus:** Faza 1 zakończona. Faza 2 (dyrektywy w DB, redukcja CLAUDE.md) — backlog.
 
 **Widok w toku:** BI.ZamNag — Faza 1–4 zakończona przez agenta (widok gotowy: `solutions/bi/views/ZamNag.sql`). Otwarte: ZaN_PromocjePar=3 (znaczenie nieznane), ZaN_DokZwiazane (bitmask surowy).
 
@@ -33,6 +41,17 @@
 ---
 
 ## Dziennik
+
+### 2026-03-13 — Agent Bus Faza 1
+
+- `tools/lib/agent_bus.py` — AgentBus: SQLite WAL, tabele messages + state, 8 metod
+- `tools/agent_bus_cli.py` — CLI: send, inbox, state, write-state, flag
+- `documents/human/human_inbox.md` — nowy plik: inbox dla człowieka (autonomiczne dopisywanie przez wszystkie role)
+- CLAUDE.md, DEVELOPER.md, ERP_SPECIALIST.md, ANALYST.md — aktualizacje o human_inbox
+- 26 nowych testów, 430 łącznie
+- Pre-istniejący fail: test_telegram_channel::test_authorized_user_gets_answer (mock/parse_mode mismatch, niezwiązany z agent_bus)
+
+---
 
 ### 2026-03-11 — Rozruch Analityka
 
