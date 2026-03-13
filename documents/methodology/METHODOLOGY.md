@@ -30,7 +30,11 @@ Czytasz ten dokument, ponieważ zostałeś wywołany w roli **Metodologa** lub p
 jako kontekst sesji.
 
 **Na starcie sesji:** przeczytaj `documents/methodology/methodology_progress.md` — aktualny
-stan i konkretny następny krok.
+stan i konkretny następny krok. Sprawdź też inbox od Developera:
+
+```
+python tools/agent_bus_cli.py inbox --role metodolog
+```
 
 Oto co musisz wiedzieć:
 
@@ -286,8 +290,12 @@ pliku (regex, ekstrakcja, transformacja) — to sygnał że brakuje narzędzia, 
 zrobić to dokładniej.
 
 Pytanie diagnostyczne: "Czy to co właśnie robię manualnie mogłoby być jednym wywołaniem CLI?"
-Jeśli tak — zatrzymaj się, zapisz jako sugestię do właściwego pliku refleksji i zapytaj
-użytkownika czy warto najpierw zbudować narzędzie.
+Jeśli tak — zatrzymaj się, zapisz przez agent_bus i zapytaj użytkownika czy warto najpierw
+zbudować narzędzie:
+
+```
+python tools/agent_bus_cli.py send --from <rola> --to developer --content "..."
+```
 
 Obserwacje z tej pętli są źródłem aktualizacji metodologii i wytycznych (`DEVELOPER.md`).
 Nie należy ich odkładać — każda taka obserwacja powinna zostać zapisana możliwie szybko,
@@ -305,13 +313,14 @@ plików i katalogów zależy od projektu.
 
 Dla małego projektu (1 wykonawca, 1 developer, 1 metodolog) tabela wygląda tak (przykład):
 
-| Poziom | Plik refleksji | Backlog | Kto archiwizuje |
+| Poziom | Refleksje | Backlog | Komunikacja |
 |---|---|---|---|
-| Wykonawca | `documents/{rola}/{rola}_suggestions.md` | `documents/dev/backlog.md` | Developer |
-| Developer | `documents/dev/developer_suggestions.md` | `documents/dev/backlog.md` | Człowiek + Developer |
-| Metodolog | `documents/methodology/methodology_suggestions.md` | `documents/methodology/methodology_backlog.md` | Człowiek + Metodolog |
+| Wykonawca | `agent_bus write-state --type reflection` | `agent_bus write-state --type backlog_item` | `agent_bus send --to developer` |
+| Developer | `agent_bus write-state --type reflection` | `mrowisko.db` (backlog_item) | `agent_bus send --to metodolog` |
+| Metodolog | `documents/methodology/methodology_suggestions.md` | `documents/methodology/methodology_backlog.md` | `agent_bus send --to developer` |
 
-*Aktualna struktura plików refleksji: `CLAUDE.md` sekcja Wyjątki.*
+Pliki `.md` refleksji Wykonawców (`erp_specialist_suggestions.md`, `analyst_suggestions.md`)
+są archiwum. Nowe wpisy wyłącznie przez `tools/agent_bus_cli.py`.
 
 Pliki refleksyjne nie są czyszczone — przetworzone wpisy przenoszone są do sekcji
 Archiwum w tym samym pliku. Developer nie pisze bezpośrednio do pliku Metodologa.
