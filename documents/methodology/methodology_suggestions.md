@@ -1,7 +1,7 @@
-# Propozycje zmian metodologii
+# Propozycje zmian metodologii — ARCHIWUM
 
-Plik zbiera obserwacje i propozycje dotyczące samej metodologii pracy z agentem.
-Odbiorcą jest Metodolog — przetwarza zawartość, ocenia co warto wdrożyć, czyści plik.
+> **UWAGA:** Ten plik jest archiwum (stan na 2026-03-13).
+> Nowe refleksje: `python tools/agent_bus_cli.py write-state --role metodolog --type reflection --content "..."`
 
 ---
 

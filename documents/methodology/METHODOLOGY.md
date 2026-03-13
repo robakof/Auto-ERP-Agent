@@ -317,10 +317,9 @@ Dla małego projektu (1 wykonawca, 1 developer, 1 metodolog) tabela wygląda tak
 |---|---|---|---|
 | Wykonawca | `agent_bus write-state --type reflection` | `agent_bus write-state --type backlog_item` | `agent_bus send --to developer` |
 | Developer | `agent_bus write-state --type reflection` | `mrowisko.db` (backlog_item) | `agent_bus send --to metodolog` |
-| Metodolog | `documents/methodology/methodology_suggestions.md` | `documents/methodology/methodology_backlog.md` | `agent_bus send --to developer` |
+| Metodolog | `agent_bus write-state --type reflection` | `documents/methodology/methodology_backlog.md` | `agent_bus send --to developer` |
 
-Pliki `.md` refleksji Wykonawców (`erp_specialist_suggestions.md`, `analyst_suggestions.md`)
-są archiwum. Nowe wpisy wyłącznie przez `tools/agent_bus_cli.py`.
+Wszystkie pliki `.md` refleksji są archiwum. Nowe wpisy wyłącznie przez `tools/agent_bus_cli.py`.
 
 Pliki refleksyjne nie są czyszczone — przetworzone wpisy przenoszone są do sekcji
 Archiwum w tym samym pliku. Developer nie pisze bezpośrednio do pliku Metodologa.
