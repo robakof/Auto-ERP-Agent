@@ -17,6 +17,9 @@
 
 **Agent bus:** Faza 1.5 zakończona. Nowy schemat: suggestions + backlog + session_log. Tabela state zostaje (archiwum, nie używana). Faza 2 (dyrektywy w DB) — backlog.
 **agent_bus_server:** FastAPI HTTP API gotowe (tools/agent_bus_server.py, localhost:8765). Uruchamiane ręcznie — narzędzie dla człowieka, nie agenta. /docs dostępne po starcie.
+**render.py:** Uniwersalny renderer md/xlsx/json dla wszystkich widoków DB (backlog, suggestions, inbox, messages, session-log). md = dokument opisowy (pełna treść), xlsx = tabela z filtrem i kolorowaniem. API-first: fetch() jako jedyne miejsce wiedzy o źródle — gotowe na podmianę DB→HTTP.
+**session_log:** 7 historycznych progress logów zmigrowanych z .md do DB (developer, metodolog, erp_specialist x4).
+**Następny krok:** agent_bus_server — renderery jako klienci HTTP (backlog id=26). Lub: zasada DB przed schematem w DEVELOPER.md (backlog id=20, wartość wysoka, mała praca).
 
 **Widok w toku:** BI.ZamNag — Faza 1–4 zakończona przez agenta (widok gotowy: `solutions/bi/views/ZamNag.sql`). Otwarte: ZaN_PromocjePar=3 (znaczenie nieznane), ZaN_DokZwiazane (bitmask surowy).
 
@@ -38,6 +41,19 @@
 ---
 
 ## Dziennik
+
+### 2026-03-13 — render.py + session_log migracja + API-first decyzja
+
+- `tools/render.py` — uniwersalny renderer: backlog/suggestions/inbox/messages/session-log × md/xlsx/json, 17 testów
+- `tools/agent_bus_server.py` — FastAPI localhost:8765, 15 testów, uruchamiany ręcznie
+- `tools/migrate_logs.py` — 7 progress logów .md → session_log w DB
+- `tools/lib/agent_bus.py` — dodano get_messages() bez obowiązkowego filtra
+- Backlog obszary uzupełnione dla 19 pozycji
+- Decyzja architektoniczna: API-first, renderery konsumują JSON nie DB bezpośrednio (backlog id=26)
+- settings.local.json cleanup, Bash reguły zweryfikowane ($() zablokowane przez hook — reguła zostaje)
+- 488 testów łącznie, 487 zielone (1 pre-istniejący fail telegram_channel)
+
+---
 
 ### 2026-03-13 — Agent Bus Faza 1.5 + porządek settings
 
