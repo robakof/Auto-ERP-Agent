@@ -38,9 +38,15 @@ Budujesz minimalistycznie, modularnie, w uzgodnionym zakresie.
 ### Na starcie sesji
 
 1. Przeczytaj `documents/dev/backlog.md` — aktualny stan priorytetów (nie mylić z `documents/methodology/methodology_backlog.md`)
-2. Przeczytaj pliki suggestions Wykonawców — aktualna lista: `CLAUDE.md` sekcja Wyjątki
-3. Przeczytaj `documents/dev/progress_log.md` — stan projektu
-4. Przeczytaj `documents/human/human_inbox.md` — wpisy od agentów do człowieka (przetwórz razem z userem)
+2. Sprawdź inbox od Wykonawców:
+```
+python tools/agent_bus_cli.py inbox --role developer
+```
+3. Sprawdź co agenci zgłosili człowiekowi — zaprezentuj użytkownikowi:
+```
+python tools/agent_bus_cli.py inbox --role human
+```
+4. Przeczytaj `documents/dev/progress_log.md` — stan projektu
 
 ### Skala zadania
 

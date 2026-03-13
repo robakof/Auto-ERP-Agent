@@ -1,6 +1,10 @@
-# Backlog developerski
+# Backlog developerski — ARCHIWUM
 
-Przetworzone i priorytetyzowane zadania developerskie.
+> **UWAGA:** Ten plik jest archiwum (stan na 2026-03-13).
+> Aktywny backlog przeniesiony do `mrowisko.db`.
+> Odczyt: `python tools/agent_bus_cli.py state --role developer --type backlog_item`
+> Nowe pozycje: `python tools/agent_bus_cli.py write-state --role developer --type backlog_item --content "..."`
+
 Zarządza: Developer.
 
 ---

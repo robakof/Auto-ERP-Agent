@@ -45,9 +45,10 @@ i poczekać na odpowiedź twierdzącą. Wskazanie pliku jako celu nie jest zatwi
 - `documents/methodology/SPIRIT.md`
 
 Wyjątki — dopisywane autonomicznie po etapie pracy:
-- `documents/erp_specialist/erp_specialist_suggestions.md` (ERP Specialist)
-- `documents/analyst/analyst_suggestions.md` (Analityk Danych)
-- `documents/human/human_inbox.md` (wszystkie role — inbox człowieka)
+- `documents/erp_specialist/erp_specialist_suggestions.md` (ERP Specialist) — ARCHIWUM, nowe wpisy przez agent_bus
+- `documents/analyst/analyst_suggestions.md` (Analityk Danych) — ARCHIWUM, nowe wpisy przez agent_bus
+
+Komunikacja między agentami i eskalacja do człowieka: `tools/agent_bus_cli.py` (mrowisko.db)
 
 ### Eskalacja między poziomami
 

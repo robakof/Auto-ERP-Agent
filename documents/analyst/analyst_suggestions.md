@@ -1,7 +1,7 @@
-# Sugestie Analityka Danych
+# Sugestie Analityka Danych — ARCHIWUM
 
-Plik refleksji Analityka Danych. Dopisywany po zakończeniu analizy zakresu.
-Archiwizuje Developer — po przeglądzie z człowiekiem.
+> **UWAGA:** Ten plik jest archiwum (stan na 2026-03-13).
+> Nowe refleksje: `python tools/agent_bus_cli.py write-state --role analyst --type reflection --content "..."`
 
 ## Jak pisać
 

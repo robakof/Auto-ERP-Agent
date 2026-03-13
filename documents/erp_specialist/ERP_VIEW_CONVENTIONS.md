@@ -11,8 +11,15 @@ Przed każdym widokiem idącym do DBA: przejdź przez ten dokument od góry do d
 ## Schemat i nazewnictwo
 
 - Schemat: `AIBI` (nie BI, nie CDN)
-- Plik views/: `CREATE OR ALTER VIEW AIBI.NazwaWidoku AS`
-- Brudnopis: sam SELECT, bez CREATE — testowany przez sql_query.py
+- Plik views/: zawsze zaczyna się od `USE [ERPXL_CEIM]; GO` — plik musi być self-contained
+- Format pliku views/:
+  ```sql
+  USE [ERPXL_CEIM];
+  GO
+  CREATE OR ALTER VIEW AIBI.NazwaWidoku AS
+  ...
+  ```
+- Brudnopis: sam SELECT, bez CREATE i bez USE/GO — testowany przez sql_query.py
 - Nazwy kolumn: PascalCase z underscore, polskie, opisowe (`Data_Wystawienia`, `Kod_Towaru`)
 - Klucz główny widoku: `ID_[encja]` (`ID_Rezerwacji`, `ID_Zamowienia`)
 - Para lookup: zawsze `Kod_X` + `Nazwa_X`

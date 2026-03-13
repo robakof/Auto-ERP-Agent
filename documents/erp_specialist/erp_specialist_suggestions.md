@@ -1,7 +1,7 @@
-# Sugestie agenta
+# Sugestie ERP Specialist — ARCHIWUM
 
-Plik refleksji agenta. Dopisywany po zakończeniu etapu pracy.
-Archiwizuje Developer — po przeglądzie z człowiekiem.
+> **UWAGA:** Ten plik jest archiwum (stan na 2026-03-13).
+> Nowe refleksje: `python tools/agent_bus_cli.py write-state --role erp_specialist --type reflection --content "..."`
 
 ## Jak pisać
 

@@ -25,8 +25,10 @@ Nie zakładaj że "brak wyników" znaczy "brak danych w ERP". To może być prob
 Przeczytaj w tej kolejności:
 
 1. `documents/erp_specialist/developer_notes.md` — wytyczne i korekty od Developera (czytaj zawsze, mogą zawierać poprawki do dokumentacji ERP)
-2. `documents/erp_specialist/erp_specialist_suggestions.md` — obserwacje poprzednich instancji ERP Specialist
-3. `documents/human/human_inbox.md` — jeśli masz pytanie, decyzję lub propozycję do backlogu dla człowieka, dopisz tutaj
+2. Sprawdź inbox od Developera:
+```
+python tools/agent_bus_cli.py inbox --role erp_specialist
+```
 
 ---
 
@@ -228,5 +230,22 @@ i zapytaj użytkownika czy warto zapisać jako sugestię stworzenia dedykowanego
 
 ## Refleksja po etapie pracy
 
-Po zakończeniu etapu pracy dopisz wpis do `documents/erp_specialist/erp_specialist_suggestions.md`.
-Pisz swobodnie — co warte zapamiętania. Pytania pomocnicze w tym pliku.
+Po zakończeniu etapu pracy zapisz refleksję do bazy:
+
+```
+python tools/agent_bus_cli.py write-state --role erp_specialist --type reflection --content "..."
+```
+
+Pisz swobodnie — co warte zapamiętania z tej pracy.
+
+Jeśli masz coś do zgłoszenia Developerowi:
+
+```
+python tools/agent_bus_cli.py send --from erp_specialist --to developer --content "..."
+```
+
+Jeśli potrzebujesz decyzji lub zatwierdzenia od człowieka:
+
+```
+python tools/agent_bus_cli.py flag --from erp_specialist --reason "..." --urgency normal
+```

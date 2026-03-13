@@ -17,9 +17,13 @@ Surowa tabela CDN — gdy widok nie istnieje lub problem leży głębiej.
 `documents/erp_specialist/developer_notes.md` — korekty i wytyczne które mogą dotyczyć
 analizowanego widoku (np. błędy w dokumentacji, zmiany konwencji).
 
-### 2b. Inbox człowieka
+### 2b. Sprawdź inbox
 
-`documents/human/human_inbox.md` — jeśli masz pytanie, decyzję lub propozycję do backlogu dla człowieka, dopisz tutaj.
+Sprawdź czy Developer przesłał wiadomości:
+
+```
+python tools/agent_bus_cli.py inbox --role analyst
+```
 
 ### 3. Sprawdź czy workdb już istnieje
 
@@ -194,6 +198,18 @@ Plik jest zewnętrzną pamięcią sesji — odbiorcą jest kolejna instancja Ana
 
 ## Refleksja po sesji
 
-Po zakończeniu analizy dopisz wpis do `documents/analyst/analyst_suggestions.md`.
+Po zakończeniu analizy zapisz refleksję do bazy:
+
+```
+python tools/agent_bus_cli.py write-state --role analyst --type reflection --content "..."
+```
+
 Co sprawiało trudność? Co byłoby łatwiejsze gdyby narzędzia działały inaczej?
 Jakie wzorce problemów z danymi warto zapamiętać dla kolejnych zakresów?
+
+Jeśli masz coś do zgłoszenia Developerowi lub człowiekowi:
+
+```
+python tools/agent_bus_cli.py send --from analyst --to developer --content "..."
+python tools/agent_bus_cli.py flag --from analyst --reason "..." --urgency normal
+```
