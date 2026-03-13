@@ -156,6 +156,31 @@ class TestSessionLog:
         assert "log testowy" in out.read_text(encoding="utf-8")
 
 
+class TestMessages:
+    def test_all_messages_json(self, db):
+        path, tmp = db
+        out = tmp / "out.json"
+        r = run(["messages", "--format", "json", "--output", str(out)], path)
+        assert r.returncode == 0
+        data = json.loads(out.read_text(encoding="utf-8"))
+        assert data["count"] == 1
+        assert data["data"][0]["sender"] == "erp_specialist"
+
+    def test_filter_sender(self, db):
+        path, tmp = db
+        out = tmp / "out.json"
+        r = run(["messages", "--format", "json", "--sender", "analyst", "--output", str(out)], path)
+        assert r.returncode == 0
+        assert json.loads(out.read_text(encoding="utf-8"))["count"] == 0
+
+    def test_xlsx(self, db):
+        path, tmp = db
+        out = tmp / "out.xlsx"
+        r = run(["messages", "--format", "xlsx", "--output", str(out)], path)
+        assert r.returncode == 0
+        assert out.exists()
+
+
 class TestDefaultOutput:
     def test_default_filename(self, db, tmp_path):
         path, _ = db

@@ -335,6 +335,35 @@ class AgentBus:
         ).fetchall()
         return [dict(row) for row in rows]
 
+    def get_messages(
+        self,
+        sender: str = None,
+        recipient: str = None,
+        status: str = None,
+        limit: int = 200,
+    ) -> list[dict]:
+        """Get messages with optional filters. Newest first."""
+        conditions, params = [], []
+        if sender:
+            conditions.append("sender = ?")
+            params.append(sender)
+        if recipient:
+            conditions.append("recipient = ?")
+            params.append(recipient)
+        if status:
+            conditions.append("status = ?")
+            params.append(status)
+        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+        params.append(limit)
+        rows = self._conn.execute(
+            f"""SELECT id, sender, recipient, type, content, status, session_id, created_at, read_at
+                FROM messages {where}
+                ORDER BY created_at DESC, id DESC
+                LIMIT ?""",
+            params,
+        ).fetchall()
+        return [dict(row) for row in rows]
+
     # --- Human escalation ---
 
     def flag_for_human(

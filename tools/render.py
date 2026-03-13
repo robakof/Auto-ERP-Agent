@@ -42,6 +42,10 @@ VIEWS = {
         "title": "Session Log",
         "columns": ["id", "role", "content", "session_id", "created_at"],
     },
+    "messages": {
+        "title": "Messages",
+        "columns": ["id", "sender", "recipient", "type", "content", "status", "created_at", "read_at"],
+    },
 }
 
 VALUE_COLORS = {"wysoka": "C6EFCE", "srednia": "FFEB9C", "niska": "FFC7CE"}
@@ -74,6 +78,13 @@ def fetch(view: str, bus: AgentBus, args: argparse.Namespace) -> list[dict]:
         return bus.get_session_log(
             role=args.role,
             limit=getattr(args, "limit", 20),
+        )
+    if view == "messages":
+        return bus.get_messages(
+            sender=getattr(args, "sender", None),
+            recipient=getattr(args, "recipient", None),
+            status=getattr(args, "status", None),
+            limit=getattr(args, "limit", 200),
         )
     return []
 
@@ -149,6 +160,14 @@ def build_parser() -> argparse.ArgumentParser:
             p.add_argument("--area", default=None)
         if view == "suggestions":
             p.add_argument("--author", default=None)
+
+    p = sub.add_parser("messages")
+    p.add_argument("--format", required=True, choices=["md", "xlsx", "json"])
+    p.add_argument("--output", default=None)
+    p.add_argument("--sender", default=None)
+    p.add_argument("--recipient", default=None)
+    p.add_argument("--status", default=None)
+    p.add_argument("--limit", type=int, default=200)
 
     for view in ["inbox", "session-log"]:
         p = sub.add_parser(view)
