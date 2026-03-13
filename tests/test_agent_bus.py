@@ -34,6 +34,9 @@ class TestDatabaseSetup:
         table_names = [t[0] for t in tables]
         assert "messages" in table_names
         assert "state" in table_names
+        assert "suggestions" in table_names
+        assert "backlog" in table_names
+        assert "session_log" in table_names
 
 
 class TestMessages:
@@ -148,6 +151,147 @@ class TestState:
         bus.write_state("dev", "progress", "test", session_id="sess-456")
         states = bus.get_state("dev")
         assert states[0]["session_id"] == "sess-456"
+
+
+class TestSuggestions:
+    def test_add_suggestion_returns_id(self, bus):
+        sid = bus.add_suggestion(author="erp_specialist", content="Dodaj indeks na KntNag")
+        assert isinstance(sid, int)
+
+    def test_get_suggestions_all(self, bus):
+        bus.add_suggestion("erp_specialist", "sugestia 1")
+        bus.add_suggestion("analyst", "sugestia 2")
+        result = bus.get_suggestions()
+        assert len(result) == 2
+
+    def test_get_suggestions_filter_status(self, bus):
+        bus.add_suggestion("erp_specialist", "otwarta")
+        s2 = bus.add_suggestion("analyst", "w backlogu")
+        bus.update_suggestion_status(s2, "in_backlog")
+        open_s = bus.get_suggestions(status="open")
+        assert len(open_s) == 1
+        assert open_s[0]["content"] == "otwarta"
+
+    def test_get_suggestions_filter_author(self, bus):
+        bus.add_suggestion("erp_specialist", "moja sugestia")
+        bus.add_suggestion("analyst", "inna sugestia")
+        result = bus.get_suggestions(author="erp_specialist")
+        assert len(result) == 1
+        assert result[0]["author"] == "erp_specialist"
+
+    def test_suggestion_default_status_open(self, bus):
+        sid = bus.add_suggestion("erp_specialist", "test")
+        result = bus.get_suggestions()
+        assert result[0]["status"] == "open"
+
+    def test_suggestion_with_recipients(self, bus):
+        bus.add_suggestion("erp_specialist", "test", recipients=["developer", "metodolog"])
+        result = bus.get_suggestions()
+        assert result[0]["recipients"] == ["developer", "metodolog"]
+
+    def test_suggestion_recipients_none_by_default(self, bus):
+        bus.add_suggestion("erp_specialist", "test")
+        result = bus.get_suggestions()
+        assert result[0]["recipients"] is None
+
+    def test_update_suggestion_status(self, bus):
+        sid = bus.add_suggestion("erp_specialist", "test")
+        bus.update_suggestion_status(sid, "implemented")
+        result = bus.get_suggestions(status="implemented")
+        assert len(result) == 1
+
+    def test_update_suggestion_with_backlog_id(self, bus):
+        sid = bus.add_suggestion("erp_specialist", "test")
+        bid = bus.add_backlog_item(title="task", content="opis")
+        bus.update_suggestion_status(sid, "in_backlog", backlog_id=bid)
+        result = bus.get_suggestions()
+        assert result[0]["backlog_id"] == bid
+
+    def test_suggestion_ordering_newest_first(self, bus):
+        bus.add_suggestion("erp_specialist", "starsza")
+        bus.add_suggestion("analyst", "nowsza")
+        result = bus.get_suggestions()
+        assert result[0]["content"] == "nowsza"
+
+
+class TestBacklog:
+    def test_add_backlog_item_returns_id(self, bus):
+        bid = bus.add_backlog_item(title="Fix X", content="Opis problemu")
+        assert isinstance(bid, int)
+
+    def test_get_backlog_all(self, bus):
+        bus.add_backlog_item("Task 1", "opis 1")
+        bus.add_backlog_item("Task 2", "opis 2")
+        result = bus.get_backlog()
+        assert len(result) == 2
+
+    def test_backlog_default_status_planned(self, bus):
+        bus.add_backlog_item("task", "opis")
+        result = bus.get_backlog()
+        assert result[0]["status"] == "planned"
+
+    def test_get_backlog_filter_status(self, bus):
+        bus.add_backlog_item("planned task", "opis")
+        bid2 = bus.add_backlog_item("done task", "opis")
+        bus.update_backlog_status(bid2, "done")
+        planned = bus.get_backlog(status="planned")
+        assert len(planned) == 1
+        assert planned[0]["title"] == "planned task"
+
+    def test_backlog_with_metadata(self, bus):
+        bus.add_backlog_item("task", "opis", area="Bot", value="wysoka", effort="mala")
+        result = bus.get_backlog()
+        assert result[0]["area"] == "Bot"
+        assert result[0]["value"] == "wysoka"
+        assert result[0]["effort"] == "mala"
+
+    def test_backlog_with_source_id(self, bus):
+        sid = bus.add_suggestion("erp_specialist", "sugestia")
+        bid = bus.add_backlog_item("task", "opis", source_id=sid)
+        result = bus.get_backlog()
+        assert result[0]["source_id"] == sid
+
+    def test_update_backlog_status(self, bus):
+        bid = bus.add_backlog_item("task", "opis")
+        bus.update_backlog_status(bid, "in_progress")
+        result = bus.get_backlog(status="in_progress")
+        assert len(result) == 1
+
+    def test_backlog_ordering_newest_first(self, bus):
+        bus.add_backlog_item("stary", "opis")
+        bus.add_backlog_item("nowy", "opis")
+        result = bus.get_backlog()
+        assert result[0]["title"] == "nowy"
+
+
+class TestSessionLog:
+    def test_add_session_log_returns_id(self, bus):
+        lid = bus.add_session_log(role="developer", content="Sesja 2026-03-13")
+        assert isinstance(lid, int)
+
+    def test_get_session_log_by_role(self, bus):
+        bus.add_session_log("developer", "wpis developera")
+        bus.add_session_log("erp_specialist", "wpis erp")
+        result = bus.get_session_log("developer")
+        assert len(result) == 1
+        assert result[0]["content"] == "wpis developera"
+
+    def test_session_log_ordering_newest_first(self, bus):
+        bus.add_session_log("developer", "stary")
+        bus.add_session_log("developer", "nowy")
+        result = bus.get_session_log("developer")
+        assert result[0]["content"] == "nowy"
+
+    def test_session_log_limit(self, bus):
+        for i in range(25):
+            bus.add_session_log("developer", f"wpis {i}")
+        assert len(bus.get_session_log("developer")) == 20
+        assert len(bus.get_session_log("developer", limit=5)) == 5
+
+    def test_session_log_with_session_id(self, bus):
+        bus.add_session_log("developer", "wpis", session_id="sess-abc")
+        result = bus.get_session_log("developer")
+        assert result[0]["session_id"] == "sess-abc"
 
 
 class TestFlagForHuman:

@@ -10,6 +10,45 @@ import sqlite3
 from pathlib import Path
 
 _SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS suggestions (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    author      TEXT NOT NULL,
+    recipients  TEXT,
+    content     TEXT NOT NULL,
+    status      TEXT NOT NULL DEFAULT 'open',
+    backlog_id  INTEGER REFERENCES backlog(id),
+    session_id  TEXT,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_suggestions_status ON suggestions(status);
+CREATE INDEX IF NOT EXISTS idx_suggestions_author ON suggestions(author);
+
+CREATE TABLE IF NOT EXISTS backlog (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    title       TEXT NOT NULL,
+    content     TEXT NOT NULL,
+    area        TEXT,
+    value       TEXT,
+    effort      TEXT,
+    status      TEXT NOT NULL DEFAULT 'planned',
+    source_id   INTEGER REFERENCES suggestions(id),
+    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_backlog_status ON backlog(status);
+
+CREATE TABLE IF NOT EXISTS session_log (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    role        TEXT NOT NULL,
+    content     TEXT NOT NULL,
+    session_id  TEXT,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_session_log_role ON session_log(role);
+
 CREATE TABLE IF NOT EXISTS messages (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     sender      TEXT NOT NULL,
@@ -155,6 +194,146 @@ class AgentBus:
                 d["metadata"] = json.loads(d["metadata"])
             result.append(d)
         return result
+
+    # --- Suggestions ---
+
+    def add_suggestion(
+        self,
+        author: str,
+        content: str,
+        recipients: list[str] = None,
+        session_id: str = None,
+    ) -> int:
+        """Add a suggestion from an agent. Returns suggestion id."""
+        recipients_json = json.dumps(recipients, ensure_ascii=False) if recipients else None
+        cursor = self._conn.execute(
+            """INSERT INTO suggestions (author, recipients, content, session_id)
+               VALUES (?, ?, ?, ?)""",
+            (author, recipients_json, content, session_id),
+        )
+        self._conn.commit()
+        return cursor.lastrowid
+
+    def get_suggestions(
+        self,
+        status: str = None,
+        author: str = None,
+    ) -> list[dict]:
+        """Get suggestions. Newest first. Optional status and author filters."""
+        conditions = []
+        params = []
+        if status:
+            conditions.append("status = ?")
+            params.append(status)
+        if author:
+            conditions.append("author = ?")
+            params.append(author)
+        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+        rows = self._conn.execute(
+            f"""SELECT id, author, recipients, content, status, backlog_id,
+                       session_id, created_at
+                FROM suggestions
+                {where}
+                ORDER BY created_at DESC, id DESC""",
+            params,
+        ).fetchall()
+        result = []
+        for row in rows:
+            d = dict(row)
+            if d["recipients"]:
+                d["recipients"] = json.loads(d["recipients"])
+            result.append(d)
+        return result
+
+    def update_suggestion_status(
+        self,
+        suggestion_id: int,
+        status: str,
+        backlog_id: int = None,
+    ) -> None:
+        """Update suggestion status and optionally link to backlog item."""
+        self._conn.execute(
+            """UPDATE suggestions SET status = ?, backlog_id = ?
+               WHERE id = ?""",
+            (status, backlog_id, suggestion_id),
+        )
+        self._conn.commit()
+
+    # --- Backlog ---
+
+    def add_backlog_item(
+        self,
+        title: str,
+        content: str,
+        area: str = None,
+        value: str = None,
+        effort: str = None,
+        source_id: int = None,
+    ) -> int:
+        """Add a backlog item. Returns backlog id."""
+        cursor = self._conn.execute(
+            """INSERT INTO backlog (title, content, area, value, effort, source_id)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (title, content, area, value, effort, source_id),
+        )
+        self._conn.commit()
+        return cursor.lastrowid
+
+    def get_backlog(self, status: str = None) -> list[dict]:
+        """Get backlog items. Newest first. Optional status filter."""
+        if status:
+            rows = self._conn.execute(
+                """SELECT id, title, content, area, value, effort, status,
+                          source_id, created_at, updated_at
+                   FROM backlog WHERE status = ?
+                   ORDER BY created_at DESC, id DESC""",
+                (status,),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                """SELECT id, title, content, area, value, effort, status,
+                          source_id, created_at, updated_at
+                   FROM backlog
+                   ORDER BY created_at DESC, id DESC""",
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def update_backlog_status(self, backlog_id: int, status: str) -> None:
+        """Update backlog item status and set updated_at."""
+        self._conn.execute(
+            """UPDATE backlog SET status = ?, updated_at = datetime('now')
+               WHERE id = ?""",
+            (status, backlog_id),
+        )
+        self._conn.commit()
+
+    # --- Session log ---
+
+    def add_session_log(
+        self,
+        role: str,
+        content: str,
+        session_id: str = None,
+    ) -> int:
+        """Add a session log entry. Returns log id."""
+        cursor = self._conn.execute(
+            """INSERT INTO session_log (role, content, session_id)
+               VALUES (?, ?, ?)""",
+            (role, content, session_id),
+        )
+        self._conn.commit()
+        return cursor.lastrowid
+
+    def get_session_log(self, role: str, limit: int = 20) -> list[dict]:
+        """Get session log entries for a role. Newest first."""
+        rows = self._conn.execute(
+            """SELECT id, role, content, session_id, created_at
+               FROM session_log WHERE role = ?
+               ORDER BY created_at DESC, id DESC
+               LIMIT ?""",
+            (role, limit),
+        ).fetchall()
+        return [dict(row) for row in rows]
 
     # --- Human escalation ---
 

@@ -65,6 +65,58 @@ def cmd_write_state(args: argparse.Namespace, bus: AgentBus) -> dict:
     return {"ok": True, "id": state_id}
 
 
+def cmd_suggest(args: argparse.Namespace, bus: AgentBus) -> dict:
+    recipients = json.loads(args.recipients) if args.recipients else None
+    sid = bus.add_suggestion(
+        author=args.sender,
+        content=_read_content(args),
+        recipients=recipients,
+        session_id=args.session_id,
+    )
+    return {"ok": True, "id": sid}
+
+
+def cmd_suggestions(args: argparse.Namespace, bus: AgentBus) -> dict:
+    entries = bus.get_suggestions(status=args.status, author=args.author)
+    return {"ok": True, "data": entries, "count": len(entries)}
+
+
+def cmd_suggest_status(args: argparse.Namespace, bus: AgentBus) -> dict:
+    bus.update_suggestion_status(args.id, args.status, backlog_id=args.backlog_id)
+    return {"ok": True}
+
+
+def cmd_backlog_add(args: argparse.Namespace, bus: AgentBus) -> dict:
+    bid = bus.add_backlog_item(
+        title=args.title,
+        content=_read_content(args),
+        area=args.area,
+        value=args.value,
+        effort=args.effort,
+        source_id=args.source_id,
+    )
+    return {"ok": True, "id": bid}
+
+
+def cmd_backlog(args: argparse.Namespace, bus: AgentBus) -> dict:
+    entries = bus.get_backlog(status=args.status)
+    return {"ok": True, "data": entries, "count": len(entries)}
+
+
+def cmd_backlog_update(args: argparse.Namespace, bus: AgentBus) -> dict:
+    bus.update_backlog_status(args.id, args.status)
+    return {"ok": True}
+
+
+def cmd_log(args: argparse.Namespace, bus: AgentBus) -> dict:
+    lid = bus.add_session_log(
+        role=args.role,
+        content=_read_content(args),
+        session_id=args.session_id,
+    )
+    return {"ok": True, "id": lid}
+
+
 def cmd_flag(args: argparse.Namespace, bus: AgentBus) -> dict:
     reason = Path(args.reason_file).read_text(encoding="utf-8") if args.reason_file else args.reason
     flag_id = bus.flag_for_human(
@@ -116,6 +168,58 @@ def build_parser() -> argparse.ArgumentParser:
     p_write.add_argument("--session-id", dest="session_id", default=None)
     p_write.add_argument("--metadata", default=None, help="JSON string")
 
+    # suggest
+    p_suggest = subparsers.add_parser("suggest", help="Add a suggestion from an agent")
+    p_suggest.add_argument("--from", dest="sender", required=True)
+    g_suggest = p_suggest.add_mutually_exclusive_group(required=True)
+    g_suggest.add_argument("--content")
+    g_suggest.add_argument("--content-file", dest="content_file")
+    p_suggest.add_argument("--recipients", default=None, help="JSON array of roles")
+    p_suggest.add_argument("--session-id", dest="session_id", default=None)
+
+    # suggestions
+    p_suggestions = subparsers.add_parser("suggestions", help="Get suggestions")
+    p_suggestions.add_argument("--status", default=None,
+                               choices=["open", "in_backlog", "rejected", "implemented"])
+    p_suggestions.add_argument("--from", dest="author", default=None)
+
+    # suggest-status
+    p_ss = subparsers.add_parser("suggest-status", help="Update suggestion status")
+    p_ss.add_argument("--id", type=int, required=True)
+    p_ss.add_argument("--status", required=True,
+                      choices=["open", "in_backlog", "rejected", "implemented"])
+    p_ss.add_argument("--backlog-id", dest="backlog_id", type=int, default=None)
+
+    # backlog-add
+    p_badd = subparsers.add_parser("backlog-add", help="Add a backlog item")
+    p_badd.add_argument("--title", required=True)
+    g_badd = p_badd.add_mutually_exclusive_group(required=True)
+    g_badd.add_argument("--content")
+    g_badd.add_argument("--content-file", dest="content_file")
+    p_badd.add_argument("--area", default=None)
+    p_badd.add_argument("--value", default=None, choices=["wysoka", "srednia", "niska"])
+    p_badd.add_argument("--effort", default=None, choices=["mala", "srednia", "duza"])
+    p_badd.add_argument("--source-id", dest="source_id", type=int, default=None)
+
+    # backlog
+    p_backlog = subparsers.add_parser("backlog", help="Get backlog items")
+    p_backlog.add_argument("--status", default=None,
+                           choices=["planned", "in_progress", "done", "cancelled"])
+
+    # backlog-update
+    p_bupd = subparsers.add_parser("backlog-update", help="Update backlog item status")
+    p_bupd.add_argument("--id", type=int, required=True)
+    p_bupd.add_argument("--status", required=True,
+                        choices=["planned", "in_progress", "done", "cancelled"])
+
+    # log
+    p_log = subparsers.add_parser("log", help="Add a session log entry")
+    p_log.add_argument("--role", required=True)
+    g_log = p_log.add_mutually_exclusive_group(required=True)
+    g_log.add_argument("--content")
+    g_log.add_argument("--content-file", dest="content_file")
+    p_log.add_argument("--session-id", dest="session_id", default=None)
+
     # flag
     p_flag = subparsers.add_parser("flag", help="Flag something for human review")
     p_flag.add_argument("--from", dest="sender", required=True)
@@ -138,6 +242,13 @@ def main():
         "inbox": cmd_inbox,
         "state": cmd_state,
         "write-state": cmd_write_state,
+        "suggest": cmd_suggest,
+        "suggestions": cmd_suggestions,
+        "suggest-status": cmd_suggest_status,
+        "backlog-add": cmd_backlog_add,
+        "backlog": cmd_backlog,
+        "backlog-update": cmd_backlog_update,
+        "log": cmd_log,
         "flag": cmd_flag,
     }
     result = commands[args.command](args, bus)
