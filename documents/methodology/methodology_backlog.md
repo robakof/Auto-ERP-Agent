@@ -1,7 +1,8 @@
-# Backlog metodologiczny
+# Backlog metodologiczny — ARCHIWUM
 
-Przetworzone i priorytetyzowane zadania metodologiczne.
-Źródło: `methodology_suggestions.md` + metodologiczne wątki z `developer_suggestions.md`.
+> **UWAGA:** Ten plik jest archiwum (stan na 2026-03-13).
+> Aktywny backlog przeniesiony do `mrowisko.db` (role=metodolog, type=backlog_item).
+> Odczyt: `python tools/agent_bus_cli.py state --role metodolog --type backlog_item`
 
 Zarządza: Metodolog.
 
