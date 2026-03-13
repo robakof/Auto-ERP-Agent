@@ -50,16 +50,28 @@ Wyjątki — dopisywane autonomicznie po etapie pracy:
 
 Komunikacja między agentami i eskalacja do człowieka: `tools/agent_bus_cli.py` (mrowisko.db)
 
-### Zapisywanie treści do agent_bus
+### Komendy agent_bus
 
-Długie treści (refleksje, sugestie, opisy) zapisuj przez plik pośredni — nie inline w komendzie:
+Długie treści zapisuj przez plik pośredni — nie inline w komendzie:
 
 ```
 # 1. Zapisz treść narzędziem Write do pliku tymczasowego
 # 2. Przekaż ścieżkę do CLI
-python tools/agent_bus_cli.py write-state --role <rola> --type reflection --content-file tmp_reflection.md
-python tools/agent_bus_cli.py send --from <rola> --to developer --content-file tmp_msg.md
-python tools/agent_bus_cli.py flag --from <rola> --reason-file tmp_reason.md
+
+# Sugestia (refleksja, obserwacja)
+python tools/agent_bus_cli.py suggest --from <rola> --content-file tmp.md
+
+# Backlog — nowe zadanie
+python tools/agent_bus_cli.py backlog-add --title "Tytuł" --area <obszar> --value wysoka --effort mala --content-file tmp.md
+
+# Log sesji
+python tools/agent_bus_cli.py log --role <rola> --content-file tmp.md
+
+# Wiadomość do innej roli
+python tools/agent_bus_cli.py send --from <rola> --to developer --content-file tmp.md
+
+# Eskalacja do człowieka
+python tools/agent_bus_cli.py flag --from <rola> --reason-file tmp.md
 ```
 
 Plik tymczasowy możesz nadpisywać in-place między wywołaniami.

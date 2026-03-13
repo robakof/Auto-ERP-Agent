@@ -201,7 +201,7 @@ Plik jest zewnętrzną pamięcią sesji — odbiorcą jest kolejna instancja Ana
 Po zakończeniu analizy zapisz refleksję do bazy:
 
 ```
-python tools/agent_bus_cli.py write-state --role analyst --type reflection --content "..."
+python tools/agent_bus_cli.py suggest --from analyst --content-file tmp.md
 ```
 
 Co sprawiało trudność? Co byłoby łatwiejsze gdyby narzędzia działały inaczej?

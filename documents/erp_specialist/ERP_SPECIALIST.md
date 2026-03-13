@@ -233,7 +233,7 @@ i zapytaj użytkownika czy warto zapisać jako sugestię stworzenia dedykowanego
 Po zakończeniu etapu pracy zapisz refleksję do bazy:
 
 ```
-python tools/agent_bus_cli.py write-state --role erp_specialist --type reflection --content "..."
+python tools/agent_bus_cli.py suggest --from erp_specialist --content-file tmp.md
 ```
 
 Pisz swobodnie — co warte zapamiętania z tej pracy.

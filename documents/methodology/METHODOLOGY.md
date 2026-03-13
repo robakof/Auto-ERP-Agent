@@ -315,9 +315,9 @@ Dla małego projektu (1 wykonawca, 1 developer, 1 metodolog) tabela wygląda tak
 
 | Poziom | Refleksje | Backlog | Komunikacja |
 |---|---|---|---|
-| Wykonawca | `agent_bus write-state --type reflection` | `agent_bus write-state --type backlog_item` | `agent_bus send --to developer` |
-| Developer | `agent_bus write-state --type reflection` | `mrowisko.db` (backlog_item) | `agent_bus send --to metodolog` |
-| Metodolog | `agent_bus write-state --type reflection` | `documents/methodology/methodology_backlog.md` | `agent_bus send --to developer` |
+| Wykonawca | `agent_bus suggest --from <rola>` | `agent_bus backlog-add --title ...` | `agent_bus send --to developer` |
+| Developer | `agent_bus suggest --from developer` | `agent_bus backlog-add --title ...` | `agent_bus send --to metodolog` |
+| Metodolog | `agent_bus suggest --from metodolog` | `agent_bus backlog-add --title ...` | `agent_bus send --to developer` |
 
 Wszystkie pliki `.md` refleksji są archiwum. Nowe wpisy wyłącznie przez `tools/agent_bus_cli.py`.
 
