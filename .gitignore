@@ -10,6 +10,9 @@ __pycache__/
 *.db-wal
 *.db-shm
 
+# Lokalna baza danych mrowiska (nie wersjonowana)
+mrowisko.db
+
 # Dane źródłowe dokumentacji (duże pliki, nie kod)
 erp_docs/raw/
 
