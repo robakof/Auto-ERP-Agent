@@ -1,3 +1,7 @@
+USE [ERPXL_CEIM]; 
+GO 
+
+
 CREATE OR ALTER VIEW AIBI.Rozrachunki AS
 
 -- AIBI.Rozrachunki — brudnopis SELECT

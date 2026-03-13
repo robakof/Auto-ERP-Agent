@@ -1,3 +1,7 @@
+USE [ERPXL_CEIM]; 
+GO 
+
+
 CREATE OR ALTER VIEW AIBI.Rezerwacje AS
 SELECT
     -- === TYP REZERWACJI ===

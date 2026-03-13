@@ -261,7 +261,6 @@
         "CDN.OpeKarty"
       ],
       "columns": [
-        "ID_Firma",
         "ID_Rozliczenia",
         "ID_Typ_Dok1",
         "Typ_Dok1",
@@ -313,14 +312,12 @@
       ],
       "columns": [
         "ID_Zamowienia",
-        "Typ_GID",
         "Typ_Zamowienia",
         "Stan",
         "Rodzaj",
         "Numer_Dokumentu",
         "Numer_Potwierdzenia",
         "Numer_Dokumentu_Zrodlowego",
-        "Typ_Dokumentu_Zrodlowego",
         "ID_Dokumentu_Korekty",
         "Typ_Dokumentu_Korekty",
         "ID_Kontrahenta",

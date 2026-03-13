@@ -1,3 +1,7 @@
+USE [ERPXL_CEIM]; 
+GO 
+
+
 CREATE OR ALTER VIEW AIBI.KntKarty AS
 
 WITH Sciezka_Grup AS (
