@@ -42,14 +42,18 @@
 
 ## Dziennik
 
-### 2026-03-13 — Agent Bus Faza 1
+### 2026-03-13 — Agent Bus Faza 1 + migracja komunikacji
 
 - `tools/lib/agent_bus.py` — AgentBus: SQLite WAL, tabele messages + state, 8 metod
 - `tools/agent_bus_cli.py` — CLI: send, inbox, state, write-state, flag
-- `documents/human/human_inbox.md` — nowy plik: inbox dla człowieka (autonomiczne dopisywanie przez wszystkie role)
-- CLAUDE.md, DEVELOPER.md, ERP_SPECIALIST.md, ANALYST.md — aktualizacje o human_inbox
+- `tools/migrate_backlog.py` — migracja backlog.md (14 pozycji) do mrowisko.db
+- `tools/migrate_suggestions.py` — migracja methodology_suggestions.md (9 wpisów) do mrowisko.db
+- Wszystkie role zaktualizowane: agent_bus jako jedyny kanał komunikacji
+- Pliki .md refleksji (erp_specialist_suggestions, analyst_suggestions, methodology_suggestions, backlog) — ARCHIWUM
+- CLAUDE.md, DEVELOPER.md, ERP_SPECIALIST.md, ANALYST.md, METHODOLOGY.md — routing do agent_bus
+- generate_view (faza 3) dodany do backlogu w DB (id=24)
 - 26 nowych testów, 430 łącznie
-- Pre-istniejący fail: test_telegram_channel::test_authorized_user_gets_answer (mock/parse_mode mismatch, niezwiązany z agent_bus)
+- Pre-istniejący fail: test_telegram_channel::test_authorized_user_gets_answer (mock/parse_mode, niezwiązany)
 
 ---
 
