@@ -25,11 +25,18 @@ from tools.lib.output import print_json
 DB_PATH = "mrowisko.db"
 
 
+def _read_content(args: argparse.Namespace) -> str:
+    """Read content from --content or --content-file."""
+    if args.content_file:
+        return Path(args.content_file).read_text(encoding="utf-8")
+    return args.content
+
+
 def cmd_send(args: argparse.Namespace, bus: AgentBus) -> dict:
     msg_id = bus.send_message(
         sender=args.sender,
         recipient=args.to,
-        content=args.content,
+        content=_read_content(args),
         type=args.type,
         session_id=args.session_id,
     )
@@ -51,7 +58,7 @@ def cmd_write_state(args: argparse.Namespace, bus: AgentBus) -> dict:
     state_id = bus.write_state(
         role=args.role,
         type=args.type,
-        content=args.content,
+        content=_read_content(args),
         session_id=args.session_id,
         metadata=metadata,
     )
@@ -59,9 +66,10 @@ def cmd_write_state(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 
 def cmd_flag(args: argparse.Namespace, bus: AgentBus) -> dict:
+    reason = Path(args.reason_file).read_text(encoding="utf-8") if args.reason_file else args.reason
     flag_id = bus.flag_for_human(
         sender=args.sender,
-        reason=args.reason,
+        reason=reason,
         urgency=args.urgency,
         session_id=args.session_id,
     )
@@ -79,7 +87,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_send = subparsers.add_parser("send", help="Send a message to a role")
     p_send.add_argument("--from", dest="sender", required=True)
     p_send.add_argument("--to", required=True)
-    p_send.add_argument("--content", required=True)
+    g_send = p_send.add_mutually_exclusive_group(required=True)
+    g_send.add_argument("--content")
+    g_send.add_argument("--content-file", dest="content_file")
     p_send.add_argument("--type", default="suggestion")
     p_send.add_argument("--session-id", dest="session_id", default=None)
 
@@ -100,14 +110,18 @@ def build_parser() -> argparse.ArgumentParser:
     p_write.add_argument("--role", required=True)
     p_write.add_argument("--type", required=True,
                          choices=["progress", "reflection", "backlog_item"])
-    p_write.add_argument("--content", required=True)
+    g_write = p_write.add_mutually_exclusive_group(required=True)
+    g_write.add_argument("--content")
+    g_write.add_argument("--content-file", dest="content_file")
     p_write.add_argument("--session-id", dest="session_id", default=None)
     p_write.add_argument("--metadata", default=None, help="JSON string")
 
     # flag
     p_flag = subparsers.add_parser("flag", help="Flag something for human review")
     p_flag.add_argument("--from", dest="sender", required=True)
-    p_flag.add_argument("--reason", required=True)
+    g_flag = p_flag.add_mutually_exclusive_group(required=True)
+    g_flag.add_argument("--reason")
+    g_flag.add_argument("--reason-file", dest="reason_file")
     p_flag.add_argument("--urgency", default="normal",
                         choices=["normal", "high"])
     p_flag.add_argument("--session-id", dest="session_id", default=None)

@@ -50,6 +50,20 @@ Wyjątki — dopisywane autonomicznie po etapie pracy:
 
 Komunikacja między agentami i eskalacja do człowieka: `tools/agent_bus_cli.py` (mrowisko.db)
 
+### Zapisywanie treści do agent_bus
+
+Długie treści (refleksje, sugestie, opisy) zapisuj przez plik pośredni — nie inline w komendzie:
+
+```
+# 1. Zapisz treść narzędziem Write do pliku tymczasowego
+# 2. Przekaż ścieżkę do CLI
+python tools/agent_bus_cli.py write-state --role <rola> --type reflection --content-file tmp_reflection.md
+python tools/agent_bus_cli.py send --from <rola> --to developer --content-file tmp_msg.md
+python tools/agent_bus_cli.py flag --from <rola> --reason-file tmp_reason.md
+```
+
+Plik tymczasowy możesz nadpisywać in-place między wywołaniami.
+
 ### Eskalacja między poziomami
 
 Projekt działa na trzech poziomach (Wykonawcy / Developer / Metodolog).

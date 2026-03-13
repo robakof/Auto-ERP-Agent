@@ -16,6 +16,7 @@ def run_cli(args: list[str], db_path: str) -> dict:
         [PYTHON, CLI, "--db", db_path] + args,
         capture_output=True,
         text=True,
+        encoding="utf-8",
     )
     assert result.returncode == 0, f"CLI failed: {result.stderr}"
     return json.loads(result.stdout)
@@ -100,3 +101,41 @@ class TestCliFlag:
         msg = inbox["data"][0]
         assert msg["type"] == "flag_human"
         assert "HIGH" in msg["content"].upper()
+
+
+class TestContentFile:
+    def test_send_with_content_file(self, db, tmp_path):
+        content_file = tmp_path / "msg.txt"
+        content_file.write_text("Treść z pliku", encoding="utf-8")
+        result = run_cli(
+            ["send", "--from", "developer", "--to", "erp_specialist",
+             "--content-file", str(content_file)],
+            db,
+        )
+        assert result["ok"] is True
+        inbox = run_cli(["inbox", "--role", "erp_specialist"], db)
+        assert inbox["data"][0]["content"] == "Treść z pliku"
+
+    def test_write_state_with_content_file(self, db, tmp_path):
+        content_file = tmp_path / "reflection.md"
+        content_file.write_text("Długa refleksja\nz wieloma liniami", encoding="utf-8")
+        result = run_cli(
+            ["write-state", "--role", "erp_specialist", "--type", "reflection",
+             "--content-file", str(content_file)],
+            db,
+        )
+        assert result["ok"] is True
+        states = run_cli(["state", "--role", "erp_specialist", "--type", "reflection"], db)
+        assert "Długa refleksja" in states["data"][0]["content"]
+
+    def test_flag_with_reason_file(self, db, tmp_path):
+        reason_file = tmp_path / "reason.txt"
+        reason_file.write_text("Potrzebuję decyzji w sprawie widoku", encoding="utf-8")
+        result = run_cli(
+            ["flag", "--from", "analyst",
+             "--reason-file", str(reason_file)],
+            db,
+        )
+        assert result["ok"] is True
+        inbox = run_cli(["inbox", "--role", "human"], db)
+        assert "Potrzebuję decyzji" in inbox["data"][0]["content"]
