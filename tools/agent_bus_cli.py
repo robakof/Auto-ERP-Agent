@@ -53,17 +53,6 @@ def cmd_state(args: argparse.Namespace, bus: AgentBus) -> dict:
     return {"ok": True, "data": entries, "count": len(entries)}
 
 
-def cmd_write_state(args: argparse.Namespace, bus: AgentBus) -> dict:
-    metadata = json.loads(args.metadata) if args.metadata else None
-    state_id = bus.write_state(
-        role=args.role,
-        type=args.type,
-        content=_read_content(args),
-        session_id=args.session_id,
-        metadata=metadata,
-    )
-    return {"ok": True, "id": state_id}
-
 
 def cmd_suggest(args: argparse.Namespace, bus: AgentBus) -> dict:
     recipients = json.loads(args.recipients) if args.recipients else None
@@ -157,17 +146,6 @@ def build_parser() -> argparse.ArgumentParser:
     p_state.add_argument("--type", default=None)
     p_state.add_argument("--limit", type=int, default=20)
 
-    # write-state
-    p_write = subparsers.add_parser("write-state", help="Write a state entry")
-    p_write.add_argument("--role", required=True)
-    p_write.add_argument("--type", required=True,
-                         choices=["progress", "reflection", "backlog_item"])
-    g_write = p_write.add_mutually_exclusive_group(required=True)
-    g_write.add_argument("--content")
-    g_write.add_argument("--content-file", dest="content_file")
-    p_write.add_argument("--session-id", dest="session_id", default=None)
-    p_write.add_argument("--metadata", default=None, help="JSON string")
-
     # suggest
     p_suggest = subparsers.add_parser("suggest", help="Add a suggestion from an agent")
     p_suggest.add_argument("--from", dest="sender", required=True)
@@ -241,7 +219,6 @@ def main():
         "send": cmd_send,
         "inbox": cmd_inbox,
         "state": cmd_state,
-        "write-state": cmd_write_state,
         "suggest": cmd_suggest,
         "suggestions": cmd_suggestions,
         "suggest-status": cmd_suggest_status,

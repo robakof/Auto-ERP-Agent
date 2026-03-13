@@ -61,30 +61,52 @@ class TestCliSendAndInbox:
         assert result["data"] == []
 
 
-class TestCliWriteState:
-    def test_write_and_read_state(self, db):
-        write_result = run_cli(
-            ["write-state", "--role", "developer",
-             "--type", "progress", "--content", "KM1 done"],
+class TestCliSuggestAndBacklog:
+    def test_suggest_and_list(self, db):
+        result = run_cli(
+            ["suggest", "--from", "erp_specialist", "--content", "Dodaj indeks"],
             db,
         )
-        assert write_result["ok"] is True
+        assert result["ok"] is True
+        assert isinstance(result["id"], int)
 
-        state_result = run_cli(
-            ["state", "--role", "developer", "--type", "progress"], db
-        )
-        assert state_result["count"] == 1
-        assert state_result["data"][0]["content"] == "KM1 done"
+        suggestions = run_cli(["suggestions", "--status", "open"], db)
+        assert suggestions["count"] == 1
+        assert suggestions["data"][0]["content"] == "Dodaj indeks"
 
-    def test_write_state_with_metadata(self, db):
-        run_cli(
-            ["write-state", "--role", "developer", "--type", "backlog_item",
-             "--content", "Fix X",
-             "--metadata", '{"priority": "high"}'],
+    def test_suggest_status_update(self, db):
+        sid = run_cli(
+            ["suggest", "--from", "analyst", "--content", "Sugestia"], db
+        )["id"]
+        bid = run_cli(
+            ["backlog-add", "--title", "Task", "--content", "Opis"], db
+        )["id"]
+        run_cli(["suggest-status", "--id", str(sid), "--status", "in_backlog",
+                 "--backlog-id", str(bid)], db)
+        suggestions = run_cli(["suggestions", "--status", "in_backlog"], db)
+        assert suggestions["count"] == 1
+        assert suggestions["data"][0]["backlog_id"] == bid
+
+    def test_backlog_add_and_list(self, db):
+        result = run_cli(
+            ["backlog-add", "--title", "Fix bot", "--content", "Opis problemu",
+             "--area", "Bot", "--value", "wysoka", "--effort", "mala"],
             db,
         )
-        result = run_cli(["state", "--role", "developer", "--type", "backlog_item"], db)
-        assert result["data"][0]["metadata"]["priority"] == "high"
+        assert result["ok"] is True
+        backlog = run_cli(["backlog", "--status", "planned"], db)
+        assert backlog["count"] == 1
+        item = backlog["data"][0]
+        assert item["title"] == "Fix bot"
+        assert item["area"] == "Bot"
+
+    def test_backlog_update_status(self, db):
+        bid = run_cli(
+            ["backlog-add", "--title", "Task", "--content", "Opis"], db
+        )["id"]
+        run_cli(["backlog-update", "--id", str(bid), "--status", "done"], db)
+        done = run_cli(["backlog", "--status", "done"], db)
+        assert done["count"] == 1
 
 
 class TestCliFlag:
@@ -116,17 +138,17 @@ class TestContentFile:
         inbox = run_cli(["inbox", "--role", "erp_specialist"], db)
         assert inbox["data"][0]["content"] == "Treść z pliku"
 
-    def test_write_state_with_content_file(self, db, tmp_path):
-        content_file = tmp_path / "reflection.md"
-        content_file.write_text("Długa refleksja\nz wieloma liniami", encoding="utf-8")
+    def test_suggest_with_content_file(self, db, tmp_path):
+        content_file = tmp_path / "suggestion.md"
+        content_file.write_text("Długa sugestia\nz wieloma liniami", encoding="utf-8")
         result = run_cli(
-            ["write-state", "--role", "erp_specialist", "--type", "reflection",
+            ["suggest", "--from", "erp_specialist",
              "--content-file", str(content_file)],
             db,
         )
         assert result["ok"] is True
-        states = run_cli(["state", "--role", "erp_specialist", "--type", "reflection"], db)
-        assert "Długa refleksja" in states["data"][0]["content"]
+        suggestions = run_cli(["suggestions"], db)
+        assert "Długa sugestia" in suggestions["data"][0]["content"]
 
     def test_flag_with_reason_file(self, db, tmp_path):
         reason_file = tmp_path / "reason.txt"
