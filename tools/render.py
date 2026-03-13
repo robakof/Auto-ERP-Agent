@@ -96,20 +96,26 @@ def render_json(data: list[dict], title: str, output: Path) -> None:
 
 
 def render_md(data: list[dict], columns: list[str], title: str, output: Path) -> None:
+    """Document-style md if items have 'content' field, table otherwise."""
+    has_content = data and "content" in data[0] and len(data[0].get("content", "")) > 80
     lines = [f"# {title}\n", f"*{len(data)} pozycji*\n"]
-    header = "| " + " | ".join(columns) + " |"
-    separator = "| " + " | ".join(["---"] * len(columns)) + " |"
-    lines += [header, separator]
-    for row in data:
-        cells = []
-        for col in columns:
-            val = str(row.get(col) or "")
-            if col == "content":
-                val = val[:80].replace("\n", " ")
-            elif col == "created_at":
-                val = val[:10]
-            cells.append(val)
-        lines.append("| " + " | ".join(cells) + " |")
+    if has_content:
+        for row in data:
+            lines.append("---\n")
+            lines.append(row.get("content", ""))
+            lines.append("")
+    else:
+        header = "| " + " | ".join(columns) + " |"
+        separator = "| " + " | ".join(["---"] * len(columns)) + " |"
+        lines += [header, separator]
+        for row in data:
+            cells = []
+            for col in columns:
+                val = str(row.get(col) or "")
+                if col == "created_at":
+                    val = val[:10]
+                cells.append(val)
+            lines.append("| " + " | ".join(cells) + " |")
     output.write_text("\n".join(lines), encoding="utf-8")
 
 
