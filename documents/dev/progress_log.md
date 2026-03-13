@@ -19,7 +19,7 @@
 - Architektura wytycznych: CLAUDE.md (routing) → AGENT.md / DEVELOPER.md / METHODOLOGY.md
 - LOOM: `_loom/` — szablony metodologii do bootstrapu nowych projektów
 
-**Agent bus:** Faza 1 zakończona. Faza 2 (dyrektywy w DB, redukcja CLAUDE.md) — backlog.
+**Agent bus:** Faza 1 zakończona. Faza 1.5 (przebudowa schematu: suggestions+backlog+session_log) — backlog id=28, HIGH PRIORITY. Faza 2 (dyrektywy w DB) — po fazie 1.5.
 
 **Widok w toku:** BI.ZamNag — Faza 1–4 zakończona przez agenta (widok gotowy: `solutions/bi/views/ZamNag.sql`). Otwarte: ZaN_PromocjePar=3 (znaczenie nieznane), ZaN_DokZwiazane (bitmask surowy).
 
