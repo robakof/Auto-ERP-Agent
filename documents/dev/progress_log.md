@@ -7,19 +7,15 @@
 **Aktualizacja:** 2026-03-13
 
 **Co działa:**
-- `tools/lib/agent_bus.py` — AgentBus (SQLite, WAL, messages + state, flag_for_human)
-- `tools/agent_bus_cli.py` — CLI wrapper (send, inbox, state, write-state, flag)
-- `documents/human/human_inbox.md` — inbox człowieka (dopisywany autonomicznie przez wszystkie role)
-- 430 testów łącznie (26 nowych agent_bus), 429 zielone (1 pre-istniejący fail w telegram_channel)
-
-
+- `tools/lib/agent_bus.py` — AgentBus (SQLite, WAL, messages + suggestions + backlog + session_log + state, flag_for_human)
+- `tools/agent_bus_cli.py` — CLI: send, inbox, state, suggest, suggestions, suggest-status, backlog-add, backlog, backlog-update, log, flag
+- 458 testów łącznie, 457 zielone (1 pre-istniejący fail w telegram_channel)
 - 13 toolsów CLI + `tools/lib/` (SqlClient, ExcelWriter, ExcelReader, output) — 253 testy, 100% zielone
 - `docs.db`: FTS5 z kolumnami, tabelami, relacjami, słownikami, 456 typami GID
 - `solutions/bi/views/`: Kontrahenci.sql ✓, Rezerwacje.sql ✓
-- Architektura wytycznych: CLAUDE.md (routing) → AGENT.md / DEVELOPER.md / METHODOLOGY.md
 - LOOM: `_loom/` — szablony metodologii do bootstrapu nowych projektów
 
-**Agent bus:** Faza 1 zakończona. Faza 1.5 (przebudowa schematu: suggestions+backlog+session_log) — backlog id=28, HIGH PRIORITY. Faza 2 (dyrektywy w DB) — po fazie 1.5.
+**Agent bus:** Faza 1.5 zakończona. Nowy schemat: suggestions + backlog + session_log. Tabela state zostaje (archiwum, nie używana). Faza 2 (dyrektywy w DB) — backlog.
 
 **Widok w toku:** BI.ZamNag — Faza 1–4 zakończona przez agenta (widok gotowy: `solutions/bi/views/ZamNag.sql`). Otwarte: ZaN_PromocjePar=3 (znaczenie nieznane), ZaN_DokZwiazane (bitmask surowy).
 
@@ -41,6 +37,17 @@
 ---
 
 ## Dziennik
+
+### 2026-03-13 — Agent Bus Faza 1.5 + porządek settings
+
+- `tools/lib/agent_bus.py` — nowe tabele: suggestions, backlog, session_log (+ FK, indeksy)
+- `tools/agent_bus_cli.py` — nowe komendy: suggest, suggestions, suggest-status, backlog-add, backlog, backlog-update, log; usunięto write-state
+- `tools/migrate_state.py` — migracja 34 wpisów state → backlog (24) + suggestions (10)
+- CLAUDE.md, ERP_SPECIALIST.md, ANALYST.md, METHODOLOGY.md — write-state → suggest/backlog-add/log
+- `.claude/settings.local.json` — cleanup jednorazówek, dodano pytest:*, cp:*
+- 458 testów, 457 zielone
+
+---
 
 ### 2026-03-13 — Agent Bus Faza 1 + migracja komunikacji
 
