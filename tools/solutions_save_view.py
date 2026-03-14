@@ -2,9 +2,9 @@
 solutions_save_view.py — Narzędzie agenta: zapisz draft SQL jako widok BI w solutions/.
 
 CLI:
-    python tools/solutions_save_view.py --draft SCIEZKA.sql [--view-name NAZWA] [--schema BI]
+    python tools/solutions_save_view.py --draft SCIEZKA.sql [--view-name NAZWA] [--schema AIBI]
 
-Tworzy solutions/bi/views/{NazwaWidoku}.sql z nagłówkiem CREATE OR ALTER VIEW.
+Tworzy solutions/bi/views/{NazwaWidoku}.sql z nagłówkiem USE + CREATE OR ALTER VIEW.
 Gdy --view-name pominięty, nazwa pochodzi z nazwy pliku (strip _draft + .sql).
 
 Output: JSON na stdout zgodny z kontraktem narzędzi agenta.
@@ -32,7 +32,7 @@ def _view_name_from_path(path: Path) -> str:
 def save_view(
     draft_path: Path,
     view_name: str | None = None,
-    schema: str = "BI",
+    schema: str = "AIBI",
 ) -> dict:
     draft_path = Path(draft_path)
     if not draft_path.exists():
@@ -48,7 +48,7 @@ def save_view(
     VIEWS_DIR.mkdir(parents=True, exist_ok=True)
     view_file = VIEWS_DIR / f"{name}.sql"
     view_file.write_text(
-        f"CREATE OR ALTER VIEW {schema}.{name} AS\n\n{draft_sql}",
+        f"USE [ERPXL_CEIM];\nGO\n\nCREATE OR ALTER VIEW {schema}.{name} AS\n\n{draft_sql}",
         encoding="utf-8",
     )
 
@@ -67,7 +67,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Zapisz draft SQL jako widok BI w solutions/bi/views/.")
     parser.add_argument("--draft", required=True, help="Ścieżka do pliku draftu .sql")
     parser.add_argument("--view-name", default=None, help="Nazwa widoku (domyślnie: z nazwy pliku)")
-    parser.add_argument("--schema", default="BI", help="Schemat SQL (domyślnie: BI)")
+    parser.add_argument("--schema", default="AIBI", help="Schemat SQL (domyślnie: AIBI)")
     args = parser.parse_args()
 
     result = save_view(

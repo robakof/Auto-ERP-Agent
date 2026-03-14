@@ -106,7 +106,7 @@ python tools/excel_read_rows.py --file SCIEZKA.xlsx [--sheet NAZWA] [--columns c
 python tools/solutions_save.py --window "..." --view "..." --type columns|filters --name "..." --sql "..."
   → data.path
 
-python tools/solutions_save_view.py --draft SCIEZKA.sql [--view-name NAZWA] [--schema BI]
+python tools/solutions_save_view.py --draft SCIEZKA.sql [--view-name NAZWA] [--schema AIBI]
   → data.path, data.view_name, data.schema | error.type
   (zapisuje CREATE OR ALTER VIEW {schema}.{name} AS + treść draftu do solutions/bi/views/)
 

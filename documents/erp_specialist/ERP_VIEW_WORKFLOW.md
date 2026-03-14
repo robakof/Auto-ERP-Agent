@@ -2,7 +2,7 @@
 
 Przed rozpoczęciem pracy przeczytaj: `documents/erp_specialist/ERP_VIEW_CONVENTIONS.md`
 
-Widoki BI tworzone są w schemacie `BI` przez konto DBA i udostępniane kontu `CEiM_BI`.
+Widoki BI tworzone są w schemacie `AIBI` przez konto DBA i udostępniane kontu `CEiM_BI`.
 Tworzenie widoku to operacja złożona — wymaga fazy discovery, zatwierdzonego planu
 i iteracyjnej pracy na pliku roboczym.
 
@@ -462,7 +462,7 @@ przed Fazą 4 — jest jedynym plikiem który można przetestować bez DBA.
 ## Faza 4 — Zapis i commit (po akceptacji usera)
 
 ```sql
-CREATE OR ALTER VIEW BI.NazwaWidoku AS
+CREATE OR ALTER VIEW AIBI.NazwaWidoku AS
 <SELECT z brudnopisu>
 ```
 
