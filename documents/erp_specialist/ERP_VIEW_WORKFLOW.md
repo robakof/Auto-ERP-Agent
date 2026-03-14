@@ -156,7 +156,23 @@ Dopiero potem przekaż ścieżkę do pliku userowi z prośbą o uruchomienie w S
 User może plik otworzyć, skopiować i wrócić z wynikiem.
 Nie pisz numeracji dokumentów dopóki user nie wróci z wynikiem.
 
-### f) Sprawdź JOINy przez COUNT
+### f) Szukanie tabeli referencyjnej dla klucza obcego
+
+Gdy FK nie ma oczywistej tabeli docelowej (docs_search i CDN.Obiekty nie zwracają wyniku):
+
+1. Szukaj po prefiksie kolumny przez `INFORMATION_SCHEMA.COLUMNS`:
+   ```sql
+   SELECT TABLE_NAME, COLUMN_NAME
+   FROM INFORMATION_SCHEMA.COLUMNS
+   WHERE TABLE_SCHEMA = 'CDN' AND COLUMN_NAME LIKE 'POK_%'
+   ORDER BY TABLE_NAME
+   ```
+2. Szukaj po zakresie wartości klucza w CDN.Obiekty
+3. Spróbuj JOIN testowy — 100% dopasowań to silny dowód że tabela jest prawidłowa
+
+Nie deklaruj "brak tabeli referencyjnej" bez przejścia przez wszystkie trzy kroki.
+
+### g) Sprawdź JOINy przez COUNT
 
 Dodawaj JOINy jeden po drugim i sprawdzaj COUNT po każdym:
 

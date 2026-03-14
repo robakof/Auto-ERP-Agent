@@ -1,3 +1,22 @@
+WITH Sciezka_Grup_Twr AS (
+    -- Anchor: grupy poziomu 0 (korzeń GrONumer=0)
+    SELECT
+        TGD_GIDNumer,
+        CAST(TGD_Kod AS NVARCHAR(4000)) AS Sciezka,
+        0 AS Poziom
+    FROM CDN.TwrGrupyDom
+    WHERE TGD_GIDTyp = -16 AND TGD_GrONumer = 0
+    UNION ALL
+    SELECT
+        g.TGD_GIDNumer,
+        CAST(p.Sciezka + '\' + RTRIM(g.TGD_Kod) AS NVARCHAR(4000)),
+        p.Poziom + 1
+    FROM CDN.TwrGrupyDom g
+    INNER JOIN Sciezka_Grup_Twr p ON p.TGD_GIDNumer = g.TGD_GrONumer
+    WHERE g.TGD_GIDTyp = -16 AND g.TGD_GrONumer > 0
+      AND p.Poziom < 20
+)
+
 SELECT
     -- === IDENTYFIKATOR ===
     t.Twr_GIDNumer                                              AS ID_Towaru,
@@ -67,11 +86,9 @@ SELECT
         ELSE 'Nieznane (' + CAST(t.Twr_BezRabatu AS VARCHAR) + ')'
     END                                                         AS Bez_Rabatu,
 
-    -- === DATY MODYFIKACJI (Clarion TIMESTAMP) ===
+    -- === DATY MODYFIKACJI (Clarion TIMESTAMP; LastModO usunięty — ≈ duplikat DataUtworzenia) ===
     CASE WHEN t.Twr_LastModL = 0 THEN NULL
          ELSE DATEADD(ss, t.Twr_LastModL, '1990-01-01') END    AS Data_Modyfikacji_L,
-    CASE WHEN t.Twr_LastModO = 0 THEN NULL
-         ELSE DATEADD(ss, t.Twr_LastModO, '1990-01-01') END    AS Data_Modyfikacji_O,
     CASE WHEN t.Twr_LastModC = 0 THEN NULL
          ELSE DATEADD(ss, t.Twr_LastModC, '1990-01-01') END    AS Data_Modyfikacji_C,
 
@@ -93,7 +110,6 @@ SELECT
     END                                                         AS Koszt_Uslugi_Typ,
 
     -- === KLASA CECHY (CechyKlasy GIDTyp=192) ===
-    t.Twr_CCKNumer                                              AS ID_Klasy_Cechy,
     CASE WHEN t.Twr_CCKNumer = 0 THEN 'Brak'
          ELSE cck.CCK_Nazwa
     END                                                         AS Klasa_Cechy,
@@ -132,6 +148,7 @@ SELECT
         ELSE 'Nieznane (' + CAST(t.Twr_JMCalkowita AS VARCHAR) + ')'
     END                                                         AS JM_Calkowita,
     t.Twr_JmDomyslnaZak                                         AS JM_Domyslna_Zakup,
+    COALESCE(twj_zak.TwJ_JmZ, t.Twr_Jm)                       AS JM_Domyslna_Zakup_Symbol,
     t.Twr_WymJm                                                 AS JM_Wymiarow,
     CASE t.Twr_JMBlokujZmiane
         WHEN 1 THEN 'Tak' WHEN 0 THEN 'Nie'
@@ -164,6 +181,7 @@ SELECT
         ELSE 'Nieznane (' + CAST(t.Twr_JMPulpitKnt AS VARCHAR) + ')'
     END                                                         AS JM_Pulpit_Knt,
     t.Twr_JMMobSpr                                              AS JM_Mobile_Sprzedaz_Id,
+    COALESCE(twj_mob.TwJ_JmZ, t.Twr_Jm)                       AS JM_Mobile_Sprzedaz_Symbol,
 
     -- === PIA (bitmask: 2=Pulpit Knt, 4=e-Sklep, 8=Mob.Sprz., 16=Mob.Mag.) ===
     CASE t.Twr_PIADostepnoscFlaga
@@ -173,6 +191,7 @@ SELECT
     END                                                         AS PIA_Dostepnosc,
 
     t.Twr_JMDopelnianiaMobSpr                                   AS JM_Dopelniania_Mobile_Id,
+    COALESCE(twj_dop.TwJ_JmZ, t.Twr_Jm)                       AS JM_Dopelniania_Mobile_Symbol,
 
     -- === ANALIZA ===
     CASE t.Twr_AnalizaABCXYZ
@@ -181,11 +200,15 @@ SELECT
     END                                                         AS Analiza_ABCXYZ,
 
     -- === TECHNICZNA / MRP ===
+    -- Techniczna_Dec1: dokumentacja ERP mówi "wyłącznie wewnętrzne, powinno być puste";
+    -- w bazie: 13 distinct wartości — anomalia, eksponujemy as-is dla transparentności
     t.Twr_TechnicznaDec1                                        AS Techniczna_Dec1,
     CASE WHEN t.Twr_MrpId = 0 THEN NULL ELSE t.Twr_MrpId END  AS MRP_Id,
+    CASE WHEN t.Twr_MrpId = 0 THEN NULL
+         ELSE DATEADD(dd, pok.POK_DataOd - 1, '1800-12-28')
+    END                                                         AS MRP_Okres_Data,
 
     -- === AUTONUMERACJA ===
-    t.Twr_AutonumeracjaKod                                      AS Autonumeracja_Kod,
     t.Twr_AutonumeracjaLiczba                                   AS Autonumeracja_Liczba,
 
     -- === MOBILE (partie) ===
@@ -200,8 +223,9 @@ SELECT
         ELSE 'Nieznane (' + CAST(t.Twr_DodEleZez AS VARCHAR) + ')'
     END                                                         AS Dod_Elementy_Zezwolenia,
 
-    -- === GRUPY DOMOWE (TwrGrupyDom) ===
-    tgd_def.TGD_Kod                                             AS Grupa_Domowa
+    -- === GRUPY DOMOWE — pełna ścieżka (TwrGrupyDom, rekurencyjnie) ===
+    tgd.TGD_GrONumer                                            AS ID_Grupy,
+    ISNULL(sg.Sciezka, 'Brak grupy')                           AS Sciezka_Grupy
 
 FROM CDN.TwrKarty t
 
@@ -235,16 +259,38 @@ LEFT JOIN CDN.TwrGrupyDom tgd
     ON tgd.TGD_GIDTyp   = 16
     AND tgd.TGD_GIDNumer = t.Twr_GIDNumer
 
--- Grupy domowe — definicja grupy (GIDTyp=-16)
-LEFT JOIN CDN.TwrGrupyDom tgd_def
-    ON tgd_def.TGD_GIDTyp   = -16
-    AND tgd_def.TGD_GIDNumer = tgd.TGD_GrONumer
+-- Grupy domowe — ścieżka z CTE
+LEFT JOIN Sciezka_Grup_Twr sg
+    ON sg.TGD_GIDNumer = tgd.TGD_GrONumer
 
--- Domyślna JM dodatkowa (TwrJm; Lp > 0)
+-- Domyślna JM sprzedaży (TwrJm; Lp > 0)
 LEFT JOIN CDN.TwrJm twj
     ON twj.TwJ_TwrNumer = t.Twr_GIDNumer
     AND twj.TwJ_TwrLp   = t.Twr_JmDomyslna
     AND t.Twr_JmDomyslna > 0
+
+-- Domyślna JM zakupu (TwrJm)
+LEFT JOIN CDN.TwrJm twj_zak
+    ON twj_zak.TwJ_TwrNumer = t.Twr_GIDNumer
+    AND twj_zak.TwJ_TwrLp   = t.Twr_JmDomyslnaZak
+    AND t.Twr_JmDomyslnaZak > 0
+
+-- JM mobile sprzedaży (TwrJm)
+LEFT JOIN CDN.TwrJm twj_mob
+    ON twj_mob.TwJ_TwrNumer = t.Twr_GIDNumer
+    AND twj_mob.TwJ_TwrLp   = t.Twr_JMMobSpr
+    AND t.Twr_JMMobSpr > 0
+
+-- JM dopełniania mobile (TwrJm)
+LEFT JOIN CDN.TwrJm twj_dop
+    ON twj_dop.TwJ_TwrNumer = t.Twr_GIDNumer
+    AND twj_dop.TwJ_TwrLp   = t.Twr_JMDopelnianiaMobSpr
+    AND t.Twr_JMDopelnianiaMobSpr > 0
+
+-- Okres MRP (ProdOkresy)
+LEFT JOIN CDN.ProdOkresy pok
+    ON pok.POK_Id = t.Twr_MrpId
+    AND t.Twr_MrpId > 0
 
 -- Domyślny dostawca — pozycja (TwrDost)
 LEFT JOIN CDN.TwrDost dst

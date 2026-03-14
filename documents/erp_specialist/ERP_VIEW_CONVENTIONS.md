@@ -85,6 +85,39 @@ Dla każdego ID klucza obcego:
 2. Sprowadź przynajmniej kod + nazwa
 3. Zachowaj ID (dla debugowania i przyszłych JOINów)
 
+Gdy tabela referencyjna nie jest oczywista — nie kończ na jednej próbie.
+Obowiązkowe kroki eskalacji:
+1. `docs_search` po nazwie kolumny
+2. `INFORMATION_SCHEMA.COLUMNS WHERE COLUMN_NAME LIKE '%prefiks%'`
+3. `CDN.Obiekty` po zakresie wartości klucza
+4. Szukaj tabeli po prefiksie kolumny (np. `POK_Id` → tabela z kolumnami `POK_*`)
+
+JOIN 100% dopasowań to dowód że tabela istnieje — nie deklaruj "brak tabeli" bez przejścia przez wszystkie kroki.
+
+### Grupy hierarchiczne
+
+Gdy FK wskazuje na tabelę z hierarchią grup (np. `CDN.TwrGrupyDom`):
+- Nie eksponuj płaskiego kodu — buduj pełną ścieżkę rekurencyjną przez CTE
+- Format ścieżki: `Poziom1\Poziom2\Poziom3` (separator `\`)
+- Kolumny w widoku: `ID_Grupy` + `Sciezka_Grupy`
+
+```sql
+WITH Sciezka_Grup AS (
+    SELECT TGD_GIDNumer, TGD_GrONumer,
+           CAST(TGD_Kod AS NVARCHAR(500)) AS Sciezka
+    FROM CDN.TwrGrupyDom
+    WHERE TGD_GIDTyp = -16 AND TGD_GrONumer = 0  -- root
+    UNION ALL
+    SELECT d.TGD_GIDNumer, d.TGD_GrONumer,
+           CAST(sg.Sciezka + '\' + d.TGD_Kod AS NVARCHAR(500))
+    FROM CDN.TwrGrupyDom d
+    JOIN Sciezka_Grup sg ON sg.TGD_GIDNumer = d.TGD_GrONumer
+    WHERE d.TGD_GIDTyp = -16
+)
+```
+
+Wzorzec stosuj wszędzie gdzie tabela grup ma kolumnę klucza rodzica (np. `TGD_GrONumer`, `KGR_GrNumer`).
+
 ### Pole numeryczne = brak
 ```sql
 CASE WHEN col = 0 THEN NULL ELSE col END AS ID_X

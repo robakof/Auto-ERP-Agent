@@ -20,6 +20,10 @@
 - Reguły Bash przeniesione z DEVELOPER.md → CLAUDE.md (zasada wspólna)
 - render.py DB-direct (świadoma decyzja — HTTP gdy pojawi się zewnętrzna komunikacja)
 
+**Widok w toku:** AIBI.TwrKarty — Faza 2 zakończona, czeka na akceptację usera → Faza 4.
+Progress: `solutions/bi/TwrKarty/TwrKarty_progress.md`
+Otwarte decyzje: Techniczna_Dec1 (usunąć?), MRP_Id (usunąć?).
+
 **Następny krok:** widoki BI (id=31–40, TwrKarty jako pierwsze) lub kolejne pozycje backlogu.
 
 **Widok w toku:** BI.ZamNag — Faza 1–4 zakończona przez agenta (widok gotowy: `solutions/bi/views/ZamNag.sql`). Otwarte: ZaN_PromocjePar=3 (znaczenie nieznane), ZaN_DokZwiazane (bitmask surowy).
