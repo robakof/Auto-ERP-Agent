@@ -32,6 +32,18 @@
 
 ## Dziennik
 
+### 2026-03-14 — Czyszczenie długu dokumentacyjnego + backlog --area filter
+
+- Usunięto 13 plików (handoffy, przebudowa_wytycznych, human_inbox, developer_notes, solutions/analyst)
+- Przeniesiono do `documents/archive/`: 5 progress logów widoków, backlog.md, 4 pliki suggestions, methodology_backlog
+- CLAUDE.md: usunięto wyjątki .md suggestions, dodano motivację "dlaczego Bash blokuje projekt", dodano filtrowanie backlogu po roli
+- DEVELOPER.md: backlog.md → CLI command
+- analyst_start.md: usunięto 3 referencje do developer_notes.md
+- `get_backlog()` + CLI: nowy filtr `--area` + 3 testy (66 zielonych)
+- Wnioski id=25, id=26, id=27 z inboxu Developer przetworzone
+
+---
+
 ### 2026-03-14 — BI.TwrKarty zakończony (Faza 4)
 
 - Draft finalny: 66 kolumn, 10 122 wierszy
