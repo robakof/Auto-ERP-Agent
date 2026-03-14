@@ -306,10 +306,29 @@ W każdym innym przypadku — uwzględnij. Rzadko wypełnione, nieznane zastosow
 mała wartość analityczna — to NIE są powody do pominięcia. Power BI odfiltruje
 co user nie potrzebuje; brak kolumny w widoku blokuje analizę.
 
-### Zatwierdzenie
+### Zatwierdzenie — pętla z Analitykiem
 
-Pokaż userowi ścieżkę do pliku Excel i czekaj na zatwierdzenie.
-**Nie pisz SQL dopóki user nie zatwierdzi planu.**
+Po wygenerowaniu planu wyślij go do Analityka:
+
+```
+python tools/agent_bus_cli.py send --from erp_specialist --to analyst --content-file tmp/tmp.md
+```
+
+Wiadomość powinna zawierać: ścieżkę do pliku Excel, baseline row count, krótki opis zakresu kolumn i kluczowych decyzji (co pominięto i dlaczego).
+
+**Pętla feedback:**
+1. Analityk recenzuje plan i odsyła uwagi
+2. ERP Specialist nanosi poprawki i odpowiada — w tej samej pętli agent_bus
+3. Powtarzaj aż Analityk zatwierdzi
+
+**Eskalacja do użytkownika po 5 rundach bez porozumienia:**
+Jeśli po 5 wymianach nie ma zgody — zatrzymaj się i wyślij flagę:
+```
+python tools/agent_bus_cli.py flag --from erp_specialist --reason-file tmp/tmp.md
+```
+Opisz punkt sporny i poczekaj na decyzję użytkownika.
+
+**Nie pisz SQL dopóki Analityk nie zatwierdzi planu.**
 
 Po zatwierdzeniu — zaktualizuj progress log.
 

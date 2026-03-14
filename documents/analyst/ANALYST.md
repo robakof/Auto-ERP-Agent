@@ -57,26 +57,42 @@ python tools/data_quality_init.py \
 Eksportuje pełny widok/tabelę do lokalnego SQLite. Jedna operacja — cała dalsza
 analiza odbywa się lokalnie, bez kolejnych połączeń do SQL Servera.
 
-### Krok 2 — Przegląd planu widoku (opcjonalnie)
+### Krok 2 — Recenzja planu widoku (pętla z ERP Specialist)
 
-Jeśli analizowany zakres to widok BI z istniejącym planem:
+ERP Specialist wysyła plan przez agent_bus z prośbą o recenzję. Odczytaj plan:
 
 ```
 python tools/excel_read_rows.py \
   --file "solutions/bi/{Zakres}/{Zakres}_plan.xlsx" \
-  --columns CDN_Pole,Uwzglednic,Transformacja,Alias_w_widoku
+  --columns CDN_Pole,Uwzglednic,Transformacja,Alias_w_widoku,Komentarz_Usera
 ```
 
 **a) Weryfikacja konwencji** — przejdź przez `ERP_VIEW_CONVENTIONS.md` i sprawdź czy plan
-jest zgodny. Kluczowe punkty do weryfikacji przy recenzji planu:
-- Każde pole `ID_XXX` (klucz obcy) — czy plan zawiera odpowiednie `Kod_XXX` i `Nazwa_XXX`?
+jest zgodny. Kluczowe punkty do weryfikacji:
+- Każde pole `ID_XXX` (klucz obcy) — czy plan zawiera odpowiednie `Kod_XXX` i `Nazwa_XXX`? Samo ID bez kodu i nazwy to błąd.
 - Pominięcia — czy każde jest uzasadnione jednym z 4 powodów z konwencji?
 - Flagi 0/1 — czy plan przewiduje CASE z etykietami?
 - Enumeracje — czy plan przewiduje tłumaczenie wartości?
 
-**b) Weryfikacja danych** — skrzyżuj plan z danymi w SQLite. Szukaj rozbieżności między
-tym co ERP Specialist zdecydował a tym co faktycznie jest w danych. Znaleziska zapisuj
-identycznie jak przy analizie kolumn.
+**b) Weryfikacja danych** — skrzyżuj plan z danymi w SQLite (jeśli workdb istnieje).
+Szukaj rozbieżności między tym co ERP Specialist zdecydował a tym co faktycznie jest w danych.
+
+**c) Odeślij feedback do ERP Specialist:**
+
+```
+python tools/agent_bus_cli.py send --from analyst --to erp_specialist --content-file tmp/tmp.md
+```
+
+Feedback powinien być konkretny: co zmienić i dlaczego. Jeśli plan jest OK — napisz wprost "zatwierdzam".
+
+**Pętla:** ERP Specialist nanosi poprawki i wraca. Iteruj aż plan jest poprawny.
+
+**Eskalacja do użytkownika po 5 rundach bez porozumienia:**
+Jeśli po 5 wymianach nie ma zgody — wyślij flagę:
+```
+python tools/agent_bus_cli.py flag --from analyst --reason-file tmp/tmp.md
+```
+Opisz punkt sporny — użytkownik podejmie decyzję.
 
 ### Krok 3 — Analiza kolumna po kolumnie
 
