@@ -110,7 +110,10 @@ def cmd_backlog(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 
 def cmd_backlog_update(args: argparse.Namespace, bus: AgentBus) -> dict:
-    bus.update_backlog_status(args.id, args.status)
+    if args.status:
+        bus.update_backlog_status(args.id, args.status)
+    if args.content_file or args.content:
+        bus.update_backlog_content(args.id, _read_content(args))
     return {"ok": True}
 
 
@@ -206,10 +209,13 @@ def build_parser() -> argparse.ArgumentParser:
                            choices=["planned", "in_progress", "done", "cancelled"])
 
     # backlog-update
-    p_bupd = subparsers.add_parser("backlog-update", help="Update backlog item status")
+    p_bupd = subparsers.add_parser("backlog-update", help="Update backlog item status and/or content")
     p_bupd.add_argument("--id", type=int, required=True)
-    p_bupd.add_argument("--status", required=True,
+    p_bupd.add_argument("--status", default=None,
                         choices=["planned", "in_progress", "done", "cancelled"])
+    g_bupd = p_bupd.add_mutually_exclusive_group()
+    g_bupd.add_argument("--content")
+    g_bupd.add_argument("--content-file", dest="content_file")
 
     # log
     p_log = subparsers.add_parser("log", help="Add a session log entry")

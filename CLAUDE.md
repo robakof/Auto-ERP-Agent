@@ -106,7 +106,7 @@ python tools/git_commit.py --push-only                        # tylko push
 | `grep`/`rg` w plikach        | `Grep`         |
 | `find`/`ls` po nazwach       | `Glob`         |
 | `sed`/`awk` do edycji pliku  | `Edit`         |
-| Zapis nowego pliku           | `Write` (nie `echo >`) — jeśli plik istnieje, odczytaj go najpierw przez `Read` |
+| Zapis pliku                  | `Write` (nigdy `echo >`) — jeśli plik już istnieje, najpierw `Read`, potem `Write` |
 
 **Reguły pisania komend Bash:**
 

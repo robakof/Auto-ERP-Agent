@@ -307,6 +307,15 @@ class AgentBus:
         )
         self._conn.commit()
 
+    def update_backlog_content(self, backlog_id: int, content: str) -> None:
+        """Update backlog item content and set updated_at."""
+        self._conn.execute(
+            """UPDATE backlog SET content = ?, updated_at = datetime('now')
+               WHERE id = ?""",
+            (content, backlog_id),
+        )
+        self._conn.commit()
+
     # --- Session log ---
 
     def add_session_log(

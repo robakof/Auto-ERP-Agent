@@ -202,3 +202,34 @@ class TestBacklogAddBulk:
         assert item["area"] == "Arch"
         assert item["value"] == "niska"
         assert item["effort"] == "duza"
+
+
+class TestBacklogUpdate:
+    def test_update_status(self, db):
+        add = run_cli(["backlog-add", "--title", "Do aktualizacji", "--content", "x"], db)
+        bid = add["id"]
+        run_cli(["backlog-update", "--id", str(bid), "--status", "done"], db)
+        backlog = run_cli(["backlog"], db)
+        item = next(i for i in backlog["data"] if i["id"] == bid)
+        assert item["status"] == "done"
+
+    def test_update_content(self, db, tmp_path):
+        add = run_cli(["backlog-add", "--title", "Treść do zmiany", "--content", "stara treść"], db)
+        bid = add["id"]
+        cf = tmp_path / "new_content.md"
+        cf.write_text("nowa treść po aktualizacji", encoding="utf-8")
+        run_cli(["backlog-update", "--id", str(bid), "--content-file", str(cf)], db)
+        backlog = run_cli(["backlog"], db)
+        item = next(i for i in backlog["data"] if i["id"] == bid)
+        assert item["content"] == "nowa treść po aktualizacji"
+
+    def test_update_status_and_content_together(self, db, tmp_path):
+        add = run_cli(["backlog-add", "--title", "Oba pola", "--content", "stare"], db)
+        bid = add["id"]
+        cf = tmp_path / "upd.md"
+        cf.write_text("nowe", encoding="utf-8")
+        run_cli(["backlog-update", "--id", str(bid), "--status", "in_progress", "--content-file", str(cf)], db)
+        backlog = run_cli(["backlog"], db)
+        item = next(i for i in backlog["data"] if i["id"] == bid)
+        assert item["status"] == "in_progress"
+        assert item["content"] == "nowe"
