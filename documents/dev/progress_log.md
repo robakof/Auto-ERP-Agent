@@ -20,7 +20,7 @@
 - Reguły Bash przeniesione z DEVELOPER.md → CLAUDE.md (zasada wspólna)
 - render.py DB-direct (świadoma decyzja — HTTP gdy pojawi się zewnętrzna komunikacja)
 
-**Następny krok:** obserwacje z pierwszego workflow ERP Specialist ↔ Analyst → poprawki protokołu handoffu. Backlog ERP: 10 widoków BI do zbudowania (id=31–40, TwrKarty jako pierwsze).
+**Następny krok:** widoki BI (id=31–40, TwrKarty jako pierwsze) lub kolejne pozycje backlogu.
 
 **Widok w toku:** BI.ZamNag — Faza 1–4 zakończona przez agenta (widok gotowy: `solutions/bi/views/ZamNag.sql`). Otwarte: ZaN_PromocjePar=3 (znaczenie nieznane), ZaN_DokZwiazane (bitmask surowy).
 
@@ -42,6 +42,17 @@
 ---
 
 ## Dziennik
+
+### 2026-03-14 — backlog cleanup + zasady + agent_bus task type
+
+- `ERP_SPECIALIST.md`, `ANALYST.md` — usunięto referencje do zdeprecjonowanego `developer_notes.md` (id=43)
+- `MEMORY.md` — zaktualizowano status projektu i architekturę ról (id=44)
+- `CLAUDE.md` — nowa sekcja "Komunikacja agent-agent" (odpowiedź proporcjonalna do zadania) (id=42)
+- `agent_bus.py` — `ALLOWED_MESSAGE_TYPES` + walidacja + typ `task` i `info`; `agent_bus_cli.py` — `choices` dla `--type` (id=45)
+- `DEVELOPER.md` — zasada #8: ręczna operacja = sygnał dla narzędzia (id=30)
+- 496 testów, 496 zielone
+
+---
 
 ### 2026-03-13 — render.py + session_log migracja + API-first decyzja
 
