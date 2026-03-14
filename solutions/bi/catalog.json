@@ -548,6 +548,22 @@
         "towary bez grupy domowej"
       ],
       "notes": "Sciezka_Grupy: separator chr(92), Brak grupy gdy TGD_GrONumer=0 (42 towary). Poziom_Grupy: -1=brak grupy, 0=korzeń, 1-4=głębokość. Kod_Grupy nieunikalny — filtruj przez Sciezka_Grupy."
+    },
+    {
+      "name": "AIBI.KntGrupyDom",
+      "file": "solutions/bi/views/KntGrupyDom.sql",
+      "description": "",
+      "columns": [
+        "ID_Kontrahenta",
+        "Akronim_Kontrahenta",
+        "Nazwa_Kontrahenta",
+        "ID_Grupy",
+        "Kod_Grupy",
+        "Sciezka_Grupy",
+        "Poziom_Grupy"
+      ],
+      "example_questions": [],
+      "notes": ""
     }
   ]
 }
