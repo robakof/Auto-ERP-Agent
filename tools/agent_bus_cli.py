@@ -105,7 +105,7 @@ def cmd_backlog_add_bulk(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 
 def cmd_backlog(args: argparse.Namespace, bus: AgentBus) -> dict:
-    entries = bus.get_backlog(status=args.status)
+    entries = bus.get_backlog(status=args.status, area=args.area)
     return {"ok": True, "data": entries, "count": len(entries)}
 
 
@@ -208,6 +208,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_backlog = subparsers.add_parser("backlog", help="Get backlog items")
     p_backlog.add_argument("--status", default=None,
                            choices=["planned", "in_progress", "done", "cancelled"])
+    p_backlog.add_argument("--area", default=None,
+                           help="Filter by area (ERP, Bot, Arch, Dev, ...)")
 
     # backlog-update
     p_bupd = subparsers.add_parser("backlog-update", help="Update backlog item status and/or content")

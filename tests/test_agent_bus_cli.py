@@ -108,6 +108,13 @@ class TestCliSuggestAndBacklog:
         done = run_cli(["backlog", "--status", "done"], db)
         assert done["count"] == 1
 
+    def test_backlog_filter_area(self, db):
+        run_cli(["backlog-add", "--title", "ERP task", "--content", "x", "--area", "ERP"], db)
+        run_cli(["backlog-add", "--title", "Bot task", "--content", "x", "--area", "Bot"], db)
+        result = run_cli(["backlog", "--area", "ERP"], db)
+        assert result["count"] == 1
+        assert result["data"][0]["title"] == "ERP task"
+
 
 class TestCliFlag:
     def test_flag_for_human(self, db):

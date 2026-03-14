@@ -35,7 +35,7 @@ Przeczytaj w tej kolejności:
 
 1. `documents/erp_specialist/ERP_VIEW_WORKFLOW.md` — proces budowania widoku (Fazy 1–4)
 2. `documents/erp_specialist/ERP_SCHEMA_PATTERNS.md` — wzorce SQL: GID, daty, numery dokumentów
-3. `documents/erp_specialist/developer_notes.md` — aktualne poprawki i korekty od Developera
+3. Sprawdź inbox od Developera: `python tools/agent_bus_cli.py inbox --role analyst`
 
 Wyciągnij z tych dokumentów listę sprawdzalnych konwencji.
 Przykład konwencji sprawdzalnej: "GIDFirma i GIDLp są pomijane w widokach BI".
@@ -54,8 +54,7 @@ solutions/bi/views/Rozrachunki.sql
 Dla każdego widoku: przejdź przez listę konwencji, odnotuj odchylenia.
 
 **Znane odchylenie (żebyś nie tracił czasu):**
-`Rozrachunki.sql` używa starej heurystyki prefiksu dokumentu (`TrN_Stan & 2 = 2`).
-Prawidłowa logika jest w `developer_notes.md`. To znany dług techniczny, nie przeoczone.
+`Rozrachunki.sql` — fallback `TrN_Stan & 2 = 2` usunięty (commit 1b5d245). Widok aktualny.
 
 **Output audytu:**
 ```
@@ -123,7 +122,7 @@ Kategorie: `[KONWENCJA]` — naruszenie reguły, wymaga poprawki.
 | Konwencje widoków | `ERP_VIEW_WORKFLOW.md`, `ERP_SCHEMA_PATTERNS.md` |
 | Wzorce numerów dokumentów | `solutions/reference/numeracja_wzorce.tsv` |
 | Lista typów GID | `solutions/reference/obiekty.tsv` |
-| Poprawki od Developera | `documents/erp_specialist/developer_notes.md` |
+| Wiadomości od Developera | `python tools/agent_bus_cli.py inbox --role analyst` |
 | Workflow data quality | `ANALYST.md` |
 
 ---

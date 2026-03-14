@@ -41,7 +41,7 @@ Budujesz minimalistycznie, modularnie, w uzgodnionym zakresie.
 
 ### Na starcie sesji
 
-1. Przeczytaj `documents/dev/backlog.md` — aktualny stan priorytetów (nie mylić z `documents/methodology/methodology_backlog.md`)
+1. Sprawdź aktywny backlog: `python tools/agent_bus_cli.py backlog`
 2. Sprawdź inbox od Wykonawców:
 ```
 python tools/agent_bus_cli.py inbox --role developer

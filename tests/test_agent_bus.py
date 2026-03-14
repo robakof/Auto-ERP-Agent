@@ -278,6 +278,21 @@ class TestBacklog:
         result = bus.get_backlog()
         assert result[0]["title"] == "nowy"
 
+    def test_get_backlog_filter_area(self, bus):
+        bus.add_backlog_item("ERP task", "opis", area="ERP")
+        bus.add_backlog_item("Bot task", "opis", area="Bot")
+        erp = bus.get_backlog(area="ERP")
+        assert len(erp) == 1
+        assert erp[0]["title"] == "ERP task"
+
+    def test_get_backlog_filter_area_and_status(self, bus):
+        bid = bus.add_backlog_item("ERP done", "opis", area="ERP")
+        bus.add_backlog_item("ERP planned", "opis", area="ERP")
+        bus.update_backlog_status(bid, "done")
+        result = bus.get_backlog(area="ERP", status="done")
+        assert len(result) == 1
+        assert result[0]["title"] == "ERP done"
+
 
 class TestSessionLog:
     def test_add_session_log_returns_id(self, bus):

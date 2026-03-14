@@ -44,9 +44,7 @@ i poczekać na odpowiedź twierdzącą. Wskazanie pliku jako celu nie jest zatwi
 - `documents/methodology/METHODOLOGY.md`
 - `documents/methodology/SPIRIT.md`
 
-Wyjątki — dopisywane autonomicznie po etapie pracy:
-- `documents/erp_specialist/erp_specialist_suggestions.md` (ERP Specialist) — ARCHIWUM, nowe wpisy przez agent_bus
-- `documents/analyst/analyst_suggestions.md` (Analityk Danych) — ARCHIWUM, nowe wpisy przez agent_bus
+Suggestions od Wykonawców wyłącznie przez `agent_bus_cli.py suggest` — nie przez pliki .md.
 
 Komunikacja między agentami i eskalacja do człowieka: `tools/agent_bus_cli.py` (mrowisko.db)
 
@@ -63,6 +61,12 @@ python tools/agent_bus_cli.py suggest --from <rola> --content-file tmp/tmp.md
 
 # Backlog — nowe zadanie
 python tools/agent_bus_cli.py backlog-add --title "Tytuł" --area <obszar> --value wysoka --effort mala --content-file tmp/tmp.md
+
+# Backlog — odczyt zadań dla swojej roli (filtruj po obszarze)
+python tools/agent_bus_cli.py backlog --area ERP       # ERP Specialist
+python tools/agent_bus_cli.py backlog --area Bot       # Bot
+python tools/agent_bus_cli.py backlog --area Arch      # Developer (arch)
+python tools/agent_bus_cli.py backlog --area Dev       # Developer (narzędzia)
 
 # Log sesji
 python tools/agent_bus_cli.py log --role <rola> --content-file tmp/tmp.md
@@ -98,7 +102,9 @@ python tools/git_commit.py --push-only                        # tylko push
 
 ### Komendy powłoki
 
-**Bash jest ostatecznością. Najpierw użyj dedykowanego narzędzia:**
+**Bash jest ostatecznością. Najpierw użyj dedykowanego narzędzia.**
+
+**Dlaczego to krytyczne:** Każde naruszenie tych reguł powoduje blokadę przez hook bezpieczeństwa i wymaga ręcznego zatwierdzenia przez człowieka. Człowiek może być niedostępny przez wiele godzin. Jedno złamane `$()` = projekt stoi. Traktuj te reguły jak czerwoną linię, nie sugestię.
 
 | Zamiast Bash...              | Użyj narzędzia |
 |------------------------------|----------------|

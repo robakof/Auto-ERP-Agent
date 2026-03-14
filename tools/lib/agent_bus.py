@@ -283,23 +283,24 @@ class AgentBus:
         self._conn.commit()
         return cursor.lastrowid
 
-    def get_backlog(self, status: str = None) -> list[dict]:
-        """Get backlog items. Newest first. Optional status filter."""
+    def get_backlog(self, status: str = None, area: str = None) -> list[dict]:
+        """Get backlog items. Newest first. Optional status/area filter."""
+        conditions = []
+        params = []
         if status:
-            rows = self._conn.execute(
-                """SELECT id, title, content, area, value, effort, status,
-                          source_id, created_at, updated_at
-                   FROM backlog WHERE status = ?
-                   ORDER BY created_at DESC, id DESC""",
-                (status,),
-            ).fetchall()
-        else:
-            rows = self._conn.execute(
-                """SELECT id, title, content, area, value, effort, status,
-                          source_id, created_at, updated_at
-                   FROM backlog
-                   ORDER BY created_at DESC, id DESC""",
-            ).fetchall()
+            conditions.append("status = ?")
+            params.append(status)
+        if area:
+            conditions.append("area = ?")
+            params.append(area)
+        where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        rows = self._conn.execute(
+            f"""SELECT id, title, content, area, value, effort, status,
+                      source_id, created_at, updated_at
+               FROM backlog {where}
+               ORDER BY created_at DESC, id DESC""",
+            params,
+        ).fetchall()
         return [dict(row) for row in rows]
 
     def update_backlog_status(self, backlog_id: int, status: str) -> None:
