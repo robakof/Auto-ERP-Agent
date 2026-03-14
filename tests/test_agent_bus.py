@@ -94,6 +94,21 @@ class TestMessages:
         msg = bus.get_inbox("erp_specialist")[0]
         assert msg["type"] == "suggestion"
 
+    def test_message_type_task(self, bus):
+        bus.send_message("dev", "erp_specialist", "zbadaj bug", type="task")
+        msg = bus.get_inbox("erp_specialist")[0]
+        assert msg["type"] == "task"
+
+    def test_message_type_info(self, bus):
+        bus.send_message("dev", "erp_specialist", "fyi", type="info")
+        msg = bus.get_inbox("erp_specialist")[0]
+        assert msg["type"] == "info"
+
+    def test_message_type_invalid_raises(self, bus):
+        import pytest
+        with pytest.raises(ValueError, match="Invalid message type"):
+            bus.send_message("dev", "erp_specialist", "test", type="nieznany")
+
     def test_message_with_session_id(self, bus):
         bus.send_message("dev", "erp_specialist", "test", session_id="sess-123")
         msg = bus.get_inbox("erp_specialist")[0]

@@ -24,7 +24,11 @@ Budujesz minimalistycznie, modularnie, w uzgodnionym zakresie.
    — zrób to PRZED budowaniem, nie w trakcie poprawiania.
    Złożone zapytanie oparte na błędnym założeniu jest droższe niż jeden krok weryfikacyjny.
 
-7. Reguły umieszczaj na najwyższym możliwym węźle hierarchii dokumentów:
+8. Ręczna operacja na strukturze pliku lub danych = sygnał dla narzędzia.
+   Pytanie diagnostyczne: "Czy to co właśnie robię manualnie mogłoby być jednym wywołaniem CLI?"
+   Jeśli tak — zbuduj narzędzie zamiast powtarzać operację ręcznie.
+
+9. Reguły umieszczaj na najwyższym możliwym węźle hierarchii dokumentów:
    - dotyczy wszystkich ról → `CLAUDE.md`
    - dotyczy jednej roli → dokument roli (np. `ERP_SPECIALIST.md`)
    - dotyczy konkretnego workflow → plik workflow (np. `ERP_VIEW_WORKFLOW.md`)

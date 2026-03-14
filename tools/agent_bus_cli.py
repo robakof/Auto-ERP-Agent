@@ -151,7 +151,8 @@ def build_parser() -> argparse.ArgumentParser:
     g_send = p_send.add_mutually_exclusive_group(required=True)
     g_send.add_argument("--content")
     g_send.add_argument("--content-file", dest="content_file")
-    p_send.add_argument("--type", default="suggestion")
+    p_send.add_argument("--type", default="suggestion",
+                        choices=["suggestion", "task", "info", "flag_human"])
     p_send.add_argument("--session-id", dest="session_id", default=None)
 
     # inbox

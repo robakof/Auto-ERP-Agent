@@ -121,6 +121,14 @@ Hook bezpieczeństwa blokuje zbyt złożone komendy. Trzymaj się prostych form:
 6. **`cd "ścieżka" && git`** — hook blokuje; używaj `git -C "ścieżka"` zamiast `cd &&`
 7. **`git mv` per plik** — używaj zwykłego `mv`, potem jeden `git add -A` na końcu zadania
 
+### Komunikacja agent-agent
+
+Odpowiedź proporcjonalna do zadania:
+- Krótki task → kilka zdań
+- Złożona analiza → wyniki do pliku (`solutions/` lub `tmp/`), wiadomość ze wskazaniem lokalizacji
+
+Nie wysyłaj pełnego raportu analitycznego jako odpowiedzi na prostą wiadomość — marnuje context window obu stron.
+
 ### Styl komunikacji
 
 - Bez emoji (dozwolone: ✓, ✗)

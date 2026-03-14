@@ -22,10 +22,7 @@ Nie zakładaj że "brak wyników" znaczy "brak danych w ERP". To może być prob
 
 ### 2. Odczytaj kontekst
 
-Przeczytaj w tej kolejności:
-
-1. `documents/erp_specialist/developer_notes.md` — wytyczne i korekty od Developera (czytaj zawsze, mogą zawierać poprawki do dokumentacji ERP)
-2. Sprawdź inbox od Developera:
+Sprawdź inbox od Developera:
 ```
 python tools/agent_bus_cli.py inbox --role erp_specialist
 ```

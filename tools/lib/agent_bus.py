@@ -9,6 +9,8 @@ import json
 import sqlite3
 from pathlib import Path
 
+ALLOWED_MESSAGE_TYPES = {"suggestion", "task", "info", "flag_human"}
+
 _SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS suggestions (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -104,6 +106,8 @@ class AgentBus:
         session_id: str = None,
     ) -> int:
         """Send a message from one role to another. Returns message id."""
+        if type not in ALLOWED_MESSAGE_TYPES:
+            raise ValueError(f"Invalid message type '{type}'. Allowed: {sorted(ALLOWED_MESSAGE_TYPES)}")
         cursor = self._conn.execute(
             """INSERT INTO messages (sender, recipient, type, content, session_id)
                VALUES (?, ?, ?, ?, ?)""",
