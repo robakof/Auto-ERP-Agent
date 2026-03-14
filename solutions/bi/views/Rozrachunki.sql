@@ -46,8 +46,6 @@ SELECT
                                 (trn1.TrN_GIDTyp = 1529 AND s.TrN_GIDTyp = 1497)     -- (Z)FZK <- PZK
                            )
                      )                                               THEN '(Z)'
-                WHEN trn1.TrN_Stan & 2 = 2
-                     AND trn1.TrN_GIDTyp IN (2041, 2045, 1529)      THEN '(Z)'  -- fallback heurystyczny
                 WHEN trn1.TrN_GenDokMag = -1
                      AND trn1.TrN_GIDTyp IN (1521, 1529, 1489)      THEN '(A)'
                 WHEN trn1.TrN_GenDokMag = -1                        THEN '(s)'
@@ -112,8 +110,6 @@ SELECT
                                 (trn2.TrN_GIDTyp = 1529 AND s.TrN_GIDTyp = 1497)     -- (Z)FZK <- PZK
                            )
                      )                                               THEN '(Z)'
-                WHEN trn2.TrN_Stan & 2 = 2
-                     AND trn2.TrN_GIDTyp IN (2041, 2045, 1529)      THEN '(Z)'  -- fallback heurystyczny
                 WHEN trn2.TrN_GenDokMag = -1
                      AND trn2.TrN_GIDTyp IN (1521, 1529, 1489)      THEN '(A)'
                 WHEN trn2.TrN_GenDokMag = -1                        THEN '(s)'

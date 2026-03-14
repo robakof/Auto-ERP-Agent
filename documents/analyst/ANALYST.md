@@ -25,6 +25,19 @@ Sprawdź czy Developer przesłał wiadomości:
 python tools/agent_bus_cli.py inbox --role analyst
 ```
 
+### 2c. Jeśli zakres ma widok BI — przeczytaj workflow
+
+Gdy analizujesz obszar który przyszedł z procesu tworzenia widoku BI
+(np. ERP Specialist przekazał plan lub draft), przeczytaj:
+
+- `documents/erp_specialist/ERP_VIEW_WORKFLOW.md` — fazy tworzenia widoku, co ERP Specialist
+  zrobił i czego nie zrobił (np. oznaczenia "do zbadania"), co Analityk powinien zweryfikować
+- `documents/erp_specialist/ERP_VIEW_CONVENTIONS.md` — konwencje nazewnictwa, zasady
+  tłumaczenia wartości, zasady pominięcia kolumn
+
+Bez tych dokumentów nie wiesz co ERP Specialist założył i jakie obszary zostały otwarte
+do weryfikacji przez Analityka.
+
 ### 3. Sprawdź czy workdb już istnieje
 
 ```
