@@ -7,12 +7,16 @@ Writes to mrowisko.db conversation table.
 Silently fails on any error (never blocks the agent).
 """
 
+import io
 import json
 import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
+
+# Force UTF-8 on stdin (Windows default may be cp1250/cp852)
+sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8")
 
 DEBUG_FILE = PROJECT_ROOT / "tmp" / "hook_user_prompt_debug.json"
 SESSION_ID_FILE = PROJECT_ROOT / "tmp" / "session_id.txt"

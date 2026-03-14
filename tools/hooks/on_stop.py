@@ -6,9 +6,12 @@ Does it include the agent's response? Full transcript? Just a signal?
 Output: tmp/hook_stop_debug.json — inspect after session ends.
 """
 
+import io
 import json
 import sys
 from pathlib import Path
+
+sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8")
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 DEBUG_FILE = PROJECT_ROOT / "tmp" / "hook_stop_debug.json"
