@@ -91,7 +91,8 @@ Eskalacja idzie wyłącznie w górę. Jeśli zadanie nie pasuje do Twojej roli:
 
 ### Git — commity przez narzędzie
 
-Wszystkie commity wykonuj przez `tools/git_commit.py` — nie przez bezpośrednie `git commit`:
+Wszystkie commity wykonuj przez `tools/git_commit.py` — nie przez bezpośrednie `git commit`.
+Do usuwania i przenoszenia plików używaj `rm`/`mv` (OS), a nie `git rm`/`git mv` — `--all` w git_commit.py staguje wszystko łącznie z usunięciami:
 
 ```
 python tools/git_commit.py --message "feat: opis"             # samo commit
