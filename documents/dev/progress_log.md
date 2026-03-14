@@ -4,22 +4,23 @@
 
 ## Stan bieżący
 
-**Aktualizacja:** 2026-03-13
+**Aktualizacja:** 2026-03-14
 
 **Co działa:**
-- `tools/lib/agent_bus.py` — AgentBus (SQLite, WAL, messages + suggestions + backlog + session_log + state, flag_for_human)
-- `tools/agent_bus_cli.py` — CLI: send, inbox, state, suggest, suggestions, suggest-status, backlog-add, backlog, backlog-update, log, flag
-- 458 testów łącznie, 457 zielone (1 pre-istniejący fail w telegram_channel)
-- 13 toolsów CLI + `tools/lib/` (SqlClient, ExcelWriter, ExcelReader, output) — 253 testy, 100% zielone
-- `docs.db`: FTS5 z kolumnami, tabelami, relacjami, słownikami, 456 typami GID
-- `solutions/bi/views/`: Kontrahenci.sql ✓, Rezerwacje.sql ✓
-- LOOM: `_loom/` — szablony metodologii do bootstrapu nowych projektów
+- `tools/lib/agent_bus.py` — AgentBus + `agent_bus_cli.py`: send, inbox, suggest, suggestions, suggest-status, backlog-add, **backlog-add-bulk**, backlog, **backlog-update (--content-file)**, log, flag
+- 496 testów łącznie, 495 zielone (1 pre-istniejący fail w telegram_channel)
+- `tools/render.py` — output domyślnie do `views/` (gitignored)
+- `tools/agent_bus_server.py` — FastAPI localhost:8765, uruchamiany ręcznie
+- `developer_notes.md` — zdeprecjonowany, treść przeniesiona do DB (messages id=4,5)
+- Komunikacja agent-agent: pierwsze testy ERP Specialist ↔ Analyst w toku
 
-**Agent bus:** Faza 1.5 zakończona. Nowy schemat: suggestions + backlog + session_log. Tabela state zostaje (archiwum, nie używana). Faza 2 (dyrektywy w DB) — backlog.
-**agent_bus_server:** FastAPI HTTP API gotowe (tools/agent_bus_server.py, localhost:8765). Uruchamiane ręcznie — narzędzie dla człowieka, nie agenta. /docs dostępne po starcie.
-**render.py:** Uniwersalny renderer md/xlsx/json dla wszystkich widoków DB (backlog, suggestions, inbox, messages, session-log). md = dokument opisowy (pełna treść), xlsx = tabela z filtrem i kolorowaniem. API-first: fetch() jako jedyne miejsce wiedzy o źródle — gotowe na podmianę DB→HTTP.
-**session_log:** 7 historycznych progress logów zmigrowanych z .md do DB (developer, metodolog, erp_specialist x4).
-**Następny krok:** agent_bus_server — renderery jako klienci HTTP (backlog id=26). Lub: zasada DB przed schematem w DEVELOPER.md (backlog id=20, wartość wysoka, mała praca).
+**Architektura:**
+- `tmp/` — pliki pośrednie agentów (gitignored)
+- `views/` — rendery dla człowieka (gitignored)
+- Reguły Bash przeniesione z DEVELOPER.md → CLAUDE.md (zasada wspólna)
+- render.py DB-direct (świadoma decyzja — HTTP gdy pojawi się zewnętrzna komunikacja)
+
+**Następny krok:** obserwacje z pierwszego workflow ERP Specialist ↔ Analyst → poprawki protokołu handoffu. Backlog ERP: 10 widoków BI do zbudowania (id=31–40, TwrKarty jako pierwsze).
 
 **Widok w toku:** BI.ZamNag — Faza 1–4 zakończona przez agenta (widok gotowy: `solutions/bi/views/ZamNag.sql`). Otwarte: ZaN_PromocjePar=3 (znaczenie nieznane), ZaN_DokZwiazane (bitmask surowy).
 
