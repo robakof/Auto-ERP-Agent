@@ -236,31 +236,7 @@ Po zatwierdzeniu implementacji wykonaj commit, push i zaktualizuj `progress_log.
 
 ## 2. KOMENDY POWŁOKI
 
-### Zanim użyjesz Bash — sprawdź dedykowane narzędzia
-
-**Bash jest ostatecznością. Najpierw:**
-
-| Zamiast Bash...             | Użyj narzędzia |
-|-----------------------------|----------------|
-| `head`/`cat`/`tail` na pliku | `Read`         |
-| `grep`/`rg` w plikach       | `Grep`         |
-| `find`/`ls` po nazwach      | `Glob`         |
-| `sed`/`awk` do edycji pliku | `Edit`         |
-
-Bash tylko dla operacji systemowych które nie mają dedykowanego narzędzia (uruchamianie testów, git, mv, mkdir).
-
-### Reguły pisania komend Bash
-
-Hook bezpieczeństwa blokuje zbyt złożone komendy. Trzymaj się prostych form:
-
-1. **Nie używaj `$()`** — zamiast tego zapisz SQL do pliku i podaj ścieżkę jako argument
-   - Wyjątek: wieloliniowe wiadomości commitów — zapisz treść przez `Write` do `.git/COMMIT_EDITMSG`, następnie `git commit -F .git/COMMIT_EDITMSG`
-2. **Nie używaj `python -c "..."`** z wieloliniowym kodem — zapisz do pliku tymczasowego
-3. **Maksymalnie 2 komendy w łańcuchu `&&`** — dłuższe podziel na osobne wywołania
-4. **Pusty string `""` jako argument** — zastąp pojedynczym znakiem lub usuń
-5. **`find` z `2>/dev/null`** — użyj narzędzia Glob zamiast Bash
-6. **`cd "ścieżka" && git`** — hook blokuje; używaj `git -C "ścieżka"` zamiast `cd &&`
-7. **`git mv` per plik** — używaj zwykłego `mv`, potem jeden `git add -A` na końcu zadania
+Reguły używania Bash i dedykowanych narzędzi obowiązują wszystkie role — patrz `CLAUDE.md` sekcja "Komendy powłoki".
 
 ### Edycja dużych plików SQL
 
