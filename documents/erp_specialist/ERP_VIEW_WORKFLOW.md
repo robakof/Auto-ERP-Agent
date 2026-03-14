@@ -200,7 +200,7 @@ Jedna tabela z kolumnami:
 | `Transformacja` | agent | co robimy z polem (opis lub formuła) |
 | `Uwzglednic` | agent | Tak / Nie (propozycja) |
 | `Uzasadnienie` | agent | po co to pole lub dlaczego pominięte |
-| `Komentarz_Usera` | **user** | pusta kolumna — user wpisuje uwagi przed zatwierdzeniem |
+| `Komentarz_Usera` | user / agent / Analityk | uwagi przed zatwierdzeniem — może wypełniać każdy uczestnik procesu |
 
 Kolejność wierszy: wszystkie kolumny CDN.MainTable w kolejności z `SELECT TOP 1 *`,
 następnie kolumny sprowadzane przez JOINy (bezpośrednio po kluczu który je sprowadza),

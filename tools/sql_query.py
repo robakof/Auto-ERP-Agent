@@ -49,7 +49,16 @@ def run_query(sql: str) -> dict:
 def _export_to_excel(result: dict, export_path: Path) -> None:
     writer = ExcelWriter()
     writer.add_sheet("Dane", result["data"]["columns"], result["data"]["rows"])
-    writer.save(export_path)
+    try:
+        writer.save(export_path)
+    except PermissionError:
+        result["ok"] = False
+        result["data"] = None
+        result["error"] = {
+            "type": "EXPORT_PERMISSION_ERROR",
+            "message": f"Nie można zapisać pliku: {export_path}. Zamknij go w Excelu i spróbuj ponownie.",
+        }
+        return
     result["data"]["export_path"] = str(export_path.resolve())
 
 
