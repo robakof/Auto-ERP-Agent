@@ -1,0 +1,12 @@
+SELECT 1 AS Kolejnosc, 'TGD_GIDTyp' AS CDN_Pole, 'ID Typ Grupy' AS Opis_w_dokumentacji, '-16, 16' AS Przykladowe_wartosci, '-' AS Alias_w_widoku, 'Stała techniczna' AS Transformacja, 'Nie' AS Uwzglednic, 'Stała techniczna — 16 dla przypisań, pomijamy' AS Uzasadnienie, '' AS Komentarz_Usera
+UNION ALL SELECT 2, 'TGD_GIDFirma', 'ID Firma Grupy', '1464833', '-', 'Stała firmy', 'Nie', 'Stała dla całej bazy', ''
+UNION ALL SELECT 3, 'TGD_GIDNumer', 'ID Numer Grupy', '10, 11, 12...', 'ID_Towaru', 'bez zmian', 'Tak', 'Klucz towaru = Twr_GIDNumer — łącznik z AIBI.TwrKarty', ''
+UNION ALL SELECT 4, 'TGD_GIDLp', '', '0', '-', 'Stała 0', 'Nie', 'Stała techniczna', ''
+UNION ALL SELECT 5, 'TGD_GrOTyp', 'ID Typ Grupy ojca', '-16', '-', 'Stała -16', 'Nie', 'Stała techniczna', ''
+UNION ALL SELECT 6, 'TGD_GrOFirma', 'ID Firma Grupy ojca', '1464833', '-', 'Stała firmy', 'Nie', 'Stała techniczna', ''
+UNION ALL SELECT 7, 'TGD_GrONumer', 'ID Numer Grupy ojca', '55, 73, 194...', 'ID_Grupy', 'bez zmian', 'Tak', 'ID grupy bezpośredniej w hierarchii — klucz do CTE', ''
+UNION ALL SELECT 8, 'TGD_GrOLp', '', '0', '-', 'Stała 0', 'Nie', 'Stała techniczna', ''
+UNION ALL SELECT 9, 'TGD_Kod', 'Kod Elementu', 'EUROPALETA, PAL002...', '-', 'Redundant z Twr_Kod', 'Nie', 'TGD_Kod (type=16) = Twr_Kod — duplikat, pominięty', ''
+UNION ALL SELECT 10, 'TGD_Kod (via JOIN grp)', 'Kod Elementu (grupy)', 'LAMPY, 07_JEDNOSTKI...', 'Kod_Grupy', 'JOIN CDN.TwrGrupyDom grp ON grp.TGD_GIDTyp=-16 AND grp.TGD_GIDNumer=TGD_GrONumer', 'Tak', 'Kod grupy bezpośredniej do której przypisany jest towar', ''
+UNION ALL SELECT 11, 'CTE: Sciezka_Grup.Sciezka', '', 'ZAPALNICZKI\Antenka', 'Sciezka_Grupy', 'Recursive CTE przez TwrGrupyDom type=-16', 'Tak', 'Pełna ścieżka grupy od korzenia — przydatna do filtrowania w Power BI', ''
+UNION ALL SELECT 12, 'CTE: Sciezka_Grup.Poziom', '', '0, 1, 2...', 'Poziom_Grupy', 'z CTE', 'Tak', 'Głębokość w hierarchii (0=korzeń)', ''
