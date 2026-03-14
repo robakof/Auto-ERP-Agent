@@ -201,10 +201,6 @@ python tools/git_commit.py --message "feat: opis" --all --push       # add + com
 
 Implementuj zgodnie z planem, sekcja po sekcji trzymając się opisanego poniżej schematu:
 
-##### CHANGELOG.md
-
-Wszystkie zmiany w danej implementacji powinny zostać zapisane w pliku `CHANGELOG.md` w taki sposób aby VibeCoder mógł z łatwością przejrzeć zmiany konkretnych linijek kodu w plikach.
-
 #### Krok 1: Planowanie prac
 
 **Cel:** Stworzenie i zatwierdzenie planu implementacji przed przystąpieniem do kodu.
@@ -221,14 +217,13 @@ Jeżeli w trakcie implementacji natrafisz na nie omówione wcześniej kwestie lu
 
 **Po zakończonej implementacji:**
 - Przetestuj działanie kodu
-- Nadpisz plik `CHANGELOG.md` nową implementacją
 - Pokaż co zostało zrobione
 - Zapytaj o feedback
 - Potwierdź gotowość do następnej sekcji
 
 #### Krok 3: Poprawki implementacji
 
-W czacie lub w `changes_comments.md` VibeCoder przekaże ci feedback na temat wprowadzonej implementacji. Poprawiaj ją aż do uzyskania pełnej satysfakcji VibeCodera, za każdym razem dodając treść z poprawkami do `CHANGELOG.md` i testując program.
+W czacie VibeCoder przekaże ci feedback na temat wprowadzonej implementacji. Poprawiaj ją aż do uzyskania pełnej satysfakcji VibeCodera, za każdym razem testując program.
 
 #### Krok 4: Commit, push i aktualizacja Progress_log.md
 
