@@ -521,6 +521,33 @@
         "towary z klasą cechy Partia"
       ],
       "notes": "Twr_Typ: 1=Towar, 2=Produkt, 3=Koszt, 4=Usługa. Kanal_Sprzedazy: 1=CENA 100, 2=CMENTARZ, 3=FRANOWO, 4=BRICO, 5=INTER, 6=MRÓWKA, 7=CHATA POLSKA, 8=AT, 9=PRYZMAT. Techniczna_Dec1: dokumentacja ERP mówi powinno być puste — w bazie 13 distinct wartości (anomalia). MRP_Okres_Data: data początku okresu MRP z CDN.ProdOkresy (NULL gdy brak). Sciezka_Grupy: separator '\\', 'Brak grupy' gdy bez przypisania."
+    },
+    {
+      "name": "AIBI.TwrGrupyDom",
+      "file": "views/TwrGrupyDom.sql",
+      "description": "Grupy domowe towarow — mapowanie towar→grupa z pełną ścieżką rekurencyjną hierarchii. Jeden rekord per towar.",
+      "primary_table": "CDN.TwrGrupyDom",
+      "joins": [
+        "CDN.TwrKarty (kod i nazwa towaru)",
+        "CDN.TwrGrupyDom self (kod grupy)",
+        "Recursive CTE (ścieżka hierarchii)"
+      ],
+      "columns": [
+        "ID_Towaru",
+        "Kod_Towaru",
+        "Nazwa_Towaru",
+        "ID_Grupy",
+        "Kod_Grupy",
+        "Sciezka_Grupy",
+        "Poziom_Grupy"
+      ],
+      "example_questions": [
+        "w jakiej grupie jest towar X",
+        "towary w grupie ZNICZE",
+        "ścieżka grupy dla towaru X",
+        "towary bez grupy domowej"
+      ],
+      "notes": "Sciezka_Grupy: separator chr(92), Brak grupy gdy TGD_GrONumer=0 (42 towary). Poziom_Grupy: -1=brak grupy, 0=korzeń, 1-4=głębokość. Kod_Grupy nieunikalny — filtruj przez Sciezka_Grupy."
     }
   ]
 }
