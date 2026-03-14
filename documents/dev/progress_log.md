@@ -11,8 +11,7 @@
 - 496 testów łącznie, 495 zielone (1 pre-istniejący fail w telegram_channel)
 - `tools/render.py` — output domyślnie do `views/` (gitignored)
 - `tools/agent_bus_server.py` — FastAPI localhost:8765, uruchamiany ręcznie
-- `developer_notes.md` — zdeprecjonowany, treść przeniesiona do DB (messages id=4,5)
-- Komunikacja agent-agent: pierwsze testy ERP Specialist ↔ Analyst w toku
+- Komunikacja agent-agent: ERP Specialist ↔ Analyst ↔ Developer przez agent_bus
 
 **Architektura:**
 - `tmp/` — pliki pośrednie agentów (gitignored)
@@ -20,30 +19,28 @@
 - Reguły Bash przeniesione z DEVELOPER.md → CLAUDE.md (zasada wspólna)
 - render.py DB-direct (świadoma decyzja — HTTP gdy pojawi się zewnętrzna komunikacja)
 
-**Widok gotowy:** BI.TwrKarty — 66 kolumn, 10 122 wierszy. `solutions/bi/views/TwrKarty.sql`. MRP_Id → CDN.ProdOkresy (JOIN 100%), Techniczna_Dec1 as-is z komentarzem anomalii.
+**Widoki BI gotowe:**
+- BI.Kontrahenci ✓ (`solutions/bi/views/Kontrahenci.sql`)
+- BI.Rezerwacje ✓ (`solutions/bi/views/Rezerwacje.sql`)
+- BI.ZamNag ✓ (`solutions/bi/views/ZamNag.sql`) — otwarte: ZaN_PromocjePar=3 (znaczenie nieznane), ZaN_DokZwiazane (bitmask surowy)
+- BI.Rozrachunki ✓ (`solutions/bi/views/Rozrachunki.sql`) — fallback Stan & 2 usunięty (commit 1b5d245)
+- BI.TwrKarty ✓ (`solutions/bi/views/TwrKarty.sql`) — 66 kolumn, 10 122 wierszy; MRP_Id → CDN.ProdOkresy, Techniczna_Dec1 as-is z komentarzem anomalii
 
-**Następny krok:** widoki BI (id=31–40, TwrKarty jako pierwsze) lub kolejne pozycje backlogu.
-
-**Widok w toku:** BI.ZamNag — Faza 1–4 zakończona przez agenta (widok gotowy: `solutions/bi/views/ZamNag.sql`). Otwarte: ZaN_PromocjePar=3 (znaczenie nieznane), ZaN_DokZwiazane (bitmask surowy).
-
-**Widok w toku:** brak (agent sesja zakończona).
-
-**KM3 zakończony:** `bot/channels/telegram_channel.py` + `bot/main.py` + 6 testów, 405 łącznie 100% zielone.
-
-**Następny krok:** KM4 — Biblioteka raportów (`solutions/bi/reports/` + `tools/search_reports.py`) lub backlog.
-
-**Backlog aktywny:**
-- [Agent] Baza wzorców numeracji dokumentów
-- [Workflow] ERP_SCHEMA_PATTERNS + ERP_VIEW_WORKFLOW — odkrycia z BI.Rozrachunki
-- [Dev] Komendy agenta blokowane przez hook
-- [Dev] Informacja o kontekście na końcu każdej wiadomości agenta
-- [Arch] Sygnatury narzędzi powielone w wielu miejscach
-
-**Następny krok:** kolejna tura widoków BI (ERP Specialist) lub pozycje z backlogu
+**Następny krok:** BI.TraNag (id=32, nagłówki dokumentów handlowych) — nowa sesja ERP Specialist
 
 ---
 
 ## Dziennik
+
+### 2026-03-14 — BI.TwrKarty zakończony (Faza 4)
+
+- Draft finalny: 66 kolumn, 10 122 wierszy
+- Odkrycie: `Twr_MrpId → CDN.ProdOkresy.POK_Id` (JOIN 100%); dodana kolumna `MRP_Okres_Data` (Clarion DATE)
+- Decyzja: `Techniczna_Dec1` eksponowana as-is z komentarzem anomalii (docs: pusta, baza: 13 distinct)
+- Poprawki analityka z recenzji wdrożone: Autonumeracja_Kod usunięta, Data_Modyfikacji_O usunięta, JM symbole dla zakup/mobile/dopełniania dodane
+- Widok zapisany: `solutions/bi/views/TwrKarty.sql` (commit b8dfcef)
+
+---
 
 ### 2026-03-14 — backlog cleanup + zasady + agent_bus task type
 
