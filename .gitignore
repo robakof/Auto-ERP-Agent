@@ -16,6 +16,12 @@ mrowisko.db
 # Dane źródłowe dokumentacji (duże pliki, nie kod)
 erp_docs/raw/
 
+# Pliki tymczasowe agentów
+tmp/
+
+# Widoki generowane przez render.py
+views/
+
 # Pliki tymczasowe
 *.tmp
 

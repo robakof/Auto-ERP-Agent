@@ -87,6 +87,23 @@ def cmd_backlog_add(args: argparse.Namespace, bus: AgentBus) -> dict:
     return {"ok": True, "id": bid}
 
 
+def cmd_backlog_add_bulk(args: argparse.Namespace, bus: AgentBus) -> dict:
+    import json as _json
+    items = _json.loads(Path(args.file).read_text(encoding="utf-8"))
+    ids = []
+    for item in items:
+        bid = bus.add_backlog_item(
+            title=item["title"],
+            content=item.get("content", ""),
+            area=item.get("area"),
+            value=item.get("value"),
+            effort=item.get("effort"),
+            source_id=item.get("source_id"),
+        )
+        ids.append(bid)
+    return {"ok": True, "ids": ids, "count": len(ids)}
+
+
 def cmd_backlog(args: argparse.Namespace, bus: AgentBus) -> dict:
     entries = bus.get_backlog(status=args.status)
     return {"ok": True, "data": entries, "count": len(entries)}
@@ -179,6 +196,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_badd.add_argument("--effort", default=None, choices=["mala", "srednia", "duza"])
     p_badd.add_argument("--source-id", dest="source_id", type=int, default=None)
 
+    # backlog-add-bulk
+    p_bulk = subparsers.add_parser("backlog-add-bulk", help="Add multiple backlog items from JSON file")
+    p_bulk.add_argument("--file", required=True, help="JSON file with list of items")
+
     # backlog
     p_backlog = subparsers.add_parser("backlog", help="Get backlog items")
     p_backlog.add_argument("--status", default=None,
@@ -223,6 +244,7 @@ def main():
         "suggestions": cmd_suggestions,
         "suggest-status": cmd_suggest_status,
         "backlog-add": cmd_backlog_add,
+        "backlog-add-bulk": cmd_backlog_add_bulk,
         "backlog": cmd_backlog,
         "backlog-update": cmd_backlog_update,
         "log": cmd_log,

@@ -59,19 +59,19 @@ Długie treści zapisuj przez plik pośredni — nie inline w komendzie:
 # 2. Przekaż ścieżkę do CLI
 
 # Sugestia (refleksja, obserwacja)
-python tools/agent_bus_cli.py suggest --from <rola> --content-file tmp.md
+python tools/agent_bus_cli.py suggest --from <rola> --content-file tmp/tmp.md
 
 # Backlog — nowe zadanie
-python tools/agent_bus_cli.py backlog-add --title "Tytuł" --area <obszar> --value wysoka --effort mala --content-file tmp.md
+python tools/agent_bus_cli.py backlog-add --title "Tytuł" --area <obszar> --value wysoka --effort mala --content-file tmp/tmp.md
 
 # Log sesji
-python tools/agent_bus_cli.py log --role <rola> --content-file tmp.md
+python tools/agent_bus_cli.py log --role <rola> --content-file tmp/tmp.md
 
 # Wiadomość do innej roli
-python tools/agent_bus_cli.py send --from <rola> --to developer --content-file tmp.md
+python tools/agent_bus_cli.py send --from <rola> --to developer --content-file tmp/tmp.md
 
 # Eskalacja do człowieka
-python tools/agent_bus_cli.py flag --from <rola> --reason-file tmp.md
+python tools/agent_bus_cli.py flag --from <rola> --reason-file tmp/tmp.md
 ```
 
 Plik tymczasowy możesz nadpisywać in-place między wywołaniami.

@@ -197,6 +197,8 @@ python tools/git_commit.py --message "feat: opis" --all --push       # add + com
    - Systemy plików
    - Połączenia sieciowe
 
+**Zasada: narzędzie od razu w `tools/` z testami.** Nie twórz plików roboczych w root projektu (`tmp_*.py`) jako łatek — każde narzędzie ląduje w `tools/` z testami od razu. Plik bez testów to dług który wraca.
+
 Implementuj zgodnie z planem, sekcja po sekcji trzymając się opisanego poniżej schematu:
 
 ##### CHANGELOG.md
@@ -205,15 +207,15 @@ Wszystkie zmiany w danej implementacji powinny zostać zapisane w pliku `CHANGEL
 
 #### Krok 1: Planowanie prac
 
-**Cel:** Stworzenie szczegółowego i drobiazgowego planu implementacji do szczegółowej analizy i zatwierdzenia przez VibeCodera.
+**Cel:** Stworzenie i zatwierdzenie planu implementacji przed przystąpieniem do kodu.
 
-Zaplanuj implementację zakresu prac budując szczegółowy plan i zapisując go w pliku `changes_propositions.md`. Następnie dostosuj plan do wytycznych vibecodera zapisanych w pliku `changes_comments.md`. Kiedy ostateczna wersja planu zostanie zatwierdzona rozpocznij kolejny krok.
+Dla każdego feature stwórz dokument architektoniczny per feature (np. `agent_bus_faza2.md`) zamiast wspólnego `changes_propositions.md`. Dokument zawiera zakres, decyzje architektoniczne i otwarte wątki z poprzednich sesji. Zatwierdź z użytkownikiem przed przystąpieniem do kodu.
 
-`changes_propositions.md` musi zawierać nie tylko zakres bieżącego zadania, ale również **wszystkie otwarte wątki z poprzednich sesji lub wątków które są kontekstem bieżącej pracy** — zadania uzgodnione, a niezrealizowane, zmiany odkładane "na później". Brak tej listy prowadzi do gubienia zadań przy rozroście zakresu lub utracie ciągłości kontekstu.
+Dokument musi zawierać nie tylko zakres bieżącego zadania, ale również **wszystkie otwarte wątki z poprzednich sesji** — zadania uzgodnione, a niezrealizowane, zmiany odkładane "na później".
 
 #### Krok 2: Implementacja zmian
 
-Zaimplementuj zatwierdzone zmiany zgodnie z `changes_propositions.md` i `changes_comments.md`.
+Zaimplementuj zatwierdzone zmiany zgodnie z dokumentem architektonicznym.
 
 Jeżeli w trakcie implementacji natrafisz na nie omówione wcześniej kwestie lub masz pomysły dotyczące zmian w implementacji, na bieżąco pytaj o nie VibeCodera aby mógł je zatwierdzić. Nie twórz niczego na zapas bez wcześniejszych konsultacji.
 
@@ -287,6 +289,12 @@ Przy iteracyjnej pracy nad brudnopisem SQL (300+ linii, wiele iteracji):
 - Single Responsibility - jeden moduł/funkcja = jedna odpowiedzialność
 - Loose coupling - zmiany w module A nie wymagają zmian w module B
 - Separacja warstw - logika biznesowa oddzielona od danych i prezentacji
+
+### Projektowanie baz danych
+
+**Przed napisaniem `CREATE TABLE` napisz 5 przykładowych `INSERT`-ów** dla różnych przypadków użycia. Jeśli przykłady nie pasują do schematu — schemat jest zły.
+
+Schemat DB to decyzja o rozumieniu domeny, nie decyzja techniczna. Tej rozmowy nie można zastąpić dobrymi pytaniami — wymaga żeby user zobaczył konkretne dane.
 
 ### Samodokumentujący się kod
 

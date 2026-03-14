@@ -161,3 +161,44 @@ class TestContentFile:
         assert result["ok"] is True
         inbox = run_cli(["inbox", "--role", "human"], db)
         assert "Potrzebuję decyzji" in inbox["data"][0]["content"]
+
+
+class TestBacklogAddBulk:
+    def test_bulk_adds_all_items(self, db, tmp_path):
+        items = [
+            {"title": "Zadanie A", "area": "Dev", "value": "wysoka", "effort": "mala", "content": "Opis A"},
+            {"title": "Zadanie B", "area": "Bot", "value": "srednia", "effort": "srednia", "content": "Opis B"},
+            {"title": "Zadanie C", "content": "Opis C"},
+        ]
+        bulk_file = tmp_path / "items.json"
+        bulk_file.write_text(json.dumps(items), encoding="utf-8")
+
+        result = run_cli(["backlog-add-bulk", "--file", str(bulk_file)], db)
+        assert result["ok"] is True
+        assert result["count"] == 3
+        assert len(result["ids"]) == 3
+
+        backlog = run_cli(["backlog"], db)
+        titles = [i["title"] for i in backlog["data"]]
+        assert "Zadanie A" in titles
+        assert "Zadanie B" in titles
+        assert "Zadanie C" in titles
+
+    def test_bulk_empty_list(self, db, tmp_path):
+        bulk_file = tmp_path / "empty.json"
+        bulk_file.write_text("[]", encoding="utf-8")
+        result = run_cli(["backlog-add-bulk", "--file", str(bulk_file)], db)
+        assert result["ok"] is True
+        assert result["count"] == 0
+
+    def test_bulk_preserves_fields(self, db, tmp_path):
+        items = [{"title": "Test pól", "area": "Arch", "value": "niska", "effort": "duza", "content": "Szczegóły"}]
+        bulk_file = tmp_path / "single.json"
+        bulk_file.write_text(json.dumps(items), encoding="utf-8")
+        run_cli(["backlog-add-bulk", "--file", str(bulk_file)], db)
+
+        backlog = run_cli(["backlog"], db)
+        item = backlog["data"][0]
+        assert item["area"] == "Arch"
+        assert item["value"] == "niska"
+        assert item["effort"] == "duza"

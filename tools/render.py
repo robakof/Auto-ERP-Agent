@@ -197,7 +197,8 @@ def main():
     data = fetch(view, bus, args)
 
     ext = args.format
-    output = Path(args.output) if args.output else Path(f"{view}.{ext}")
+    output = Path(args.output) if args.output else Path("views") / f"{view}.{ext}"
+    output.parent.mkdir(parents=True, exist_ok=True)
 
     if ext == "json":
         render_json(data, cfg["title"], output)

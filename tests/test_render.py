@@ -188,4 +188,4 @@ class TestDefaultOutput:
         os.chdir(tmp_path)
         r = run(["backlog", "--format", "json"], path)
         assert r.returncode == 0
-        assert (tmp_path / "backlog.json").exists()
+        assert (tmp_path / "views" / "backlog.json").exists()
