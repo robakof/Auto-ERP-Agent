@@ -20,9 +20,7 @@
 - Reguły Bash przeniesione z DEVELOPER.md → CLAUDE.md (zasada wspólna)
 - render.py DB-direct (świadoma decyzja — HTTP gdy pojawi się zewnętrzna komunikacja)
 
-**Widok w toku:** AIBI.TwrKarty — Faza 2 zakończona, czeka na akceptację usera → Faza 4.
-Progress: `solutions/bi/TwrKarty/TwrKarty_progress.md`
-Otwarte decyzje: Techniczna_Dec1 (usunąć?), MRP_Id (usunąć?).
+**Widok gotowy:** BI.TwrKarty — 66 kolumn, 10 122 wierszy. `solutions/bi/views/TwrKarty.sql`. MRP_Id → CDN.ProdOkresy (JOIN 100%), Techniczna_Dec1 as-is z komentarzem anomalii.
 
 **Następny krok:** widoki BI (id=31–40, TwrKarty jako pierwsze) lub kolejne pozycje backlogu.
 
