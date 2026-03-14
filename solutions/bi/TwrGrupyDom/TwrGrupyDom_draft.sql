@@ -1,5 +1,5 @@
 -- AIBI.TwrGrupyDom — brudnopis SELECT
--- Faza 2 — iteracja 1
+-- Faza 2 — iteracja 2 (dodano Kod_Towaru, Nazwa_Towaru via JOIN CDN.TwrKarty)
 -- Źródło: CDN.TwrGrupyDom (GIDTyp=16 — przypisania towar→grupa)
 -- Baseline: 10 122 wierszy (wykluczono TGD_GIDNumer=0)
 
@@ -30,6 +30,8 @@ WITH Sciezka_Grup AS (
 SELECT
     -- === Towar ===
     tgd.TGD_GIDNumer                            AS ID_Towaru,
+    t.Twr_Kod                                   AS Kod_Towaru,
+    t.Twr_Nazwa                                 AS Nazwa_Towaru,
 
     -- === Grupa bezpośrednia ===
     tgd.TGD_GrONumer                            AS ID_Grupy,
@@ -40,6 +42,10 @@ SELECT
     ISNULL(sg.Poziom, -1)                       AS Poziom_Grupy
 
 FROM CDN.TwrGrupyDom tgd
+
+-- Kod i nazwa towaru
+LEFT JOIN CDN.TwrKarty t
+    ON  t.Twr_GIDNumer = tgd.TGD_GIDNumer
 
 -- Kod grupy bezpośredniej (type=-16)
 LEFT JOIN CDN.TwrGrupyDom grp

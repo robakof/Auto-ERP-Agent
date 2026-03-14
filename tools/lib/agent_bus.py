@@ -80,6 +80,28 @@ CREATE TABLE IF NOT EXISTS state (
 
 CREATE INDEX IF NOT EXISTS idx_state_role_type ON state(role, type);
 CREATE INDEX IF NOT EXISTS idx_state_session ON state(session_id);
+
+CREATE TABLE IF NOT EXISTS trace (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id  TEXT NOT NULL,
+    tool_name   TEXT NOT NULL,
+    summary     TEXT,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_trace_session ON trace(session_id);
+
+CREATE TABLE IF NOT EXISTS conversation (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id  TEXT,
+    speaker     TEXT NOT NULL,
+    content     TEXT NOT NULL,
+    event_type  TEXT NOT NULL,
+    raw_payload TEXT,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_conversation_session ON conversation(session_id);
 """
 
 
@@ -396,6 +418,53 @@ class AgentBus:
             type="flag_human",
             session_id=session_id,
         )
+
+    # --- Trace ---
+
+    def add_trace_event(self, session_id: str, tool_name: str, summary: str = None) -> int:
+        """Log a tool use event for a session."""
+        cursor = self._conn.execute(
+            "INSERT INTO trace (session_id, tool_name, summary) VALUES (?, ?, ?)",
+            (session_id, tool_name, summary),
+        )
+        self._conn.commit()
+        return cursor.lastrowid
+
+    def get_trace(self, session_id: str) -> list[dict]:
+        """Get all trace events for a session."""
+        rows = self._conn.execute(
+            "SELECT id, session_id, tool_name, summary, created_at FROM trace WHERE session_id = ? ORDER BY id",
+            (session_id,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+    # --- Conversation ---
+
+    def add_conversation_entry(
+        self,
+        speaker: str,
+        content: str,
+        event_type: str,
+        session_id: str = None,
+        raw_payload: str = None,
+    ) -> int:
+        """Log a conversation event (user prompt, agent response, etc.)."""
+        cursor = self._conn.execute(
+            """INSERT INTO conversation (session_id, speaker, content, event_type, raw_payload)
+               VALUES (?, ?, ?, ?, ?)""",
+            (session_id, speaker, content, event_type, raw_payload),
+        )
+        self._conn.commit()
+        return cursor.lastrowid
+
+    def get_conversation(self, session_id: str) -> list[dict]:
+        """Get conversation entries for a session."""
+        rows = self._conn.execute(
+            """SELECT id, session_id, speaker, content, event_type, created_at
+               FROM conversation WHERE session_id = ? ORDER BY id""",
+            (session_id,),
+        ).fetchall()
+        return [dict(row) for row in rows]
 
     def close(self):
         """Close the database connection."""
