@@ -27,7 +27,7 @@ def fetch_columns(view_name: str) -> list[str] | None:
     return result["columns"]
 
 
-def update_catalog(view_name: str, catalog: dict) -> tuple[bool, str]:
+def update_catalog(view_name: str, catalog: dict, add: bool = False) -> tuple[bool, str]:
     columns = fetch_columns(view_name)
     if columns is None:
         return False, f"Nie można pobrać kolumn dla {view_name}"
@@ -37,7 +37,19 @@ def update_catalog(view_name: str, catalog: dict) -> tuple[bool, str]:
             view["columns"] = columns
             return True, f"{view_name}: zaktualizowano {len(columns)} kolumn"
 
-    return False, f"{view_name}: nie znaleziono w catalog.json"
+    if not add:
+        return False, f"{view_name}: nie znaleziono w catalog.json (użyj --add aby utworzyć)"
+
+    short_name = view_name.split(".")[-1]
+    catalog["views"].append({
+        "name": view_name,
+        "file": f"solutions/bi/views/{short_name}.sql",
+        "description": "",
+        "columns": columns,
+        "example_questions": [],
+        "notes": "",
+    })
+    return True, f"{view_name}: dodano nowy wpis z {len(columns)} kolumnami"
 
 
 def main():
@@ -45,6 +57,7 @@ def main():
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--view", help="Nazwa widoku (np. AIBI.Rezerwacje)")
     group.add_argument("--all", action="store_true", help="Aktualizuj wszystkie widoki z katalogu")
+    parser.add_argument("--add", action="store_true", help="Utwórz nowy wpis jeśli widok nie istnieje w katalogu")
     args = parser.parse_args()
 
     catalog = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
@@ -56,7 +69,7 @@ def main():
         views = [args.view]
 
     for view_name in views:
-        ok, message = update_catalog(view_name, catalog)
+        ok, message = update_catalog(view_name, catalog, add=args.add)
         results.append({"view": view_name, "ok": ok, "message": message})
 
     CATALOG_PATH.write_text(json.dumps(catalog, ensure_ascii=False, indent=2), encoding="utf-8")
