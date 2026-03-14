@@ -32,6 +32,20 @@
 
 ## Dziennik
 
+### 2026-03-14 — Finalizacja sesji Developer
+
+- `on_stop.py` → zapisuje last_assistant_message do conversation table
+- `agent_bus_cli.py mark-read` — nowa komenda oznaczania wiadomości jako przeczytane
+- `tools/arch_check.py` — walidator ścieżek w .md (5 testów); znalazł 4 problemy w METHODOLOGY.md + brakujący research result (do Metodologa)
+- `bi_catalog_add.py --add` — tworzy nowy wpis w catalog.json bez ręcznej edycji (5 testów)
+- CLAUDE.md: rm/mv zamiast git rm/git mv
+- DEVELOPER.md: poprawka linii 73 (backlog.md → CLI)
+- Plan wdrożenia architektury: `documents/dev/arch_uplift_plan.md`
+- Backlog arch uplift: id 49-57 (Fazy 1-5)
+- Łącznie: ~513 testów
+
+---
+
 ### 2026-03-14 — Eksperymenty E1-E3 (session_init + hooki)
 
 - `tools/session_init.py` — generuje session_id, loguje do session_log, zwraca doc_path roli
