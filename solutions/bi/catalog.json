@@ -551,8 +551,14 @@
     },
     {
       "name": "AIBI.KntGrupyDom",
-      "file": "solutions/bi/views/KntGrupyDom.sql",
-      "description": "",
+      "file": "views/KntGrupyDom.sql",
+      "description": "Grupy domowe kontrahentów — mapowanie kontrahent→grupa z pełną ścieżką rekurencyjną hierarchii. Jeden rekord per kontrahent.",
+      "primary_table": "CDN.KntGrupyDom",
+      "joins": [
+        "CDN.KntKarty (akronim i nazwa kontrahenta)",
+        "CDN.KntGrupyDom self (kod grupy bezpośredniej)",
+        "Recursive CTE (ścieżka hierarchii)"
+      ],
       "columns": [
         "ID_Kontrahenta",
         "Akronim_Kontrahenta",
@@ -562,8 +568,13 @@
         "Sciezka_Grupy",
         "Poziom_Grupy"
       ],
-      "example_questions": [],
-      "notes": ""
+      "example_questions": [
+        "w jakiej grupie jest kontrahent X",
+        "kontrahenci w grupie KLIENCI",
+        "ścieżka grupy dla kontrahenta X",
+        "kontrahenci bez grupy domowej"
+      ],
+      "notes": "Sciezka_Grupy: separator chr(92), 'Brak grupy' gdy brak przypisania. Poziom_Grupy: -1=brak podgrupy (663 kontrahentów przypisanych bezpośrednio do korzenia), 0=korzeń, 1-2=głębokość. 4544 rekordów (wszyscy kontrahenci mają grupę — 0 NULLi w Kod_Grupy). Kod_Grupy może nie być unikalny — filtruj przez Sciezka_Grupy."
     }
   ]
 }
