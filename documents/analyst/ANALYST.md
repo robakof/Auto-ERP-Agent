@@ -20,18 +20,18 @@ Sprawdź czy Developer przesłał wiadomości:
 python tools/agent_bus_cli.py inbox --role analyst
 ```
 
-### 2c. Jeśli zakres ma widok BI — przeczytaj workflow
+### 2c. Jeśli zakres ma widok BI — przeczytaj workflow i konwencje
 
 Gdy analizujesz obszar który przyszedł z procesu tworzenia widoku BI
 (np. ERP Specialist przekazał plan lub draft), przeczytaj:
 
 - `documents/erp_specialist/ERP_VIEW_WORKFLOW.md` — fazy tworzenia widoku, co ERP Specialist
-  zrobił i czego nie zrobił (np. oznaczenia "do zbadania"), co Analityk powinien zweryfikować
-- `documents/erp_specialist/ERP_VIEW_CONVENTIONS.md` — konwencje nazewnictwa, zasady
-  tłumaczenia wartości, zasady pominięcia kolumn
+  zrobił i czego nie zrobił (np. oznaczenia "do zbadania")
+- `documents/erp_specialist/ERP_VIEW_CONVENTIONS.md` — **Twoja checklista weryfikacji**.
+  ERP Specialist stosuje te konwencje, Ty sprawdzasz czy je zastosował poprawnie.
+  Twoja rola to weryfikator — on się może mylić.
 
-Bez tych dokumentów nie wiesz co ERP Specialist założył i jakie obszary zostały otwarte
-do weryfikacji przez Analityka.
+Bez ERP_VIEW_CONVENTIONS.md nie możesz ocenić poprawności planu ani draftu.
 
 ### 3. Sprawdź czy workdb już istnieje
 
@@ -67,9 +67,16 @@ python tools/excel_read_rows.py \
   --columns CDN_Pole,Uwzglednic,Transformacja,Alias_w_widoku
 ```
 
-Skrzyżuj plan z danymi w SQLite — szukaj rozbieżności między tym co agent BI
-zdecydował a tym co faktycznie jest w danych. Znaleziska zapisuj identycznie
-jak przy analizie kolumn.
+**a) Weryfikacja konwencji** — przejdź przez `ERP_VIEW_CONVENTIONS.md` i sprawdź czy plan
+jest zgodny. Kluczowe punkty do weryfikacji przy recenzji planu:
+- Każde pole `ID_XXX` (klucz obcy) — czy plan zawiera odpowiednie `Kod_XXX` i `Nazwa_XXX`?
+- Pominięcia — czy każde jest uzasadnione jednym z 4 powodów z konwencji?
+- Flagi 0/1 — czy plan przewiduje CASE z etykietami?
+- Enumeracje — czy plan przewiduje tłumaczenie wartości?
+
+**b) Weryfikacja danych** — skrzyżuj plan z danymi w SQLite. Szukaj rozbieżności między
+tym co ERP Specialist zdecydował a tym co faktycznie jest w danych. Znaleziska zapisuj
+identycznie jak przy analizie kolumn.
 
 ### Krok 3 — Analiza kolumna po kolumnie
 

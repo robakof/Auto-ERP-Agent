@@ -32,6 +32,20 @@
 
 ## Dziennik
 
+### 2026-03-14 — Eksperymenty E1-E3 (session_init + hooki)
+
+- `tools/session_init.py` — generuje session_id, loguje do session_log, zwraca doc_path roli
+- `tools/hooks/on_user_prompt.py` — hook UserPromptSubmit: zapisuje wiadomości usera do conversation table
+- `tools/hooks/on_stop.py` — hook Stop: dump payload do debug JSON
+- Nowe tabele w mrowisko.db: `trace`, `conversation`
+- Wyniki E2: payload = {session_id (Claude UUID), transcript_path, prompt} — UTF-8 OK
+- Wyniki E3: payload = {last_assistant_message, transcript_path, session_id}
+- Kluczowe: `transcript_path` → pełny .jsonl transkrypt już istnieje, nie trzeba budować własnego trace
+- 12 nowych testów, 508 łącznie
+- Następny krok: on_stop.py zapisuje do conversation; zbadać strukturę .jsonl
+
+---
+
 ### 2026-03-14 — Czyszczenie długu dokumentacyjnego + backlog --area filter
 
 - Usunięto 13 plików (handoffy, przebudowa_wytycznych, human_inbox, developer_notes, solutions/analyst)
