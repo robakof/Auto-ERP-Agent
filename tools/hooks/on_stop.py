@@ -40,6 +40,19 @@ def main():
             encoding="utf-8",
         )
 
+        last_msg = payload.get("last_assistant_message", "")
+        if last_msg:
+            sys.path.insert(0, str(PROJECT_ROOT))
+            from tools.lib.agent_bus import AgentBus
+            bus = AgentBus(db_path=str(PROJECT_ROOT / "mrowisko.db"))
+            bus.add_conversation_entry(
+                speaker="agent",
+                content=str(last_msg)[:2000],
+                event_type="agent_stop",
+                session_id=session_id,
+                raw_payload=raw[:4000],
+            )
+
     except Exception as e:
         try:
             err_file = PROJECT_ROOT / "tmp" / "hook_stop_error.txt"

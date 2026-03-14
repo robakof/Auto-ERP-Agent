@@ -70,8 +70,8 @@ Na starcie każdej sesji deweloperskiej przeczytaj wszystkie pliki suggestions W
 Dla każdego wpisu:
 1. Oceń: warto wdrożyć / nie warto / wymaga dyskusji
 2. Przedstaw ocenę użytkownikowi — poczekaj na zatwierdzenie przed przeniesieniem
-3. Zatwierdzone → przenieś do `documents/dev/backlog.md`
-4. Przetworzony wpis → przenieś do sekcji Archiwum w odpowiednim pliku suggestions
+3. Zatwierdzone → dodaj do backlogu: `python tools/agent_bus_cli.py backlog-add --title "..." --area <obszar> --content-file tmp/tmp.md`
+4. Przetworzony wpis → oznacz suggestion jako implemented: `python tools/agent_bus_cli.py suggest-status --id <id> --status implemented`
 
 ### Progress Log
 

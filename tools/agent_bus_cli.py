@@ -75,6 +75,12 @@ def cmd_suggest_status(args: argparse.Namespace, bus: AgentBus) -> dict:
     return {"ok": True}
 
 
+def cmd_mark_read(args: argparse.Namespace, bus: AgentBus) -> dict:
+    for msg_id in args.ids:
+        bus.mark_message_read(msg_id)
+    return {"ok": True, "marked": args.ids}
+
+
 def cmd_backlog_add(args: argparse.Namespace, bus: AgentBus) -> dict:
     bid = bus.add_backlog_item(
         title=args.title,
@@ -189,6 +195,10 @@ def build_parser() -> argparse.ArgumentParser:
                       choices=["open", "in_backlog", "rejected", "implemented"])
     p_ss.add_argument("--backlog-id", dest="backlog_id", type=int, default=None)
 
+    # mark-read
+    p_mr = subparsers.add_parser("mark-read", help="Mark messages as read")
+    p_mr.add_argument("--ids", type=int, nargs="+", required=True)
+
     # backlog-add
     p_badd = subparsers.add_parser("backlog-add", help="Add a backlog item")
     p_badd.add_argument("--title", required=True)
@@ -252,6 +262,7 @@ def main():
         "suggest": cmd_suggest,
         "suggestions": cmd_suggestions,
         "suggest-status": cmd_suggest_status,
+        "mark-read": cmd_mark_read,
         "backlog-add": cmd_backlog_add,
         "backlog-add-bulk": cmd_backlog_add_bulk,
         "backlog": cmd_backlog,

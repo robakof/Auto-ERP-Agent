@@ -419,6 +419,14 @@ class AgentBus:
             session_id=session_id,
         )
 
+    def mark_message_read(self, message_id: int) -> None:
+        """Mark a message as read."""
+        self._conn.execute(
+            "UPDATE messages SET status = 'read', read_at = datetime('now') WHERE id = ?",
+            (message_id,),
+        )
+        self._conn.commit()
+
     # --- Trace ---
 
     def add_trace_event(self, session_id: str, tool_name: str, summary: str = None) -> int:
