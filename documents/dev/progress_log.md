@@ -26,7 +26,7 @@
 - BI.Rozrachunki ✓ (`solutions/bi/views/Rozrachunki.sql`) — fallback Stan & 2 usunięty (commit 1b5d245)
 - BI.TwrKarty ✓ (`solutions/bi/views/TwrKarty.sql`) — 66 kolumn, 10 122 wierszy; MRP_Id → CDN.ProdOkresy, Techniczna_Dec1 as-is z komentarzem anomalii
 
-**Następny krok:** Suggestions id=31-35 do przetworzenia; render.py strukturyzowany output (backlog id=69)
+**Następny krok:** render.py strukturyzowany output (backlog id=69, wysoka wartość); trace_live.py (live context monitor); DEVELOPER.md aktualizacja (backlog id=72)
 
 **Nowe narzędzia:**
 - `tools/conversation_search.py` — przeszukiwanie historii rozmów (--list/--query/--session), 15 testów
@@ -47,6 +47,18 @@
 ---
 
 ## Dziennik
+
+### 2026-03-15 — Sprzątanie suggestions + drobne wdrożenia
+
+- `mark-read --all --role` — masowe czyszczenie inboxu (3 testy)
+- `sql_query --export` domyślnie TOP 100k (nie 100); `--export-limit N` nadpisuje
+- `bi_verify` auto-zapis stable export do `solutions/bi/{Widok}/{Widok}_export.xlsx` gdy katalog istnieje (2 testy)
+- Workflow Faza 4: `agent_bus flag` jako mechanizm eskalacji do DBA (zamiast "przekaż")
+- Suggestions: 25 → 0 otwartych (implemented/rejected/in_backlog)
+- Nowe backlog: id=71 (analytics dashboard Power BI), id=72 (DEVELOPER.md sugestie), id=73 (ERP schema FZK kolejność prefiksów)
+- Wiadomość do ERP Specialist: korekta prefiksów FZK w ERP_SCHEMA_PATTERNS
+
+---
 
 ### 2026-03-15 — Moduł trace ZAKOŃCZONY
 
