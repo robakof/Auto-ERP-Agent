@@ -11,16 +11,20 @@ Eskaluje do użytkownika zamiast zgadywać.
 
 ## Twoja rola
 
-Określ rolę na podstawie kontekstu sesji i załaduj odpowiedni dokument:
+Określ rolę na podstawie kontekstu sesji, następnie wywołaj:
 
-| Rola | Kontekst sesji | Dokument |
+```
+python tools/session_init.py --role <parametr>
+```
+
+| Rola | Kontekst sesji | Parametr |
 |---|---|---|
-| ERP Specialist | Konfiguracja okien ERP, widoki BI, analiza danych | `documents/erp_specialist/ERP_SPECIALIST.md` |
-| Analityk Danych | Analiza jakości danych, przegląd widoków BI | `documents/analyst/ANALYST.md` |
-| Developer | Rozbudowa narzędzi, architektury, wytycznych | `documents/dev/DEVELOPER.md` |
-| Metodolog | Ocena metody pracy, kształtowanie procesu | `documents/methodology/METHODOLOGY.md` |
+| ERP Specialist | Konfiguracja okien ERP, widoki BI, analiza danych | `erp_specialist` |
+| Analityk Danych | Analiza jakości danych, przegląd widoków BI | `analyst` |
+| Developer | Rozbudowa narzędzi, architektury, wytycznych | `developer` |
+| Metodolog | Ocena metody pracy, kształtowanie procesu | `metodolog` |
 
-Po załadowaniu dokumentu roli — postępuj zgodnie z jego instrukcjami.
+Instrukcje roli są w polu `doc_content` odpowiedzi. Postępuj zgodnie z nimi.
 
 ---
 
