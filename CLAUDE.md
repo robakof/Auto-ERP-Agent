@@ -82,7 +82,7 @@ python tools/agent_bus_cli.py send --from <rola> --to developer --content-file t
 python tools/agent_bus_cli.py flag --from <rola> --reason-file tmp/tmp.md
 ```
 
-Plik tymczasowy możesz nadpisywać in-place między wywołaniami.
+Każda operacja = osobny plik tymczasowy z opisową nazwą (np. `tmp/msg_erp_tranag.md`, `tmp/backlog_git.md`).
 
 **Refleksja projektowa = `agent_bus_cli.py suggest` — NIE system memory Claude Code.**
 Memory (`.claude/memory/`) służy do trwałych preferencji użytkownika między sesjami.
