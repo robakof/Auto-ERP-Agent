@@ -160,7 +160,7 @@ Zatwierdzony plan kolumn przed napisaniem SQL.
    python tools/excel_export.py "SELECT ..." --output "solutions/bi/{NazwaWidoku}/{NazwaWidoku}_plan.xlsx"
    ```
    Kolumny planu: `Kolejnosc`, `CDN_Pole`, `Opis_w_dokumentacji`, `Przykladowe_wartosci`,
-   `Alias_w_widoku`, `Transformacja`, `Uwzglednic`, `Uzasadnienie`, `Komentarz_Usera`.
+   `Alias_w_widoku`, `Transformacja`, `Uwzglednic`, `Uzasadnienie`, `Komentarz_Analityka`.
 
 5. Wyślij plan do Analityka:
    ```bash
@@ -189,7 +189,7 @@ Zatwierdzony plan kolumn przed napisaniem SQL.
    ```bash
    python tools/excel_read_rows.py \
      --file "solutions/bi/{NazwaWidoku}/{NazwaWidoku}_plan.xlsx" \
-     --columns CDN_Pole,Uwzglednic,Transformacja,Alias_w_widoku,Komentarz_Usera
+     --columns CDN_Pole,Uwzglednic,Transformacja,Alias_w_widoku,Komentarz_Analityka
    ```
 
 2. Weryfikacja konwencji — sprawdź każdy punkt:
@@ -249,10 +249,10 @@ Iteracyjne budowanie SELECT w pliku roboczym. SQL powstaje i żyje wyłącznie w
 ### Steps
 
 1. Po odczycie zatwierdzonego planu — przeskanuj pod kątem niespójności PRZED generowaniem SQL:
-   - `Komentarz_Usera` wypełniony
-   - `Uwzglednic=Nie` przy niepustym `Komentarz_Usera`
+   - `Komentarz_Analityka` wypełniony
+   - `Uwzglednic=Nie` przy niepustym `Komentarz_Analityka`
    - `Transformacja` wygląda na niekompletną
-   Przedstaw listę userowi. Dopiero po potwierdzeniu przystąp do SQL.
+   Niespójności zamknij z Analitykiem — nie angażuj usera.
 
 2. Generuj SQL w brudnopisie `{NazwaWidoku}_draft.sql`:
    - Nie wrzucaj długich SELECT do czatu

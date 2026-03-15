@@ -84,6 +84,10 @@ python tools/agent_bus_cli.py flag --from <rola> --reason-file tmp/tmp.md
 
 Plik tymczasowy możesz nadpisywać in-place między wywołaniami.
 
+**Refleksja projektowa = `agent_bus_cli.py suggest` — NIE system memory Claude Code.**
+Memory (`.claude/memory/`) służy do trwałych preferencji użytkownika między sesjami.
+Obserwacje, wnioski z pracy → wyłącznie `agent_bus suggest`.
+
 ### Eskalacja między poziomami
 
 Projekt działa na trzech poziomach (Wykonawcy / Developer / Metodolog).

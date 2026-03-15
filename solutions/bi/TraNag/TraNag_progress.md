@@ -1,113 +1,115 @@
-## Status: Faza 1a — Plan wysłany do Analityka (czeka na recenzję)
+## Status: Faza 2 — draft SQL gotowy, eksport wykonany
 
-**Tabela główna:** CDN.TraNag (nagłówki dokumentów handlowych)
-**Baseline:** COUNT(*) = 223 936, COUNT(DISTINCT TrN_GIDNumer) = 223 936
+**Tabela główna:** CDN.TraNag (naglowki dokumentow handlowych)
+**Baseline:** COUNT(*) = 223 984, COUNT(DISTINCT TrN_GIDNumer) = 223 984
+(baza urosla o 48 rekordow od czasu discovery — poprzedni baseline: 223 936)
 
 ---
 
-## Typy dokumentów (TrN_GIDTyp — wszystkie zweryfikowane w CDN.Obiekty)
+## Typy dokumentow (TrN_GIDTyp — wszystkie zweryfikowane w CDN.Obiekty)
 
-| GIDTyp | Skrót | Nazwa PL | n |
+| GIDTyp | Skrot | Nazwa PL | n |
 |--------|-------|----------|---|
 | 2034 | PA | Paragon | 137367 |
-| 2033 | FS | Faktura sprzedaży | 19405 |
-| 1617 | PW | Przychód wewnętrzny | 19014 |
-| 2001 | WZ | Wydanie zewnętrzne | 11349 |
+| 2033 | FS | Faktura sprzedazy | 19405 |
+| 1617 | PW | Przychod wewnetrzny | 19014 |
+| 2001 | WZ | Wydanie zewnetrzne | 11349 |
 | 1521 | FZ | Faktura zakupu | 10674 |
-| 2009 | WZK | Korekta wydania zewnętrznego | 5467 |
-| 1603 | MMW | Przesunięcie międzymagazynowe wydanie | 4628 |
-| 1604 | MMP | Przesunięcie międzymagazynowe przyjęcie | 4590 |
-| 1616 | RW | Rozchód wewnętrzny | 3747 |
-| 2041 | FSK | Korekta faktury sprzedaży | 3413 |
+| 2009 | WZK | Korekta wydania zewnetrznego | 5467 |
+| 1603 | MMW | Przesuniecie miedzymagazynowe wydanie | 4628 |
+| 1604 | MMP | Przesuniecie miedzymagazynowe przyjecie | 4590 |
+| 1616 | RW | Rozchod wewnetrzny | 3747 |
+| 2041 | FSK | Korekta faktury sprzedazy | 3413 |
 | 2003 | KK | Korekta kosztu | 1367 |
-| 1489 | PZ | Przyjęcie zewnętrzne | 1141 |
-| 1497 | PZK | Korekta przyjęcia zewnętrznego | 828 |
-| 1625 | PWK | Korekta przychodu wewnętrznego | 250 |
+| 1489 | PZ | Przyjecie zewnetrzne | 1141 |
+| 1497 | PZK | Korekta przyjecia zewnetrznego | 828 |
+| 1625 | PWK | Korekta przychodu wewnetrznego | 250 |
 | 1529 | FZK | Korekta faktury zakupu | 229 |
 | 2042 | PAK | Korekta paragonu | 204 |
 | 2037 | FSE | Faktura eksportowa | 70 |
 | 2013 | WKE | Korekta wydania eksportowego | 57 |
-| 2005 | WZE | Wydanie zewnętrzne eksportowe | 57 |
-| 1624 | RWK | Korekta rozchodu wewnętrznego | 34 |
-| 2039 | RS | Raport sprzedaży | 14 |
+| 2005 | WZE | Wydanie zewnetrzne eksportowe | 57 |
+| 1624 | RWK | Korekta rozchodu wewnetrznego | 34 |
+| 2039 | RS | Raport sprzedazy | 14 |
 | 2045 | FKE | Korekta faktury eksportowej | 13 |
 | 2035 | RA | Faktura do paragonu | 9 |
 | 2004 | DP | Deprecjacja | 5 |
 | 1232 | KDZ | Koszt dodatkowy zakupu | 4 |
+
+## JOINy ustalone
+
+- CDN.KntKarty knt — LEFT JOIN na TrN_KntNumer + TrN_KntTyp + KntNumer>0
+- CDN.KntKarty knd — LEFT JOIN na TrN_KnDNumer + TrN_KnDTyp + KnDNumer>0
+- CDN.KntKarty akw_knt — LEFT JOIN gdy TrN_AkwTyp=32 (dominujacy typ)
+- CDN.PrcKarty akw_prc — LEFT JOIN gdy TrN_AkwTyp=944 (2 rekordy)
+- CDN.Magazyny mag_z — LEFT JOIN na TrN_MagZNumer>0
+- CDN.Magazyny mag_d — LEFT JOIN na TrN_MagDNumer>0
+- CDN.OpeKarty ope_w/z/r/m — LEFT JOIN na TrN_OpeNumerX>0
+- CDN.PrcKarty prc_opi — LEFT JOIN gdy TrN_OpiTyp=944 + TrN_OpiNumer>0
+
+## Odchylenie od planu (zatwierdzone przez usera 2026-03-15)
+
+Plan zakladal: Akwizytor_Login z CDN.OpeKarty gdy TrN_AkwTyp=128
+Dane rzeczywiste: TrN_AkwTyp IN (0=175520, 32=48461, 944=2) — typ 128 nie wystepuje
+Implementacja: Akwizytor_Akronim = COALESCE(akw_knt.Knt_Akronim, akw_prc.Prc_Akronim)
+
+## Weryfikacja eksportu (2026-03-15)
+
+| Kolumna | Distinct | Null | OK |
+|---------|----------|------|----|
+| Typ_Dok | 25 | 0 | tak |
+| Stan_Dok | 6 | 0 | tak |
+| Aktywny_Dok | 2 | 0 | tak |
+| Numer_Dokumentu | 223605 | 0 | tak* |
+| Data_Wystawienia | 1052 | 3 | tak |
+| Forma_Platnosci | 3 | 33606 | tak |
+| Waluta | 3 | 0 | tak |
+| Rejestr_VAT | 2 | 190723 | tak |
+| VAT_Od | 2 | 0 | tak |
+| Kontrahent_Akronim | 2856 | 171091 | tak |
+| Login_Operatora_Wyst | 33 | 0 | tak |
+| Mag_Zrodlowy_Symbol | 20 | 8039 | tak |
+| Opiekun_Akronim | 6 | 207359 | tak |
+| Akwizytor_Akronim | 16 | 175829 | tak |
+| Kurs_Walutowy | 44 | 223929 | tak |
+
+*Numer_Dokumentu: 379 duplikatow (223984 - 223605) — zjawisko danych (ten sam numer
+ w roznych typach dokumentow), nie blad SQL.
 
 ## Typy FK (CDN.Obiekty)
 
 - 864 = Adres kontrahenta (podstawowy)
 - 896 = Adres kontrahenta (inny)
 - 944 = Pracownik
-- 752 = Rejestr kasowy
-- 449 = Schemat księgowania
 - 32 = Kontrahent (KntKarty)
 - 208 = Magazyn
 - 128 = Operator (OpeKarty)
 
 ## Pola datowe
 
-| Kolumna | Typ | Min | Max | Wzorzec |
-|---------|-----|-----|-----|---------|
-| TrN_Data2 | Clarion DATE | 74218 | 1908212 | BETWEEN 1 AND 109211 (sentinel) |
-| TrN_Data3 | Clarion DATE | 74218 | 1908229 | BETWEEN 1 AND 109211 (sentinel) |
-| TrN_Termin | Clarion DATE | 1 | 1908213 | BETWEEN 1 AND 109211 (sentinel) |
-| TrN_DataMag | Clarion DATE | 81237 | 1908225 | BETWEEN 1 AND 109211 (sentinel) |
-| TrN_DataRoz | Clarion DATE | >0 | 1908212 | BETWEEN 1 AND 109211 (sentinel) |
-| TrN_DataPO | Clarion DATE | >0 | 1908229 | BETWEEN 1 AND 109211 (sentinel) |
-| TrN_DataWplywu | Clarion DATE | 81237 | 1177607 | BETWEEN 1 AND 109211 (sentinel) |
-| TrN_DataWysylki | Clarion DATE | >0 | 183153 | BETWEEN 1 AND 109211 (sentinel) |
-| TrN_DataOdprawyPotwierdzenia | Clarion DATE | >0 | 99932 | CASE WHEN col=0 THEN NULL (brak sentinela) |
-| TrN_DataWystOrg | Clarion DATE | >0 | 82247 | CASE WHEN col=0 THEN NULL |
-| TrN_DataSprOrg | Clarion DATE | >0 | 82247 | CASE WHEN col=0 THEN NULL |
-| TrN_DataOdKor | Clarion DATE | >0 | 82247 | CASE WHEN col=0 THEN NULL |
-| TrN_DataDoKor | Clarion DATE | >0 | 82247 | CASE WHEN col=0 THEN NULL |
-| TrN_LastMod | Clarion TIMESTAMP | ~10^9 | ~2*10^9 | DATEADD(ss, col, '1990-01-01') |
-
-## TrN_Stan (zweryfikowane z dokumentacją)
-
-0=edycja po dodaniu, 1=bufor, 2=po edycji w buforze, 3=zatwierdzona/nierozliczona,
-4=po edycji płatności, 5=rozliczona, 6=anulowana
-
-## TrN_TrNLp — WAŻNE
-
-TrN_TrNLp = 127 → dokument aktywny; <>127 → anulowany (np. 1, 2, 3...)
-Brak filtru WHERE na TrN_TrNLp w widoku — raportujemy wszystko, kolumna Aktywny_Dok.
-
-## Numery dokumentów
-
-CZEKA NA USERA — przekazano TraNag_objects.sql
-Format: RTRIM(Seria) + '/' + Numer + '/' + Rok (YY czy YYYY — do potwierdzenia)
-Prefiks (Z)/(A)/(s) — wzorzec z ERP_SCHEMA_PATTERNS.md (zweryfikowany wcześniej dla TraNag)
-
-## Stałe (pomiń w widoku — distinct=1)
-
-TrN_GIDFirma, TrN_GIDLp, TrN_ZwrLp, TrN_SpiLp, TrN_RelLp, TrN_KntLp, TrN_KnALp,
-TrN_AkwLp, TrN_AdWLp, TrN_SchTyp/Firma/Numer/Lp, TrN_SaNTyp/Firma/Numer/Lp,
-TrN_KonLp, TrN_TKTyp/Firma/Numer/Lp, TrN_Dziennik, TrN_FormaRabat, TrN_Zaokraglenie,
-TrN_Zaksiegowano, TrN_DataKsiegowania, TrN_LicznikKopii, TrN_MagZLp, TrN_MagDLp,
-TrN_OpeTypW, TrN_OpeFirmaW, TrN_OpeLpW/Z/R/M, TrN_OdoLp, TrN_Detal,
-TrN_DokumentObcyCharset, TrN_RabatW, TrN_MiejsceZaladunku, TrN_MiejscePrzeznaczenia,
-TrN_RodzajTransportu, TrN_InfoDlaUC, TrN_Waga, TrN_NumerSAD, TrN_OpeTypM, TrN_OpeFirmaM,
-TrN_IncotermsMiejsce, TrN_WagaBrutto, TrN_DataOdb, TrN_OpiLp, TrN_KarLp, TrN_KnDLp,
-TrN_Wyslano, TrN_Promocje, TrN_PotwierdzenieOdbioru, TrN_RabatPromocyjnyGlobalny,
-TrN_ZwroconoCalaIlosc, TrN_TerminRozliczeniaKaucji, TrN_OddZakazPAFA, TrN_WsSCHNumer,
-TrN_WsStosujSchemat, TrN_WsDziennik, TrN_WsStosujDziennik, TrN_PrjId, TrN_KnSTypD/Firma/Numer/Lp,
-TrN_KnSTypP/Firma/Numer/Lp, TrN_FrmNumer, TrN_PrzywracajRezerwacje, TrN_FormatkaCyr,
-TrN_WtrID, TrN_WtrProgID, TrN_RodzajKor, TrN_VatZDPeDNumer, TrN_VatZDPeDLp,
-TrN_DataDostawy, TrN_WMS, TrN_VATNalOd, TrN_OpeTypZM/NumerZM/TStampZM,
-TrN_OpeTypZFR/NumerZFR/TStampZFR, TrN_ZatwMerytorycznie, TrN_ZatwFormalnoRach,
-TrN_DataWplywuFA, TrN_PodzialPlatNiePytaj, TrN_ProceduraUproszcz, TrN_MPP,
-TrN_JestLimitCelowy, TrN_OplataSpozFlaga, TrN_UmNId, TrN_ProceduraOSS,
-TrN_RozliczacVIU, TrN_KorektaVIU, TrN_KrajWydania, TrN_KrajWydIdentPod,
-TrN_KrajWydIdentPodVAT, TrN_KSeFWyslij, TrN_KSeFNumerOrg, TrN_GodzinaWystawienia (is_useful=Nie)
+| Kolumna | Typ | Sentinel | OK |
+|---------|-----|----------|----|
+| TrN_Data2 | Clarion DATE | BETWEEN 1 AND 109211 | tak |
+| TrN_Data3 | Clarion DATE | BETWEEN 1 AND 109211 | tak |
+| TrN_Termin | Clarion DATE | BETWEEN 1 AND 109211 | tak |
+| TrN_DataMag | Clarion DATE | BETWEEN 1 AND 109211 | tak |
+| TrN_DataRoz | Clarion DATE | BETWEEN 1 AND 109211 | tak |
+| TrN_DataPO | Clarion DATE | BETWEEN 1 AND 109211 | tak |
+| TrN_DataWplywu | Clarion DATE | BETWEEN 1 AND 109211 | tak |
+| TrN_DataWysylki | Clarion DATE | BETWEEN 1 AND 109211 | tak |
+| TrN_DataOdprawyPotwierdzenia | Clarion DATE | 0=NULL | tak |
+| TrN_DataWystOrg | Clarion DATE | 0=NULL | tak |
+| TrN_DataSprOrg | Clarion DATE | 0=NULL | tak |
+| TrN_DataOdKor | Clarion DATE | 0=NULL | tak |
+| TrN_DataDoKor | Clarion DATE | 0=NULL | tak |
+| TrN_LastMod | Clarion TIMESTAMP | DATEADD(ss,...'1990-01-01') | tak |
 
 ## Pliki
 
 - Brudnopis: solutions/bi/TraNag/TraNag_draft.sql
-- Numeracja: solutions/bi/TraNag/TraNag_objects.sql → CZEKA NA USERA
+- Plan: solutions/bi/TraNag/TraNag_plan.xlsx
+- Eksport: solutions/bi/TraNag/TraNag_export.xlsx (aktualizacja 2026-03-15)
 
-## Następny krok
+## Nastepny krok
 
-Po otrzymaniu wyniku TraNag_objects.sql od usera → budowanie planu (Faza 1a)
+Analityk recenzuje eksport (Faza 3). Po zatwierdzeniu → solutions_save_view.py → DBA.
