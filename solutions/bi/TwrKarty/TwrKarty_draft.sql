@@ -88,9 +88,9 @@ SELECT
 
     -- === DATY MODYFIKACJI (Clarion TIMESTAMP; LastModO usunięty — ≈ duplikat DataUtworzenia) ===
     CASE WHEN t.Twr_LastModL = 0 THEN NULL
-         ELSE DATEADD(ss, t.Twr_LastModL, '1990-01-01') END    AS Data_Modyfikacji_L,
+         ELSE DATEADD(ss, t.Twr_LastModL, '1990-01-01') END    AS DataCzas_Modyfikacji_L,
     CASE WHEN t.Twr_LastModC = 0 THEN NULL
-         ELSE DATEADD(ss, t.Twr_LastModC, '1990-01-01') END    AS Data_Modyfikacji_C,
+         ELSE DATEADD(ss, t.Twr_LastModC, '1990-01-01') END    AS DataCzas_Modyfikacji_C,
 
     -- === ZAKUP ===
     CASE t.Twr_ZakupAutoryz

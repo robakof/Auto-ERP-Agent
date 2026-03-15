@@ -236,9 +236,9 @@ SELECT
     CASE WHEN n.ZaN_LimitKredytowyWaznyDo > 0
         THEN CAST(DATEADD(d, n.ZaN_LimitKredytowyWaznyDo, '18001228') AS DATE) END AS Limit_Kredytowy_Wazny_Do,
     CASE WHEN n.ZaN_LastMod > 0
-        THEN CAST(DATEADD(ss, n.ZaN_LastMod, '1990-01-01') AS DATETIME) END AS Data_Ostatniej_Modyfikacji,
+        THEN CAST(DATEADD(ss, n.ZaN_LastMod, '1990-01-01') AS DATETIME) END AS DataCzas_Ostatniej_Modyfikacji,
     CASE WHEN n.ZaN_OstatniaModyfikacjaPOS > 0
-        THEN CAST(DATEADD(ss, n.ZaN_OstatniaModyfikacjaPOS, '1990-01-01') AS DATETIME) END AS Data_Ostatniej_Modyfikacji_POS,
+        THEN CAST(DATEADD(ss, n.ZaN_OstatniaModyfikacjaPOS, '1990-01-01') AS DATETIME) END AS DataCzas_Ostatniej_Modyfikacji_POS,
 
     -- === REALIZACJA ===
     CASE n.ZaN_RealWCalosci

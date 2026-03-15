@@ -246,11 +246,11 @@ SELECT
         THEN DATEADD(d, k.Knt_DataDoLoj, '18001228') END           AS Data_Lojalnosci_Do,
     -- LastMod — Clarion TIMESTAMP: DATEADD(ss, col, '1990-01-01')
     CASE WHEN k.Knt_LastModL > 0
-        THEN DATEADD(ss, k.Knt_LastModL, '1990-01-01') END         AS Data_Ostatniej_Modyfikacji,
+        THEN DATEADD(ss, k.Knt_LastModL, '1990-01-01') END         AS DataCzas_Ostatniej_Modyfikacji,
     CASE WHEN k.Knt_LastModO > 0
-        THEN DATEADD(ss, k.Knt_LastModO, '1990-01-01') END         AS Data_Modyfikacji_Operator,
+        THEN DATEADD(ss, k.Knt_LastModO, '1990-01-01') END         AS DataCzas_Modyfikacji_Operator,
     CASE WHEN k.Knt_LastModC > 0
-        THEN DATEADD(ss, k.Knt_LastModC, '1990-01-01') END         AS Data_Modyfikacji_Kontrahent,
+        THEN DATEADD(ss, k.Knt_LastModC, '1990-01-01') END         AS DataCzas_Modyfikacji_Kontrahent,
     -- Knt_EFaVatDataDo: wartości >109211 (np. 117976, 150483) = sentinel "bezterminowo"
     CASE
         WHEN k.Knt_EFaVatDataDo BETWEEN 1 AND 109211

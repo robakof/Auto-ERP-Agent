@@ -96,12 +96,12 @@ SELECT
     r.Rez_IloscMag                                             AS Ilosc_Na_Dok_Mag,
 
     -- === DATY ===
-    CASE WHEN r.Rez_TStamp        = 0 THEN NULL ELSE DATEADD(ss, r.Rez_TStamp,        '1990-01-01') END AS Data_Modyfikacji,
+    CASE WHEN r.Rez_TStamp        = 0 THEN NULL ELSE DATEADD(ss, r.Rez_TStamp,        '1990-01-01') END AS DataCzas_Modyfikacji,
     CASE WHEN r.Rez_DataRealizacji = 0 THEN NULL ELSE DATEADD(d,  r.Rez_DataRealizacji,'18001228')   END AS Data_Realizacji,
     CASE WHEN r.Rez_DataWaznosci   = 0 THEN NULL ELSE DATEADD(d,  r.Rez_DataWaznosci,  '18001228')   END AS Data_Waznosci,
     CASE WHEN r.Rez_DataAktywacji  = 0 THEN NULL ELSE DATEADD(d,  r.Rez_DataAktywacji, '18001228')   END AS Data_Aktywacji,
     CASE WHEN r.Rez_DataPotwDst    = 0 THEN NULL ELSE DATEADD(d,  r.Rez_DataPotwDst,   '18001228')   END AS Data_Potwierdzenia_Dostawy,
-    CASE WHEN r.Rez_DataRezerwacji = 0 THEN NULL ELSE DATEADD(ss, r.Rez_DataRezerwacji,'1990-01-01') END AS Data_Rezerwacji,
+    CASE WHEN r.Rez_DataRezerwacji = 0 THEN NULL ELSE DATEADD(ss, r.Rez_DataRezerwacji,'1990-01-01') END AS DataCzas_Rezerwacji,
 
     -- === STATUSY ===
     CASE r.Rez_Aktywna
