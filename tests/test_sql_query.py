@@ -156,3 +156,33 @@ class TestMain:
                 sq.main()
         out = capsys.readouterr().out.strip()
         assert out == "OK 5"
+
+    def test_export_limit_passes_inject_top(self, tmp_path, capsys):
+        export_path = tmp_path / "out.xlsx"
+        mock_conn, _ = make_mock_conn(["n"], [[i] for i in range(5)])
+        with patch("sys.argv", ["sql_query.py", "SELECT n FROM t",
+                                "--export", str(export_path), "--export-limit", "100000"]):
+            with patch.object(SqlClient, "get_connection", return_value=mock_conn):
+                with patch.object(SqlClient, "execute", wraps=None) as mock_exec:
+                    mock_exec.return_value = {
+                        "ok": True, "rows": [[i] for i in range(5)],
+                        "columns": ["n"], "row_count": 5,
+                        "duration_ms": 10, "truncated": False,
+                    }
+                    sq.main()
+                    called_inject_top = mock_exec.call_args[1].get("inject_top") or mock_exec.call_args[0][1]
+                    assert called_inject_top == 100000
+
+    def test_export_limit_ignored_without_export(self, capsys):
+        mock_conn, _ = make_mock_conn(["n"], [[1]])
+        with patch("sys.argv", ["sql_query.py", "SELECT n FROM t", "--export-limit", "50000"]):
+            with patch.object(SqlClient, "get_connection", return_value=mock_conn):
+                sq.main()
+        result = json.loads(capsys.readouterr().out)
+        assert result["ok"] is True  # runs fine, limit just not applied
+
+    def test_run_query_accepts_inject_top_param(self):
+        mock_conn, _ = make_mock_conn(["n"], [[1]])
+        with patch.object(SqlClient, "get_connection", return_value=mock_conn):
+            result = sq.run_query("SELECT n FROM t", inject_top=100000)
+        assert result["ok"] is True

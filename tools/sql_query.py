@@ -4,11 +4,12 @@ sql_query.py — Narzędzie agenta: wykonywanie zapytań SELECT na SQL Server ER
 CLI:
     python tools/sql_query.py "SELECT TOP 5 ZaN_GIDNumer FROM CDN.ZamNag"
     python tools/sql_query.py --file SCIEZKA.sql [--export SCIEZKA.xlsx]
-                              [--count-only] [--quiet]
+                              [--export-limit N] [--count-only] [--quiet]
 
 Flagi:
-    --count-only  Pomiń kolumnę rows w odpowiedzi (tylko row_count + columns)
-    --quiet       Wypisz OK {n} lub ERROR: komunikat zamiast JSON
+    --count-only      Pomiń kolumnę rows w odpowiedzi (tylko row_count + columns)
+    --quiet           Wypisz OK {n} lub ERROR: komunikat zamiast JSON
+    --export-limit N  Ogranicz eksport do N wierszy (dla dużych tabel, np. TraNag 224k)
 
 Output: JSON na stdout zgodny z kontraktem narzędzi agenta.
 """
@@ -25,8 +26,8 @@ from tools.lib.output import print_json
 from tools.lib.sql_client import SqlClient
 
 
-def run_query(sql: str) -> dict:
-    result = SqlClient().execute(sql, inject_top=100)
+def run_query(sql: str, inject_top: int = 100) -> dict:
+    result = SqlClient().execute(sql, inject_top=inject_top)
     if not result["ok"]:
         return {
             "ok": False,
@@ -67,6 +68,8 @@ def main():
     parser.add_argument("sql", nargs="?", default=None, help="Zapytanie SELECT (inline)")
     parser.add_argument("--file", "-f", default=None, help="Ścieżka do pliku .sql z zapytaniem")
     parser.add_argument("--export", "-e", default=None, help="Eksportuj wynik do pliku .xlsx")
+    parser.add_argument("--export-limit", type=int, default=None, dest="export_limit",
+                        help="Ogranicz eksport do N wierszy (np. 100000 dla dużych tabel)")
     parser.add_argument("--count-only", action="store_true", help="Pomiń rows w odpowiedzi")
     parser.add_argument("--quiet", action="store_true", help="Wypisz OK {n} lub ERROR: komunikat")
     args = parser.parse_args()
@@ -91,7 +94,8 @@ def main():
         })
         return
 
-    result = run_query(sql)
+    inject_top = args.export_limit if (args.export and args.export_limit) else 100
+    result = run_query(sql, inject_top=inject_top)
 
     if result["ok"] and args.export:
         _export_to_excel(result, Path(args.export))
