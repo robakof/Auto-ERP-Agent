@@ -1,115 +1,82 @@
-## Status: Faza 2 — draft SQL gotowy, eksport wykonany
+## Status: Faza 2 — uzupelnienia v2 w toku, eksport NIE wykonany
 
-**Tabela główna:** CDN.TraNag (naglowki dokumentow handlowych)
-**Baseline:** COUNT(*) = 223 984, COUNT(DISTINCT TrN_GIDNumer) = 223 984
-(baza urosla o 48 rekordow od czasu discovery — poprzedni baseline: 223 936)
+**Tabela główna:** CDN.TraNag
+**Baseline:** COUNT(*) = 224 000 (rośnie w czasie sesji — baza produkcyjna)
 
 ---
 
-## Typy dokumentow (TrN_GIDTyp — wszystkie zweryfikowane w CDN.Obiekty)
+## Co zostało zrobione w tej sesji
 
-| GIDTyp | Skrot | Nazwa PL | n |
-|--------|-------|----------|---|
-| 2034 | PA | Paragon | 137367 |
-| 2033 | FS | Faktura sprzedazy | 19405 |
-| 1617 | PW | Przychod wewnetrzny | 19014 |
-| 2001 | WZ | Wydanie zewnetrzne | 11349 |
-| 1521 | FZ | Faktura zakupu | 10674 |
-| 2009 | WZK | Korekta wydania zewnetrznego | 5467 |
-| 1603 | MMW | Przesuniecie miedzymagazynowe wydanie | 4628 |
-| 1604 | MMP | Przesuniecie miedzymagazynowe przyjecie | 4590 |
-| 1616 | RW | Rozchod wewnetrzny | 3747 |
-| 2041 | FSK | Korekta faktury sprzedazy | 3413 |
-| 2003 | KK | Korekta kosztu | 1367 |
-| 1489 | PZ | Przyjecie zewnetrzne | 1141 |
-| 1497 | PZK | Korekta przyjecia zewnetrznego | 828 |
-| 1625 | PWK | Korekta przychodu wewnetrznego | 250 |
-| 1529 | FZK | Korekta faktury zakupu | 229 |
-| 2042 | PAK | Korekta paragonu | 204 |
-| 2037 | FSE | Faktura eksportowa | 70 |
-| 2013 | WKE | Korekta wydania eksportowego | 57 |
-| 2005 | WZE | Wydanie zewnetrzne eksportowe | 57 |
-| 1624 | RWK | Korekta rozchodu wewnetrznego | 34 |
-| 2039 | RS | Raport sprzedazy | 14 |
-| 2045 | FKE | Korekta faktury eksportowej | 13 |
-| 2035 | RA | Faktura do paragonu | 9 |
-| 2004 | DP | Deprecjacja | 5 |
-| 1232 | KDZ | Koszt dodatkowy zakupu | 4 |
+1. Draft v1 (68 kolumn) — zatwierdzony przez Analityka (msg id=64, 2026-03-15 11:51)
+2. User zażądał 5 uzupełnień:
+   - Numer_Dok_Korygowanego (self-join CDN.TraNag jako `zwrot`)
+   - Adres_Kontrahenta (CDN.KntAdresy kna_k)
+   - Adres_Wysylki (CDN.KntAdresy kna_w)
+   - Numer_Zamowienia (CDN.ZamNag zam, format ZS-N/MM/YY/Seria)
+   - Nazwa_Cennika (CDN.TwrCenyNag CTE CenBase — MIN(TCN_Id) per TCN_RodzajCeny)
+3. Draft v2 zapisany: solutions/bi/TraNag/TraNag_draft.sql
+4. COUNT(*) draftu v2 = 224 000 = baseline (JOINy nie mnożą) ✓
+5. Eksport v2 NIE wykonany — sesja przerwana z powodu limitu kontekstu
 
-## JOINy ustalone
+---
 
-- CDN.KntKarty knt — LEFT JOIN na TrN_KntNumer + TrN_KntTyp + KntNumer>0
-- CDN.KntKarty knd — LEFT JOIN na TrN_KnDNumer + TrN_KnDTyp + KnDNumer>0
-- CDN.KntKarty akw_knt — LEFT JOIN gdy TrN_AkwTyp=32 (dominujacy typ)
-- CDN.PrcKarty akw_prc — LEFT JOIN gdy TrN_AkwTyp=944 (2 rekordy)
-- CDN.Magazyny mag_z — LEFT JOIN na TrN_MagZNumer>0
-- CDN.Magazyny mag_d — LEFT JOIN na TrN_MagDNumer>0
-- CDN.OpeKarty ope_w/z/r/m — LEFT JOIN na TrN_OpeNumerX>0
-- CDN.PrcKarty prc_opi — LEFT JOIN gdy TrN_OpiTyp=944 + TrN_OpiNumer>0
+## Odchylenia od planu (zatwierdzone przez usera)
 
-## Odchylenie od planu (zatwierdzone przez usera 2026-03-15)
+- Akwizytor_Login → Akwizytor_Akronim
+  Plan: OpeKarty/typ128 — typ 128 nie wystepuje w danych
+  Dane: TrN_AkwTyp=32 (48461, KntKarty), TrN_AkwTyp=944 (2, PrcKarty)
+  Impl: COALESCE(akw_knt.Knt_Akronim, akw_prc.Prc_Akronim)
 
-Plan zakladal: Akwizytor_Login z CDN.OpeKarty gdy TrN_AkwTyp=128
-Dane rzeczywiste: TrN_AkwTyp IN (0=175520, 32=48461, 944=2) — typ 128 nie wystepuje
-Implementacja: Akwizytor_Akronim = COALESCE(akw_knt.Knt_Akronim, akw_prc.Prc_Akronim)
+---
 
-## Weryfikacja eksportu (2026-03-15)
+## Nowe JOINy w v2
 
-| Kolumna | Distinct | Null | OK |
-|---------|----------|------|----|
-| Typ_Dok | 25 | 0 | tak |
-| Stan_Dok | 6 | 0 | tak |
-| Aktywny_Dok | 2 | 0 | tak |
-| Numer_Dokumentu | 223605 | 0 | tak* |
-| Data_Wystawienia | 1052 | 3 | tak |
-| Forma_Platnosci | 3 | 33606 | tak |
-| Waluta | 3 | 0 | tak |
-| Rejestr_VAT | 2 | 190723 | tak |
-| VAT_Od | 2 | 0 | tak |
-| Kontrahent_Akronim | 2856 | 171091 | tak |
-| Login_Operatora_Wyst | 33 | 0 | tak |
-| Mag_Zrodlowy_Symbol | 20 | 8039 | tak |
-| Opiekun_Akronim | 6 | 207359 | tak |
-| Akwizytor_Akronim | 16 | 175829 | tak |
-| Kurs_Walutowy | 44 | 223929 | tak |
+| Alias | Tabela | Warunek |
+|-------|--------|---------|
+| zwrot | CDN.TraNag | zwrot.TrN_GIDNumer = n.TrN_ZwrNumer AND n.TrN_ZwrNumer > 0 |
+| kna_k | CDN.KntAdresy | kna_k.KnA_GIDNumer = n.TrN_KnANumer AND n.TrN_KnANumer > 0 |
+| kna_w | CDN.KntAdresy | kna_w.KnA_GIDNumer = n.TrN_AdWNumer AND n.TrN_AdWNumer > 0 |
+| zam   | CDN.ZamNag    | zam.ZaN_GIDNumer = n.TrN_ZaNNumer AND n.TrN_ZaNNumer > 0 |
+| CenBase (CTE) | CDN.TwrCenyNag | TCN_RodzajCeny = n.TrN_CenaSpr AND n.TrN_CenaSpr > 0 |
 
-*Numer_Dokumentu: 379 duplikatow (223984 - 223605) — zjawisko danych (ten sam numer
- w roznych typach dokumentow), nie blad SQL.
+Numer_Dok_Korygowanego: bez prefiksu (Z) — wymagalby kolejnego EXISTS subquery.
+Obejmuje tylko (A)/(s) z GenDokMag.
 
-## Typy FK (CDN.Obiekty)
+---
 
-- 864 = Adres kontrahenta (podstawowy)
-- 896 = Adres kontrahenta (inny)
-- 944 = Pracownik
-- 32 = Kontrahent (KntKarty)
-- 208 = Magazyn
-- 128 = Operator (OpeKarty)
+## Uwaga o eksporcie (ważne dla następnego agenta)
 
-## Pola datowe
+Przy 224k wierszach Excel się zacina. Zamiast pelnego eksportu uzyj:
+```
+python tools/sql_query.py --file solutions/bi/TraNag/TraNag_export_sample.sql --export solutions/bi/TraNag/TraNag_export.xlsx
+```
+Plik TraNag_export_sample.sql = TOP 100000 ORDER BY ID_Dokumentu DESC z pelnym draftem.
+Suggest do busa id=32 — Developer ma dodac --limit N do sql_query.py --export.
 
-| Kolumna | Typ | Sentinel | OK |
-|---------|-----|----------|----|
-| TrN_Data2 | Clarion DATE | BETWEEN 1 AND 109211 | tak |
-| TrN_Data3 | Clarion DATE | BETWEEN 1 AND 109211 | tak |
-| TrN_Termin | Clarion DATE | BETWEEN 1 AND 109211 | tak |
-| TrN_DataMag | Clarion DATE | BETWEEN 1 AND 109211 | tak |
-| TrN_DataRoz | Clarion DATE | BETWEEN 1 AND 109211 | tak |
-| TrN_DataPO | Clarion DATE | BETWEEN 1 AND 109211 | tak |
-| TrN_DataWplywu | Clarion DATE | BETWEEN 1 AND 109211 | tak |
-| TrN_DataWysylki | Clarion DATE | BETWEEN 1 AND 109211 | tak |
-| TrN_DataOdprawyPotwierdzenia | Clarion DATE | 0=NULL | tak |
-| TrN_DataWystOrg | Clarion DATE | 0=NULL | tak |
-| TrN_DataSprOrg | Clarion DATE | 0=NULL | tak |
-| TrN_DataOdKor | Clarion DATE | 0=NULL | tak |
-| TrN_DataDoKor | Clarion DATE | 0=NULL | tak |
-| TrN_LastMod | Clarion TIMESTAMP | DATEADD(ss,...'1990-01-01') | tak |
+---
+
+## Następny krok dla kolejnego agenta
+
+1. Wykonaj eksport przez TraNag_export_sample.sql (nie draft bezposrednio)
+2. Zweryfikuj nowe kolumny: Numer_Dok_Korygowanego, Adres_Kontrahenta, Adres_Wysylki, Numer_Zamowienia, Nazwa_Cennika
+3. Wyslij eksport do Analityka (Faza 3 ponowna — zmiana zakresu)
+4. Po zatwierdzeniu: solutions_save_view.py + agent_bus flag dla DBA
+
+---
+
+## Wiadomosci agent_bus z tej sesji
+
+- id=62: erp_specialist → developer — Komentarz_Usera mylaaca nazwa kolumny
+- id=63: erp_specialist → analyst — eksport v1 gotowy (ZDEZAKTUALIZOWANY — v2 w toku)
+- id=64: analyst → erp_specialist — zatwierdzam eksport v1 (odczytana)
+- id=65: flag — DBA do wdrozenia (PRZEDWCZESNY — widok v2 jeszcze nie gotowy)
+- id=66: erp_specialist → analyst — uzupelnienia v2 + pytanie o wytyczne
+
+---
 
 ## Pliki
 
-- Brudnopis: solutions/bi/TraNag/TraNag_draft.sql
+- Brudnopis v2: solutions/bi/TraNag/TraNag_draft.sql (CTE + 5 nowych kolumn)
+- Eksport sample: solutions/bi/TraNag/TraNag_export_sample.sql (TOP 100k)
 - Plan: solutions/bi/TraNag/TraNag_plan.xlsx
-- Eksport: solutions/bi/TraNag/TraNag_export.xlsx (aktualizacja 2026-03-15)
-
-## Nastepny krok
-
-Analityk recenzuje eksport (Faza 3). Po zatwierdzeniu → solutions_save_view.py → DBA.
+- Eksport: solutions/bi/TraNag/TraNag_export.xlsx (STARY — v1, 68 kolumn)

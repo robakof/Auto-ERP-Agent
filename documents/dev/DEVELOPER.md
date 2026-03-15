@@ -234,6 +234,11 @@ Jeżeli w trakcie implementacji natrafisz na nie omówione wcześniej kwestie lu
 - Zapytaj o feedback
 - Potwierdź gotowość do następnej sekcji
 
+**Nowe narzędzie — checklist publikacji:**
+1. Czy narzędzie dotyczy więcej niż jednej roli? → dokumentuj w `CLAUDE.md` (sekcja "Narzędzia wspólne"), nie w dokumencie roli
+2. Wyślij `agent_bus send` do aktywnych ról z informacją o nowym narzędziu (nazwa, składnia, kiedy używać)
+3. Zaktualizuj `progress_log.md`
+
 #### Krok 3: Poprawki implementacji
 
 W czacie VibeCoder przekaże ci feedback na temat wprowadzonej implementacji. Poprawiaj ją aż do uzyskania pełnej satysfakcji VibeCodera, za każdym razem testując program.

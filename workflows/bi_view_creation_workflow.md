@@ -198,7 +198,12 @@ Zatwierdzony plan kolumn przed napisaniem SQL.
    - Flagi 0/1: plan przewiduje CASE z etykietami kontekstowymi
    - Enumeracje: plan przewiduje CASE z ELSE zawierającym surową wartość
    - Daty: konwersja Clarion zaplanowana, alias `Data_XXX` vs `DataCzas_XXX` poprawny
-   - Klucze obce: ID + kod + nazwa (nie samo ID)
+   - Klucze obce: dla każdego pola ID_XXX zadaj pytanie: "czy ta encja ma czytelną nazwę lub kod?"
+     Jeśli tak — plan MUSI zawierać te kolumny. Dotyczy bez wyjątku:
+     adresów kontrahenta, numerów dokumentów powiązanych (korekta, zamówienie),
+     cenników, słowników, operatorów, pracowników, magazynów i wszystkich innych encji.
+     Samo ID w widoku BI jest dopuszczalne tylko gdy encja nie ma żadnego pola opisowego
+     (udowodnione przez INFORMATION_SCHEMA).
    - Pominięcia: każde uzasadnione jednym z 4 powodów
    - Typy dokumentów: pełne nazwy PL, nie skróty
 

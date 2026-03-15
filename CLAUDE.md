@@ -144,6 +144,26 @@ Odpowiedź proporcjonalna do zadania:
 
 Nie wysyłaj pełnego raportu analitycznego jako odpowiedzi na prostą wiadomość — marnuje context window obu stron.
 
+### Narzędzia wspólne
+
+Dostępne dla wszystkich ról:
+
+```
+python tools/conversation_search.py --query "fraza" [--limit N] [--db PATH]
+  → data.count, data[].{session_id, speaker, date, char_count, snippet}
+  Szukaj po słowie kluczowym w historii rozmów.
+
+python tools/conversation_search.py --list [--limit N]
+  → data[].{session_id, date, message_count, total_chars}
+  Lista sesji z liczbą wiadomości i znaków.
+
+python tools/conversation_search.py --session <SESSION_ID>
+  → data.{message_count, total_chars, messages[].{speaker, content, date}}
+  Pełna rozmowa danej sesji.
+```
+
+Używaj gdy potrzebujesz kontekstu z poprzednich sesji.
+
 ### Styl komunikacji
 
 - Bez emoji (dozwolone: ✓, ✗)
