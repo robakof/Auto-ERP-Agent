@@ -16,10 +16,10 @@ SELECT
     -- === Czas ===
     CASE WHEN br.KnG_CzasModyfikacji > 0
          THEN DATEADD(ss, br.KnG_CzasModyfikacji, '1990-01-01')
-         ELSE NULL END                              AS Data_Modyfikacji,
+         ELSE NULL END                              AS DataCzas_Modyfikacji,
     CASE WHEN br.KnG_CzasZalozenia > 0
          THEN DATEADD(ss, br.KnG_CzasZalozenia, '1990-01-01')
-         ELSE NULL END                              AS Data_Zalozenia,
+         ELSE NULL END                              AS DataCzas_Zalozenia,
 
     -- === Operator ===
     br.KnG_OpeNumer                                 AS ID_Operatora,

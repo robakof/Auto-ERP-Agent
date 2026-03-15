@@ -128,6 +128,14 @@ CASE WHEN col = 0 THEN NULL ELSE col END AS ID_X
 
 ## Daty
 
+### Nazewnictwo kolumn datowych
+
+- Clarion DATE → alias `Data_XXX` (np. `Data_Wystawienia`) — wynik to `DATE`, sama data bez godziny
+- Clarion TIMESTAMP → alias `DataCzas_XXX` (np. `DataCzas_Modyfikacji`) — wynik to `DATETIME`, zawiera godzinę
+- SQL DATE (natywny) → alias `Data_XXX`
+
+Nigdy nie nazywaj kolumny `Data_XXX` gdy zawiera godzinę — to błąd semantyczny.
+
 ### Clarion DATE (~70 000–109 211)
 ```sql
 -- Standardowy (gdy brak sentineli):
@@ -148,9 +156,9 @@ CASE WHEN col = 0 THEN NULL
 
 ### Jak rozróżnić
 `SELECT MIN(col), MAX(col) FROM CDN.Tabela WHERE col > 0`
-- 70 000–109 211 → Clarion DATE
-- ~10^9 → Clarion TIMESTAMP
-- format daty → SQL DATE (bez konwersji)
+- 70 000–109 211 → Clarion DATE → alias `Data_XXX`
+- ~10^9 → Clarion TIMESTAMP → alias `DataCzas_XXX`
+- format daty → SQL DATE (bez konwersji) → alias `Data_XXX`
 
 ---
 

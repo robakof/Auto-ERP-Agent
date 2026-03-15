@@ -592,7 +592,7 @@
         "ID_Grupy",
         "Kod_Grupy",
         "Nazwa_Grupy",
-        "Data_Modyfikacji",
+        "DataCzas_Modyfikacji",
         "Sync_Id"
       ],
       "example_questions": [
@@ -618,8 +618,8 @@
         "Nazwa_Kontrahenta",
         "ID_Grupy",
         "Kod_Grupy",
-        "Data_Modyfikacji",
-        "Data_Zalozenia",
+        "DataCzas_Modyfikacji",
+        "DataCzas_Zalozenia",
         "ID_Operatora",
         "Login_Operatora",
         "Nazwisko_Operatora",

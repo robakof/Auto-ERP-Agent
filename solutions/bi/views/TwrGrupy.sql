@@ -20,7 +20,7 @@ SELECT
     ISNULL(RTRIM(grp.TwG_Nazwa), 'Brak grupy')     AS Nazwa_Grupy,
 
     -- === Czas ===
-    DATEADD(ss, br.TwG_CzasModyfikacji, '1990-01-01') AS Data_Modyfikacji,
+    DATEADD(ss, br.TwG_CzasModyfikacji, '1990-01-01') AS DataCzas_Modyfikacji,
 
     -- === Techniczne ===
     br.TwG_SyncId                                   AS Sync_Id
