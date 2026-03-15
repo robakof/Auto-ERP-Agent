@@ -575,6 +575,62 @@
         "kontrahenci bez grupy domowej"
       ],
       "notes": "Sciezka_Grupy: separator chr(92), 'Brak grupy' gdy brak przypisania. Poziom_Grupy: -1=brak podgrupy (663 kontrahentów przypisanych bezpośrednio do korzenia), 0=korzeń, 1-2=głębokość. 4544 rekordów (wszyscy kontrahenci mają grupę — 0 NULLi w Kod_Grupy). Kod_Grupy może nie być unikalny — filtruj przez Sciezka_Grupy."
+    },
+    {
+      "name": "AIBI.TwrGrupy",
+      "file": "views/TwrGrupy.sql",
+      "description": "Grupy ogólne towarów — bridge towar→grupa (wiele grup per towar). Jeden rekord per przypisanie.",
+      "primary_table": "CDN.TwrGrupy",
+      "joins": [
+        "CDN.TwrKarty (kod i nazwa towaru)",
+        "CDN.TwrGrupy self GIDTyp=-16 (kod i nazwa grupy)"
+      ],
+      "columns": [
+        "ID_Towaru",
+        "Kod_Towaru",
+        "Nazwa_Towaru",
+        "ID_Grupy",
+        "Kod_Grupy",
+        "Nazwa_Grupy",
+        "Data_Modyfikacji",
+        "Sync_Id"
+      ],
+      "example_questions": [
+        "w jakich grupach ogólnych jest towar X",
+        "towary w grupie ogólnej ZNICZE",
+        "towary przypisane do wielu grup"
+      ],
+      "notes": "Bridge — jeden towar może mieć wiele rekordów (10 123 distinct towarów, 13 817 wierszy). 162 grup unikalnych ID, 137 distinct Kod_Grupy. Sync_Id unikalny per wiersz — techniczny identyfikator synchronizacji."
+    },
+    {
+      "name": "AIBI.KntGrupy",
+      "file": "views/KntGrupy.sql",
+      "description": "Grupy ogólne kontrahentów — bridge kontrahent→grupa (wiele grup per kontrahent). Jeden rekord per przypisanie.",
+      "primary_table": "CDN.KntGrupy",
+      "joins": [
+        "CDN.KntKarty (akronim i nazwa kontrahenta)",
+        "CDN.KntGrupy self GIDTyp=-32 (kod grupy)",
+        "CDN.OpeKarty (operator zakładający przypisanie)"
+      ],
+      "columns": [
+        "ID_Kontrahenta",
+        "Akronim_Kontrahenta",
+        "Nazwa_Kontrahenta",
+        "ID_Grupy",
+        "Kod_Grupy",
+        "Data_Modyfikacji",
+        "Data_Zalozenia",
+        "ID_Operatora",
+        "Login_Operatora",
+        "Nazwisko_Operatora",
+        "Sync_Id"
+      ],
+      "example_questions": [
+        "w jakich grupach ogólnych jest kontrahent X",
+        "kontrahenci w grupie ogólnej 01.KLIENCI",
+        "kto dodał kontrahenta X do grupy"
+      ],
+      "notes": "Bridge — jeden kontrahent może mieć wiele rekordów (4 545 distinct, 5 669 wierszy). 28 grup. Login/Nazwisko_Operatora: 3 121 NULLi (KnG_OpeNumer=0 — stare przypisania bez operatora). Data_Zalozenia: 3 121 NULLi — j.w. Kod_Grupy = akronim grupy (np. '01.KLIENCI', '02.DOSTAWCY') — brak osobnego pola Nazwa."
     }
   ]
 }
