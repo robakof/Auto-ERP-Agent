@@ -20,7 +20,7 @@ erp_docs/raw/
 tmp/
 
 # Widoki generowane przez render.py
-views/
+/views/
 
 # Eksporty SQL generowane przez sql_query.py --export
 *_export.xlsx

@@ -328,7 +328,20 @@ python tools/agent_bus_cli.py flag --from erp_specialist --reason-file tmp/tmp.m
 ```
 Opisz punkt sporny i poczekaj na decyzję użytkownika.
 
-**Nie pisz SQL dopóki Analityk nie zatwierdzi planu.**
+**Domyślna reguła: nie pisz SQL dopóki Analityk nie zatwierdzi planu.**
+
+**Wyjątek — widok według ugruntowanego wzorca:**
+Jeśli widok jest mechanicznym zastosowaniem istniejącego wzorca (np. kolejny widok GrupyDom,
+lookup table o tej samej strukturze co poprzedni), możesz dostarczyć plan + draft + export
+jednocześnie. Oszczędza to jedną rundę wymiany wiadomości.
+
+Warunki wyjątku:
+- Wzorzec jest już wdrożony i zweryfikowany w projekcie
+- Tabela źródłowa ma analogiczną strukturę (te same typy kolumn, ten sam JOIN pattern)
+- W wiadomości do Analityka jawnie wskazujesz: "widok według wzorca X"
+
+Analityk i tak recenzuje plan niezależnie od draftu — pozytywna ocena draftu nie zwalnia
+z weryfikacji planu pod kątem konwencji.
 
 Po zatwierdzeniu — zaktualizuj progress log.
 
