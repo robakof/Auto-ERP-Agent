@@ -1,5 +1,5 @@
 -- AIBI.TwrGrupy — brudnopis SELECT
--- Faza 2 — iteracja 1
+-- Faza 2 — iteracja 2
 -- Źródło: CDN.TwrGrupy (GIDTyp=16 — przypisania towar→grupa)
 -- Baseline: 13 817 wierszy (bridge, wiele grup per towar)
 
@@ -15,7 +15,10 @@ SELECT
     ISNULL(RTRIM(grp.TwG_Nazwa), 'Brak grupy')     AS Nazwa_Grupy,
 
     -- === Czas ===
-    DATEADD(ss, br.TwG_CzasModyfikacji, '1990-01-01') AS Data_Modyfikacji
+    DATEADD(ss, br.TwG_CzasModyfikacji, '1990-01-01') AS Data_Modyfikacji,
+
+    -- === Techniczne ===
+    br.TwG_SyncId                                   AS Sync_Id
 
 FROM CDN.TwrGrupy br
 

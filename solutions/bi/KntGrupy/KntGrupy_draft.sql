@@ -1,5 +1,5 @@
 -- AIBI.KntGrupy — brudnopis SELECT
--- Faza 2 — iteracja 1
+-- Faza 2 — iteracja 2
 -- Źródło: CDN.KntGrupy (GIDTyp=32 — przypisania kontrahent→grupa)
 -- Baseline: 5 669 wierszy (bridge, wiele grup per kontrahent)
 
@@ -19,7 +19,15 @@ SELECT
          ELSE NULL END                              AS Data_Modyfikacji,
     CASE WHEN br.KnG_CzasZalozenia > 0
          THEN DATEADD(ss, br.KnG_CzasZalozenia, '1990-01-01')
-         ELSE NULL END                              AS Data_Zalozenia
+         ELSE NULL END                              AS Data_Zalozenia,
+
+    -- === Operator ===
+    br.KnG_OpeNumer                                 AS ID_Operatora,
+    o.Ope_Ident                                     AS Login_Operatora,
+    o.Ope_Nazwisko                                  AS Nazwisko_Operatora,
+
+    -- === Techniczne ===
+    br.KnG_SyncId                                   AS Sync_Id
 
 FROM CDN.KntGrupy br
 
@@ -31,5 +39,9 @@ LEFT JOIN CDN.KntKarty k
 LEFT JOIN CDN.KntGrupy grp
     ON  grp.KnG_GIDTyp   = -32
     AND grp.KnG_GIDNumer = br.KnG_GrONumer
+
+-- Operator zakładający przypisanie
+LEFT JOIN CDN.OpeKarty o
+    ON  o.Ope_GIDNumer = br.KnG_OpeNumer
 
 WHERE br.KnG_GIDTyp = 32
