@@ -26,7 +26,10 @@
 - BI.Rozrachunki ✓ (`solutions/bi/views/Rozrachunki.sql`) — fallback Stan & 2 usunięty (commit 1b5d245)
 - BI.TwrKarty ✓ (`solutions/bi/views/TwrKarty.sql`) — 66 kolumn, 10 122 wierszy; MRP_Id → CDN.ProdOkresy, Techniczna_Dec1 as-is z komentarzem anomalii
 
-**Następny krok:** Narzędzia bramkujące workflow BI (bi_init_view, bi_test_draft, bi_submit_review, solutions_save_view update) — sesja Developer
+**Następny krok:** Moduł trace — warstwa samoobserwacji mrowiska (plan: `documents/dev/jsonl_parser_plan.md`, backlog id=62)
+
+**Nowe narzędzia:**
+- `tools/conversation_search.py` — przeszukiwanie historii rozmów (--list/--query/--session), 15 testów
 
 **Workflow BI przepisany:**
 - `workflows/bi_view_creation_workflow.md` — kanoniczny workflow: 4 fazy, checklist + gate PASS/BLOCKED, handoff schema inline
@@ -44,6 +47,18 @@
 ---
 
 ## Dziennik
+
+### 2026-03-15 — Moduł trace + porządki backlogowe
+
+- conversation_search.py — 15 testów, 3 tryby: --list/--query/--session
+- CLAUDE.md: memory vs agent_bus (reguła), tmp opisowe nazwy, sekcja "Narzędzia wspólne"
+- DEVELOPER.md: checklist publikacji nowego narzędzia (węzeł + agent_bus notify)
+- bi_view_creation_workflow.md: Komentarz_Usera → Komentarz_Analityka + autonomia ERP Specialist
+- Backlog zamknięty: id=59,65,66,67,68; dodane: id=69,70
+- Plan modułu trace: `documents/dev/jsonl_parser_plan.md` — parser .jsonl → mrowisko.db, tabele sessions/tool_calls/token_usage, relacje z backlog/messages/session_log
+- Suggestions zapisane: id=31-35 (węzłowość, plan w .md, bash→tmp, negacje w promptach, memory vs agent_bus)
+
+---
 
 ### 2026-03-15 — Arch Faza 1 + drobnostki Developer
 
