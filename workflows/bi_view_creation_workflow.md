@@ -435,7 +435,12 @@ Zapisać zatwierdzony widok, wdrożyć przez DBA, zaktualizować katalog.
    ```
    Weryfikuje że eksport istnieje przed zapisem. Zapisuje do `solutions/bi/views/{NazwaWidoku}.sql`.
 
-2. Przekaż plik DBA do wdrożenia: `solutions/bi/views/{NazwaWidoku}.sql`.
+2. Zgłoś do DBA przez agent_bus:
+   ```
+   # Zapisz treść do pliku tymczasowego, np. tmp/flag_dba_{NazwaWidoku}.md
+   python tools/agent_bus_cli.py flag --from erp_specialist --reason-file tmp/flag_dba_{NazwaWidoku}.md
+   ```
+   Plik do wdrożenia: `solutions/bi/views/{NazwaWidoku}.sql`.
 
 3. Po potwierdzeniu wdrożenia przez DBA — zaktualizuj katalog:
    ```bash

@@ -100,6 +100,44 @@ class TestVerify:
         assert "Data" in stat_names
 
 
+class TestStableExport:
+    def test_copies_to_stable_path_when_solutions_dir_exists(self, tmp_path):
+        solutions_dir = tmp_path / "solutions" / "bi" / "TestWidok"
+        solutions_dir.mkdir(parents=True)
+        draft = tmp_path / "draft.sql"
+        draft.write_text("SELECT n FROM t", encoding="utf-8")
+        export_path = tmp_path / "out.xlsx"
+
+        mock_conn, _ = make_mock_conn(["n"], [[1]])
+        stats = _make_stats_result(1, ["n"])
+
+        with patch.object(SqlClient, "get_connection", return_value=mock_conn):
+            with patch("tools.bi_verify.read_stats", return_value=stats):
+                with patch("tools.bi_verify.SOLUTIONS_BI_DIR", tmp_path / "solutions" / "bi"):
+                    result = bv.verify(draft_path=draft, view_name="TestWidok", export_path=export_path)
+
+        assert result["ok"] is True
+        stable = solutions_dir / "TestWidok_export.xlsx"
+        assert stable.exists()
+        assert "stable_export_path" in result["data"]
+
+    def test_no_stable_copy_when_solutions_dir_missing(self, tmp_path):
+        draft = tmp_path / "draft.sql"
+        draft.write_text("SELECT n FROM t", encoding="utf-8")
+        export_path = tmp_path / "out.xlsx"
+
+        mock_conn, _ = make_mock_conn(["n"], [[1]])
+        stats = _make_stats_result(1, ["n"])
+
+        with patch.object(SqlClient, "get_connection", return_value=mock_conn):
+            with patch("tools.bi_verify.read_stats", return_value=stats):
+                with patch("tools.bi_verify.SOLUTIONS_BI_DIR", tmp_path / "solutions" / "bi"):
+                    result = bv.verify(draft_path=draft, view_name="Nieistniejacy", export_path=export_path)
+
+        assert result["ok"] is True
+        assert "stable_export_path" not in result["data"]
+
+
 class TestMain:
     def test_valid_call_prints_json(self, tmp_path, capsys):
         draft = tmp_path / "W_draft.sql"

@@ -13,6 +13,7 @@ Output: JSON na stdout zgodny z kontraktem narzędzi agenta.
 """
 
 import argparse
+import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -24,6 +25,16 @@ from tools.excel_read_stats import read_stats
 from tools.lib.output import print_json
 
 EXPORTS_DIR = Path(__file__).parent.parent / "exports"
+SOLUTIONS_BI_DIR = Path(__file__).parent.parent / "solutions" / "bi"
+
+
+def _stable_export_path(view_name: str) -> Path | None:
+    """Return stable export path in solutions/bi/{view_name}/ if directory exists."""
+    safe_name = view_name.replace(" ", "_").replace("/", "_")
+    solutions_dir = SOLUTIONS_BI_DIR / safe_name
+    if solutions_dir.exists():
+        return solutions_dir / f"{safe_name}_export.xlsx"
+    return None
 
 
 def verify(
@@ -68,6 +79,11 @@ def verify(
             "meta": export_result["meta"],
         }
 
+    # Copy to stable path in solutions/bi/{view_name}/ if directory exists
+    stable_path = _stable_export_path(view_name)
+    if stable_path:
+        shutil.copy2(export_path, stable_path)
+
     stats_result = read_stats(export_path, sheet_name="Wynik", max_unique=max_unique)
 
     col_stats = stats_result["data"]["columns"] if stats_result["ok"] else []
@@ -78,6 +94,7 @@ def verify(
             "row_count": export_result["data"]["row_count"],
             "column_count": len(export_result["data"]["columns"]),
             "export_path": str(export_path.resolve()),
+            **({"stable_export_path": str(stable_path.resolve())} if stable_path else {}),
             "stats": [
                 {
                     "name": c["name"],
