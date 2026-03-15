@@ -92,7 +92,7 @@ class TestSessionInit:
         ]
         if extra_args:
             cmd += extra_args
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(PROJECT_ROOT))
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", cwd=str(PROJECT_ROOT))
         return json.loads(result.stdout)
 
     def test_session_init_returns_session_id(self, tmp_path):
@@ -129,3 +129,17 @@ class TestSessionInit:
         r1 = self.run_session_init(tmp_path, "developer")
         r2 = self.run_session_init(tmp_path, "developer")
         assert r1["session_id"] != r2["session_id"]
+
+    def test_session_init_returns_doc_content(self, tmp_path):
+        result = self.run_session_init(tmp_path, "developer")
+        assert "doc_content" in result
+        assert isinstance(result["doc_content"], str)
+        assert len(result["doc_content"]) > 100
+
+    def test_session_init_doc_content_matches_role(self, tmp_path):
+        result = self.run_session_init(tmp_path, "developer")
+        assert "Developer" in result["doc_content"]
+
+    def test_session_init_doc_content_erp_specialist(self, tmp_path):
+        result = self.run_session_init(tmp_path, "erp_specialist")
+        assert "ERP" in result["doc_content"]

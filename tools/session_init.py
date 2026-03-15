@@ -63,11 +63,12 @@ def main():
 
     doc_path = Path(ROLE_DOCUMENTS[args.role])
     doc_exists = doc_path.exists()
+    doc_content = doc_path.read_text(encoding="utf-8") if doc_exists else ""
 
     bus = AgentBus(db_path=args.db)
     bus.add_session_log(
         role=args.role,
-        content=f"session started",
+        content="session started",
         session_id=session_id,
     )
 
@@ -77,6 +78,7 @@ def main():
         "role": args.role,
         "doc_path": str(doc_path),
         "doc_exists": doc_exists,
+        "doc_content": doc_content,
         "resumed": False,
     })
 
