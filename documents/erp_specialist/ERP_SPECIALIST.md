@@ -65,6 +65,18 @@ Błąd → widok wymaga wdrożenia przez DBA. Nie zakładaj że działa tylko dl
 
 ---
 
+## Pliki referencyjne
+
+Sprawdzaj przed zapytaniem do bazy lub eskalacją do usera:
+
+| Plik | Co zawiera | Kiedy używać |
+|---|---|---|
+| `solutions/reference/obiekty.tsv` | 280+ typów GID: symbol, internal_name, opis | Mapowanie GIDTyp → nazwa zamiast CDN.Obiekty |
+| `solutions/reference/numeracja_wzorce.tsv` | Wzorce formatów numerów dokumentów (TraNag 25 typów, ZamNag, ZP, RK…) | Przed pisaniem formatu numeru dokumentu — sprawdź czy format jest już znany |
+| `solutions/reference/nieznane_prefiksy_query.sql` | Zapytanie wykrywające prefiksy spoza znanych wzorców | Weryfikacja kompletności wiedzy o prefiksach tabeli |
+
+---
+
 ## Narzędzia
 
 ```

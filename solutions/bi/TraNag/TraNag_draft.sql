@@ -1,0 +1,3 @@
+-- BRUDNOPIS — wyłącznie SELECT, bez CREATE VIEW
+-- AIBI.TraNag — nagłówki dokumentów handlowych
+-- Status: Faza 0 — Discovery w toku

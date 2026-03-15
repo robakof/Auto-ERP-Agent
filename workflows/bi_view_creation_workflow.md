@@ -61,7 +61,8 @@ Zrozumieć dane przed napisaniem kodu. Nie zgadywać.
 
 3. Zbadaj enumeracje — baza i dokumentacja razem:
    - Pobierz wszystkie unikalne wartości: `SELECT pole, COUNT(*) FROM CDN.MainTable GROUP BY pole`
-   - Skrzyżuj z `CDN.Obiekty`: `SELECT OB_GIDTyp, OB_Nazwa FROM CDN.Obiekty WHERE OB_GIDTyp IN (...)`
+   - Sprawdź `solutions/reference/obiekty.tsv` — pełna lista 280+ typów GID (symbol, nazwa, opis). Szybsze niż zapytanie do CDN.Obiekty.
+   - Jeśli brak w obiekty.tsv: `SELECT OB_GIDTyp, OB_Nazwa FROM CDN.Obiekty WHERE OB_GIDTyp IN (...)`
    - Sprawdź dokumentację: `python tools/docs_search.py "nazwa_pola" --table CDN.MainTable`
    - CASE musi pokrywać wartości z bazy ORAZ z dokumentacji (mogą pojawić się jutro).
    - Nieznana wartość bez odpowiednika → ESCALATE do usera z surówką (ile rekordów, jakie pola).
@@ -74,11 +75,11 @@ Zrozumieć dane przed napisaniem kodu. Nie zgadywać.
    - ~10^9 → Clarion TIMESTAMP → `DATEADD(ss, col, '1990-01-01')` → alias `DataCzas_XXX`
    - Format daty → SQL DATE (bez konwersji) → alias `Data_XXX`
 
-5. Weryfikacja numerów dokumentów — dwuetapowa:
+5. Weryfikacja numerów dokumentów:
    - Krok 1: zbierz wszystkie podtypy z tabeli źródłowej (`GROUP BY TypPole`)
-   - Krok 2: jedno zapytanie z `CDN.NazwaObiektu(TypPole, NumerPole, 0, 2)` — po jednym przykładzie na każdy podtyp
-   - Zapisz zapytanie do `solutions/bi/{NazwaWidoku}/{NazwaWidoku}_objects.sql`, przekaż ścieżkę userowi
-   - Nie pisz numeracji dokumentów dopóki user nie wróci z wynikiem
+   - Krok 2: sprawdź `solutions/reference/numeracja_wzorce.tsv` — wzorce formatów dla TraNag (25 typów), ZamNag, ZP, NM, NO, UP, KB, RK. Jeśli wszystkie podtypy są tam — nie eskaluj do usera.
+   - Krok 3 (tylko gdy format nieznany): zapytanie z `CDN.NazwaObiektu(TypPole, NumerPole, 0, 2)` — po jednym przykładzie na każdy nieznany podtyp. Zapisz do `solutions/bi/{NazwaWidoku}/{NazwaWidoku}_objects.sql`, przekaż ścieżkę userowi.
+   - Nie pisz numeracji dokumentów dopóki nie masz zweryfikowanego formatu (z TSV lub od usera)
 
 6. Zbadaj klucze obce bez oczywistej tabeli docelowej:
    - `INFORMATION_SCHEMA.COLUMNS WHERE COLUMN_NAME LIKE 'POK_%'`
