@@ -1,4 +1,4 @@
-## Status: Faza 3 — eksport v2 wysłany do Analityka, czeka na zatwierdzenie
+## Status: Faza 4 GOTOWE — widok zapisany, flag DBA wysłany (msg id=77)
 
 **Tabela główna:** CDN.TraNag
 **Baseline:** COUNT(*) = 224 002 (rośnie w czasie sesji — baza produkcyjna)
