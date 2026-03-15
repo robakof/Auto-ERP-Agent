@@ -95,7 +95,7 @@ def main():
         return
 
     if args.export:
-        inject_top = args.export_limit  # None = bez limitu; N = TOP N
+        inject_top = args.export_limit if args.export_limit else 100_000
     else:
         inject_top = 100
     result = run_query(sql, inject_top=inject_top)
