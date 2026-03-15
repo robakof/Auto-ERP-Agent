@@ -1,9 +1,8 @@
-"""Hook: Stop — E3 experiment: dump everything to debug file.
+"""Hook: Stop — saves last assistant message and parses session transcript.
 
-Goal: discover what data Claude Code sends on session stop.
-Does it include the agent's response? Full transcript? Just a signal?
-
-Output: tmp/hook_stop_debug.json — inspect after session ends.
+On session stop:
+1. Saves last_assistant_message to conversation table
+2. Parses .jsonl transcript → sessions/tool_calls/token_usage in mrowisko.db
 """
 
 import io
@@ -18,14 +17,43 @@ DEBUG_FILE = PROJECT_ROOT / "tmp" / "hook_stop_debug.json"
 SESSION_ID_FILE = PROJECT_ROOT / "tmp" / "session_id.txt"
 
 
+def _read_session_id() -> str | None:
+    if SESSION_ID_FILE.exists():
+        return SESSION_ID_FILE.read_text(encoding="utf-8").strip() or None
+    return None
+
+
+def _save_last_message(bus, last_msg: str, session_id: str | None, raw: str) -> None:
+    if not last_msg:
+        return
+    bus.add_conversation_entry(
+        speaker="agent",
+        content=str(last_msg)[:2000],
+        event_type="agent_stop",
+        session_id=session_id,
+        raw_payload=raw[:4000],
+    )
+
+
+def _parse_transcript(bus, transcript_path: str, session_id: str | None) -> None:
+    if not transcript_path or not session_id:
+        return
+    tp = Path(transcript_path)
+    if not tp.exists():
+        return
+    sys.path.insert(0, str(PROJECT_ROOT))
+    from tools.jsonl_parser import parse_jsonl, save_to_db
+    parsed = parse_jsonl(transcript_path)
+    save_to_db(bus, session_id, parsed, transcript_path=transcript_path)
+
+
 def main():
     try:
         raw = sys.stdin.read()
         payload = json.loads(raw) if raw.strip() else {}
 
-        session_id = None
-        if SESSION_ID_FILE.exists():
-            session_id = SESSION_ID_FILE.read_text(encoding="utf-8").strip() or None
+        session_id = _read_session_id()
+        transcript_path = payload.get("transcript_path", "")
 
         debug_data = {
             "session_id": session_id,
@@ -40,18 +68,12 @@ def main():
             encoding="utf-8",
         )
 
-        last_msg = payload.get("last_assistant_message", "")
-        if last_msg:
-            sys.path.insert(0, str(PROJECT_ROOT))
-            from tools.lib.agent_bus import AgentBus
-            bus = AgentBus(db_path=str(PROJECT_ROOT / "mrowisko.db"))
-            bus.add_conversation_entry(
-                speaker="agent",
-                content=str(last_msg)[:2000],
-                event_type="agent_stop",
-                session_id=session_id,
-                raw_payload=raw[:4000],
-            )
+        sys.path.insert(0, str(PROJECT_ROOT))
+        from tools.lib.agent_bus import AgentBus
+        bus = AgentBus(db_path=str(PROJECT_ROOT / "mrowisko.db"))
+
+        _save_last_message(bus, payload.get("last_assistant_message", ""), session_id, raw)
+        _parse_transcript(bus, transcript_path, session_id)
 
     except Exception as e:
         try:

@@ -342,3 +342,67 @@ class TestFlagForHuman:
         bus.flag_for_human("analyst", "problem z danymi", urgency="high")
         msg = bus.get_inbox("human")[0]
         assert "high" in msg["content"].lower() or "high" in json.dumps(msg)
+
+
+class TestSessionsTraceModule:
+    def test_upsert_session_creates_record(self, bus):
+        bus.upsert_session("abc123", role="developer")
+        row = bus._conn.execute("SELECT id, role FROM sessions WHERE id='abc123'").fetchone()
+        assert row is not None
+        assert row["role"] == "developer"
+
+    def test_upsert_session_update_claude_session_id(self, bus):
+        bus.upsert_session("abc123", role="developer")
+        bus.upsert_session("abc123", claude_session_id="uuid-1234")
+        row = bus._conn.execute("SELECT claude_session_id, role FROM sessions WHERE id='abc123'").fetchone()
+        assert row["claude_session_id"] == "uuid-1234"
+        assert row["role"] == "developer"  # original value preserved
+
+    def test_upsert_session_update_ended_at(self, bus):
+        bus.upsert_session("abc123", role="erp_specialist")
+        bus.upsert_session("abc123", ended_at="2026-03-15 13:00:00")
+        row = bus._conn.execute("SELECT ended_at FROM sessions WHERE id='abc123'").fetchone()
+        assert row["ended_at"] == "2026-03-15 13:00:00"
+
+    def test_add_tool_call_returns_id(self, bus):
+        bus.upsert_session("sess1", role="developer")
+        tc_id = bus.add_tool_call("sess1", "Read", input_summary="CLAUDE.md")
+        assert isinstance(tc_id, int)
+
+    def test_add_tool_call_error_flag(self, bus):
+        bus.upsert_session("sess1", role="developer")
+        bus.add_tool_call("sess1", "Bash", input_summary="python ...", is_error=1)
+        rows = bus._conn.execute("SELECT is_error FROM tool_calls WHERE session_id='sess1'").fetchall()
+        assert rows[0]["is_error"] == 1
+
+    def test_add_token_usage_returns_id(self, bus):
+        bus.upsert_session("sess1", role="developer")
+        tu_id = bus.add_token_usage("sess1", turn_index=0, input_tokens=1000, output_tokens=200)
+        assert isinstance(tu_id, int)
+
+    def test_get_session_trace_returns_all_data(self, bus):
+        bus.upsert_session("sess1", role="developer", claude_session_id="uuid-xyz")
+        bus.add_tool_call("sess1", "Read", input_summary="file.md")
+        bus.add_tool_call("sess1", "Bash", input_summary="python ...", is_error=1)
+        bus.add_token_usage("sess1", 0, input_tokens=500, output_tokens=100)
+        bus.add_token_usage("sess1", 1, input_tokens=600, output_tokens=150, duration_ms=3000)
+
+        trace = bus.get_session_trace("sess1")
+        assert trace["session"]["role"] == "developer"
+        assert trace["session"]["claude_session_id"] == "uuid-xyz"
+        assert len(trace["tool_calls"]) == 2
+        assert trace["tool_calls"][1]["is_error"] == 1
+        assert len(trace["token_usage"]) == 2
+        assert trace["token_usage"][1]["duration_ms"] == 3000
+
+    def test_get_session_trace_nonexistent_returns_none(self, bus):
+        assert bus.get_session_trace("nonexistent") is None
+
+    def test_tables_include_new_trace_tables(self, bus):
+        tables = bus._conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+        ).fetchall()
+        names = [t[0] for t in tables]
+        assert "sessions" in names
+        assert "tool_calls" in names
+        assert "token_usage" in names

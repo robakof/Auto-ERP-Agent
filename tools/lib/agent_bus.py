@@ -91,6 +91,41 @@ CREATE TABLE IF NOT EXISTS trace (
 
 CREATE INDEX IF NOT EXISTS idx_trace_session ON trace(session_id);
 
+CREATE TABLE IF NOT EXISTS sessions (
+    id                TEXT PRIMARY KEY,
+    claude_session_id TEXT,
+    role              TEXT,
+    transcript_path   TEXT,
+    started_at        TEXT NOT NULL DEFAULT (datetime('now')),
+    ended_at          TEXT
+);
+
+CREATE TABLE IF NOT EXISTS tool_calls (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id    TEXT REFERENCES sessions(id),
+    tool_name     TEXT NOT NULL,
+    input_summary TEXT,
+    is_error      INTEGER NOT NULL DEFAULT 0,
+    tokens_out    INTEGER,
+    timestamp     TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_tool_calls_session ON tool_calls(session_id);
+
+CREATE TABLE IF NOT EXISTS token_usage (
+    id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id           TEXT REFERENCES sessions(id),
+    turn_index           INTEGER NOT NULL,
+    input_tokens         INTEGER,
+    output_tokens        INTEGER,
+    cache_read_tokens    INTEGER,
+    cache_create_tokens  INTEGER,
+    duration_ms          INTEGER,
+    timestamp            TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_token_usage_session ON token_usage(session_id);
+
 CREATE TABLE IF NOT EXISTS conversation (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id  TEXT,
@@ -445,6 +480,95 @@ class AgentBus:
             (session_id,),
         ).fetchall()
         return [dict(row) for row in rows]
+
+    # --- Sessions / trace module ---
+
+    def upsert_session(
+        self,
+        session_id: str,
+        role: str = None,
+        claude_session_id: str = None,
+        transcript_path: str = None,
+        ended_at: str = None,
+    ) -> None:
+        """Insert or update a session record."""
+        self._conn.execute(
+            """INSERT INTO sessions (id, role, claude_session_id, transcript_path, ended_at)
+               VALUES (?, ?, ?, ?, ?)
+               ON CONFLICT(id) DO UPDATE SET
+                   role              = COALESCE(excluded.role, role),
+                   claude_session_id = COALESCE(excluded.claude_session_id, claude_session_id),
+                   transcript_path   = COALESCE(excluded.transcript_path, transcript_path),
+                   ended_at          = COALESCE(excluded.ended_at, ended_at)""",
+            (session_id, role, claude_session_id, transcript_path, ended_at),
+        )
+        self._conn.commit()
+
+    def add_tool_call(
+        self,
+        session_id: str,
+        tool_name: str,
+        input_summary: str = None,
+        is_error: int = 0,
+        tokens_out: int = None,
+        timestamp: str = None,
+    ) -> int:
+        """Log a tool call for a session. Returns row id."""
+        cursor = self._conn.execute(
+            """INSERT INTO tool_calls (session_id, tool_name, input_summary, is_error, tokens_out, timestamp)
+               VALUES (?, ?, ?, ?, ?, COALESCE(?, datetime('now')))""",
+            (session_id, tool_name, input_summary, is_error, tokens_out, timestamp),
+        )
+        self._conn.commit()
+        return cursor.lastrowid
+
+    def add_token_usage(
+        self,
+        session_id: str,
+        turn_index: int,
+        input_tokens: int = None,
+        output_tokens: int = None,
+        cache_read_tokens: int = None,
+        cache_create_tokens: int = None,
+        duration_ms: int = None,
+        timestamp: str = None,
+    ) -> int:
+        """Log token usage for one assistant turn. Returns row id."""
+        cursor = self._conn.execute(
+            """INSERT INTO token_usage
+               (session_id, turn_index, input_tokens, output_tokens,
+                cache_read_tokens, cache_create_tokens, duration_ms, timestamp)
+               VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))""",
+            (session_id, turn_index, input_tokens, output_tokens,
+             cache_read_tokens, cache_create_tokens, duration_ms, timestamp),
+        )
+        self._conn.commit()
+        return cursor.lastrowid
+
+    def get_session_trace(self, session_id: str) -> dict:
+        """Return session metadata with tool_calls and token_usage."""
+        session_row = self._conn.execute(
+            "SELECT id, claude_session_id, role, transcript_path, started_at, ended_at FROM sessions WHERE id = ?",
+            (session_id,),
+        ).fetchone()
+        if not session_row:
+            return None
+        tool_rows = self._conn.execute(
+            """SELECT id, tool_name, input_summary, is_error, tokens_out, timestamp
+               FROM tool_calls WHERE session_id = ? ORDER BY id""",
+            (session_id,),
+        ).fetchall()
+        token_rows = self._conn.execute(
+            """SELECT turn_index, input_tokens, output_tokens,
+                      cache_read_tokens, cache_create_tokens, duration_ms, timestamp
+               FROM token_usage WHERE session_id = ? ORDER BY turn_index""",
+            (session_id,),
+        ).fetchall()
+        return {
+            "session": dict(session_row),
+            "tool_calls": [dict(r) for r in tool_rows],
+            "token_usage": [dict(r) for r in token_rows],
+        }
 
     # --- Conversation ---
 
