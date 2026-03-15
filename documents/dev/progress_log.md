@@ -26,7 +26,14 @@
 - BI.Rozrachunki ✓ (`solutions/bi/views/Rozrachunki.sql`) — fallback Stan & 2 usunięty (commit 1b5d245)
 - BI.TwrKarty ✓ (`solutions/bi/views/TwrKarty.sql`) — 66 kolumn, 10 122 wierszy; MRP_Id → CDN.ProdOkresy, Techniczna_Dec1 as-is z komentarzem anomalii
 
-**Następny krok:** BI.TraNag (id=32, nagłówki dokumentów handlowych) — nowa sesja ERP Specialist
+**Następny krok:** Narzędzia bramkujące workflow BI (bi_init_view, bi_test_draft, bi_submit_review, solutions_save_view update) — sesja Developer
+
+**Workflow BI przepisany:**
+- `workflows/bi_view_creation_workflow.md` — kanoniczny workflow: 4 fazy, checklist + gate PASS/BLOCKED, handoff schema inline
+- `handoffs/bi_view_handoff_schema.md` — kontrakt handoffu z przykładami PASS/BLOCKED
+- `ERP_VIEW_WORKFLOW.md` + `ERP_VIEW_CONVENTIONS.md` → archiwum (treść zintegrowana w nowym workflow)
+- `ERP_SPECIALIST.md`, `ANALYST.md`, `analyst_start.md` — referencje zaktualizowane
+- `CLAUDE.md` — lista plików chronionych zaktualizowana
 
 **Arch uplift:**
 - Faza 1 ZAKOŃCZONA: hooki (user_prompt + on_stop → conversation), session_init zwraca doc_content, CLAUDE.md routing przez session_init
