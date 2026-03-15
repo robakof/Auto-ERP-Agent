@@ -462,6 +462,15 @@ class AgentBus:
         )
         self._conn.commit()
 
+    def mark_all_read(self, role: str) -> int:
+        """Mark all unread messages for a role as read. Returns count of updated rows."""
+        cursor = self._conn.execute(
+            "UPDATE messages SET status = 'read', read_at = datetime('now') WHERE recipient = ? AND status = 'unread'",
+            (role,),
+        )
+        self._conn.commit()
+        return cursor.rowcount
+
     # --- Trace ---
 
     def add_trace_event(self, session_id: str, tool_name: str, summary: str = None) -> int:

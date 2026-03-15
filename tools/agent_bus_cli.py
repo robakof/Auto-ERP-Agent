@@ -76,6 +76,9 @@ def cmd_suggest_status(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 
 def cmd_mark_read(args: argparse.Namespace, bus: AgentBus) -> dict:
+    if getattr(args, "all", False):
+        count = bus.mark_all_read(args.role)
+        return {"ok": True, "marked_all": True, "role": args.role, "count": count}
     for msg_id in args.ids:
         bus.mark_message_read(msg_id)
     return {"ok": True, "marked": args.ids}
@@ -197,7 +200,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     # mark-read
     p_mr = subparsers.add_parser("mark-read", help="Mark messages as read")
-    p_mr.add_argument("--ids", type=int, nargs="+", required=True)
+    p_mr.add_argument("--ids", type=int, nargs="+", default=None)
+    p_mr.add_argument("--all", action="store_true", help="Mark all unread for a role")
+    p_mr.add_argument("--role", default=None, help="Role (required with --all)")
 
     # backlog-add
     p_badd = subparsers.add_parser("backlog-add", help="Add a backlog item")

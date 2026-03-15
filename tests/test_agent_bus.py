@@ -324,6 +324,26 @@ class TestSessionLog:
         assert result[0]["session_id"] == "sess-abc"
 
 
+class TestMarkAllRead:
+    def test_marks_all_unread_for_role(self, bus):
+        bus.send_message("developer", "analyst", "msg1")
+        bus.send_message("developer", "analyst", "msg2")
+        bus.send_message("developer", "erp_specialist", "other role")
+        count = bus.mark_all_read("analyst")
+        assert count == 2
+        assert bus.get_inbox("analyst") == []
+
+    def test_does_not_affect_other_roles(self, bus):
+        bus.send_message("developer", "analyst", "msg analyst")
+        bus.send_message("developer", "erp_specialist", "msg erp")
+        bus.mark_all_read("analyst")
+        assert len(bus.get_inbox("erp_specialist")) == 1
+
+    def test_returns_zero_when_nothing_unread(self, bus):
+        count = bus.mark_all_read("analyst")
+        assert count == 0
+
+
 class TestFlagForHuman:
     def test_flag_for_human(self, bus):
         flag_id = bus.flag_for_human(
