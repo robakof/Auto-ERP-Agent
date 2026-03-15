@@ -45,8 +45,7 @@ workflows/
 handoffs/                         ← opcjonalnie osobny folder lub w workflows/
 ```
 
-Stary `documents/erp_specialist/ERP_VIEW_WORKFLOW.md` → zostaje jako redirect/alias
-lub usunięty po migracji (ERP_SPECIALIST.md aktualizuje referencje).
+Stary ERP_VIEW_WORKFLOW.md → przeniesiony do `documents/archive/` (sesja 2026-03-15).
 
 ### Format każdej fazy (zamiast prozy)
 

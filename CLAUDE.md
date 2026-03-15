@@ -40,7 +40,7 @@ i poczekać na odpowiedź twierdzącą. Wskazanie pliku jako celu nie jest zatwi
 - `documents/erp_specialist/ERP_SPECIALIST.md`
 - `documents/erp_specialist/ERP_COLUMNS_WORKFLOW.md`
 - `documents/erp_specialist/ERP_FILTERS_WORKFLOW.md`
-- `documents/erp_specialist/ERP_VIEW_WORKFLOW.md`
+- `workflows/bi_view_creation_workflow.md`
 - `documents/erp_specialist/ERP_SCHEMA_PATTERNS.md`
 - `documents/erp_specialist/ERP_SQL_SYNTAX.md`
 - `documents/analyst/ANALYST.md`

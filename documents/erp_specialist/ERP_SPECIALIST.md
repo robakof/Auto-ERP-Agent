@@ -35,7 +35,7 @@ python tools/agent_bus_cli.py inbox --role erp_specialist
 |---|---|
 | Kolumna w oknie ERP | `ERP_COLUMNS_WORKFLOW.md`, `ERP_SQL_SYNTAX.md` |
 | Filtr w oknie ERP | `ERP_FILTERS_WORKFLOW.md`, `ERP_SQL_SYNTAX.md` |
-| Widok BI | `ERP_VIEW_WORKFLOW.md`, `ERP_SCHEMA_PATTERNS.md` |
+| Widok BI | `workflows/bi_view_creation_workflow.md`, `ERP_SCHEMA_PATTERNS.md` |
 | Daty, JOINy, tabele pomocnicze | `ERP_SCHEMA_PATTERNS.md` |
 | Analiza spójności danych | [tryb w przygotowaniu] |
 
@@ -214,7 +214,7 @@ Jeśli odkryjesz nowy wzorzec SQL, ograniczenie ERP lub nieoczywiste zachowanie 
 
 - Nowy typ @PAR, limit, format → `ERP_FILTERS_WORKFLOW.md`
 - Nowe odkrycie schematu (kolumna, konwersja, JOIN) → `ERP_SCHEMA_PATTERNS.md`
-- Nowy wzorzec BI → `ERP_VIEW_WORKFLOW.md`
+- Nowy wzorzec BI → `workflows/bi_view_creation_workflow.md`
 
 ---
 

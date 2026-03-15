@@ -33,7 +33,7 @@ Zanim będziesz weryfikować nowe widoki, musisz zrozumieć co projekt uznaje za
 
 Przeczytaj w tej kolejności:
 
-1. `documents/erp_specialist/ERP_VIEW_WORKFLOW.md` — proces budowania widoku (Fazy 1–4)
+1. `workflows/bi_view_creation_workflow.md` — proces budowania widoku (Fazy 0–4)
 2. `documents/erp_specialist/ERP_SCHEMA_PATTERNS.md` — wzorce SQL: GID, daty, numery dokumentów
 3. Sprawdź inbox od Developera: `python tools/agent_bus_cli.py inbox --role analyst`
 
@@ -119,7 +119,7 @@ Kategorie: `[KONWENCJA]` — naruszenie reguły, wymaga poprawki.
 
 | Co | Gdzie |
 |---|---|
-| Konwencje widoków | `ERP_VIEW_WORKFLOW.md`, `ERP_SCHEMA_PATTERNS.md` |
+| Konwencje widoków | `workflows/bi_view_creation_workflow.md`, `ERP_SCHEMA_PATTERNS.md` |
 | Wzorce numerów dokumentów | `solutions/reference/numeracja_wzorce.tsv` |
 | Lista typów GID | `solutions/reference/obiekty.tsv` |
 | Wiadomości od Developera | `python tools/agent_bus_cli.py inbox --role analyst` |
@@ -137,6 +137,6 @@ Kategorie: `[KONWENCJA]` — naruszenie reguły, wymaga poprawki.
 
 ## Czego jeszcze nie ma (otwarte)
 
-- Formalny krok "Analityk review" nie jest jeszcze dodany do `ERP_VIEW_WORKFLOW.md`
+- Formalny krok "Analityk review" nie jest jeszcze dodany do `workflows/bi_view_creation_workflow.md`
   (Developer doda po pierwszym przebiegu — żebyś wiedział czego szukać)
 - Nie ma jeszcze przykładowego `{Widok}_review.md` — Twój pierwszy będzie wzorcem
