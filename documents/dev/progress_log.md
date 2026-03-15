@@ -26,7 +26,7 @@
 - BI.Rozrachunki ✓ (`solutions/bi/views/Rozrachunki.sql`) — fallback Stan & 2 usunięty (commit 1b5d245)
 - BI.TwrKarty ✓ (`solutions/bi/views/TwrKarty.sql`) — 66 kolumn, 10 122 wierszy; MRP_Id → CDN.ProdOkresy, Techniczna_Dec1 as-is z komentarzem anomalii
 
-**Następny krok:** Moduł trace — warstwa samoobserwacji mrowiska (plan: `documents/dev/jsonl_parser_plan.md`, backlog id=62)
+**Następny krok:** Suggestions id=31-35 do przetworzenia; render.py strukturyzowany output (backlog id=69)
 
 **Nowe narzędzia:**
 - `tools/conversation_search.py` — przeszukiwanie historii rozmów (--list/--query/--session), 15 testów
@@ -47,6 +47,17 @@
 ---
 
 ## Dziennik
+
+### 2026-03-15 — Moduł trace ZAKOŃCZONY
+
+- `tools/lib/agent_bus.py`: tabele `sessions`, `tool_calls`, `token_usage` + metody `upsert_session`, `add_tool_call`, `add_token_usage`, `get_session_trace` (9 nowych testów)
+- `tools/jsonl_parser.py`: parser .jsonl → structured data → mrowisko.db (18 testów)
+- `tools/hooks/on_stop.py`: rozszerzony — po zapisaniu last_message parsuje transcript do DB
+- `tools/render.py`: nowa komenda `session-trace --session <id>` → XLSX 3 sheets (Summary, ToolCalls, TokenUsage)
+- E2E: 187 tool_calls, 294 tur sparsowane z rzeczywistego .jsonl (3.3 MB)
+- Łącznie: 580/583 testów (3 pre-istniejące faile bez zmian)
+
+---
 
 ### 2026-03-15 — Moduł trace + porządki backlogowe
 
