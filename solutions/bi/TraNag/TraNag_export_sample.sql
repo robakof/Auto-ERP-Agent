@@ -1,10 +1,7 @@
 -- EKSPORT PRZEGLĄDOWY — TOP 100 000 najnowszych rekordow
 -- Uzycie: python tools/sql_query.py --file TraNag_export_sample.sql --export TraNag_export.xlsx
 -- Nie uzywac do weryfikacji row_count (to nie jest widok pelny)
-
-SELECT TOP 100000 * FROM (
-
--- === PELNY DRAFT PONIZEJ ===
+-- Fix: CTE musi byc na zewnatrz subquery (SQL Server nie obsluguje WITH w FROM-subquery)
 
 WITH CenBase AS (
     SELECT t.TCN_RodzajCeny, t.TCN_Nazwa
@@ -14,7 +11,7 @@ WITH CenBase AS (
         WHERE t2.TCN_RodzajCeny = t.TCN_RodzajCeny
     )
 )
-SELECT
+SELECT TOP 100000
     CASE n.TrN_GIDTyp
         WHEN 2034 THEN 'Paragon'
         WHEN 2033 THEN 'Faktura sprzedazy'
@@ -108,8 +105,10 @@ SELECT
         WHEN 4 THEN 'Po edycji platnosci' WHEN 5 THEN 'Rozliczona' WHEN 6 THEN 'Anulowana'
         ELSE 'Nieznane (' + CAST(n.TrN_Stan AS VARCHAR(5)) + ')'
     END AS Stan_Dok,
-    n.TrN_TrNNumer AS Nr_Kolejny, n.TrN_TrNMiesiac AS Miesiac_Dok,
-    n.TrN_TrNRok AS Rok_Dok, RTRIM(n.TrN_TrNSeria) AS Seria_Dok,
+    n.TrN_TrNNumer AS Nr_Kolejny,
+    n.TrN_TrNMiesiac AS Miesiac_Dok,
+    n.TrN_TrNRok AS Rok_Dok,
+    RTRIM(n.TrN_TrNSeria) AS Seria_Dok,
     CASE WHEN n.TrN_TrNLp=127 THEN 'Tak' ELSE 'Nie' END AS Aktywny_Dok,
     CASE
         WHEN n.TrN_GIDTyp IN (2041,2045,1529) AND EXISTS (
@@ -148,9 +147,11 @@ SELECT
     CASE WHEN n.TrN_DataOdprawyPotwierdzenia=0 THEN NULL ELSE CAST(DATEADD(d,n.TrN_DataOdprawyPotwierdzenia-36163,'1899-12-28') AS DATE) END AS Data_Odprawy,
     CASE WHEN n.TrN_LastMod=0 THEN NULL ELSE CAST(DATEADD(ss,n.TrN_LastMod,'1990-01-01') AS DATETIME) END AS DataCzas_Modyfikacji,
     CASE WHEN n.TrN_MagZNumer=0 THEN NULL ELSE n.TrN_MagZNumer END AS ID_Mag_Zrodlowego,
-    mag_z.MAG_Kod AS Mag_Zrodlowy_Symbol, mag_z.MAG_Nazwa AS Mag_Zrodlowy_Nazwa,
+    mag_z.MAG_Kod AS Mag_Zrodlowy_Symbol,
+    mag_z.MAG_Nazwa AS Mag_Zrodlowy_Nazwa,
     CASE WHEN n.TrN_MagDNumer=0 THEN NULL ELSE n.TrN_MagDNumer END AS ID_Mag_Docelowego,
-    mag_d.MAG_Kod AS Mag_Docelowy_Symbol, mag_d.MAG_Nazwa AS Mag_Docelowy_Nazwa,
+    mag_d.MAG_Kod AS Mag_Docelowy_Symbol,
+    mag_d.MAG_Nazwa AS Mag_Docelowy_Nazwa,
     CASE WHEN n.TrN_OpeNumerW=0 THEN NULL ELSE n.TrN_OpeNumerW END AS ID_Operatora_Wystawil,
     ope_w.Ope_Ident AS Login_Operatora_Wyst,
     CASE WHEN n.TrN_OpeNumerZ=0 THEN NULL ELSE n.TrN_OpeNumerZ END AS ID_Operatora_Zatwierdzil,
@@ -162,7 +163,8 @@ SELECT
     CASE WHEN n.TrN_OpiNumer=0 THEN NULL ELSE n.TrN_OpiNumer END AS ID_Opiekuna,
     prc_opi.Prc_Akronim AS Opiekun_Akronim,
     CASE WHEN n.TrN_KnDNumer=0 THEN NULL ELSE n.TrN_KnDNumer END AS ID_Odbiorcy,
-    knd.Knt_Akronim AS Odbiorca_Akronim, knd.Knt_Nazwa1 AS Odbiorca_Nazwa,
+    knd.Knt_Akronim AS Odbiorca_Akronim,
+    knd.Knt_Nazwa1 AS Odbiorca_Nazwa,
     CASE WHEN n.TrN_FormaNr=10 THEN 'Gotowka' WHEN n.TrN_FormaNr=20 THEN 'Przelew'
          WHEN n.TrN_FormaNr=30 THEN 'Kredyt' WHEN n.TrN_FormaNr=40 THEN 'Czek'
          WHEN n.TrN_FormaNr=50 THEN 'Karta' WHEN n.TrN_FormaNr=60 THEN 'Inne'
@@ -171,9 +173,11 @@ SELECT
     n.TrN_Rabat AS Rabat_Proc,
     n.TrN_CenaSpr AS Nr_Cennika,
     cen.TCN_Nazwa AS Nazwa_Cennika,
-    n.TrN_NettoP AS Wartosc_Netto_Przychod, n.TrN_NettoR AS Wartosc_Netto_Rozchod,
+    n.TrN_NettoP AS Wartosc_Netto_Przychod,
+    n.TrN_NettoR AS Wartosc_Netto_Rozchod,
     n.TrN_WartoscWal AS Wartosc_Walutowa,
-    n.TrN_WartoscDPPrzed AS Wartosc_Przed_Deprecjacja, n.TrN_WartoscDPPo AS Wartosc_Po_Deprecjacji,
+    n.TrN_WartoscDPPrzed AS Wartosc_Przed_Deprecjacja,
+    n.TrN_WartoscDPPo AS Wartosc_Po_Deprecjacji,
     n.TrN_Waluta AS Waluta,
     CASE WHEN n.TrN_Waluta='PLN' THEN NULL
          ELSE CAST(n.TrN_KursL AS DECIMAL(10,4))/CAST(NULLIF(n.TrN_KursM,0) AS DECIMAL(10,4))
@@ -203,6 +207,4 @@ LEFT JOIN CDN.OpeKarty ope_r ON ope_r.Ope_GIDNumer=n.TrN_OpeNumerR AND n.TrN_Ope
 LEFT JOIN CDN.OpeKarty ope_m ON ope_m.Ope_GIDNumer=n.TrN_OpeNumerM AND n.TrN_OpeNumerM>0
 LEFT JOIN CDN.PrcKarty prc_opi ON prc_opi.Prc_GIDNumer=n.TrN_OpiNumer AND n.TrN_OpiTyp=944 AND n.TrN_OpiNumer>0
 LEFT JOIN CenBase cen ON cen.TCN_RodzajCeny=n.TrN_CenaSpr AND n.TrN_CenaSpr>0
-
-) x
-ORDER BY x.ID_Dokumentu DESC
+ORDER BY n.TrN_GIDNumer DESC

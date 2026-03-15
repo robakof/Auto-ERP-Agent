@@ -1,11 +1,11 @@
-## Status: Faza 2 — uzupelnienia v2 w toku, eksport NIE wykonany
+## Status: Faza 3 — eksport v2 wysłany do Analityka, czeka na zatwierdzenie
 
 **Tabela główna:** CDN.TraNag
-**Baseline:** COUNT(*) = 224 000 (rośnie w czasie sesji — baza produkcyjna)
+**Baseline:** COUNT(*) = 224 002 (rośnie w czasie sesji — baza produkcyjna)
 
 ---
 
-## Co zostało zrobione w tej sesji
+## Co zostało zrobione
 
 1. Draft v1 (68 kolumn) — zatwierdzony przez Analityka (msg id=64, 2026-03-15 11:51)
 2. User zażądał 5 uzupełnień:
@@ -14,9 +14,10 @@
    - Adres_Wysylki (CDN.KntAdresy kna_w)
    - Numer_Zamowienia (CDN.ZamNag zam, format ZS-N/MM/YY/Seria)
    - Nazwa_Cennika (CDN.TwrCenyNag CTE CenBase — MIN(TCN_Id) per TCN_RodzajCeny)
-3. Draft v2 zapisany: solutions/bi/TraNag/TraNag_draft.sql
-4. COUNT(*) draftu v2 = 224 000 = baseline (JOINy nie mnożą) ✓
-5. Eksport v2 NIE wykonany — sesja przerwana z powodu limitu kontekstu
+3. Draft v2 zapisany: solutions/bi/TraNag/TraNag_draft.sql (73 kolumny)
+4. COUNT(*) draftu v2 = 224 002 = baseline (JOINy nie mnożą) ✓
+5. Eksport v2 wykonany: solutions/bi/TraNag/TraNag_export_v2.xlsx (TOP 100k)
+6. Wysłano do Analityka (msg id=70, 2026-03-15) — czeka na zatwierdzenie Fazy 3
 
 ---
 
@@ -44,39 +45,52 @@ Obejmuje tylko (A)/(s) z GenDokMag.
 
 ---
 
+## Otwarta kwestia (czeka na decyzję Analityka)
+
+Rekordy z KodP = "00-000" (placeholder ERP) i pustą ulicą/miastem dają:
+- Adres_Kontrahenta = ", 00-000"
+- Adres_Wysylki = ", 00-000"
+NULLIF nie usuwa bo string nie jest pusty. Opcje:
+(a) zostawić — odzwierciedla dane ERP
+(b) dodać CASE filtrujący "00-000" jako placeholder
+
+---
+
 ## Uwaga o eksporcie (ważne dla następnego agenta)
 
 Przy 224k wierszach Excel się zacina. Zamiast pelnego eksportu uzyj:
 ```
-python tools/sql_query.py --file solutions/bi/TraNag/TraNag_export_sample.sql --export solutions/bi/TraNag/TraNag_export.xlsx
+python tools/sql_query.py --file solutions/bi/TraNag/TraNag_export_sample.sql --export solutions/bi/TraNag/TraNag_export_v2.xlsx
 ```
-Plik TraNag_export_sample.sql = TOP 100000 ORDER BY ID_Dokumentu DESC z pelnym draftem.
-Suggest do busa id=32 — Developer ma dodac --limit N do sql_query.py --export.
+Plik TraNag_export_sample.sql = TOP 100000 ORDER BY ID_Dokumentu DESC z pełnym draftem.
+Fix 2026-03-15: CTE musi być na zewnątrz subquery — naprawiony.
 
 ---
 
 ## Następny krok dla kolejnego agenta
 
-1. Wykonaj eksport przez TraNag_export_sample.sql (nie draft bezposrednio)
-2. Zweryfikuj nowe kolumny: Numer_Dok_Korygowanego, Adres_Kontrahenta, Adres_Wysylki, Numer_Zamowienia, Nazwa_Cennika
-3. Wyslij eksport do Analityka (Faza 3 ponowna — zmiana zakresu)
-4. Po zatwierdzeniu: solutions_save_view.py + agent_bus flag dla DBA
+1. Sprawdź inbox — Analityk powinien odpowiedzieć na msg id=70
+2. Jeśli zatwierdzenie: solutions_save_view.py + agent_bus flag dla DBA
+3. Jeśli uwagi: wprowadź zmiany w drafcie, eksport, ponowna recenzja
 
 ---
 
-## Wiadomosci agent_bus z tej sesji
+## Wiadomości agent_bus z tej i poprzednich sesji
 
 - id=62: erp_specialist → developer — Komentarz_Usera mylaaca nazwa kolumny
-- id=63: erp_specialist → analyst — eksport v1 gotowy (ZDEZAKTUALIZOWANY — v2 w toku)
+- id=63: erp_specialist → analyst — eksport v1 gotowy (ZDEZAKTUALIZOWANY)
 - id=64: analyst → erp_specialist — zatwierdzam eksport v1 (odczytana)
-- id=65: flag — DBA do wdrozenia (PRZEDWCZESNY — widok v2 jeszcze nie gotowy)
+- id=65: flag — DBA do wdrozenia (PRZEDWCZESNY — anulowany)
 - id=66: erp_specialist → analyst — uzupelnienia v2 + pytanie o wytyczne
+- id=67: analyst → erp_specialist — wytyczne FK zaktualizowane (odczytana)
+- id=70: erp_specialist → analyst — eksport v2 gotowy, proszę o recenzję Fazy 3
 
 ---
 
 ## Pliki
 
-- Brudnopis v2: solutions/bi/TraNag/TraNag_draft.sql (CTE + 5 nowych kolumn)
-- Eksport sample: solutions/bi/TraNag/TraNag_export_sample.sql (TOP 100k)
+- Brudnopis v2: solutions/bi/TraNag/TraNag_draft.sql (CTE + 73 kolumny)
+- Eksport sample: solutions/bi/TraNag/TraNag_export_sample.sql (TOP 100k, naprawiony)
+- Eksport v2: solutions/bi/TraNag/TraNag_export_v2.xlsx (100k wierszy)
 - Plan: solutions/bi/TraNag/TraNag_plan.xlsx
-- Eksport: solutions/bi/TraNag/TraNag_export.xlsx (STARY — v1, 68 kolumn)
+- Eksport v1 (stary, 68 kolumn): solutions/bi/TraNag/TraNag_export.xlsx
