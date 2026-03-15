@@ -79,6 +79,27 @@ Analiza koncepcyjna: `documents/dev/analiza_kierunki_2026-03-14.md`
 
 ---
 
+## Faza 6 — Odblokowanie agentów w wierszu poleceń (planned)
+
+**Cel:** agent w trybie autonomicznym nie staje na blokadzie hooka — człowiek nie musi być obecny.
+
+| id | Zadanie | Status |
+|----|---------|--------|
+| 58 | Hook smart fallback + tryb autonomiczny (whitelist + auto-approve) | planned |
+
+**Problem:** hook bezpieczeństwa blokuje komendy wymagające ręcznego zatwierdzenia.
+Runner (Faza 2) jest bezużyteczny jeśli każda sesja może utknąć bez człowieka w pętli.
+
+**Zakres:**
+- Analiza jakie komendy są najczęściej blokowane
+- Hook "smart fallback": zamiast blokady zwraca bezpieczny odpowiednik
+- Tryb autonomiczny: session-type (human/autonomous) → różne poziomy auto-approve
+- Whitelist bezpiecznych wzorców
+
+**Zależność:** sensowny po Fazie 2 (runner musi istnieć żeby problem był realny).
+
+---
+
 ## Mapa zależności
 
 ```
@@ -92,6 +113,9 @@ Faza 4 (PM)
     │
     ▼
 Faza 5 (docs w DB + rendery)
+    │
+    ▼
+Faza 6 (odblokowanie agentów — hook smart fallback)
 ```
 
 ---

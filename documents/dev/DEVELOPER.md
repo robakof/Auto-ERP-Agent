@@ -81,6 +81,15 @@ W progress_log w minimalistyczny sposób zapisuj postępy pracy. W pliku powinny
 
 Progress_log służy do zapoznania się dla kolejnych asystentów z postępami prac tak aby z łatwością mogli odnaleźć się w kontekście projektu bez przeładowywania context window.
 
+### Na zamknięcie sesji
+
+1. Jeśli sesja obejmowała czyszczenie dokumentacji lub zmiany ścieżek — uruchom walidator:
+```
+python tools/arch_check.py
+```
+2. Zaktualizuj `documents/dev/progress_log.md`
+3. Commit i push przez `tools/git_commit.py`
+
 ### Inicjalizacja projektu lub nowej gałęzi
 
 Poniższe fazy (Phase 1-2) stosuj gdy inicjujesz nowy projekt lub nową gałąź.
