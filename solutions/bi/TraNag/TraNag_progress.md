@@ -1,4 +1,4 @@
-## Status: Faza 0 — Discovery PASS / Czeka na numerację od usera
+## Status: Faza 1a — Plan wysłany do Analityka (czeka na recenzję)
 
 **Tabela główna:** CDN.TraNag (nagłówki dokumentów handlowych)
 **Baseline:** COUNT(*) = 223 936, COUNT(DISTINCT TrN_GIDNumer) = 223 936
