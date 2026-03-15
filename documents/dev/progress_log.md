@@ -4,7 +4,7 @@
 
 ## Stan bieżący
 
-**Aktualizacja:** 2026-03-14
+**Aktualizacja:** 2026-03-15
 
 **Co działa:**
 - `tools/lib/agent_bus.py` — AgentBus + `agent_bus_cli.py`: send, inbox, suggest, suggestions, suggest-status, backlog-add, **backlog-add-bulk**, backlog, **backlog-update (--content-file)**, log, flag
@@ -28,9 +28,28 @@
 
 **Następny krok:** BI.TraNag (id=32, nagłówki dokumentów handlowych) — nowa sesja ERP Specialist
 
+**Arch uplift:**
+- Faza 1 ZAKOŃCZONA: hooki (user_prompt + on_stop → conversation), session_init zwraca doc_content, CLAUDE.md routing przez session_init
+- .jsonl struktura zbadana: typy user/assistant/system/progress/file-history-snapshot, sessionId na każdym wpisie
+- Faza 6 dodana do planu: hook smart fallback (odblokowanie agentów, id=58)
+- Pre-existing fails: test_telegram_channel (1) + test_solutions_save_view (2)
+
 ---
 
 ## Dziennik
+
+### 2026-03-15 — Arch Faza 1 + drobnostki Developer
+
+- session_init.py → zwraca `doc_content` (treść dokumentu roli), agent 1 wywołanie zamiast Read
+- CLAUDE.md: routing przez `session_init --role <parametr>` zamiast czytania pliku
+- .gitignore: `/views/` zamiast `views/` (odblokowanie solutions/bi/views/)
+- ERP_VIEW_WORKFLOW.md: wyjątek dla widoków wzorcowych (plan+draft+export jednocześnie) — zacommitowany
+- DEVELOPER.md: sekcja "Na zamknięcie sesji" z arch_check.py
+- arch_uplift_plan.md: Faza 6 (hook smart fallback, id=58)
+- Suggestions przetworzone: id=14,18 → implemented; id=21 → backlog id=58; id=22 → wdrożone
+- 538 testów (535 zielonych, 3 pre-existing fails)
+
+---
 
 ### 2026-03-14 — Finalizacja sesji Developer
 
