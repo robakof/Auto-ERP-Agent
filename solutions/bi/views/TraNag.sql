@@ -5,12 +5,20 @@ CREATE OR ALTER VIEW AIBI.TraNag AS
 
 -- BRUDNOPIS -- wylacznie SELECT, bez CREATE VIEW
 -- AIBI.TraNag -- naglowki dokumentow handlowych
--- Status: Faza 2 -- draft SQL
+-- Status: Faza 2 -- uzupelnienia po zatwierdzeniu v1 (user 2026-03-15)
 -- Odchylenie od planu: Akwizytor_Login -> Akwizytor_Akronim
---   Plan: OpeKarty gdy TrN_AkwTyp=128 -- typ 128 nie wystepuje w danych
---   Dane: TrN_AkwTyp IN (0=175520, 32=48461, 944=2) -- dominuje typ 32 (KntKarty)
---   Implementacja: COALESCE(akw_knt.Knt_Akronim, akw_prc.Prc_Akronim)
+--   TrN_AkwTyp w danych: 32=48461 (KntKarty), 944=2 (PrcKarty), 128=0
+-- Uzupelnienia (user): Numer_Dok_Korygowanego, Adres_Kontrahenta,
+--   Adres_Wysylki, Numer_Zamowienia, Nazwa_Cennika
 
+WITH CenBase AS (
+    SELECT t.TCN_RodzajCeny, RTRIM(t.TCN_Nazwa) AS TCN_Nazwa
+    FROM CDN.TwrCenyNag t
+    WHERE t.TCN_Id = (
+        SELECT MIN(t2.TCN_Id) FROM CDN.TwrCenyNag t2
+        WHERE t2.TCN_RodzajCeny = t.TCN_RodzajCeny
+    )
+)
 SELECT
     -- === TYP I IDENTYFIKACJA ===
     CASE n.TrN_GIDTyp
@@ -58,20 +66,77 @@ SELECT
         ELSE 'Nieznane (' + CAST(n.TrN_ZwrTyp AS VARCHAR(10)) + ')'
     END                                                             AS Typ_Dok_Korygowanego,
     CASE WHEN n.TrN_ZwrNumer = 0 THEN NULL ELSE n.TrN_ZwrNumer END AS ID_Dok_Korygowanego,
+    -- Numer korygowanego: bez prefiksu (Z) -- wymagalby kolejnego self-JOIN
+    CASE WHEN zwrot.TrN_GIDNumer IS NULL THEN NULL ELSE
+        CASE
+            WHEN zwrot.TrN_GenDokMag = -1
+                 AND zwrot.TrN_GIDTyp IN (1521, 1529, 1489) THEN '(A)'
+            WHEN zwrot.TrN_GenDokMag = -1                   THEN '(s)'
+            ELSE ''
+        END
+        + CASE zwrot.TrN_GIDTyp
+            WHEN 2034 THEN 'PA'   WHEN 2033 THEN 'FS'   WHEN 1617 THEN 'PW'
+            WHEN 2001 THEN 'WZ'   WHEN 1521 THEN 'FZ'   WHEN 2009 THEN 'WZK'
+            WHEN 1603 THEN 'MMW'  WHEN 1604 THEN 'MMP'  WHEN 1616 THEN 'RW'
+            WHEN 2041 THEN 'FSK'  WHEN 2003 THEN 'KK'   WHEN 1489 THEN 'PZ'
+            WHEN 1497 THEN 'PZK'  WHEN 1625 THEN 'PWK'  WHEN 1529 THEN 'FZK'
+            WHEN 2042 THEN 'PAK'  WHEN 2037 THEN 'FSE'  WHEN 2013 THEN 'WKE'
+            WHEN 2005 THEN 'WZE'  WHEN 1624 THEN 'RWK'  WHEN 2039 THEN 'RS'
+            WHEN 2045 THEN 'FKE'  WHEN 2035 THEN 'RA'   WHEN 2004 THEN 'DP'
+            WHEN 1232 THEN 'KDZ'
+            ELSE CAST(zwrot.TrN_GIDTyp AS VARCHAR(10))
+          END
+        + '-' + CAST(zwrot.TrN_TrNNumer AS VARCHAR(10))
+        + '/' + RIGHT('0' + CAST(zwrot.TrN_TrNMiesiac AS VARCHAR(2)), 2)
+        + '/' + RIGHT(CAST(zwrot.TrN_TrNRok AS VARCHAR(4)), 2)
+        + CASE WHEN RTRIM(zwrot.TrN_TrNSeria) = '' THEN ''
+               ELSE '/' + RTRIM(zwrot.TrN_TrNSeria) END
+    END                                                             AS Numer_Dok_Korygowanego,
 
     -- === KONTRAHENT ===
     CASE WHEN n.TrN_KntNumer = 0 THEN NULL ELSE n.TrN_KntNumer END AS ID_Kontrahenta,
     knt.Knt_Akronim                                                 AS Kontrahent_Akronim,
     knt.Knt_Nazwa1                                                  AS Kontrahent_Nazwa,
     CASE WHEN n.TrN_KnANumer = 0 THEN NULL ELSE n.TrN_KnANumer END AS ID_Adresu_Kontrahenta,
+    CASE WHEN kna_k.KnA_GIDNumer IS NULL THEN NULL ELSE
+        NULLIF(
+            RTRIM(COALESCE(kna_k.KnA_Ulica, ''))
+            + CASE WHEN RTRIM(COALESCE(kna_k.KnA_Adres, '')) <> ''
+                   THEN ' ' + RTRIM(kna_k.KnA_Adres) ELSE '' END
+            + CASE WHEN RTRIM(COALESCE(kna_k.KnA_KodP, '')) NOT IN ('', '00-000')
+                   THEN ', ' + RTRIM(kna_k.KnA_KodP) ELSE '' END
+            + CASE WHEN RTRIM(COALESCE(kna_k.KnA_Miasto, '')) <> ''
+                   THEN ' ' + RTRIM(kna_k.KnA_Miasto) ELSE '' END,
+        '')
+    END                                                             AS Adres_Kontrahenta,
 
-    -- === AKWIZYTOR (plan: OpeKarty/typ128 -- korekta: KntKarty/typ32 + PrcKarty/typ944) ===
+    -- === AKWIZYTOR ===
     CASE WHEN n.TrN_AkwNumer = 0 THEN NULL ELSE n.TrN_AkwNumer END AS ID_Akwizytora,
     COALESCE(akw_knt.Knt_Akronim, akw_prc.Prc_Akronim)             AS Akwizytor_Akronim,
 
-    -- === ADRES WYSYLKI / ZAMOWIENIE ===
+    -- === ADRES WYSYLKI ===
     CASE WHEN n.TrN_AdWNumer = 0 THEN NULL ELSE n.TrN_AdWNumer END AS ID_Adresu_Wysylki,
+    CASE WHEN kna_w.KnA_GIDNumer IS NULL THEN NULL ELSE
+        NULLIF(
+            RTRIM(COALESCE(kna_w.KnA_Ulica, ''))
+            + CASE WHEN RTRIM(COALESCE(kna_w.KnA_Adres, '')) <> ''
+                   THEN ' ' + RTRIM(kna_w.KnA_Adres) ELSE '' END
+            + CASE WHEN RTRIM(COALESCE(kna_w.KnA_KodP, '')) NOT IN ('', '00-000')
+                   THEN ', ' + RTRIM(kna_w.KnA_KodP) ELSE '' END
+            + CASE WHEN RTRIM(COALESCE(kna_w.KnA_Miasto, '')) <> ''
+                   THEN ' ' + RTRIM(kna_w.KnA_Miasto) ELSE '' END,
+        '')
+    END                                                             AS Adres_Wysylki,
+
+    -- === ZAMOWIENIE ===
     CASE WHEN n.TrN_ZaNNumer = 0 THEN NULL ELSE n.TrN_ZaNNumer END AS ID_Zamowienia,
+    CASE WHEN zam.ZaN_GIDNumer IS NULL THEN NULL ELSE
+        'ZS-' + CAST(zam.ZaN_ZamNumer AS VARCHAR(10))
+        + '/' + RIGHT('0' + CAST(zam.ZaN_ZamMiesiac AS VARCHAR(2)), 2)
+        + '/' + RIGHT(CAST(zam.ZaN_ZamRok AS VARCHAR(4)), 2)
+        + CASE WHEN RTRIM(zam.ZaN_ZamSeria) = '' THEN ''
+               ELSE '/' + RTRIM(zam.ZaN_ZamSeria) END
+    END                                                             AS Numer_Zamowienia,
 
     -- === STAN I NUMERACJA ===
     CASE n.TrN_Stan
@@ -109,30 +174,14 @@ SELECT
         ELSE ''
     END
     + CASE n.TrN_GIDTyp
-        WHEN 2034 THEN 'PA'
-        WHEN 2033 THEN 'FS'
-        WHEN 1617 THEN 'PW'
-        WHEN 2001 THEN 'WZ'
-        WHEN 1521 THEN 'FZ'
-        WHEN 2009 THEN 'WZK'
-        WHEN 1603 THEN 'MMW'
-        WHEN 1604 THEN 'MMP'
-        WHEN 1616 THEN 'RW'
-        WHEN 2041 THEN 'FSK'
-        WHEN 2003 THEN 'KK'
-        WHEN 1489 THEN 'PZ'
-        WHEN 1497 THEN 'PZK'
-        WHEN 1625 THEN 'PWK'
-        WHEN 1529 THEN 'FZK'
-        WHEN 2042 THEN 'PAK'
-        WHEN 2037 THEN 'FSE'
-        WHEN 2013 THEN 'WKE'
-        WHEN 2005 THEN 'WZE'
-        WHEN 1624 THEN 'RWK'
-        WHEN 2039 THEN 'RS'
-        WHEN 2045 THEN 'FKE'
-        WHEN 2035 THEN 'RA'
-        WHEN 2004 THEN 'DP'
+        WHEN 2034 THEN 'PA'   WHEN 2033 THEN 'FS'   WHEN 1617 THEN 'PW'
+        WHEN 2001 THEN 'WZ'   WHEN 1521 THEN 'FZ'   WHEN 2009 THEN 'WZK'
+        WHEN 1603 THEN 'MMW'  WHEN 1604 THEN 'MMP'  WHEN 1616 THEN 'RW'
+        WHEN 2041 THEN 'FSK'  WHEN 2003 THEN 'KK'   WHEN 1489 THEN 'PZ'
+        WHEN 1497 THEN 'PZK'  WHEN 1625 THEN 'PWK'  WHEN 1529 THEN 'FZK'
+        WHEN 2042 THEN 'PAK'  WHEN 2037 THEN 'FSE'  WHEN 2013 THEN 'WKE'
+        WHEN 2005 THEN 'WZE'  WHEN 1624 THEN 'RWK'  WHEN 2039 THEN 'RS'
+        WHEN 2045 THEN 'FKE'  WHEN 2035 THEN 'RA'   WHEN 2004 THEN 'DP'
         WHEN 1232 THEN 'KDZ'
         ELSE CAST(n.TrN_GIDTyp AS VARCHAR(10))
       END
@@ -208,7 +257,7 @@ SELECT
     CASE WHEN n.TrN_OpeNumerM = 0 THEN NULL ELSE n.TrN_OpeNumerM END AS ID_Operatora_Mod,
     ope_m.Ope_Ident                                                 AS Login_Operatora_Mod,
 
-    -- === OPIEKUN (PrcKarty, typ 944) ===
+    -- === OPIEKUN ===
     CASE WHEN n.TrN_OpiNumer = 0 THEN NULL ELSE n.TrN_OpiNumer END AS ID_Opiekuna,
     prc_opi.Prc_Akronim                                             AS Opiekun_Akronim,
 
@@ -230,6 +279,7 @@ SELECT
     END                                                             AS Forma_Platnosci,
     n.TrN_Rabat                                                     AS Rabat_Proc,
     n.TrN_CenaSpr                                                   AS Nr_Cennika,
+    cen.TCN_Nazwa                                                   AS Nazwa_Cennika,
 
     -- === WARTOSCI ===
     n.TrN_NettoP                                                    AS Wartosc_Netto_Przychod,
@@ -267,6 +317,9 @@ SELECT
     NULLIF(RTRIM(n.TrN_DokTypJPK), '')                              AS Kod_JPK
 
 FROM CDN.TraNag n
+LEFT JOIN CDN.TraNag zwrot
+       ON zwrot.TrN_GIDNumer = n.TrN_ZwrNumer
+      AND n.TrN_ZwrNumer     > 0
 LEFT JOIN CDN.KntKarty knt
        ON knt.Knt_GIDNumer = n.TrN_KntNumer
       AND knt.Knt_GIDTyp   = n.TrN_KntTyp
@@ -275,6 +328,12 @@ LEFT JOIN CDN.KntKarty knd
        ON knd.Knt_GIDNumer = n.TrN_KnDNumer
       AND knd.Knt_GIDTyp   = n.TrN_KnDTyp
       AND n.TrN_KnDNumer   > 0
+LEFT JOIN CDN.KntAdresy kna_k
+       ON kna_k.KnA_GIDNumer = n.TrN_KnANumer
+      AND n.TrN_KnANumer     > 0
+LEFT JOIN CDN.KntAdresy kna_w
+       ON kna_w.KnA_GIDNumer = n.TrN_AdWNumer
+      AND n.TrN_AdWNumer     > 0
 LEFT JOIN CDN.KntKarty akw_knt
        ON akw_knt.Knt_GIDNumer = n.TrN_AkwNumer
       AND n.TrN_AkwTyp         = 32
@@ -283,6 +342,9 @@ LEFT JOIN CDN.PrcKarty akw_prc
        ON akw_prc.Prc_GIDNumer = n.TrN_AkwNumer
       AND n.TrN_AkwTyp         = 944
       AND n.TrN_AkwNumer       > 0
+LEFT JOIN CDN.ZamNag zam
+       ON zam.ZaN_GIDNumer = n.TrN_ZaNNumer
+      AND n.TrN_ZaNNumer   > 0
 LEFT JOIN CDN.Magazyny mag_z
        ON mag_z.MAG_GIDNumer = n.TrN_MagZNumer
       AND n.TrN_MagZNumer    > 0
@@ -305,3 +367,6 @@ LEFT JOIN CDN.PrcKarty prc_opi
        ON prc_opi.Prc_GIDNumer = n.TrN_OpiNumer
       AND n.TrN_OpiTyp         = 944
       AND n.TrN_OpiNumer       > 0
+LEFT JOIN CenBase cen
+       ON cen.TCN_RodzajCeny = n.TrN_CenaSpr
+      AND n.TrN_CenaSpr      > 0
