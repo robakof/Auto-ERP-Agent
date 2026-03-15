@@ -4,7 +4,7 @@
 -- Fix: CTE musi byc na zewnatrz subquery (SQL Server nie obsluguje WITH w FROM-subquery)
 
 WITH CenBase AS (
-    SELECT t.TCN_RodzajCeny, t.TCN_Nazwa
+    SELECT t.TCN_RodzajCeny, RTRIM(t.TCN_Nazwa) AS TCN_Nazwa
     FROM CDN.TwrCenyNag t
     WHERE t.TCN_Id = (
         SELECT MIN(t2.TCN_Id) FROM CDN.TwrCenyNag t2
@@ -80,7 +80,7 @@ SELECT TOP 100000
     CASE WHEN kna_k.KnA_GIDNumer IS NULL THEN NULL ELSE
         NULLIF(RTRIM(COALESCE(kna_k.KnA_Ulica,''))
             + CASE WHEN RTRIM(COALESCE(kna_k.KnA_Adres,''))<>'' THEN ' '+RTRIM(kna_k.KnA_Adres) ELSE '' END
-            + CASE WHEN RTRIM(COALESCE(kna_k.KnA_KodP,''))<>'' THEN ', '+RTRIM(kna_k.KnA_KodP) ELSE '' END
+            + CASE WHEN RTRIM(COALESCE(kna_k.KnA_KodP,'')) NOT IN ('','00-000') THEN ', '+RTRIM(kna_k.KnA_KodP) ELSE '' END
             + CASE WHEN RTRIM(COALESCE(kna_k.KnA_Miasto,''))<>'' THEN ' '+RTRIM(kna_k.KnA_Miasto) ELSE '' END,'')
     END AS Adres_Kontrahenta,
     CASE WHEN n.TrN_AkwNumer=0 THEN NULL ELSE n.TrN_AkwNumer END AS ID_Akwizytora,
@@ -89,7 +89,7 @@ SELECT TOP 100000
     CASE WHEN kna_w.KnA_GIDNumer IS NULL THEN NULL ELSE
         NULLIF(RTRIM(COALESCE(kna_w.KnA_Ulica,''))
             + CASE WHEN RTRIM(COALESCE(kna_w.KnA_Adres,''))<>'' THEN ' '+RTRIM(kna_w.KnA_Adres) ELSE '' END
-            + CASE WHEN RTRIM(COALESCE(kna_w.KnA_KodP,''))<>'' THEN ', '+RTRIM(kna_w.KnA_KodP) ELSE '' END
+            + CASE WHEN RTRIM(COALESCE(kna_w.KnA_KodP,'')) NOT IN ('','00-000') THEN ', '+RTRIM(kna_w.KnA_KodP) ELSE '' END
             + CASE WHEN RTRIM(COALESCE(kna_w.KnA_Miasto,''))<>'' THEN ' '+RTRIM(kna_w.KnA_Miasto) ELSE '' END,'')
     END AS Adres_Wysylki,
     CASE WHEN n.TrN_ZaNNumer=0 THEN NULL ELSE n.TrN_ZaNNumer END AS ID_Zamowienia,

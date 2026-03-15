@@ -7,7 +7,7 @@
 --   Adres_Wysylki, Numer_Zamowienia, Nazwa_Cennika
 
 WITH CenBase AS (
-    SELECT t.TCN_RodzajCeny, t.TCN_Nazwa
+    SELECT t.TCN_RodzajCeny, RTRIM(t.TCN_Nazwa) AS TCN_Nazwa
     FROM CDN.TwrCenyNag t
     WHERE t.TCN_Id = (
         SELECT MIN(t2.TCN_Id) FROM CDN.TwrCenyNag t2
@@ -98,7 +98,7 @@ SELECT
             RTRIM(COALESCE(kna_k.KnA_Ulica, ''))
             + CASE WHEN RTRIM(COALESCE(kna_k.KnA_Adres, '')) <> ''
                    THEN ' ' + RTRIM(kna_k.KnA_Adres) ELSE '' END
-            + CASE WHEN RTRIM(COALESCE(kna_k.KnA_KodP, '')) <> ''
+            + CASE WHEN RTRIM(COALESCE(kna_k.KnA_KodP, '')) NOT IN ('', '00-000')
                    THEN ', ' + RTRIM(kna_k.KnA_KodP) ELSE '' END
             + CASE WHEN RTRIM(COALESCE(kna_k.KnA_Miasto, '')) <> ''
                    THEN ' ' + RTRIM(kna_k.KnA_Miasto) ELSE '' END,
@@ -116,7 +116,7 @@ SELECT
             RTRIM(COALESCE(kna_w.KnA_Ulica, ''))
             + CASE WHEN RTRIM(COALESCE(kna_w.KnA_Adres, '')) <> ''
                    THEN ' ' + RTRIM(kna_w.KnA_Adres) ELSE '' END
-            + CASE WHEN RTRIM(COALESCE(kna_w.KnA_KodP, '')) <> ''
+            + CASE WHEN RTRIM(COALESCE(kna_w.KnA_KodP, '')) NOT IN ('', '00-000')
                    THEN ', ' + RTRIM(kna_w.KnA_KodP) ELSE '' END
             + CASE WHEN RTRIM(COALESCE(kna_w.KnA_Miasto, '')) <> ''
                    THEN ' ' + RTRIM(kna_w.KnA_Miasto) ELSE '' END,
