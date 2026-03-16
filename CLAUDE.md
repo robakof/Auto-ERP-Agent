@@ -158,15 +158,24 @@ python tools/agent_bus_cli.py backlog-update --id <id> --status done
 
 Inne role widzą `in_progress` i nie duplikują pracy.
 
-### Log sesji — zamknięcie
+### Logowanie i refleksja
 
-Na zamknięcie każdej sesji zapisz podsumowanie do bazy:
+**Na koniec każdego etapu workflow:**
+```
+python tools/agent_bus_cli.py log --role <rola> --content-file tmp/log_etap.md
+```
 
+**Na koniec każdego workflow:**
+```
+python tools/agent_bus_cli.py log --role <rola> --content-file tmp/log_workflow.md
+python tools/agent_bus_cli.py suggest --from <rola> --content-file tmp/refleksja.md
+```
+
+**Na koniec każdej sesji:**
 ```
 python tools/agent_bus_cli.py log --role <rola> --content-file tmp/log_sesji.md
+python tools/agent_bus_cli.py suggest --from <rola> --content-file tmp/refleksja_sesji.md
 ```
-
-Treść: co zrobiono, co otwarte, następny krok. Bez tego kolejny agent nie wie gdzie skończyłeś.
 
 ### Komunikacja agent-agent
 
