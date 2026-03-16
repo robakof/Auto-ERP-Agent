@@ -99,26 +99,35 @@ def render_json(data: list[dict], title: str, output: Path) -> None:
 
 
 def render_md(data: list[dict], columns: list[str], title: str, output: Path) -> None:
-    """Document-style md if items have 'content' field, table otherwise."""
-    has_content = data and "content" in columns and len(data[0].get("content", "")) > 80
-    lines = [f"# {title}\n", f"*{len(data)} pozycji*\n"]
-    if has_content:
-        for row in data:
-            lines.append("---\n")
-            lines.append(row.get("content", ""))
-            lines.append("")
-    else:
-        header = "| " + " | ".join(columns) + " |"
-        separator = "| " + " | ".join(["---"] * len(columns)) + " |"
-        lines += [header, separator]
-        for row in data:
-            cells = []
-            for col in columns:
-                val = str(row.get(col) or "")
+    """Human-readable md: each item as a section with metadata + content (if present)."""
+    META_COLS = ["id", "area", "value", "effort", "status", "created_at", "sender", "author", "role"]
+    CONTENT_COLS = ["content", "title"]
+
+    lines = [f"# {title} — {len(data)} pozycji\n"]
+    for row in data:
+        item_title = str(row.get("title") or row.get("id") or "")
+        item_id = row.get("id")
+        heading = f"## [{item_id}] {item_title}" if item_id and item_title and item_title != str(item_id) else f"## {item_title or item_id}"
+        lines.append(heading)
+
+        meta = []
+        for col in META_COLS:
+            if col in columns and row.get(col) is not None:
+                val = str(row[col])
                 if col == "created_at":
                     val = val[:10]
-                cells.append(val)
-            lines.append("| " + " | ".join(cells) + " |")
+                meta.append(f"**{col}:** {val}")
+        if meta:
+            lines.append("  ".join(meta))
+
+        content = row.get("content") or ""
+        if content and "content" not in columns:
+            lines.append(f"\n{content.strip()}")
+        elif content:
+            lines.append(f"\n{content.strip()}")
+
+        lines.append("\n---\n")
+
     output.write_text("\n".join(lines), encoding="utf-8")
 
 

@@ -172,13 +172,7 @@ LEFT JOIN CDN.ProdZlecenia pzl ON pzl.PZL_Id = pza.PZA_PZLId
 
 ### TraNag (FS/FZ/WZ/PZ)
 
-Numer podstawowy:
-```sql
-RTRIM(n.TrN_Seria) + '/' + CAST(n.TrN_NumerTrN AS VARCHAR(10))
-+ '/' + CAST(n.TrN_Rok AS VARCHAR(4))
-```
-
-Prefiks dokumentu (zweryfikowana formuła, baza ERPXL_CEIM):
+Numer dokumentu z prefiksem (zweryfikowana formuła, baza ERPXL_CEIM):
 ```sql
 CASE
     -- (Z) = korekta zbiorcza rabatowa: do dokumentu spięte są WZK/WKE/PZK przez spinacz
@@ -193,15 +187,32 @@ CASE
                     (n.TrN_GIDTyp = 1529 AND s.TrN_GIDTyp = 1497)     -- (Z)FZK <- PZK
                )
          )                                                   THEN '(Z)'
-    WHEN n.TrN_Stan & 2 = 2
-         AND n.TrN_GIDTyp IN (2041, 2045, 1529)             THEN '(Z)'  -- fallback heurystyczny
+    -- (A) PRZED fallback Stan&2: FZK (1529) z GenDokMag=-1 i Stan=3 ma Stan&2=2,
+    -- więc bez tej kolejności dostałby błędnie (Z) zamiast (A)
     WHEN n.TrN_GenDokMag = -1
          AND n.TrN_GIDTyp IN (1521, 1529, 1489)             THEN '(A)'
+    WHEN n.TrN_Stan & 2 = 2
+         AND n.TrN_GIDTyp IN (2041, 2045, 1529)             THEN '(Z)'  -- fallback heurystyczny
     WHEN n.TrN_GenDokMag = -1                               THEN '(s)'
     ELSE ''
 END
-+ RTRIM(n.TrN_Seria) + '/' + CAST(n.TrN_NumerTrN AS VARCHAR(10))
-+ '/' + RIGHT(CAST(n.TrN_Rok AS VARCHAR(4)), 2)
+-- Format pełny (zweryfikowany CDN.NazwaObiektu, 2026-03-15): (PREFIKS)SKRÓT-Numer/MM/YY[/Seria]
++ CASE n.TrN_GIDTyp
+    WHEN 2034 THEN 'PA'   WHEN 2033 THEN 'FS'   WHEN 1617 THEN 'PW'
+    WHEN 2001 THEN 'WZ'   WHEN 1521 THEN 'FZ'   WHEN 2009 THEN 'WZK'
+    WHEN 1603 THEN 'MMW'  WHEN 1604 THEN 'MMP'  WHEN 1616 THEN 'RW'
+    WHEN 2041 THEN 'FSK'  WHEN 2003 THEN 'KK'   WHEN 1489 THEN 'PZ'
+    WHEN 1497 THEN 'PZK'  WHEN 1625 THEN 'PWK'  WHEN 1529 THEN 'FZK'
+    WHEN 2042 THEN 'PAK'  WHEN 2037 THEN 'FSE'  WHEN 2013 THEN 'WKE'
+    WHEN 2005 THEN 'WZE'  WHEN 1624 THEN 'RWK'  WHEN 2039 THEN 'RS'
+    WHEN 2045 THEN 'FKE'  WHEN 2035 THEN 'RA'   WHEN 2004 THEN 'DP'
+    WHEN 1232 THEN 'KDZ'
+    ELSE CAST(n.TrN_GIDTyp AS VARCHAR(10))
+  END
++ '-' + CAST(n.TrN_TrNNumer AS VARCHAR(10))
++ '/' + RIGHT('0' + CAST(n.TrN_TrNMiesiac AS VARCHAR(2)), 2)
++ '/' + RIGHT(CAST(n.TrN_TrNRok AS VARCHAR(4)), 2)
++ CASE WHEN RTRIM(n.TrN_TrNSeria) = '' THEN '' ELSE '/' + RTRIM(n.TrN_TrNSeria) END
 ```
 
 Uwagi:
