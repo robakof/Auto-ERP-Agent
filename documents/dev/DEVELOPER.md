@@ -28,6 +28,10 @@ Budujesz minimalistycznie, modularnie, w uzgodnionym zakresie.
    Pytanie diagnostyczne: "Czy to co właśnie robię manualnie mogłoby być jednym wywołaniem CLI?"
    Jeśli tak — zbuduj narzędzie zamiast powtarzać operację ręcznie.
 
+10. Gdy reguła się zmienia — zastąp treść, nie dopisuj zakazu starej metody.
+    Agenci nie mają pamięci między sesjami — pójdą nową ścieżką bez potrzeby zakazywania starej.
+    Negacje wydłużają prompt bez wartości.
+
 9. Reguły umieszczaj na najwyższym możliwym węźle hierarchii dokumentów:
    - dotyczy wszystkich ról → `CLAUDE.md`
    - dotyczy jednej roli → dokument roli (np. `ERP_SPECIALIST.md`)
@@ -58,7 +62,7 @@ Przed rozpoczęciem oceń skalę:
 
 **Małe / poprawka** → implementuj bezpośrednio (Phase 3 poniżej)
 **Średnie / nowy moduł** → stwórz `ARCHITECTURE.md` z sekcjami PRD i techstack, zatwierdź
-**Duże / projektowe** → zaproponuj nową gałąź, przejdź z użytkownikiem przez `PROJECT_START.md`
+**Duże / projektowe** → zapisz plan jako plik `.md` w `documents/dev/`, zapytaj explicite "Zatwierdzasz plan?" i poczekaj na odpowiedź twierdzącą przed jakimkolwiek kodem. Potem zaproponuj nową gałąź, przejdź z użytkownikiem przez `PROJECT_START.md`
 
 Szczegóły inicjalizacji: `documents/dev/PROJECT_START.md`
 
@@ -218,7 +222,7 @@ Implementuj zgodnie z planem, sekcja po sekcji trzymając się opisanego poniże
 
 **Cel:** Stworzenie i zatwierdzenie planu implementacji przed przystąpieniem do kodu.
 
-Dla każdego feature stwórz dokument architektoniczny per feature (np. `agent_bus_faza2.md`) zamiast wspólnego `changes_propositions.md`. Dokument zawiera zakres, decyzje architektoniczne i otwarte wątki z poprzednich sesji. Zatwierdź z użytkownikiem przed przystąpieniem do kodu.
+Dla każdego feature stwórz dokument architektoniczny per feature (np. `agent_bus_faza2.md`) zamiast wspólnego `changes_propositions.md`. Dokument zawiera zakres, decyzje architektoniczne i otwarte wątki z poprzednich sesji. Zapisz plan jako plik `.md` w `documents/dev/` — nie wklejaj inline w czacie (marnuje context window i nie zostaje po sesji). Zatwierdź z użytkownikiem przed przystąpieniem do kodu.
 
 Dokument musi zawierać nie tylko zakres bieżącego zadania, ale również **wszystkie otwarte wątki z poprzednich sesji** — zadania uzgodnione, a niezrealizowane, zmiany odkładane "na później".
 
@@ -235,7 +239,7 @@ Jeżeli w trakcie implementacji natrafisz na nie omówione wcześniej kwestie lu
 - Potwierdź gotowość do następnej sekcji
 
 **Nowe narzędzie — checklist publikacji:**
-1. Czy narzędzie dotyczy więcej niż jednej roli? → dokumentuj w `CLAUDE.md` (sekcja "Narzędzia wspólne"), nie w dokumencie roli
+1. Czy narzędzie dotyczy więcej niż jednej roli? Jeśli tak → dokumentuj w `CLAUDE.md` (sekcja "Narzędzia wspólne"), nie w dokumencie roli. Jeśli nie → dokumentuj w dokumencie roli.
 2. Wyślij `agent_bus send` do aktywnych ról z informacją o nowym narzędziu (nazwa, składnia, kiedy używać)
 3. Zaktualizuj `progress_log.md`
 
@@ -252,6 +256,8 @@ Po zatwierdzeniu implementacji wykonaj commit, push i zaktualizuj `progress_log.
 ## 2. KOMENDY POWŁOKI
 
 Reguły używania Bash i dedykowanych narzędzi obowiązują wszystkie role — patrz `CLAUDE.md` sekcja "Komendy powłoki".
+
+Jednorazowy skrypt inspekcyjny też ląduje w `tmp/`, nie inline w `python -c "..."`. Bez wyjątku.
 
 ### Edycja dużych plików SQL
 
@@ -356,6 +362,10 @@ Jakiekolwiek modyfikacje tego pliku wymagają **jawnego zatwierdzenia przez uży
 ---
 
 ## 4. COMMUNICATION
+
+### Format i prezentacja danych
+
+Gdy zadanie dotyczy formatu lub wyglądu outputu — najpierw pokaż mockup (kilka linii przykładowego outputu) i zapytaj "tak?" zanim napiszesz kod. Dwie iteracje na złym formacie kosztują więcej niż jeden krok weryfikacyjny.
 
 ### Styl komunikacji
 
