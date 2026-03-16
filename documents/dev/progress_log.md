@@ -26,7 +26,7 @@
 - BI.Rozrachunki ✓ (`solutions/bi/views/Rozrachunki.sql`) — fallback Stan & 2 usunięty (commit 1b5d245)
 - BI.TwrKarty ✓ (`solutions/bi/views/TwrKarty.sql`) — 66 kolumn, 10 122 wierszy; MRP_Id → CDN.ProdOkresy, Techniczna_Dec1 as-is z komentarzem anomalii
 
-**Następny krok:** DEVELOPER.md aktualizacja (backlog id=72); obserwacja czy pre_tool_use hook eliminuje blokady agentów
+**Następny krok:** id=70 (negacje w promptach) lub id=64 (git hygiene scope-aware)
 
 **Nowe narzędzia:**
 - `tools/conversation_search.py` — przeszukiwanie historii rozmów (--list/--query/--session), 15 testów
@@ -47,6 +47,16 @@
 ---
 
 ## Dziennik
+
+### 2026-03-16 — sesja 2: guardrails + context management + narzędzia
+
+- pre_tool_use.py: cat/ls/grep/find/sed/awk → DENY_WITH_REPAIR (były błędnie w SAFE_PREFIXES); 25 testów
+- .claude/settings.json (committed): Edit + Write auto-approve dla agentów
+- id=74 DONE: CLAUDE.md — reguła log sesji dla wszystkich ról
+- id=72 DONE: DEVELOPER.md — 6 reguł (negacje, plan approval, mockup, checklist, python-c, plan jako plik)
+- id=75 DONE: bi_discovery.py --no-enum + sekcja "Zarządzanie kontekstem" w ERP_SPECIALIST.md
+- id=69 DONE: render.py backlog działa
+- render.py --area: obsługa wielu wartości (nargs=+)
 
 ### 2026-03-16 — pre_tool_use hook + render.py + reguły agentów
 
