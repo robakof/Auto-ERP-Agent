@@ -98,6 +98,65 @@ def render_json(data: list[dict], title: str, output: Path) -> None:
     output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def render_backlog_md(data: list[dict], title: str, output: Path) -> None:
+    """Backlog md: summary tables grouped by effort/value, then detailed sections."""
+    from datetime import date
+    today = date.today().strftime("%Y-%m-%d")
+    lines = [f"# {title} — {today}\n", f"*{len(data)} pozycji*\n", "---\n"]
+
+    def table_rows(items):
+        rows = ["| id | tytuł | obszar | wartość | effort |",
+                "|----|-------|--------|---------|--------|"]
+        for r in items:
+            rows.append(f"| {r.get('id','')} | {r.get('title','')} | {r.get('area','')} | {r.get('value','')} | {r.get('effort','')} |")
+        return rows
+
+    groups = [
+        ("Szybkie strzały (wysoka wartość, mała praca)",
+         [r for r in data if r.get("value") == "wysoka" and r.get("effort") == "mala"]),
+        ("Wysoka wartość, średnia praca",
+         [r for r in data if r.get("value") == "wysoka" and r.get("effort") == "srednia"]),
+        ("Wysoka wartość, duża praca",
+         [r for r in data if r.get("value") == "wysoka" and r.get("effort") == "duza"]),
+        ("Średnia wartość, mała praca",
+         [r for r in data if r.get("value") == "srednia" and r.get("effort") == "mala"]),
+        ("Średnia wartość, średnia/duża praca",
+         [r for r in data if r.get("value") == "srednia" and r.get("effort") in ("srednia", "duza")]),
+        ("Pozostałe",
+         [r for r in data if r.get("value") not in ("wysoka", "srednia") or r.get("effort") not in ("mala", "srednia", "duza")]),
+    ]
+
+    for heading, items in groups:
+        if not items:
+            continue
+        lines.append(f"## {heading}\n")
+        lines.extend(table_rows(items))
+        lines.append("")
+
+    lines.append("---\n")
+    lines.append("## Szczegóły\n")
+
+    for row in data:
+        item_id = row.get("id")
+        item_title = row.get("title", "")
+        lines.append(f"### [{item_id}] {item_title}")
+        meta = []
+        for col in ["area", "value", "effort", "status", "created_at"]:
+            val = row.get(col)
+            if val:
+                if col == "created_at":
+                    val = str(val)[:10]
+                meta.append(f"**{col}:** {val}")
+        if meta:
+            lines.append("  ".join(meta))
+        content = (row.get("content") or "").strip()
+        if content:
+            lines.append(f"\n{content}")
+        lines.append("")
+
+    output.write_text("\n".join(lines), encoding="utf-8")
+
+
 def render_md(data: list[dict], columns: list[str], title: str, output: Path) -> None:
     """Human-readable md: each item as a section with metadata + content (if present)."""
     META_COLS = ["id", "area", "value", "effort", "status", "created_at", "sender", "author", "role"]
@@ -303,7 +362,10 @@ def main():
     if ext == "json":
         render_json(data, cfg["title"], output)
     elif ext == "md":
-        render_md(data, cfg["columns"], cfg["title"], output)
+        if view == "backlog":
+            render_backlog_md(data, cfg["title"], output)
+        else:
+            render_md(data, cfg["columns"], cfg["title"], output)
     elif ext == "xlsx":
         render_xlsx(data, cfg["columns"], cfg["title"], output)
 
