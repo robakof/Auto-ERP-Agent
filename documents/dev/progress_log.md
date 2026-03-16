@@ -26,7 +26,7 @@
 - BI.Rozrachunki ✓ (`solutions/bi/views/Rozrachunki.sql`) — fallback Stan & 2 usunięty (commit 1b5d245)
 - BI.TwrKarty ✓ (`solutions/bi/views/TwrKarty.sql`) — 66 kolumn, 10 122 wierszy; MRP_Id → CDN.ProdOkresy, Techniczna_Dec1 as-is z komentarzem anomalii
 
-**Następny krok:** render.py strukturyzowany output (backlog id=69, wysoka wartość); trace_live.py (live context monitor); DEVELOPER.md aktualizacja (backlog id=72)
+**Następny krok:** DEVELOPER.md aktualizacja (backlog id=72); obserwacja czy pre_tool_use hook eliminuje blokady agentów
 
 **Nowe narzędzia:**
 - `tools/conversation_search.py` — przeszukiwanie historii rozmów (--list/--query/--session), 15 testów
@@ -47,6 +47,17 @@
 ---
 
 ## Dziennik
+
+### 2026-03-16 — pre_tool_use hook + render.py fix
+
+- `tools/hooks/pre_tool_use.py` — PreToolUse hook: normalizacja `\n` + SAFE_PREFIXES whitelist + DANGEROUS_PATTERNS deny; zamyka id=24 i id=58
+- `.claude/settings.local.json` — statyczna allow list wyczyszczona, hook zarejestrowany (gitignored, lokalna konfiguracja)
+- `render.py backlog --format md` — format czytelny dla człowieka: tabelki summary pogrupowane po effort/value na górze + szczegóły poniżej (fix: has_content sprawdza columns nie data)
+- `workflows/bi_view_creation_workflow.md` — `bi_catalog_add.py --add` w Fazie 4 (fix dla nowych widoków)
+- Git pull — 11 commitów z drugiej instancji wciągnięte bez konfliktów (wz_jas_export, kolumny Handlowe)
+- 603 testów zielonych (3 pre-existing fails bez zmian)
+
+---
 
 ### 2026-03-15 — Sprzątanie suggestions + drobne wdrożenia
 
