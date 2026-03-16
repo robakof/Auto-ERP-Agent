@@ -1,0 +1,1 @@
+SELECT\n    CASE WHEN z.ZaN_DataRealizacji = 0 THEN NULL\n         ELSE CAST(DATEADD(d, z.ZaN_DataRealizacji, '18001228') AS DATE)\n    END [Data realizacji ZS]\nFROM CDN.TraNag\nLEFT JOIN CDN.ZamNag z ON z.ZaN_GIDNumer = TrN_ZaNNumer AND TrN_ZaNTyp = 960\nWHERE {filtrsql}
