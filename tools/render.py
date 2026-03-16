@@ -100,7 +100,7 @@ def render_json(data: list[dict], title: str, output: Path) -> None:
 
 def render_md(data: list[dict], columns: list[str], title: str, output: Path) -> None:
     """Document-style md if items have 'content' field, table otherwise."""
-    has_content = data and "content" in data[0] and len(data[0].get("content", "")) > 80
+    has_content = data and "content" in columns and len(data[0].get("content", "")) > 80
     lines = [f"# {title}\n", f"*{len(data)} pozycji*\n"]
     if has_content:
         for row in data:
