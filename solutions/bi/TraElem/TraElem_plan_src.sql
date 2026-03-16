@@ -11,7 +11,7 @@ UNION ALL SELECT 10, 'TrE_TwrNumer', 'Numer towaru z CDN.TwrKarty', '3282,3271,6
 UNION ALL SELECT 11, 'TrE_TwrLp', 'GID towaru - Lp', '-', '-', '-', 'Nie', 'Skladnik GID (Lp)', ''
 UNION ALL SELECT 12, 'TrE_TwrNazwa', 'Nazwa towaru (przepisana z karty, podlega edycji)', 'Wk CEiM zniczowy 4', 'Nazwa_Towaru', 'RTRIM', 'Tak', 'Nazwa w chwili transakcji (moze roznic sie od aktualnej)', ''
 UNION ALL SELECT 13, 'TrE_TwrKod', 'Kod towaru', 'CWKZ0033,A-VISTA', 'Kod_Towaru', 'RTRIM', 'Tak', 'Kod w chwili transakcji', ''
-UNION ALL SELECT 14, 'TrE_TypTwr', 'Typ towaru (przepisany z Twr_Typ)', '1,2,3,4,6', 'Typ_Towaru', 'CASE: 1=Towar, 2=Produkt, 3=Koszt, 4=Usluga, 6=A-Vista', 'Tak', 'Typ elementu; 6=A-Vista - pozycja bez stalej karty towaru', ''
+UNION ALL SELECT 14, 'TrE_TypTwr', 'Typ towaru (przepisany z Twr_Typ)', '1,2,3,4,6', 'Typ_Towaru', 'CASE: 1=Towar, 2=Produkt, 3=Koszt, 4=Usluga, 6=A-Vista, ELSE Nieznane(val)', 'Tak', 'Typ elementu; 6=A-Vista - pozycja bez stalej karty towaru', ''
 UNION ALL SELECT 15, 'TrE_KntTyp', 'GID kontrahenta - typ', '32,0', '-', '-', 'Nie', 'Skladnik GID (typ)', ''
 UNION ALL SELECT 16, 'TrE_KntFirma', 'GID kontrahenta - firma', '1464833,0', '-', '-', 'Nie', 'Skladnik GID', ''
 UNION ALL SELECT 17, 'TrE_KntNumer', 'Numer kontrahenta na pozycji', '2430,2147,0', 'ID_Kontrahenta_Pozycji', 'CASE WHEN 0 THEN NULL ELSE TrE_KntNumer END', 'Tak', 'FK do CDN.KntKarty; moze roznic sie od kontrahenta w naglowku', ''

@@ -92,6 +92,57 @@ class TestNonBashTools:
         assert out is None
 
 
+class TestDenyWithRepair:
+    def test_cat_denied(self):
+        rc, out = run_hook(make_bash("cat tools/render.py"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "Read" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_head_denied(self):
+        rc, out = run_hook(make_bash("head -n 50 file.txt"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "Read" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_tail_denied(self):
+        rc, out = run_hook(make_bash("tail -n 20 file.txt"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "Read" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_grep_denied(self):
+        rc, out = run_hook(make_bash("grep -r pattern ."))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "Grep" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_rg_denied(self):
+        rc, out = run_hook(make_bash("rg pattern src/"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "Grep" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_find_denied(self):
+        rc, out = run_hook(make_bash("find . -name '*.py'"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "Glob" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_ls_denied(self):
+        rc, out = run_hook(make_bash("ls -la tools/"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "Glob" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_sed_denied(self):
+        rc, out = run_hook(make_bash("sed -i 's/old/new/' file.py"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "Edit" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_awk_denied(self):
+        rc, out = run_hook(make_bash("awk '{print $1}' file.txt"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "Edit" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_newline_prefix_cat_still_denied(self):
+        rc, out = run_hook(make_bash("\ncat file.txt"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
 class TestUnknownCommands:
     def test_unknown_command_exits_zero(self):
         rc, out = run_hook(make_bash("someunknowntool --flag"))

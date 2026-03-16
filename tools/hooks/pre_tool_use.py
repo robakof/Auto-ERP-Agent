@@ -22,13 +22,10 @@ SAFE_PREFIXES = [
     "pytest", "py.test",
     "pip", "pip3",
     "mkdir", "md",
-    "ls", "dir",
     "mv", "move",
     "cp", "copy",
     "rm", "del", "rmdir",
-    "sed", "awk",
-    "wc", "find",
-    "cat", "type",
+    "wc",
     "echo",
     "cd",
     "start",
@@ -36,6 +33,22 @@ SAFE_PREFIXES = [
     "where", "which",
     "curl", "wget",
 ]
+
+# Komendy zakazane w Bash — agent ma użyć dedykowanego narzędzia.
+# Hook zwraca deny z komunikatem naprawczym zamiast pytać użytkownika.
+DENY_WITH_REPAIR: dict[str, str] = {
+    "cat":  "Użyj narzędzia Read zamiast cat.",
+    "type": "Użyj narzędzia Read zamiast type.",
+    "head": "Użyj narzędzia Read (parametr limit) zamiast head.",
+    "tail": "Użyj narzędzia Read (parametry offset+limit) zamiast tail.",
+    "grep": "Użyj narzędzia Grep zamiast grep.",
+    "rg":   "Użyj narzędzia Grep zamiast rg.",
+    "find": "Użyj narzędzia Glob zamiast find.",
+    "ls":   "Użyj narzędzia Glob zamiast ls.",
+    "dir":  "Użyj narzędzia Glob zamiast dir.",
+    "sed":  "Użyj narzędzia Edit zamiast sed.",
+    "awk":  "Użyj narzędzia Edit zamiast awk.",
+}
 
 DANGEROUS_PATTERNS = [
     r"rm\s+-rf\s*/",
@@ -76,6 +89,18 @@ def main() -> None:
             return
 
     cmd_lower = normalized.lower()
+
+    first_token = cmd_lower.split()[0] if cmd_lower.split() else ""
+    if first_token in DENY_WITH_REPAIR:
+        print(json.dumps({
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": DENY_WITH_REPAIR[first_token],
+            }
+        }))
+        return
+
     for prefix in SAFE_PREFIXES:
         if cmd_lower == prefix or cmd_lower.startswith(prefix + " ") or cmd_lower.startswith(prefix + "\t"):
             output: dict = {
