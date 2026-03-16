@@ -347,9 +347,9 @@ Objętość dokumentacji powinna być **proporcjonalna do złożoności zadania*
 
 | Skala zadania | Dokumenty |
 |---|---|
-| Małe (do kilku sesji) | brak lub notatka w `progress_log.md` |
-| Średnie | `ARCHITECTURE.md` + `progress_log.md` |
-| Duże (okolice ~10 sesji i więcej, wiele modułów) | PRD + TECHSTACK + ARCHITECTURE + progress_log |
+| Małe (do kilku sesji) | log sesji w DB |
+| Średnie | `ARCHITECTURE.md` + log sesji w DB |
+| Duże (okolice ~10 sesji i więcej, wiele modułów) | PRD + TECHSTACK + ARCHITECTURE + log sesji w DB |
 
 Nadmiarowa dokumentacja dla małych zadań jest kosztowna — zajmuje kontekst i wprowadza
 szum. Zbyt mała dokumentacja dla dużych zadań prowadzi do utraty stanu i powtarzania pracy.

@@ -9,7 +9,7 @@ Przy bieżących zadaniach w istniejącym projekcie — przejdź bezpośrednio d
 
 | Skala | Dokumentacja | Kiedy |
 |---|---|---|
-| Małe / poprawka | Notatka w `progress_log.md` | Kilka godzin, jeden moduł |
+| Małe / poprawka | log sesji w DB | Kilka godzin, jeden moduł |
 | Średnie | `ARCHITECTURE.md` z sekcjami PRD i techstack | Kilka sesji, nowy moduł |
 | Duże / projektowe | Osobne `PRD.md` + `TECHSTACK.md` + `ARCHITECTURE.md` | Wiele sesji, wiele modułów |
 

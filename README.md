@@ -68,7 +68,6 @@ copy .env.example .env   # uzupełnij SQL credentials
 │   └── dev/
 │       ├── AI_GUIDELINES.md           # Wytyczne dla agenta deweloperskiego
 │       ├── ARCHITECTURE.md            # Architektura systemu
-│       └── progress_log.md            # Log postępów prac
 │
 └── tests/                             # Testy jednostkowe (pytest)
 ```
