@@ -9,6 +9,8 @@
 --   CDN.TraElem     — pozycje WZ (join przez TrE_GIDNumer = TrN_GIDNumer)
 --   CDN.KntAdresy   — adres dostawy (join przez TrN_AdWNumer/TrN_AdWTyp)
 --   CDN.TrNOpisy    — opis/notatka handlowca (join przez TnO_TrnNumer)
+--   CDN.ZamNag      — data realizacji ZS (join przez TrN_ZaNNumer, ZaNTyp=960)
+--   CDN.MagNag + wms.* — palety WMS (subquery per WZ)
 --
 -- ⚠ PRZED WDROŻENIEM — zweryfikuj format numeru WZ przez CDN.NazwaObiektu
 --   i porównaj z ręczną konstrukcją na kilku realnych dokumentach.
@@ -40,6 +42,26 @@ SELECT
     END AS data_sprzedazy,
 
     o.TnO_Opis                              AS opis,
+
+    -- Data realizacji z powiązanego ZS (może być NULL gdy brak ZS lub brak daty)
+    CASE WHEN z.ZaN_DataRealizacji = 0 THEN NULL
+         ELSE CAST(DATEADD(d, z.ZaN_DataRealizacji, '18001228') AS DATE)
+    END                                     AS data_realizacji_zs,
+
+    -- Palety z WMS (format: "EPN: 2, KRT: 5") — NULL gdy brak dokumentu WMS
+    ISNULL(STUFF((
+        SELECT ', ' + lt.Name + ': ' + CONVERT(VARCHAR(5), COUNT(DISTINCT lo.barcode))
+        FROM CDN.MagNag m
+        JOIN wms.documents d   WITH (NOLOCK) ON d.SourceDocumentId = m.MaN_GIDNumer
+        JOIN wms.items i       WITH (NOLOCK) ON d.Id = i.DocumentId
+        JOIN wms.LogisticUnitObjects lo WITH (NOLOCK) ON i.LogisticUnitId = lo.Id
+        JOIN wms.LogisticUnitTypes lt   WITH (NOLOCK) ON lo.LogisticsUnitTypeId = lt.Id
+        WHERE m.MaN_ZrdNumer = t.TrN_GIDNumer
+          AND m.MaN_ZrdTyp   = t.TrN_GIDTyp
+        GROUP BY lt.Name
+        HAVING COUNT(DISTINCT lo.barcode) <> 0
+        FOR XML PATH('')
+    ), 1, 2, ''), '')                       AS palety,
 
     -- -------------------------------------------------------------------------
     -- Adres dostawy (z nagłówka WZ → CDN.KntAdresy)
@@ -101,6 +123,10 @@ LEFT JOIN CDN.TrNOpisy o
     ON  o.TnO_TrnNumer = t.TrN_GIDNumer
     AND o.TnO_TrnTyp   = t.TrN_GIDTyp
     AND o.TnO_Typ      = 0
+-- Data realizacji z powiązanego ZS
+LEFT JOIN CDN.ZamNag z
+    ON  z.ZaN_GIDNumer = t.TrN_ZaNNumer
+    AND t.TrN_ZaNTyp   = 960
 
 WHERE
     t.TrN_GIDTyp   = 2001  -- WZ (Wydanie zewnętrzne)
