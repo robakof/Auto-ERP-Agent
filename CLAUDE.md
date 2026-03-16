@@ -136,6 +136,28 @@ Hook bezpieczeństwa blokuje zbyt złożone komendy. Trzymaj się prostych form:
 6. **`cd "ścieżka" && git`** — hook blokuje; używaj `git -C "ścieżka"` zamiast `cd &&`
 7. **`git mv` per plik** — używaj zwykłego `mv`, potem jeden `git add -A` na końcu zadania
 
+### Inbox — odczyt bez auto-realizacji
+
+Inbox czytasz na starcie sesji wyłącznie informacyjnie. Nie podejmujesz działań na podstawie
+wiadomości z inbox bez jawnej komendy od użytkownika. Po przeczytaniu czekasz na instrukcję.
+
+Uzasadnienie: wiadomości kumulują się między sesjami, część jest historyczna lub zdezaktualizowana.
+Autonomiczna realizacja prowadzi do zbędnej pracy lub błędów.
+
+### Backlog — aktualizuj statusy
+
+Przed rozpoczęciem zadania z backlogu:
+```
+python tools/agent_bus_cli.py backlog-update --id <id> --status in_progress
+```
+
+Po zakończeniu:
+```
+python tools/agent_bus_cli.py backlog-update --id <id> --status done
+```
+
+Inne role widzą `in_progress` i nie duplikują pracy.
+
 ### Komunikacja agent-agent
 
 Odpowiedź proporcjonalna do zadania:
