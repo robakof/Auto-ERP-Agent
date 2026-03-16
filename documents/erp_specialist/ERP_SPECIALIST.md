@@ -133,11 +133,12 @@ python tools/bi_verify.py --draft SCIEZKA.sql --view-name NAZWA
   (test + eksport + statystyki w 1 kroku; zastępuje 3 osobne wywołania narzędzi)
 
 python tools/bi_discovery.py CDN.NazwaTabeli [--pk Kolumna_GIDNumer] [--filter "warunek WHERE"]
-                             [--max-enum N]
+                             [--max-enum N] [--no-enum]
   → data.table, data.row_count, [data.pk_distinct], [data.filter]
   → data.columns[].{name, sql_type, distinct, role, [value|values], [min, max]}
   role: empty | constant | enum | id | Clarion_DATE | Clarion_TIMESTAMP | SQL_DATE | text | numeric
   (automatyczny raport discovery: 1 zbiorcze COUNT DISTINCT + GROUP BY/MIN-MAX per kolumna)
+  --no-enum: pomija GROUP BY — tylko role/distinct bez listy wartości; UŻYWAJ dla tabel >50 kolumn
 
 python tools/windows_update.py --id ... [--name "..."] [--primary-table CDN.XXX]
                                 [--add-alias "..."] [--config-types columns filters]
@@ -149,6 +150,17 @@ python tools/docs_build_index.py [--xlsm PATH]
 
 Każde narzędzie zwraca `{"ok": true|false, "data": ..., "error": {"type": ..., "message": ...}}`.
 Przy `ok: false` — czytaj `error.type` i `error.message`.
+
+---
+
+## Zarządzanie kontekstem
+
+Duże outputy narzędzi wyczerpują okno kontekstowe. Stosuj:
+
+- **bi_discovery.py na tabeli >50 kolumn** → zawsze dodaj `--no-enum`, wynik zapisz do pliku (`> tmp/discovery.json`), czytaj tylko potrzebne fragmenty
+- **docs_search** → bez `--limit` lub `--limit 20`; duże limity (>50) tylko gdy świadomie szukasz rzadkiego opisu, wynik zawsze do pliku
+- **Czytanie dużych plików** (>200 linii) → używaj `Read` z parametrami `offset`/`limit` zamiast całego pliku; załaduj tylko sekcję której potrzebujesz
+- **Draft SQL** → pisz iteracyjnie: najpierw szkielet (SELECT + FROM + kluczowe JOINy), potem kolumny blok po bloku — nie pisz całego pliku w jednym kroku
 
 ---
 

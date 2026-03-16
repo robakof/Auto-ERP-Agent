@@ -211,6 +211,56 @@ class TestDiscover:
         assert isinstance(result["meta"]["duration_ms"], int)
 
 
+class TestNoEnum:
+    def test_no_enum_skips_group_by(self):
+        """no_enum=True → enum/constant bez listy wartości, brak dodatkowych zapytań."""
+        conn = _mock_conn([
+            (["COLUMN_NAME", "DATA_TYPE"], [["Status", "int"], ["GIDTyp", "int"]]),
+            (["cnt"], [[1000]]),
+            (["d0", "d1"], [[5, 1]]),
+            # brak GROUP BY — no_enum=True
+        ])
+        with patch.object(SqlClient, "get_connection", return_value=conn):
+            result = bd.discover("CDN.T", no_enum=True)
+
+        cols = {c["name"]: c for c in result["data"]["columns"]}
+        assert cols["Status"]["role"] == "enum"
+        assert "values" not in cols["Status"]
+        assert cols["GIDTyp"]["role"] == "constant"
+        assert "value" not in cols["GIDTyp"]
+
+    def test_no_enum_false_still_fetches_values(self):
+        """no_enum=False (domyślnie) → wartości enum obecne."""
+        conn = _mock_conn([
+            (["COLUMN_NAME", "DATA_TYPE"], [["Status", "int"]]),
+            (["cnt"], [[1000]]),
+            (["d0"], [[2]]),
+            (["v", "cnt"], [[1, 800], [0, 200]]),
+        ])
+        with patch.object(SqlClient, "get_connection", return_value=conn):
+            result = bd.discover("CDN.T", no_enum=False)
+
+        col = result["data"]["columns"][0]
+        assert col["role"] == "enum"
+        assert col["values"] == [1, 0]
+
+    def test_no_enum_cli_flag(self, capsys):
+        """--no-enum w CLI → no_enum=True."""
+        conn = _mock_conn([
+            (["COLUMN_NAME", "DATA_TYPE"], [["Status", "int"]]),
+            (["cnt"], [[500]]),
+            (["d0"], [[3]]),
+        ])
+        with patch("sys.argv", ["bi_discovery.py", "CDN.T", "--no-enum"]):
+            with patch.object(SqlClient, "get_connection", return_value=conn):
+                bd.main()
+        result = json.loads(capsys.readouterr().out)
+        assert result["ok"] is True
+        col = result["data"]["columns"][0]
+        assert col["role"] == "enum"
+        assert "values" not in col
+
+
 class TestMain:
     def test_valid_call_prints_json(self, capsys):
         conn = _mock_conn([

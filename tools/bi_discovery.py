@@ -59,6 +59,7 @@ def discover(
     pk: str | None = None,
     filter_expr: str | None = None,
     max_enum: int = 30,
+    no_enum: bool = False,
 ) -> dict:
     client = SqlClient()
     where = f" WHERE {filter_expr}" if filter_expr else ""
@@ -117,22 +118,25 @@ def discover(
             col["role"] = "empty"
 
         elif distinct <= max_enum:
-            group = client.execute(
-                f"SELECT TOP {max_enum + 1} [{name}], COUNT(*) FROM {table}{where} "
-                f"GROUP BY [{name}] ORDER BY COUNT(*) DESC",
-                inject_top=None,
-            )
-            if group["ok"]:
-                total_ms += group["duration_ms"]
-                vals = [r[0] for r in group["rows"]]
-                if distinct == 1:
-                    col["role"] = "constant"
-                    col["value"] = vals[0] if vals else None
-                else:
-                    col["role"] = "enum"
-                    col["values"] = vals
-            else:
+            if no_enum:
                 col["role"] = "constant" if distinct == 1 else "enum"
+            else:
+                group = client.execute(
+                    f"SELECT TOP {max_enum + 1} [{name}], COUNT(*) FROM {table}{where} "
+                    f"GROUP BY [{name}] ORDER BY COUNT(*) DESC",
+                    inject_top=None,
+                )
+                if group["ok"]:
+                    total_ms += group["duration_ms"]
+                    vals = [r[0] for r in group["rows"]]
+                    if distinct == 1:
+                        col["role"] = "constant"
+                        col["value"] = vals[0] if vals else None
+                    else:
+                        col["role"] = "enum"
+                        col["values"] = vals
+                else:
+                    col["role"] = "constant" if distinct == 1 else "enum"
 
         elif distinct == row_count:
             col["role"] = "id"
@@ -190,6 +194,9 @@ def main() -> None:
     parser.add_argument("--pk", default=None, help="Kolumna klucza głównego (COUNT DISTINCT)")
     parser.add_argument("--filter", dest="filter_expr", default=None, help="Warunek WHERE")
     parser.add_argument("--max-enum", type=int, default=30, help="Próg enumeracji (domyślnie: 30)")
+    parser.add_argument("--no-enum", action="store_true",
+                        help="Pomiń GROUP BY dla kolumn enum — tylko role/distinct, bez listy wartości. "
+                             "Zalecane dla dużych tabel (>50 kolumn) — redukuje output i czas zapytań.")
     args = parser.parse_args()
 
     result = discover(
@@ -197,6 +204,7 @@ def main() -> None:
         pk=args.pk,
         filter_expr=args.filter_expr,
         max_enum=args.max_enum,
+        no_enum=args.no_enum,
     )
     print_json(result)
 
