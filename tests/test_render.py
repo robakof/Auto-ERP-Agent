@@ -42,7 +42,8 @@ class TestBacklogMd:
         content = out.read_text(encoding="utf-8")
         assert "Fix bot" in content
         assert "Fix arch" in content
-        assert "|" in content
+        assert "##" in content
+        assert "**status:**" in content
 
     def test_filter_area(self, db):
         path, tmp = db
