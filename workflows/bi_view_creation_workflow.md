@@ -444,7 +444,7 @@ Zapisać zatwierdzony widok, wdrożyć przez DBA, zaktualizować katalog.
 
 3. Po potwierdzeniu wdrożenia przez DBA — zaktualizuj katalog:
    ```bash
-   python tools/bi_catalog_add.py --view AIBI.{NazwaWidoku}
+   python tools/bi_catalog_add.py --view AIBI.{NazwaWidoku} --add
    ```
    **Narzędzie odpytuje bazę — widok musi być wdrożony zanim je uruchomisz.**
    Nie wpisuj kolumn ręcznie do catalog.json.
