@@ -48,14 +48,18 @@
 
 ## Dziennik
 
-### 2026-03-16 — pre_tool_use hook + render.py fix
+### 2026-03-16 — pre_tool_use hook + render.py + reguły agentów
 
-- `tools/hooks/pre_tool_use.py` — PreToolUse hook: normalizacja `\n` + SAFE_PREFIXES whitelist + DANGEROUS_PATTERNS deny; zamyka id=24 i id=58
-- `.claude/settings.local.json` — statyczna allow list wyczyszczona, hook zarejestrowany (gitignored, lokalna konfiguracja)
-- `render.py backlog --format md` — format czytelny dla człowieka: tabelki summary pogrupowane po effort/value na górze + szczegóły poniżej (fix: has_content sprawdza columns nie data)
-- `workflows/bi_view_creation_workflow.md` — `bi_catalog_add.py --add` w Fazie 4 (fix dla nowych widoków)
-- Git pull — 11 commitów z drugiej instancji wciągnięte bez konfliktów (wz_jas_export, kolumny Handlowe)
+- `tools/hooks/pre_tool_use.py` — PreToolUse hook: normalizacja `\n` + SAFE_PREFIXES whitelist + DANGEROUS_PATTERNS deny; 15 testów; zamyka id=24 i id=58
+- `.claude/settings.local.json` — statyczna allow list wyczyszczona, PreToolUse hook zarejestrowany (gitignored)
+- `render.py backlog --format md` — tabelki summary po grupach effort/value na górze + szczegóły poniżej
+- `workflows/bi_view_creation_workflow.md` — `bi_catalog_add.py --add` w Fazie 4
+- `CLAUDE.md` — inbox odczyt-only (bez auto-realizacji) + backlog in_progress/done przed/po zadaniu
+- Git pull — 11 commitów z drugiej instancji wciągnięte bez konfliktów
+- `documents/methodology/research_prompt_agent_rule_enforcement.md` — prompt badawczy: dlaczego agenci łamią reguły i jak to wymusić systemowo
+- Backlog TraElem (id=33) → in_progress
 - 603 testów zielonych (3 pre-existing fails bez zmian)
+- Otwarte: usunięcie `*_progress.md` (5 plików, opcja A — jedyne źródło prawdy to session_log DB)
 
 ---
 
