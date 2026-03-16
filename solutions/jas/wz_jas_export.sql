@@ -174,6 +174,7 @@ WHERE
     t.TrN_GIDTyp     = 2001  -- WZ
     AND t.TrN_Stan       = 5     -- Zatwierdzone
     AND t.TrN_MagZNumer  = 1     -- Buszewo
+    AND t.TrN_TrNRok     = YEAR(GETDATE())  -- bieżący rok
 
 GROUP BY
     t.TrN_GIDNumer,
