@@ -16,7 +16,6 @@
 --   Paleta jednorazowa     → Paleta       120×80×200 cm  300 kg
 --   Pół paleta jednorazowa → Paleta-INNA   60×80×170 cm  150 kg
 --
--- ⚠ PRZED WDROŻENIEM — zweryfikuj format numeru WZ przez CDN.NazwaObiektu
 
 WITH addr AS (
     -- Parser ulicy: rozdziela KnA_Ulica na ulicę i numer domu
@@ -66,11 +65,7 @@ SELECT
     -- -------------------------------------------------------------------------
     -- Identyfikacja WZ
     -- -------------------------------------------------------------------------
-    'WZ-' + CAST(t.TrN_TrNNumer AS VARCHAR(10))
-        + '/' + RIGHT('0' + CAST(t.TrN_TrNMiesiac AS VARCHAR(2)), 2)
-        + '/' + RIGHT(CAST(t.TrN_TrNRok AS VARCHAR(4)), 2)
-        + '/' + RTRIM(t.TrN_TrNSeria)
-        AS numer_wz,
+    t.TrN_DokumentObcy                      AS numer_wz,
 
     CASE WHEN t.TrN_Data2 = 0 THEN NULL
          ELSE CAST(DATEADD(d, t.TrN_Data2, '18001228') AS DATE)
@@ -182,7 +177,7 @@ WHERE
 
 GROUP BY
     t.TrN_GIDNumer,
-    t.TrN_TrNNumer, t.TrN_TrNMiesiac, t.TrN_TrNRok, t.TrN_TrNSeria,
+    t.TrN_DokumentObcy,
     t.TrN_Data2, t.TrN_DataMag,
     t.TrN_ZaNNumer, t.TrN_ZaNTyp,
     t.TrN_AdWNumer, t.TrN_AdWTyp,
