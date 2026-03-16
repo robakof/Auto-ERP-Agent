@@ -25,6 +25,9 @@ tmp/
 # Eksporty SQL generowane przez sql_query.py --export
 *_export.xlsx
 
+# Pliki tymczasowe Excel (lock files)
+~$*
+
 # Pliki tymczasowe
 *.tmp
 
