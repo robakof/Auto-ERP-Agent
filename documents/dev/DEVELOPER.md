@@ -54,7 +54,7 @@ python tools/agent_bus_cli.py inbox --role developer
 ```
 python tools/agent_bus_cli.py inbox --role human
 ```
-4. Przeczytaj `documents/dev/progress_log.md` — stan projektu
+4. Sprawdź ostatni log sesji: `python tools/agent_bus_cli.py inbox --role developer` (typ log)
 
 ### Skala zadania
 
@@ -77,13 +77,9 @@ Dla każdego wpisu:
 3. Zatwierdzone → dodaj do backlogu: `python tools/agent_bus_cli.py backlog-add --title "..." --area <obszar> --content-file tmp/tmp.md`
 4. Przetworzony wpis → oznacz suggestion jako implemented: `python tools/agent_bus_cli.py suggest-status --id <id> --status implemented`
 
-### Progress Log
+### Log sesji
 
-Jeżeli plik `documents/dev/progress_log.md` istnieje, zapoznaj się z nim teraz aby dowiedzieć się jakie są postępy projektu. Jeśli go nie ma - stwórz go.
-
-W progress_log w minimalistyczny sposób zapisuj postępy pracy. W pliku powinny znajdować się najważniejsze informacje dotyczące postępów prac bez wchodzenia w szczegóły czy zbytniej drobiazgowości.
-
-Progress_log służy do zapoznania się dla kolejnych asystentów z postępami prac tak aby z łatwością mogli odnaleźć się w kontekście projektu bez przeładowywania context window.
+Stan projektu przechowywany jest w `session_log` w bazie. Ostatni log Developer możesz odczytać przez `conversation_search.py` lub sprawdzić inbox. Loguj każdą sesję przez `agent_bus_cli.py log` (reguła wspólna w CLAUDE.md).
 
 ### Na zamknięcie sesji
 
@@ -91,8 +87,7 @@ Progress_log służy do zapoznania się dla kolejnych asystentów z postępami p
 ```
 python tools/arch_check.py
 ```
-2. Zaktualizuj `documents/dev/progress_log.md`
-3. Commit i push przez `tools/git_commit.py`
+2. Commit i push przez `tools/git_commit.py`
 
 ### Inicjalizacja projektu lub nowej gałęzi
 
@@ -241,7 +236,7 @@ Jeżeli w trakcie implementacji natrafisz na nie omówione wcześniej kwestie lu
 **Nowe narzędzie — checklist publikacji:**
 1. Czy narzędzie dotyczy więcej niż jednej roli? Jeśli tak → dokumentuj w `CLAUDE.md` (sekcja "Narzędzia wspólne"), nie w dokumencie roli. Jeśli nie → dokumentuj w dokumencie roli.
 2. Wyślij `agent_bus send` do aktywnych ról z informacją o nowym narzędziu (nazwa, składnia, kiedy używać)
-3. Zaktualizuj `progress_log.md`
+3. Zapisz log sesji przez `agent_bus_cli.py log`
 
 #### Krok 3: Poprawki implementacji
 
@@ -249,7 +244,7 @@ W czacie VibeCoder przekaże ci feedback na temat wprowadzonej implementacji. Po
 
 #### Krok 4: Commit, push i aktualizacja Progress_log.md
 
-Po zatwierdzeniu implementacji wykonaj commit, push i zaktualizuj `progress_log.md`.
+Po zatwierdzeniu implementacji wykonaj commit i push.
 
 ---
 
