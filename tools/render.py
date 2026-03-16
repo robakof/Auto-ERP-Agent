@@ -2,7 +2,7 @@
 
 Usage:
     python tools/render.py backlog --format xlsx
-    python tools/render.py backlog --format md --status planned --area Bot
+    python tools/render.py backlog --format md --status planned --area Bot Dev Arch
     python tools/render.py backlog --format json
     python tools/render.py suggestions --format md --status open --author erp_specialist
     python tools/render.py inbox --role developer --format md
@@ -65,7 +65,7 @@ def fetch(view: str, bus: AgentBus, args: argparse.Namespace) -> list[dict]:
         items = bus.get_backlog(status=getattr(args, "status", None))
         area = getattr(args, "area", None)
         if area:
-            items = [i for i in items if i.get("area") == area]
+            items = [i for i in items if i.get("area") in area]
         return items
     if view == "suggestions":
         return bus.get_suggestions(
@@ -304,7 +304,7 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument("--output", default=None)
         p.add_argument("--status", default=None)
         if view == "backlog":
-            p.add_argument("--area", default=None)
+            p.add_argument("--area", nargs="+", default=None)
         if view == "suggestions":
             p.add_argument("--author", default=None)
 
