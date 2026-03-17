@@ -44,13 +44,79 @@ Analiza koncepcyjna: `documents/dev/analiza_kierunki_2026-03-14.md`
 ## Faza 3 — Prompty z bazy (planned)
 
 **Cel:** prompty ról w DB zamiast plików .md — dynamiczne, wersjonowane, edytowalne przez rolę.
+Architektura warstw: `shared_base → role_block → phase_block → domain_pack → runtime_state`
 
 | id | Zadanie | Status |
 |----|---------|--------|
-| 53 | Tabela prompts + migracja dokumentów ról | planned |
+| 53 | Tabela `prompts` + migracja dokumentów ról | planned |
 | 54 | Prompt Engineer — rola do edycji promptów w DB | planned |
 
 **Efekt:** CLAUDE.md staje się minimalny (routing + "wywołaj session_init"). Pliki chronione znikają.
+
+### Schemat tabeli `prompts` (zaktualizowany po research)
+
+```sql
+prompts (
+  id, agent_id, kind, role, phase, task_type, domain,
+  model_family, routing_description, content,
+  version, status, tags, eval_suite_version,
+  effective_from, replaced_by, created_at
+)
+```
+
+Pole `kind`: `shared_base | role | phase | domain | example | routing`
+Pole `routing_description`: oddzielone od `content` (execution body) — do użycia przez orchestrator/runner bez ładowania pełnego promptu.
+Pole `status`: `draft | candidate | prod | deprecated`
+
+### Nowe tabele wymagane przez Fazę 3 (z research)
+
+**`prompt_assemblies`** — fingerprint promptu per sesja:
+```sql
+prompt_assemblies (
+  assembly_id, session_id, role, phase, task_type,
+  selected_prompt_ids, model_id, assembled_hash, created_at
+)
+```
+Cel: korelacja regresji z konkretną wersją zestawu bloków. Każda sesja zapisuje co dostała.
+
+**`phase_contracts`** — gate'y jako struktura danych (nie tylko prose w .md):
+```sql
+phase_contracts (
+  id, workflow_id, phase_name,
+  entry_requirements, required_artifacts,
+  exit_requirements, escalation_conditions,
+  output_schema
+)
+```
+Cel: agent sprawdza kontrakt z DB zamiast parsować prose z .md. Gate = weryfikowalny stan.
+
+**`known_failures`** — baza historycznych błędów agentów (retrieve per zadanie):
+```sql
+known_failures (
+  id, agent_id, phase, task_type, failure_description,
+  root_cause, fix_applied, tags, created_at
+)
+```
+Cel: zamiast doklejać historię napraw do role_block — retrieve 1-3 najbardziej podobnych
+przypadków do runtime_state. Prompt nie rośnie z każdą naprawą.
+
+### session_init po Fazie 3
+
+```
+1. Pobierz shared_base
+2. Dobierz role_block dla danej roli
+3. Dobierz phase_block jeśli znana faza
+4. Retrieve domain_pack po tagach zadania
+5. Retrieve known_failures (1-3 przypadki podobne do bieżącego zadania)
+6. Dokładaj runtime_state (backlog item, inbox, artefakty)
+7. Zapisz assembly_id do session_log
+```
+
+### Zależność z Prompt Engineer
+
+PE w Fazie PE-1 (przed Fazą 3) działa na plikach .md.
+PE w Fazie PE-2 (po Fazie 3) używa `prompt_get/set/diff/publish/promote/rollback` + `eval_run`.
+Plan roli: `documents/dev/prompt_engineer_plan.md`
 
 ---
 
@@ -106,18 +172,20 @@ Runner (Faza 2) jest bezużyteczny jeśli każda sesja może utknąć bez człow
 Faza 1 (zapis sesji)
     │
     ▼
-Faza 2 (agent invocation)  →  Faza 3 (prompty w DB)
-    │
-    ▼
-Faza 4 (PM)
-    │
-    ▼
-Faza 5 (docs w DB + rendery)
+Faza 2 (agent invocation)  →  PE Faza 1 (.md editor, bez DB)
+    │                               │
+    ▼                               ▼
+Faza 4 (PM)              Faza 3 (prompty w DB)  →  PE Faza 2 (prompt registry)
+    │                               │
+    ▼                               ▼
+Faza 5 (docs w DB + rendery)   phase_contracts + known_failures
     │
     ▼
 Faza 6 (odblokowanie agentów — hook smart fallback)
 ```
 
+PE Faza 1 nie blokuje na Fazę 3 — można wdrożyć wcześniej jako .md editor.
+
 ---
 
-*Ostatnia aktualizacja: 2026-03-14*
+*Ostatnia aktualizacja: 2026-03-17 (po research multiagent_prompts + system_prompt_structure)*
