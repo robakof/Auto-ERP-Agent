@@ -74,12 +74,15 @@ COL_PRZYKLADOWE = {
 }
 
 
+_EXCEL_ERRORS = {"None", "#VALUE!", "#REF!", "#NAME?", "#N/A", "#NUM!", "#DIV/0!", "#NULL!"}
+
+
 def _str(val) -> str:
-    """Bezpieczna konwersja wartości komórki na string. None/'None'/'#VALUE!' → ''."""
+    """Bezpieczna konwersja wartości komórki na string. None/błędy Excela → ''."""
     if val is None:
         return ""
     s = str(val).strip()
-    return "" if s in ("None", "#VALUE!") else s
+    return "" if s in _EXCEL_ERRORS else s
 
 
 def _normalize_table(name: str) -> str:
