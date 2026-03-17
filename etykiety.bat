@@ -1,3 +1,3 @@
 @echo off
-cd /d "%USERPROFILE%\Desktop\Auto-ERP-Agent"
+cd /d "%~dp0"
 python tools\etykiety_ui.py
