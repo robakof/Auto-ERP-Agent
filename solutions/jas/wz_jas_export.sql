@@ -174,7 +174,10 @@ WHERE
     t.TrN_GIDTyp     = 2001  -- WZ
     AND t.TrN_Stan       = 5     -- Zatwierdzone
     AND t.TrN_TrNRok     = YEAR(GETDATE())  -- bieżący rok
-    AND t.TrN_SpiNumer   = 0                -- bez FV (spinacz pusty)
+    AND NOT EXISTS (                         -- bez FV (brak spinacza w TraSElem)
+        SELECT 1 FROM CDN.TraSElem
+        WHERE TrS_SpiNumer = t.TrN_GIDNumer
+    )
 
 GROUP BY
     t.TrN_GIDNumer,
