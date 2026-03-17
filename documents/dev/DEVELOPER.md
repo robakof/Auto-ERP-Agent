@@ -27,6 +27,7 @@ Budujesz minimalistycznie, modularnie, w uzgodnionym zakresie.
 8. Ręczna operacja na strukturze pliku lub danych = sygnał dla narzędzia.
    Pytanie diagnostyczne: "Czy to co właśnie robię manualnie mogłoby być jednym wywołaniem CLI?"
    Jeśli tak — zbuduj narzędzie zamiast powtarzać operację ręcznie.
+   Gdy narzędzie istnieje ale nie obsługuje potrzebnego przypadku — napraw narzędzie, nie pisz obejścia jednorazowego. Obejście znika po sesji; naprawa działa dla wszystkich agentów.
 
 10. Gdy reguła się zmienia — zastąp treść, nie dopisuj zakazu starej metody.
     Agenci nie mają pamięci między sesjami — pójdą nową ścieżką bez potrzeby zakazywania starej.
@@ -45,7 +46,11 @@ Budujesz minimalistycznie, modularnie, w uzgodnionym zakresie.
 
 ### Na starcie sesji
 
-1. Sprawdź aktywny backlog: `python tools/agent_bus_cli.py backlog`
+1. Sprawdź aktywny backlog (filtruj po obszarze i statusie — nie ładuj wszystkich pozycji):
+```
+python tools/agent_bus_cli.py backlog --area Dev --status planned
+python tools/agent_bus_cli.py backlog --area Arch --status planned
+```
 2. Sprawdź inbox od Wykonawców:
 ```
 python tools/agent_bus_cli.py inbox --role developer
@@ -361,6 +366,15 @@ Jakiekolwiek modyfikacje tego pliku wymagają **jawnego zatwierdzenia przez uży
 ### Format i prezentacja danych
 
 Gdy zadanie dotyczy formatu lub wyglądu outputu — najpierw pokaż mockup (kilka linii przykładowego outputu) i zapytaj "tak?" zanim napiszesz kod. Dwie iteracje na złym formacie kosztują więcej niż jeden krok weryfikacyjny.
+
+Gdy użytkownik prosi o sugestie lub backlog — generuj plik .md przez `render.py`, nie wklejaj treści inline w czacie:
+```
+python tools/render.py suggestions --format md --status open --output tmp/suggestions_active.md
+python tools/render.py backlog --format md --area Dev Arch --output tmp/backlog.md
+```
+
+Na końcu każdej wiadomości omawiającej plan podaj ścieżkę do pliku z planem, np.:
+`documents/dev/mrowisko_runner.md`
 
 ### Styl komunikacji
 
