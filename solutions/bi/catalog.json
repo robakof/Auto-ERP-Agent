@@ -740,14 +740,8 @@
       "name": "AIBI.TraElem",
       "file": "solutions/bi/views/TraElem.sql",
       "description": "Pozycje dokumentow handlowych (sprzedaz, zakup, korekty, MM, PW/RW). Kazdy wiersz = 1 pozycja dokumentu. JOIN z AIBI.TraNag przez ID_Dokumentu + Typ_Dokumentu. 52 kolumny: towar, kontrahent pozycji, akwizytor, ilosci, ceny, wartosci PLN, VAT, cennik, korekty.",
-      "example_questions": [
-        "Sprzedaz netto per towar w danym miesiacu",
-        "Rabaty promocyjne per kontrahent",
-        "Pozycje faktur z korektami — przyczyny korekt",
-        "Obrot per akwizytor na poziomie pozycji",
-        "Analiza cennikow — ktore cenniki sa stosowane najczesciej"
-      ],
-      "notes": "Row count ~1.1M. INNER JOIN do CDN.TraNag (1 sierota excluded). Rabat_Korekta moze zawierac anomalie (duze ujemne liczby) — znane zachowanie bazy.",
+      "example_questions": [],
+      "notes": "",
       "columns": [
         "Typ_Dokumentu",
         "ID_Dokumentu",
@@ -801,9 +795,63 @@
         "Flaga_VAT_Przed_Korekta",
         "Przyczyna_Korekty",
         "Rabat_Operator"
+      ]
+    },
+    {
+      "name": "AIBI.ZamElem",
+      "file": "solutions/bi/views/ZamElem.sql",
+      "description": "Pozycje zamowien sprzedazy i zakupu (ZS/ZZ) oraz ofert. Kazdy wiersz = 1 pozycja zamowienia. JOIN z AIBI.ZamNag przez ID_Zamowienia. 41 kolumn: towar, kontrahent pozycji, akwizytor, magazyn, ilosci, ceny (katalogowa/oferowana/uzgodniona), wartosc, rabaty, cennik, daty realizacji, ID pozycji e-Sklepu.",
+      "columns": [
+        "ID_Zamowienia",
+        "Nr_Pozycji",
+        "Pozycja_Na_Dokumencie",
+        "Numer_Dokumentu",
+        "Typ_Zamowienia",
+        "Stan_Zamowienia",
+        "Data_Wystawienia",
+        "ID_Towaru",
+        "Nazwa_Towaru",
+        "Kod_Towaru",
+        "ID_Kontrahenta_Pozycji",
+        "Akronim_Kontrahenta_Pozycji",
+        "Nazwa_Kontrahenta_Pozycji",
+        "ID_Akwizytora",
+        "Akwizytor_Akronim",
+        "ID_Magazynu",
+        "Kod_Magazynu",
+        "Nazwa_Magazynu",
+        "DataCzas_Utworzenia",
+        "Ilosc",
+        "Jednostka_Miary",
+        "Przelicznik_JM",
+        "Grupa_VAT",
+        "Stawka_VAT",
+        "Waluta",
+        "Cena_Katalogowa",
+        "Cena_Oferowana",
+        "Cena_Uzgodniona",
+        "Rabat_Procent",
+        "Wartosc_Po_Rabacie",
+        "Rabat_Promocyjny",
+        "Rabat_Korekta",
+        "ID_Cennika",
+        "Nazwa_Cennika",
+        "Cecha_Towaru",
+        "Rowna_IloscxCena",
+        "Data_Potwierdzenia_Dostawy",
+        "Data_Aktywacji_Rezerwacji",
+        "Data_Waznosci_Rezerwacji",
+        "Dni_Do_Realizacji",
+        "ID_Pozycji_eSklepu"
       ],
-      "example_questions": [],
-      "notes": ""
+      "example_questions": [
+        "Co zamowiono a nie zrealizowano?",
+        "Jakie produkty sa w aktywnych zamowieniach sprzedazy?",
+        "Pipeline zamowien per kontrahent per miesiac",
+        "Sredni rabat na pozycjach zamowien",
+        "Zamowienia z e-Sklepu vs tradycyjne"
+      ],
+      "notes": "ZaE_FlagaNB=constant N (zawsze od netto). AkwTyp=8224 (KSl) nie ma tabeli w CDN — 793 pozycji (0.3%) bez Akwizytor_Akronim. ID_Cennika=-1 mozliwy (brak Nazwa_Cennika dla tych pozycji — identycznie jak TraElem)."
     }
   ]
 }
