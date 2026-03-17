@@ -1,0 +1,3 @@
+-- BRUDNOPIS -- wylacznie SELECT, bez CREATE VIEW
+-- AIBI.ZamElem -- pozycje zamowien (ZS/ZZ/OFS/OFZ)
+-- Status: Faza 1 -- plan w toku
