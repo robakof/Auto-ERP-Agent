@@ -27,8 +27,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from tools.lib.output import print_json
 from tools.lib.sql_client import SqlClient
 
-SQL_PATH = Path("solutions/jas/etykiety_10_oferty.sql")
-TEMPLATE_PATH = Path("Etykiety do wypełnienia.docx")
+_PROJECT_ROOT = Path(__file__).parent.parent
+SQL_PATH = _PROJECT_ROOT / "solutions/jas/etykiety_10_oferty.sql"
+TEMPLATE_PATH = _PROJECT_ROOT / "Etykiety do wypełnienia.docx"
 DEFAULT_COLS = 4
 
 

@@ -22,8 +22,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from tools.etykiety_export import generate, _query_products
 from tools.lib.sql_client import SqlClient
 
-SQL_GRUPY = Path("solutions/jas/etykiety_grupy.sql")
-OUTPUT_DIR = Path("output")
+_PROJECT_ROOT = Path(__file__).parent.parent
+SQL_GRUPY = _PROJECT_ROOT / "solutions/jas/etykiety_grupy.sql"
+OUTPUT_DIR = _PROJECT_ROOT / "output"
 
 
 # ---------------------------------------------------------------------------
