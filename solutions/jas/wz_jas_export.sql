@@ -5,7 +5,7 @@
 -- =============================================================================
 --
 -- Tabele:
---   CDN.TraNag      — nagłówek WZ (filtr: GIDTyp=2001, Stan=5, MagZNumer=1)
+--   CDN.TraNag      — nagłówek WZ (filtr: GIDTyp=2001, Stan=5, bez FV)
 --   CDN.KntAdresy   — adres dostawy (join przez TrN_AdWNumer/TrN_AdWTyp)
 --   CDN.TrNOpisy    — opis/notatka handlowca
 --   CDN.ZamNag      — data realizacji ZS (join przez TrN_ZaNNumer)
@@ -173,8 +173,8 @@ JOIN wms.LogisticUnitTypes lt   WITH (NOLOCK) ON lo.LogisticsUnitTypeId = lt.Id
 WHERE
     t.TrN_GIDTyp     = 2001  -- WZ
     AND t.TrN_Stan       = 5     -- Zatwierdzone
-    AND t.TrN_MagZNumer  = 1     -- Buszewo
     AND t.TrN_TrNRok     = YEAR(GETDATE())  -- bieżący rok
+    AND t.TrN_SpiNumer   = 0                -- bez FV (spinacz pusty)
 
 GROUP BY
     t.TrN_GIDNumer,
