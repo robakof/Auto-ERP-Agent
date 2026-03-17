@@ -270,6 +270,9 @@ Iteracyjne budowanie SELECT w pliku roboczym. SQL powstaje i żyje wyłącznie w
    ```
    Plik eksportu nadpisywany in-place (stała ścieżka bez timestampu).
 
+   **Eksport próbkowy dla dużych widoków (>100k wierszy):** dodaj `TOP 100000` do SELECT.
+   Weryfikacja statystyk przez `excel_read_stats.py` jest wystarczająca — pełny eksport niepotrzebny.
+
 4. Zasady SQL:
    - Kolumny: PascalCase z underscore, polskie, opisowe (`Data_Wystawienia`, `Kod_Towaru`)
    - Klucz główny widoku: `ID_[encja]`
@@ -366,7 +369,7 @@ PASS jeśli:
 - Brudnopis SELECT istnieje i przeszedł przez `sql_query.py` bez błędu
 - Eksport `{NazwaWidoku}_export.xlsx` istnieje i jest aktualny
 - Self-check zaliczony (wszystkie pozycje odhaczone)
-- Row count z eksportu = COUNT(*) z bazy
+- Row count z eksportu = COUNT(*) z bazy (lub eksport próbkowy TOP 100000 dla widoków >100k wierszy)
 
 BLOCKED jeśli którykolwiek warunek niespełniony.
 
