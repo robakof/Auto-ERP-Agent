@@ -159,7 +159,7 @@ LEFT JOIN CDN.ZamNag z
 LEFT JOIN CDN.MagNag m
     ON  m.MaN_ZrdNumer = t.TrN_GIDNumer
     AND m.MaN_ZrdTyp   = t.TrN_GIDTyp
-LEFT JOIN wms.documents d   WITH (NOLOCK) ON d.SourceDocumentId = m.MaN_GIDNumer
+LEFT JOIN wms.documents d   WITH (NOLOCK) ON d.SourceDocumentId = m.MaN_GIDNumer AND d.WmsSourceDocumentId IS NOT NULL
 LEFT JOIN wms.items i       WITH (NOLOCK) ON d.Id = i.DocumentId
 LEFT JOIN wms.LogisticUnitObjects lo WITH (NOLOCK) ON i.LogisticUnitId = lo.Id
 LEFT JOIN wms.LogisticUnitTypes lt   WITH (NOLOCK) ON lo.LogisticsUnitTypeId = lt.Id
