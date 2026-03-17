@@ -1,6 +1,7 @@
 -- =============================================================================
 -- WZ → JAS: lista zatwierdzonych WZ bez FV (wszystkie magazyny, bieżący rok)
--- Przeznaczenie: wejście dla agenta — jeden wiersz = jedno WZ
+-- Przeznaczenie: wejście dla agenta — jeden wiersz = jeden typ palety na WZ
+--               WZ bez danych WMS → jeden wiersz z NULL w kolumnach cargo
 -- =============================================================================
 --
 -- Tabele:
@@ -9,6 +10,12 @@
 --   CDN.TrNOpisy    — opis/notatka handlowca
 --   CDN.ZamNag      — data realizacji ZS (join przez TrN_ZaNNumer)
 --   CDN.TraSElem    — weryfikacja braku FV (TrS_SpiNumer)
+--   CDN.MagNag + wms.* — palety WMS (LEFT JOIN — NULL gdy brak danych WMS)
+--
+-- Mapowanie WMS → JAS (źródło: Mapowanie palet JAS.txt):
+--   Europaleta             → Paleta-EPAL  120×80×200 cm  300 kg
+--   Paleta jednorazowa     → Paleta       120×80×200 cm  300 kg
+--   Pół paleta jednorazowa → Paleta-INNA   60×80×170 cm  150 kg
 --
 
 WITH addr AS (
@@ -21,21 +28,17 @@ WITH addr AS (
         a.KnA_KodP,
         a.KnA_Miasto,
         a.KnA_Kraj,
-        -- p1: pozycja ostatniej spacji od prawej
         CHARINDEX(' ', REVERSE(RTRIM(LTRIM(a.KnA_Ulica)))) AS p1,
-        -- w1: ostatnie słowo
         CASE WHEN CHARINDEX(' ', REVERSE(RTRIM(LTRIM(a.KnA_Ulica)))) = 0
              THEN RTRIM(LTRIM(a.KnA_Ulica))
              ELSE RIGHT(RTRIM(LTRIM(a.KnA_Ulica)),
                         CHARINDEX(' ', REVERSE(RTRIM(LTRIM(a.KnA_Ulica)))) - 1)
         END AS w1,
-        -- p2: pozycja przedostatniej spacji od prawej (dla wzorca "29 C")
         CASE WHEN CHARINDEX(' ', REVERSE(RTRIM(LTRIM(a.KnA_Ulica)))) = 0 THEN 0
              ELSE CHARINDEX(' ', REVERSE(LEFT(RTRIM(LTRIM(a.KnA_Ulica)),
                   LEN(RTRIM(LTRIM(a.KnA_Ulica)))
                   - CHARINDEX(' ', REVERSE(RTRIM(LTRIM(a.KnA_Ulica)))))))
         END AS p2,
-        -- w2: przedostatnie słowo (dla wzorca "29 C")
         CASE WHEN CHARINDEX(' ', REVERSE(RTRIM(LTRIM(a.KnA_Ulica)))) = 0 THEN ''
              WHEN CHARINDEX(' ', REVERSE(LEFT(RTRIM(LTRIM(a.KnA_Ulica)),
                   LEN(RTRIM(LTRIM(a.KnA_Ulica)))
@@ -76,20 +79,16 @@ SELECT
     o.TnO_Opis                              AS opis,
 
     -- -------------------------------------------------------------------------
-    -- Adres dostawy (ulica i numer domu rozdzielone parserem)
-    -- NULL w nr_domu = adres bez numeru lub pole obcięte w ERP (42/616 adresów)
+    -- Adres dostawy
     -- -------------------------------------------------------------------------
     adw.KnA_Nazwa1                          AS odbiorca_nazwa,
 
     RTRIM(CASE
-        -- wzorzec "29 C": ostatnie słowo to 1-2 litery, przedostatnie zaczyna cyfrą
         WHEN adw.w1 NOT LIKE '%[0-9]%' AND LEN(adw.w1) <= 2
          AND adw.p2 > 0 AND adw.w2 LIKE '[0-9]%'
             THEN LEFT(adw.raw_ulica, LEN(adw.raw_ulica) - adw.p1 - adw.p2)
-        -- wzorzec prosty: ostatnie słowo zaczyna cyfrą
         WHEN adw.w1 LIKE '[0-9]%'
             THEN LEFT(adw.raw_ulica, LEN(adw.raw_ulica) - adw.p1)
-        -- brak numeru
         ELSE adw.raw_ulica
     END)                                    AS odbiorca_ulica,
 
@@ -107,6 +106,39 @@ SELECT
     ISNULL(NULLIF(adw.KnA_Kraj, ''), 'PL') AS odbiorca_kraj,
 
     -- -------------------------------------------------------------------------
+    -- Cargo (palety z WMS — NULL gdy brak danych WMS dla tego magazynu)
+    -- -------------------------------------------------------------------------
+    CASE lt.Name
+        WHEN 'Europaleta'             THEN 'Paleta-EPAL'
+        WHEN 'Paleta jednorazowa'     THEN 'Paleta'
+        WHEN 'Pół paleta jednorazowa' THEN 'Paleta-INNA'
+        ELSE lt.Name
+    END                                     AS typ_opakowania,
+
+    COUNT(DISTINCT lo.barcode)              AS ilosc,
+
+    CASE lt.Name
+        WHEN 'Pół paleta jednorazowa' THEN 60
+        WHEN NULL THEN NULL
+        ELSE 120
+    END                                     AS dlugosc_cm,
+
+    CASE WHEN lt.Name IS NULL THEN NULL ELSE 80
+    END                                     AS szerokosc_cm,
+
+    CASE lt.Name
+        WHEN 'Pół paleta jednorazowa' THEN 170
+        WHEN NULL THEN NULL
+        ELSE 200
+    END                                     AS wysokosc_cm,
+
+    CASE lt.Name
+        WHEN 'Pół paleta jednorazowa' THEN 150
+        WHEN NULL THEN NULL
+        ELSE 300
+    END                                     AS waga_kg_max,
+
+    -- -------------------------------------------------------------------------
     -- Techniczne
     -- -------------------------------------------------------------------------
     t.TrN_MagZNumer                         AS magazyn_id,
@@ -114,19 +146,23 @@ SELECT
     t.TrN_LastMod                           AS last_mod
 
 FROM CDN.TraNag t
--- Adres dostawy (przez CTE z parserem)
 LEFT JOIN addr adw
     ON  adw.KnA_GIDNumer = t.TrN_AdWNumer
     AND adw.KnA_GIDTyp   = t.TrN_AdWTyp
--- Opis/notatka
 LEFT JOIN CDN.TrNOpisy o
     ON  o.TnO_TrnNumer = t.TrN_GIDNumer
     AND o.TnO_TrnTyp   = t.TrN_GIDTyp
     AND o.TnO_Typ      = 0
--- Data realizacji ZS
 LEFT JOIN CDN.ZamNag z
     ON  z.ZaN_GIDNumer = t.TrN_ZaNNumer
     AND t.TrN_ZaNTyp   = 960
+LEFT JOIN CDN.MagNag m
+    ON  m.MaN_ZrdNumer = t.TrN_GIDNumer
+    AND m.MaN_ZrdTyp   = t.TrN_GIDTyp
+LEFT JOIN wms.documents d   WITH (NOLOCK) ON d.SourceDocumentId = m.MaN_GIDNumer
+LEFT JOIN wms.items i       WITH (NOLOCK) ON d.Id = i.DocumentId
+LEFT JOIN wms.LogisticUnitObjects lo WITH (NOLOCK) ON i.LogisticUnitId = lo.Id
+LEFT JOIN wms.LogisticUnitTypes lt   WITH (NOLOCK) ON lo.LogisticsUnitTypeId = lt.Id
 
 WHERE
     t.TrN_GIDTyp     = 2001  -- WZ
@@ -137,4 +173,17 @@ WHERE
         WHERE TrS_SpiNumer = t.TrN_GIDNumer
     )
 
-ORDER BY t.TrN_GIDNumer;
+GROUP BY
+    t.TrN_GIDNumer,
+    t.TrN_DokumentObcy,
+    t.TrN_Data2, t.TrN_DataMag,
+    t.TrN_ZaNNumer, t.TrN_ZaNTyp,
+    t.TrN_AdWNumer, t.TrN_AdWTyp,
+    t.TrN_MagZNumer, t.TrN_LastMod,
+    z.ZaN_DataRealizacji,
+    o.TnO_Opis,
+    adw.KnA_Nazwa1, adw.KnA_KodP, adw.KnA_Miasto, adw.KnA_Kraj,
+    adw.raw_ulica, adw.w1, adw.w2, adw.p1, adw.p2,
+    lt.Name
+
+ORDER BY t.TrN_GIDNumer, lt.Name;
