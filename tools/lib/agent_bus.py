@@ -18,7 +18,9 @@ CREATE TABLE IF NOT EXISTS suggestions (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     author      TEXT NOT NULL,
     recipients  TEXT,
+    title       TEXT NOT NULL DEFAULT '',
     content     TEXT NOT NULL,
+    type        TEXT NOT NULL DEFAULT 'observation',
     status      TEXT NOT NULL DEFAULT 'open',
     backlog_id  INTEGER REFERENCES backlog(id),
     session_id  TEXT,
@@ -154,6 +156,8 @@ CREATE INDEX IF NOT EXISTS idx_agent_instances_role_status ON agent_instances(ro
 
 _MIGRATE_SQL = [
     "ALTER TABLE messages ADD COLUMN claimed_by TEXT",
+    "ALTER TABLE suggestions ADD COLUMN type TEXT NOT NULL DEFAULT 'observation'",
+    "ALTER TABLE suggestions ADD COLUMN title TEXT NOT NULL DEFAULT ''",
 ]
 
 
@@ -288,15 +292,19 @@ class AgentBus:
         self,
         author: str,
         content: str,
+        title: str = "",
+        type: str = "observation",
         recipients: list[str] = None,
         session_id: str = None,
     ) -> int:
         """Add a suggestion from an agent. Returns suggestion id."""
         recipients_json = json.dumps(recipients, ensure_ascii=False) if recipients else None
+        if not title:
+            title = content[:80].split("\n")[0]
         cursor = self._conn.execute(
-            """INSERT INTO suggestions (author, recipients, content, session_id)
-               VALUES (?, ?, ?, ?)""",
-            (author, recipients_json, content, session_id),
+            """INSERT INTO suggestions (author, recipients, title, content, type, session_id)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (author, recipients_json, title, content, type, session_id),
         )
         self._conn.commit()
         return cursor.lastrowid
@@ -305,8 +313,9 @@ class AgentBus:
         self,
         status: str = None,
         author: str = None,
+        type: str = None,
     ) -> list[dict]:
-        """Get suggestions. Newest first. Optional status and author filters."""
+        """Get suggestions. Newest first. Optional status, author, type filters."""
         conditions = []
         params = []
         if status:
@@ -315,9 +324,12 @@ class AgentBus:
         if author:
             conditions.append("author = ?")
             params.append(author)
+        if type:
+            conditions.append("type = ?")
+            params.append(type)
         where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
         rows = self._conn.execute(
-            f"""SELECT id, author, recipients, content, status, backlog_id,
+            f"""SELECT id, author, recipients, title, content, type, status, backlog_id,
                        session_id, created_at
                 FROM suggestions
                 {where}

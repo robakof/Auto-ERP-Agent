@@ -54,19 +54,73 @@ def cmd_state(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 
 
+_SUGGEST_TYPES = ("rule", "tool", "discovery", "observation")
+
+
 def cmd_suggest(args: argparse.Namespace, bus: AgentBus) -> dict:
     recipients = json.loads(args.recipients) if args.recipients else None
     sid = bus.add_suggestion(
         author=args.sender,
         content=_read_content(args),
+        title=args.title or "",
+        type=args.type or "observation",
         recipients=recipients,
         session_id=args.session_id,
     )
     return {"ok": True, "id": sid}
 
 
+def _parse_suggest_block(block: str) -> tuple[str, str, str]:
+    """Parse a suggestion block into (type, title, content).
+
+    Metadata lines at the top of the block: 'type: <value>' and 'title: <value>'.
+    Remaining lines (after stripping leading metadata) become the content.
+    """
+    lines = block.splitlines()
+    suggest_type = "observation"
+    title = ""
+    content_start = 0
+    for i, line in enumerate(lines):
+        lower = line.strip().lower()
+        if lower.startswith("type:"):
+            value = line.split(":", 1)[1].strip()
+            if value in _SUGGEST_TYPES:
+                suggest_type = value
+            content_start = i + 1
+        elif lower.startswith("title:"):
+            title = line.split(":", 1)[1].strip()
+            content_start = i + 1
+        else:
+            break
+    content = "\n".join(lines[content_start:]).strip()
+    return suggest_type, title, content
+
+
+def cmd_suggest_bulk(args: argparse.Namespace, bus: AgentBus) -> dict:
+    text = Path(args.bulk_file).read_text(encoding="utf-8")
+    blocks = [b.strip() for b in text.split("\n---\n") if b.strip()]
+    recipients = json.loads(args.recipients) if args.recipients else None
+    ids = []
+    for block in blocks:
+        suggest_type, title, content = _parse_suggest_block(block)
+        if not content:
+            continue
+        sid = bus.add_suggestion(
+            author=args.sender,
+            content=content,
+            title=title,
+            type=suggest_type,
+            recipients=recipients,
+            session_id=args.session_id,
+        )
+        ids.append(sid)
+    return {"ok": True, "ids": ids, "count": len(ids)}
+
+
 def cmd_suggestions(args: argparse.Namespace, bus: AgentBus) -> dict:
-    entries = bus.get_suggestions(status=args.status, author=args.author)
+    entries = bus.get_suggestions(
+        status=args.status, author=args.author, type=getattr(args, "type", None)
+    )
     return {"ok": True, "data": entries, "count": len(entries)}
 
 
@@ -182,14 +236,29 @@ def build_parser() -> argparse.ArgumentParser:
     g_suggest = p_suggest.add_mutually_exclusive_group(required=True)
     g_suggest.add_argument("--content")
     g_suggest.add_argument("--content-file", dest="content_file")
+    p_suggest.add_argument("--title", default=None, help="Short title (one line)")
+    p_suggest.add_argument("--type", default=None, choices=list(_SUGGEST_TYPES),
+                           help="Suggestion type")
     p_suggest.add_argument("--recipients", default=None, help="JSON array of roles")
     p_suggest.add_argument("--session-id", dest="session_id", default=None)
+
+    # suggest-bulk
+    p_sbulk = subparsers.add_parser(
+        "suggest-bulk",
+        help="Add multiple suggestions from a file (blocks separated by '\\n---\\n')",
+    )
+    p_sbulk.add_argument("--from", dest="sender", required=True)
+    p_sbulk.add_argument("--bulk-file", dest="bulk_file", required=True,
+                         help="File with suggestion blocks separated by '\\n---\\n'")
+    p_sbulk.add_argument("--recipients", default=None, help="JSON array of roles")
+    p_sbulk.add_argument("--session-id", dest="session_id", default=None)
 
     # suggestions
     p_suggestions = subparsers.add_parser("suggestions", help="Get suggestions")
     p_suggestions.add_argument("--status", default=None,
                                choices=["open", "in_backlog", "rejected", "implemented"])
     p_suggestions.add_argument("--from", dest="author", default=None)
+    p_suggestions.add_argument("--type", default=None, choices=list(_SUGGEST_TYPES))
 
     # suggest-status
     p_ss = subparsers.add_parser("suggest-status", help="Update suggestion status")
@@ -265,6 +334,7 @@ def main():
         "inbox": cmd_inbox,
         "state": cmd_state,
         "suggest": cmd_suggest,
+        "suggest-bulk": cmd_suggest_bulk,
         "suggestions": cmd_suggestions,
         "suggest-status": cmd_suggest_status,
         "mark-read": cmd_mark_read,

@@ -64,7 +64,8 @@ class TestCliSendAndInbox:
 class TestCliSuggestAndBacklog:
     def test_suggest_and_list(self, db):
         result = run_cli(
-            ["suggest", "--from", "erp_specialist", "--content", "Dodaj indeks"],
+            ["suggest", "--from", "erp_specialist", "--content", "Dodaj indeks",
+             "--title", "Dodaj indeks na tabeli X", "--type", "rule"],
             db,
         )
         assert result["ok"] is True
@@ -72,7 +73,29 @@ class TestCliSuggestAndBacklog:
 
         suggestions = run_cli(["suggestions", "--status", "open"], db)
         assert suggestions["count"] == 1
-        assert suggestions["data"][0]["content"] == "Dodaj indeks"
+        s = suggestions["data"][0]
+        assert s["content"] == "Dodaj indeks"
+        assert s["title"] == "Dodaj indeks na tabeli X"
+        assert s["type"] == "rule"
+
+    def test_suggest_default_type_and_title_fallback(self, db):
+        run_cli(["suggest", "--from", "developer", "--content", "Krótka obserwacja"], db)
+        suggestions = run_cli(["suggestions"], db)
+        s = suggestions["data"][0]
+        assert s["type"] == "observation"
+        assert s["title"] == "Krótka obserwacja"
+
+    def test_suggestions_filter_by_type(self, db):
+        run_cli(["suggest", "--from", "developer", "--content", "R1", "--type", "rule"], db)
+        run_cli(["suggest", "--from", "developer", "--content", "T1", "--type", "tool"], db)
+        run_cli(["suggest", "--from", "developer", "--content", "O1"], db)
+
+        rules = run_cli(["suggestions", "--type", "rule"], db)
+        assert rules["count"] == 1
+        assert rules["data"][0]["content"] == "R1"
+
+        tools = run_cli(["suggestions", "--type", "tool"], db)
+        assert tools["count"] == 1
 
     def test_suggest_status_update(self, db):
         sid = run_cli(
@@ -168,6 +191,57 @@ class TestContentFile:
         assert result["ok"] is True
         inbox = run_cli(["inbox", "--role", "human"], db)
         assert "Potrzebuję decyzji" in inbox["data"][0]["content"]
+
+
+class TestSuggestBulk:
+    def test_bulk_adds_all_blocks(self, db, tmp_path):
+        bulk_file = tmp_path / "bulk.md"
+        bulk_file.write_text(
+            "type: rule\ntitle: Tytuł A\nObserwacja A\nwieloliniowa"
+            "\n---\n"
+            "type: discovery\ntitle: Tytuł B\nObserwacja B"
+            "\n---\n"
+            "Obserwacja C bez metadanych",
+            encoding="utf-8",
+        )
+        result = run_cli(
+            ["suggest-bulk", "--from", "erp_specialist", "--bulk-file", str(bulk_file)],
+            db,
+        )
+        assert result["ok"] is True
+        assert result["count"] == 3
+        assert len(result["ids"]) == 3
+
+        suggestions = run_cli(["suggestions", "--status", "open"], db)
+        by_title = {s["title"]: s for s in suggestions["data"]}
+        assert by_title["Tytuł A"]["type"] == "rule"
+        assert by_title["Tytuł B"]["type"] == "discovery"
+        assert "Obserwacja C" in by_title["Obserwacja C bez metadanych"]["content"]
+
+    def test_bulk_default_type_observation(self, db, tmp_path):
+        bulk_file = tmp_path / "no_meta.md"
+        bulk_file.write_text("Blok bez type i title", encoding="utf-8")
+        result = run_cli(
+            ["suggest-bulk", "--from", "developer", "--bulk-file", str(bulk_file)],
+            db,
+        )
+        assert result["ok"] is True
+        s = run_cli(["suggestions"], db)["data"][0]
+        assert s["type"] == "observation"
+        assert s["title"] == "Blok bez type i title"
+
+    def test_bulk_empty_blocks_skipped(self, db, tmp_path):
+        bulk_file = tmp_path / "empty_blocks.md"
+        bulk_file.write_text(
+            "type: rule\ntitle: T\nBlok A\n---\n\n   \n---\ntype: tool\ntitle: U\nBlok C",
+            encoding="utf-8",
+        )
+        result = run_cli(
+            ["suggest-bulk", "--from", "developer", "--bulk-file", str(bulk_file)],
+            db,
+        )
+        assert result["ok"] is True
+        assert result["count"] == 2
 
 
 class TestBacklogAddBulk:
