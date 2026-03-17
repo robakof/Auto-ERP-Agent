@@ -32,7 +32,7 @@ VIEWS = {
     },
     "suggestions": {
         "title": "Suggestions",
-        "columns": ["id", "author", "recipients", "content", "status", "created_at"],
+        "columns": ["id", "type", "author", "title", "status", "created_at"],
     },
     "inbox": {
         "title": "Inbox",
@@ -71,6 +71,7 @@ def fetch(view: str, bus: AgentBus, args: argparse.Namespace) -> list[dict]:
         return bus.get_suggestions(
             status=getattr(args, "status", None),
             author=getattr(args, "author", None),
+            type=getattr(args, "type", None),
         )
     if view == "inbox":
         return bus.get_inbox(
@@ -153,6 +154,70 @@ def render_backlog_md(data: list[dict], title: str, output: Path) -> None:
         if content:
             lines.append(f"\n{content}")
         lines.append("")
+
+    output.write_text("\n".join(lines), encoding="utf-8")
+
+
+def render_suggestions_md(data: list[dict], title: str, output: Path) -> None:
+    """Suggestions md: table at top (grouped by type), full content sections below."""
+    from datetime import date
+    today = date.today().strftime("%Y-%m-%d")
+    lines = [f"# {title} — {today}\n", f"*{len(data)} sugestii*\n", "---\n"]
+
+    TYPE_ORDER = ["rule", "tool", "discovery", "observation"]
+    TYPE_LABELS = {
+        "rule": "Zasady (rule)",
+        "tool": "Narzędzia (tool)",
+        "discovery": "Odkrycia (discovery)",
+        "observation": "Obserwacje (observation)",
+    }
+
+    def table_rows(items):
+        rows = [
+            "| id | autor | tytuł | status | data |",
+            "|----|-------|-------|--------|------|",
+        ]
+        for r in items:
+            date_val = str(r.get("created_at", ""))[:10]
+            rows.append(
+                f"| {r.get('id','')} | {r.get('author','')} "
+                f"| {r.get('title','')} | {r.get('status','')} | {date_val} |"
+            )
+        return rows
+
+    grouped = {t: [r for r in data if r.get("type") == t] for t in TYPE_ORDER}
+    other = [r for r in data if r.get("type") not in TYPE_ORDER]
+    if other:
+        grouped["observation"] = grouped.get("observation", []) + other
+
+    for type_key in TYPE_ORDER:
+        items = grouped.get(type_key, [])
+        if not items:
+            continue
+        lines.append(f"## {TYPE_LABELS[type_key]}\n")
+        lines.extend(table_rows(items))
+        lines.append("")
+
+    lines.append("---\n")
+    lines.append("## Treści\n")
+
+    for type_key in TYPE_ORDER:
+        items = grouped.get(type_key, [])
+        if not items:
+            continue
+        lines.append(f"### {TYPE_LABELS[type_key]}\n")
+        for row in items:
+            sid = row.get("id")
+            stitle = row.get("title") or ""
+            author = row.get("author", "")
+            status = row.get("status", "")
+            date_val = str(row.get("created_at", ""))[:10]
+            lines.append(f"#### [{sid}] {stitle}")
+            lines.append(f"**autor:** {author}  **status:** {status}  **data:** {date_val}")
+            content = (row.get("content") or "").strip()
+            if content:
+                lines.append(f"\n{content}")
+            lines.append("")
 
     output.write_text("\n".join(lines), encoding="utf-8")
 
@@ -307,6 +372,8 @@ def build_parser() -> argparse.ArgumentParser:
             p.add_argument("--area", nargs="+", default=None)
         if view == "suggestions":
             p.add_argument("--author", default=None)
+            p.add_argument("--type", default=None,
+                           choices=["rule", "tool", "discovery", "observation"])
 
     p = sub.add_parser("messages")
     p.add_argument("--format", required=True, choices=["md", "xlsx", "json"])
@@ -364,6 +431,8 @@ def main():
     elif ext == "md":
         if view == "backlog":
             render_backlog_md(data, cfg["title"], output)
+        elif view == "suggestions":
+            render_suggestions_md(data, cfg["title"], output)
         else:
             render_md(data, cfg["columns"], cfg["title"], output)
     elif ext == "xlsx":

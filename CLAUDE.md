@@ -165,17 +165,31 @@ Inne role widzą `in_progress` i nie duplikują pracy.
 python tools/agent_bus_cli.py log --role <rola> --content-file tmp/log_etap.md
 ```
 
-**Na koniec każdego workflow:**
-```
-python tools/agent_bus_cli.py log --role <rola> --content-file tmp/log_workflow.md
-python tools/agent_bus_cli.py suggest --from <rola> --content-file tmp/refleksja.md
-```
-
-**Na koniec każdej sesji:**
+**Na koniec każdego workflow / sesji:**
 ```
 python tools/agent_bus_cli.py log --role <rola> --content-file tmp/log_sesji.md
-python tools/agent_bus_cli.py suggest --from <rola> --content-file tmp/refleksja_sesji.md
 ```
+
+Każda obserwacja = osobny wpis. Wiele obserwacji naraz — plik z blokami:
+```
+python tools/agent_bus_cli.py suggest-bulk --from <rola> --bulk-file tmp/refleksje.md
+```
+
+Format `tmp/refleksje.md`:
+```
+type: rule
+title: Krótki tytuł (jedna linia)
+Treść obserwacji...
+
+---
+
+type: discovery
+title: Inny tytuł
+Treść...
+```
+
+Typy: `rule` (zasada do wdrożenia), `tool` (propozycja narzędzia), `discovery` (odkrycie techniczne), `observation` (spostrzeżenie procesowe).
+Jedna obserwacja — można użyć `suggest --from <rola> --type <type> --title "..." --content-file tmp/s.md`.
 
 ### Komunikacja agent-agent
 
