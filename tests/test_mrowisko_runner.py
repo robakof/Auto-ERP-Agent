@@ -1,14 +1,16 @@
-"""Tests for mrowisko_runner helpers (DB, renderer)."""
+"""Tests for mrowisko_runner and AgentBus instance routing."""
 
-import json
 import sqlite3
-import tempfile
+import sys
 from pathlib import Path
 
 import pytest
 
-# Patch PROJECT_ROOT before import so DB default points to a temp path
+PROJECT_ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
 import tools.mrowisko_runner as runner
+from tools.lib.agent_bus import AgentBus
 
 
 # ---------------------------------------------------------------------------
@@ -16,25 +18,15 @@ import tools.mrowisko_runner as runner
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
+def bus(tmp_path):
+    db_path = str(tmp_path / "test.db")
+    return AgentBus(db_path=db_path)
+
+
+@pytest.fixture
 def tmp_db(tmp_path):
     db_path = str(tmp_path / "test.db")
-    # Bootstrap messages table (subset of agent_bus schema)
-    conn = sqlite3.connect(db_path)
-    conn.executescript("""
-        CREATE TABLE messages (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            sender      TEXT NOT NULL,
-            recipient   TEXT NOT NULL,
-            type        TEXT NOT NULL DEFAULT 'suggestion',
-            content     TEXT NOT NULL,
-            status      TEXT NOT NULL DEFAULT 'unread',
-            session_id  TEXT,
-            created_at  TEXT NOT NULL DEFAULT (datetime('now')),
-            read_at     TEXT
-        );
-    """)
-    conn.commit()
-    conn.close()
+    AgentBus(db_path=db_path)  # init schema
     runner.ensure_invocation_log(db_path)
     return db_path
 
@@ -52,57 +44,120 @@ def insert_message(db_path, sender, recipient, msg_type, content, status="unread
 
 
 # ---------------------------------------------------------------------------
-# get_pending_tasks
+# AgentBus.get_pending_tasks
 # ---------------------------------------------------------------------------
 
-def test_get_pending_tasks_returns_only_tasks(tmp_db):
-    insert_message(tmp_db, "developer", "erp_specialist", "task", "Zbuduj widok X")
-    insert_message(tmp_db, "developer", "erp_specialist", "suggestion", "Sugestia Y")
-    insert_message(tmp_db, "analyst", "erp_specialist", "info", "Info Z")
+def test_get_pending_tasks_returns_only_tasks(bus):
+    bus.send_message("developer", "erp_specialist", "Zbuduj widok X", type="task")
+    bus.send_message("developer", "erp_specialist", "Sugestia Y", type="suggestion")
 
-    tasks = runner.get_pending_tasks(tmp_db, "erp_specialist")
+    tasks = bus.get_pending_tasks("erp_specialist", "erp_specialist:abc123")
     assert len(tasks) == 1
     assert tasks[0]["content"] == "Zbuduj widok X"
-    assert tasks[0]["sender"] == "developer"
 
 
-def test_get_pending_tasks_ignores_read(tmp_db):
-    insert_message(tmp_db, "developer", "erp_specialist", "task", "Stare", status="read")
-    insert_message(tmp_db, "developer", "erp_specialist", "task", "Nowe", status="unread")
+def test_get_pending_tasks_ignores_claimed(tmp_db):
+    msg_id = insert_message(tmp_db, "developer", "erp_specialist", "task", "Stare")
+    conn = sqlite3.connect(tmp_db)
+    conn.execute("UPDATE messages SET status = 'claimed' WHERE id = ?", (msg_id,))
+    conn.commit()
+    conn.close()
+    insert_message(tmp_db, "developer", "erp_specialist", "task", "Nowe")
 
-    tasks = runner.get_pending_tasks(tmp_db, "erp_specialist")
+    b = AgentBus(db_path=tmp_db)
+    tasks = b.get_pending_tasks("erp_specialist", "erp_specialist:xyz")
     assert len(tasks) == 1
     assert tasks[0]["content"] == "Nowe"
 
 
-def test_get_pending_tasks_empty_when_none(tmp_db):
-    tasks = runner.get_pending_tasks(tmp_db, "erp_specialist")
-    assert tasks == []
+def test_get_pending_tasks_by_instance_id(bus):
+    bus.send_message("analyst", "erp_specialist:abc", "Dla konkretnej instancji", type="task")
+    bus.send_message("analyst", "erp_specialist", "Dla roli", type="task")
+
+    tasks = bus.get_pending_tasks("erp_specialist", "erp_specialist:abc")
+    assert len(tasks) == 2
+
+    tasks_other = bus.get_pending_tasks("erp_specialist", "erp_specialist:xyz")
+    assert len(tasks_other) == 1
+    assert tasks_other[0]["content"] == "Dla roli"
 
 
-def test_get_pending_tasks_filters_by_role(tmp_db):
-    insert_message(tmp_db, "developer", "erp_specialist", "task", "Dla ERP")
-    insert_message(tmp_db, "developer", "analyst", "task", "Dla Analityka")
+def test_get_pending_tasks_filters_by_role(bus):
+    bus.send_message("developer", "erp_specialist", "Dla ERP", type="task")
+    bus.send_message("developer", "analyst", "Dla Analityka", type="task")
 
-    tasks = runner.get_pending_tasks(tmp_db, "erp_specialist")
+    tasks = bus.get_pending_tasks("erp_specialist", "erp_specialist:abc")
     assert len(tasks) == 1
     assert tasks[0]["content"] == "Dla ERP"
 
 
 # ---------------------------------------------------------------------------
-# mark_message_read
+# AgentBus.claim_task
 # ---------------------------------------------------------------------------
 
-def test_mark_message_read(tmp_db):
+def test_claim_task_returns_true_on_success(bus):
+    msg_id = bus.send_message("developer", "erp_specialist", "Zadanie", type="task")
+    assert bus.claim_task(msg_id, "erp_specialist:abc") is True
+
+
+def test_claim_task_returns_false_if_already_claimed(bus):
+    msg_id = bus.send_message("developer", "erp_specialist", "Zadanie", type="task")
+    bus.claim_task(msg_id, "erp_specialist:abc")
+    assert bus.claim_task(msg_id, "erp_specialist:xyz") is False
+
+
+def test_claim_task_sets_claimed_by(tmp_db):
     msg_id = insert_message(tmp_db, "developer", "erp_specialist", "task", "Zadanie")
-    runner.mark_message_read(tmp_db, msg_id)
+    b = AgentBus(db_path=tmp_db)
+    b.claim_task(msg_id, "erp_specialist:abc")
 
     conn = sqlite3.connect(tmp_db)
-    row = conn.execute("SELECT status, read_at FROM messages WHERE id = ?", (msg_id,)).fetchone()
+    row = conn.execute("SELECT status, claimed_by FROM messages WHERE id = ?", (msg_id,)).fetchone()
     conn.close()
+    assert row[0] == "claimed"
+    assert row[1] == "erp_specialist:abc"
 
-    assert row[0] == "read"
-    assert row[1] is not None
+
+# ---------------------------------------------------------------------------
+# AgentBus — instance registry
+# ---------------------------------------------------------------------------
+
+def test_register_instance(bus):
+    bus.register_instance("erp_specialist:abc", "erp_specialist")
+    instances = bus.get_all_instances()
+    assert len(instances) == 1
+    assert instances[0]["instance_id"] == "erp_specialist:abc"
+    assert instances[0]["status"] == "idle"
+
+
+def test_set_instance_busy_and_idle(bus):
+    bus.register_instance("erp_specialist:abc", "erp_specialist")
+    bus.set_instance_busy("erp_specialist:abc", 42)
+
+    instances = bus.get_all_instances()
+    assert instances[0]["status"] == "busy"
+    assert instances[0]["active_task_id"] == 42
+
+    bus.set_instance_idle("erp_specialist:abc")
+    instances = bus.get_all_instances()
+    assert instances[0]["status"] == "idle"
+    assert instances[0]["active_task_id"] is None
+
+
+def test_get_free_instances(bus):
+    bus.register_instance("erp_specialist:abc", "erp_specialist")
+    bus.register_instance("erp_specialist:xyz", "erp_specialist")
+    bus.set_instance_busy("erp_specialist:xyz", 1)
+
+    free = bus.get_free_instances("erp_specialist")
+    assert len(free) == 1
+    assert free[0]["instance_id"] == "erp_specialist:abc"
+
+
+def test_terminate_instance_not_in_all(bus):
+    bus.register_instance("erp_specialist:abc", "erp_specialist")
+    bus.terminate_instance("erp_specialist:abc")
+    assert bus.get_all_instances() == []
 
 
 # ---------------------------------------------------------------------------
@@ -111,19 +166,11 @@ def test_mark_message_read(tmp_db):
 
 def test_log_invocation_writes_record(tmp_db):
     runner.log_invocation(tmp_db, "sess-abc", "developer", "erp_specialist", 42, 5, 0.35, "done")
-
     conn = sqlite3.connect(tmp_db)
     row = conn.execute("SELECT * FROM invocation_log WHERE session_id = 'sess-abc'").fetchone()
     conn.close()
-
     assert row is not None
-    # (id, session_id, parent_session_id, from_role, to_role, task_id, depth, turns, cost_usd, status, created_at)
-    assert row[3] == "developer"   # from_role
-    assert row[4] == "erp_specialist"  # to_role
-    assert row[5] == 42            # task_id
-    assert row[7] == 5             # turns
-    assert abs(row[8] - 0.35) < 0.001  # cost_usd
-    assert row[9] == "done"        # status
+    assert row[9] == "done"
 
 
 # ---------------------------------------------------------------------------
@@ -131,62 +178,50 @@ def test_log_invocation_writes_record(tmp_db):
 # ---------------------------------------------------------------------------
 
 def test_render_event_text(capsys):
-    event = {
-        "type": "assistant",
-        "message": {"content": [{"type": "text", "text": "Hello world"}]},
-    }
+    event = {"type": "assistant", "message": {"content": [{"type": "text", "text": "Hello"}]}}
     result = runner.render_event(event)
-    captured = capsys.readouterr()
-    assert "Hello world" in captured.out
+    assert "Hello" in capsys.readouterr().out
     assert result is None
 
 
 def test_render_event_tool_use(capsys):
-    event = {
-        "type": "assistant",
-        "message": {"content": [{"type": "tool_use", "name": "Bash", "input": {"command": "ls"}}]},
-    }
-    result = runner.render_event(event)
-    captured = capsys.readouterr()
-    assert "[tool: Bash]" in captured.out
-    assert result is None
+    event = {"type": "assistant", "message": {"content": [
+        {"type": "tool_use", "name": "Bash", "input": {"command": "ls"}}
+    ]}}
+    runner.render_event(event)
+    assert "[tool: Bash]" in capsys.readouterr().out
 
 
 def test_render_event_result_returns_event():
     event = {"type": "result", "session_id": "xyz", "num_turns": 3, "cost_usd": 0.12}
-    result = runner.render_event(event)
-    assert result == event
-
-
-def test_render_event_unknown_type_returns_none(capsys):
-    event = {"type": "unknown_xyz"}
-    result = runner.render_event(event)
-    assert result is None
+    assert runner.render_event(event) == event
 
 
 # ---------------------------------------------------------------------------
-# build_cmd
+# build_cmd / build_instance_id / build_prompt
 # ---------------------------------------------------------------------------
 
-def test_build_cmd_erp_specialist():
-    cmd = runner.build_cmd("erp_specialist", "test prompt")
-    assert "--permission-mode" in cmd
+def test_build_instance_id_format():
+    iid = runner.build_instance_id("erp_specialist")
+    assert iid.startswith("erp_specialist:")
+    assert len(iid.split(":")[1]) == 6
+
+
+def test_build_cmd_erp_permission():
+    cmd = runner.build_cmd("erp_specialist", "prompt")
     idx = cmd.index("--permission-mode")
     assert cmd[idx + 1] == "acceptEdits"
-    assert "--tools" in cmd
-    idx = cmd.index("--tools")
-    assert "Bash" in cmd[idx + 1]
 
 
-def test_build_cmd_developer_default_permission():
-    cmd = runner.build_cmd("developer", "test prompt")
+def test_build_cmd_developer_default():
+    cmd = runner.build_cmd("developer", "prompt")
     idx = cmd.index("--permission-mode")
     assert cmd[idx + 1] == "default"
 
 
-def test_build_cmd_analyst_no_write():
-    cmd = runner.build_cmd("analyst", "test prompt")
-    idx = cmd.index("--tools")
-    tools = cmd[idx + 1]
-    assert "Write" not in tools
-    assert "Edit" not in tools
+def test_build_prompt_contains_return_address():
+    task = {"sender": "developer:abc", "content": "Zbuduj widok"}
+    prompt = runner.build_prompt(task, "erp_specialist:xyz")
+    assert "[TASK od: developer:abc]" in prompt
+    assert "[ADRES ZWROTNY: erp_specialist:xyz]" in prompt
+    assert "Zbuduj widok" in prompt

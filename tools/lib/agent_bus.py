@@ -11,6 +11,8 @@ from pathlib import Path
 
 ALLOWED_MESSAGE_TYPES = {"suggestion", "task", "info", "flag_human"}
 
+HEARTBEAT_TTL_SECONDS = 60
+
 _SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS suggestions (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -137,7 +139,22 @@ CREATE TABLE IF NOT EXISTS conversation (
 );
 
 CREATE INDEX IF NOT EXISTS idx_conversation_session ON conversation(session_id);
+
+CREATE TABLE IF NOT EXISTS agent_instances (
+    instance_id    TEXT PRIMARY KEY,
+    role           TEXT NOT NULL,
+    status         TEXT NOT NULL DEFAULT 'idle',
+    active_task_id INTEGER,
+    started_at     TEXT NOT NULL DEFAULT (datetime('now')),
+    last_seen_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_instances_role_status ON agent_instances(role, status);
 """
+
+_MIGRATE_SQL = [
+    "ALTER TABLE messages ADD COLUMN claimed_by TEXT",
+]
 
 
 class AgentBus:
@@ -149,8 +166,17 @@ class AgentBus:
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.execute("PRAGMA foreign_keys=ON")
+        self._conn.execute("PRAGMA busy_timeout=3000")
         self._conn.executescript(_SCHEMA_SQL)
+        self._run_migrations()
         self._conn.commit()
+
+    def _run_migrations(self) -> None:
+        for stmt in _MIGRATE_SQL:
+            try:
+                self._conn.execute(stmt)
+            except Exception:
+                pass  # kolumna/tabela już istnieje
 
     # --- Messages ---
 
@@ -610,3 +636,96 @@ class AgentBus:
     def close(self):
         """Close the database connection."""
         self._conn.close()
+
+    # --- Agent instances ---
+
+    def register_instance(self, instance_id: str, role: str) -> None:
+        """Register a runner instance. Upsert — safe to call on restart."""
+        self._conn.execute(
+            """INSERT INTO agent_instances (instance_id, role, status, started_at, last_seen_at)
+               VALUES (?, ?, 'idle', datetime('now'), datetime('now'))
+               ON CONFLICT(instance_id) DO UPDATE SET
+                   status = 'idle', active_task_id = NULL,
+                   started_at = datetime('now'), last_seen_at = datetime('now')""",
+            (instance_id, role),
+        )
+        self._conn.commit()
+
+    def heartbeat(self, instance_id: str) -> None:
+        """Update last_seen_at for a running instance."""
+        self._conn.execute(
+            "UPDATE agent_instances SET last_seen_at = datetime('now') WHERE instance_id = ?",
+            (instance_id,),
+        )
+        self._conn.commit()
+
+    def set_instance_busy(self, instance_id: str, task_id: int) -> None:
+        """Mark instance as busy with an active task."""
+        self._conn.execute(
+            "UPDATE agent_instances SET status = 'busy', active_task_id = ? WHERE instance_id = ?",
+            (task_id, instance_id),
+        )
+        self._conn.commit()
+
+    def set_instance_idle(self, instance_id: str) -> None:
+        """Mark instance as idle and clear active task."""
+        self._conn.execute(
+            "UPDATE agent_instances SET status = 'idle', active_task_id = NULL WHERE instance_id = ?",
+            (instance_id,),
+        )
+        self._conn.commit()
+
+    def terminate_instance(self, instance_id: str) -> None:
+        """Mark instance as terminated."""
+        self._conn.execute(
+            "UPDATE agent_instances SET status = 'terminated' WHERE instance_id = ?",
+            (instance_id,),
+        )
+        self._conn.commit()
+
+    def get_free_instances(self, role: str) -> list[dict]:
+        """Return idle instances for role with recent heartbeat (TTL=60s)."""
+        rows = self._conn.execute(
+            """SELECT instance_id, role, status, started_at, last_seen_at
+               FROM agent_instances
+               WHERE role = ? AND status = 'idle'
+                 AND last_seen_at >= datetime('now', '-60 seconds')
+               ORDER BY last_seen_at DESC""",
+            (role,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_all_instances(self) -> list[dict]:
+        """Return all non-terminated instances with recent heartbeat."""
+        rows = self._conn.execute(
+            """SELECT instance_id, role, status, active_task_id, started_at, last_seen_at
+               FROM agent_instances
+               WHERE status != 'terminated'
+                 AND last_seen_at >= datetime('now', '-60 seconds')
+               ORDER BY role, last_seen_at DESC""",
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def claim_task(self, msg_id: int, instance_id: str) -> bool:
+        """Atomically claim a task. Returns True if claimed, False if already taken."""
+        cursor = self._conn.execute(
+            """UPDATE messages
+               SET status = 'claimed', claimed_by = ?
+               WHERE id = ? AND status = 'unread'""",
+            (instance_id, msg_id),
+        )
+        self._conn.commit()
+        return cursor.rowcount > 0
+
+    def get_pending_tasks(self, role: str, instance_id: str) -> list[dict]:
+        """Return unread/unclaimed tasks for role OR specific instance_id."""
+        rows = self._conn.execute(
+            """SELECT id, sender, recipient, type, content, created_at
+               FROM messages
+               WHERE (recipient = ? OR recipient = ?)
+                 AND type = 'task'
+                 AND status = 'unread'
+               ORDER BY created_at ASC""",
+            (role, instance_id),
+        ).fetchall()
+        return [dict(r) for r in rows]

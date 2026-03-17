@@ -151,12 +151,28 @@ Renderuje messages.recipient jako-jest (string). Wyświetli zarówno `analyst` j
 2. Nowe metody `AgentBus` + testy
 3. Nowe komendy CLI (`instances`, `instance-terminate`)
 4. Aktualizacja `mrowisko_runner.py` + testy
-5. Commit per krok
+5. Hook `post_tool_use.py` — live zapis tool calls do DB podczas sesji agenta
+6. Commit per krok
+
+### Hook post_tool_use (krok 5)
+
+Nowy plik `tools/hooks/post_tool_use.py`:
+- Odpala po każdym użyciu narzędzia przez agenta
+- Zapisuje do DB: `tool_name`, `session_id`, `is_error`, `timestamp`
+- Bez tego widoczność instancji w DB jest post-session, nie live
+- Wymaga rejestracji w `settings.json` (analogicznie do `pre_tool_use`)
 
 ---
 
-## Otwarte kwestie (wymagają decyzji przed implementacją)
+## Decyzje (zamknięte)
 
-1. **Heartbeat timeout**: 60s — instancja bez heartbeatu przez 60s uznana za nieaktywną. ✓
-2. **Busy scope**: busy = aktywny workflow (od claim do zakończenia workflow), nie tylko czas subprocess. Instancja busy nie przyjmuje nowych niezwiązanych tasków. ✓
-3. **Claim failure UX**: jeśli atomic claim się nie powiedzie → pomiń cicho (skip do następnego taska) czy informuj użytkownika?
+1. **Heartbeat timeout**: 60s ✓
+2. **Busy scope**: busy = aktywny workflow ✓
+3. **Claim failure UX**: jeden wiersz w terminalu, pomiń automatycznie ✓
+
+## Korekty z research
+
+- **`acceptEdits` + Bash**: ten tryb nadal pyta o komendy shell. Faza 1 (użytkownik przy terminalu) — bez zmian. Faza 3 (daemon) będzie wymagać `dontAsk` lub usunięcia Bash ze scope ERP Specialist. Dług zapisany.
+- **`busy_timeout`**: dodać `PRAGMA busy_timeout=3000` na połączeniach SQLite żeby chwilowy lock nie kończył się błędem od razu.
+- **Heartbeat**: `threading.Thread(daemon=True)` + `Event.wait(10)` + **osobne połączenie SQLite** (nie współdzielić z main thread).
+- **Cleanup Windows**: `atexit` + `SIGINT/SIGTERM` — wystarczające. `SetConsoleCtrlHandler` przez ctypes — nie robimy. Heartbeat TTL = źródło prawdy dla stale instances.
