@@ -160,13 +160,15 @@ def render_event(event: dict) -> dict | None:
 # Agent invocation
 # ---------------------------------------------------------------------------
 
-def build_cmd(role: str, prompt: str) -> list[str]:
+def build_cmd(role: str, prompt: str, task_content: str) -> list[str]:
+    system_injection = f"[TRYB AUTONOMICZNY]\nTask do realizacji:\n{task_content}"
     return [
         CLAUDE_CMD, "-p", prompt,
         "--output-format", "stream-json",
         "--verbose",
         "--include-partial-messages",
         "--no-session-persistence",
+        "--append-system-prompt", system_injection,
         "--max-turns", MAX_TURNS,
         "--max-budget-usd", MAX_BUDGET_USD,
         "--permission-mode", PERMISSION_MODE.get(role, "default"),
@@ -186,7 +188,7 @@ def build_prompt(task: dict, instance_id: str, role: str) -> str:
 
 def invoke_agent(role: str, task: dict, instance_id: str, db_path: str) -> tuple[str, str]:
     prompt = build_prompt(task, instance_id, role)
-    cmd = build_cmd(role, prompt)
+    cmd = build_cmd(role, prompt, task["content"])
 
     session_id = uuid.uuid4().hex[:12]
     turns, cost_usd = 0, 0.0

@@ -233,15 +233,23 @@ def test_build_instance_id_format():
 
 
 def test_build_cmd_erp_permission():
-    cmd = runner.build_cmd("erp_specialist", "prompt")
+    cmd = runner.build_cmd("erp_specialist", "prompt", "task content")
     idx = cmd.index("--permission-mode")
     assert cmd[idx + 1] == "acceptEdits"
 
 
 def test_build_cmd_developer_default():
-    cmd = runner.build_cmd("developer", "prompt")
+    cmd = runner.build_cmd("developer", "prompt", "task content")
     idx = cmd.index("--permission-mode")
     assert cmd[idx + 1] == "default"
+
+
+def test_build_cmd_injects_autonomous_system_prompt():
+    cmd = runner.build_cmd("erp_specialist", "prompt", "Zbuduj widok")
+    idx = cmd.index("--append-system-prompt")
+    injected = cmd[idx + 1]
+    assert "[TRYB AUTONOMICZNY]" in injected
+    assert "Zbuduj widok" in injected
 
 
 def test_build_prompt_contains_return_address():
