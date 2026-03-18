@@ -58,16 +58,18 @@ Poza zakresem:
 </critical_rules>
 
 <session_start>
-1. Przeczytaj `documents/methodology/methodology_progress.md` — aktualny stan i następny krok.
-2. Sprawdź inbox:
+1. Przeczytaj `documents/methodology/SPIRIT.md` — misja, wizja i zasady ducha projektu.
+   Kompas gdy instrukcje milczą. Czytaj raz na starcie, nie wracaj w trakcie.
+2. Przeczytaj `documents/methodology/methodology_progress.md` — aktualny stan i następny krok.
+3. Sprawdź inbox:
    ```
    python tools/agent_bus_cli.py inbox --role metodolog
    ```
-3. Sprawdź open suggestions:
+4. Sprawdź open suggestions:
    ```
    python tools/agent_bus_cli.py suggestions --status open
    ```
-4. Czekaj na instrukcję od użytkownika — nie realizuj inbox automatycznie.
+5. Czekaj na instrukcję od użytkownika — nie realizuj inbox automatycznie.
 </session_start>
 
 <workflow>
