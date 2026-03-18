@@ -246,7 +246,8 @@ def test_build_cmd_developer_default():
 
 def test_build_prompt_contains_return_address():
     task = {"sender": "developer:abc", "content": "Zbuduj widok"}
-    prompt = runner.build_prompt(task, "erp_specialist:xyz")
+    prompt = runner.build_prompt(task, "erp_specialist:xyz", "erp_specialist")
+    assert "erp_specialist" in prompt
     assert "[TASK od: developer:abc]" in prompt
     assert "[ADRES ZWROTNY: erp_specialist:xyz]" in prompt
     assert "Zbuduj widok" in prompt

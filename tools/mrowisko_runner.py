@@ -165,6 +165,7 @@ def build_cmd(role: str, prompt: str) -> list[str]:
         "--output-format", "stream-json",
         "--verbose",
         "--include-partial-messages",
+        "--no-session-persistence",
         "--max-turns", MAX_TURNS,
         "--max-budget-usd", MAX_BUDGET_USD,
         "--permission-mode", PERMISSION_MODE.get(role, "default"),
@@ -172,8 +173,9 @@ def build_cmd(role: str, prompt: str) -> list[str]:
     ]
 
 
-def build_prompt(task: dict, instance_id: str) -> str:
+def build_prompt(task: dict, instance_id: str, role: str) -> str:
     return (
+        f"{role}\n"
         f"[TASK od: {task['sender']}]\n"
         f"[ADRES ZWROTNY: {instance_id}]\n"
         f"{task['content']}"
@@ -181,7 +183,7 @@ def build_prompt(task: dict, instance_id: str) -> str:
 
 
 def invoke_agent(role: str, task: dict, instance_id: str, db_path: str) -> tuple[str, str]:
-    prompt = build_prompt(task, instance_id)
+    prompt = build_prompt(task, instance_id, role)
     cmd = build_cmd(role, prompt)
 
     session_id = uuid.uuid4().hex[:12]
