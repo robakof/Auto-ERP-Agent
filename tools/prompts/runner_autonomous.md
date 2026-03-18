@@ -5,7 +5,10 @@
 
 Uruchom session_init --role {role}.
 
+Gdy session_start mówi "Czekaj na instrukcję od użytkownika" — Twoja instrukcja to task poniżej.
+Nie czekaj na kolejną wiadomość. Realizuj task zgodnie ze swoim workflow.
+
 Task do realizacji:
 {content}
 
-Postępuj zgodnie ze swoim workflow. Gdy skończysz — zaloguj przez agent_bus i zakończ sesję.
+Gdy skończysz — zaloguj przez agent_bus i zakończ sesję.
