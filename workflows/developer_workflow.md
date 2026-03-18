@@ -1,0 +1,141 @@
+# Workflow: Developer — zadania operacyjne i taktyczne
+
+Workflow dla małych i średnich zadań Developera.
+Duże zadania architektoniczne → `documents/dev/PROJECT_START.md`.
+
+---
+
+## Routing
+
+| Typ zadania | Sekcja |
+|---|---|
+| Nowe narzędzie / rozbudowa | Narzędzie |
+| Bug fix / data fix | Bug fix |
+| Suggestions od Wykonawców | Suggestions |
+| Zamknięcie sesji | Zamknięcie |
+
+---
+
+## Narzędzie
+
+**Owner:** developer
+
+### Steps
+
+0a. Sprawdź czysty working tree (`git status`). Jeśli brudny → zapytaj czy commitować.
+0b. Dla średnich zadań: plan per feature do pliku .md (uwzględnij otwarte wątki
+    z poprzednich sesji). Zatwierdź z użytkownikiem przed kodem.
+
+1a. Zaproponuj pisanie testów najpierw (TDD preferowane).
+1b. Napisz testy: integration tests (całe flow) + unit tests (funkcje czyste).
+    Happy path + edge cases. Mockuj zależności zewnętrzne (DB, API, sieć).
+1c. Zaimplementuj kod spełniający testy. Test nie przechodzi → napraw kod, nie test.
+1d. Commit per działająca zmiana.
+
+2a. Przy nieomawianych kwestiach w trakcie implementacji — pytaj użytkownika na bieżąco.
+2b. Po implementacji: przetestuj, pokaż co zrobione, zapytaj o feedback.
+2c. Poprawki na feedback użytkownika — iteruj aż do zatwierdzenia.
+
+3a. Checklist publikacji nowego narzędzia:
+    - Czy narzędzie dotyczy >1 roli? Tak → dokumentuj w CLAUDE.md. Nie → w dokumencie roli.
+    - Wyślij `agent_bus send` do aktywnych ról (nazwa, składnia, kiedy używać).
+    - Zapisz log sesji.
+
+### Forbidden
+
+- Pliki robocze w root projektu (`tmp_*.py`) — narzędzie od razu w `tools/`.
+- Kod bez testów jako "gotowy".
+
+### Exit gate
+
+PASS jeśli:
+- [ ] Testy przechodzą
+- [ ] Narzędzie w `tools/` z testami
+- [ ] Notyfikacja do ról (jeśli narzędzie wspólne)
+- [ ] Commit + push
+
+---
+
+## Bug fix
+
+**Owner:** developer
+
+### Steps
+
+1a. Zdiagnozuj problem — zrozum przyczynę, nie tylko objaw.
+1b. Blind spot query: czy ten sam błąd nie występuje szerzej?
+    Jeden przypadek może być symptomem wzorca.
+1c. Oceń skalę: ile miejsc dotkniętych? Naprawa ręczna vs narzędzie?
+1d. Przedstaw diagnozę użytkownikowi — zakres, przyczyna, propozycja naprawy.
+
+2a. Napraw. Test. Verify.
+2b. Commit z opisem przyczyny (nie tylko objawu).
+
+### Forbidden
+
+- Naprawianie jednej instancji gdy jest ich 10 — najpierw diagnoza zasięgu.
+- Obejście jednorazowe zamiast naprawy narzędzia.
+
+### Exit gate
+
+PASS jeśli:
+- [ ] Przyczyna zidentyfikowana (nie tylko objaw)
+- [ ] Zasięg zdiagnozowany (blind spot query)
+- [ ] Fix zweryfikowany
+- [ ] Commit
+
+---
+
+## Suggestions
+
+**Owner:** developer
+
+### Steps
+
+1a. Przeczytaj open suggestions:
+    ```
+    python tools/render.py suggestions --format md --status open --output tmp/suggestions.md
+    ```
+1b. Dla każdego wpisu oceń: warto wdrożyć / nie warto / wymaga dyskusji.
+1c. Przedstaw ocenę użytkownikowi — poczekaj na zatwierdzenie.
+
+2a. Zatwierdzone → dodaj do backlogu:
+    ```
+    python tools/agent_bus_cli.py backlog-add --title "..." --area <obszar> --content-file tmp/tmp.md
+    ```
+2b. Oznacz suggestion jako implemented:
+    ```
+    python tools/agent_bus_cli.py suggest-status --id <id> --status implemented
+    ```
+
+### Exit gate
+
+PASS jeśli:
+- [ ] Każda open suggestion oceniona
+- [ ] Użytkownik zatwierdzył decyzje
+- [ ] Zatwierdzone przeniesione do backlogu
+- [ ] Statusy suggestions zaktualizowane
+
+---
+
+## Zamknięcie sesji
+
+### Steps
+
+1. Jeśli sesja obejmowała zmiany ścieżek lub dokumentacji:
+   ```
+   python tools/arch_check.py
+   ```
+2. Commit i push przez `tools/git_commit.py`.
+3. Log sesji:
+   ```
+   python tools/agent_bus_cli.py log --role developer --content-file tmp/log_sesji.md
+   ```
+
+---
+
+## Mockup outputu
+
+Gdy zadanie dotyczy formatu lub wyglądu outputu — najpierw pokaż mockup
+(kilka linii przykładowego outputu) i zapytaj "tak?" zanim napiszesz kod.
+Dwie iteracje na złym formacie kosztują więcej niż jeden krok weryfikacyjny.
