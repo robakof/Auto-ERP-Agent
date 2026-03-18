@@ -24,6 +24,7 @@ from pathlib import Path
 CLAUDE_CMD = "claude.cmd" if sys.platform == "win32" else "claude"
 
 PROJECT_ROOT = Path(__file__).parent.parent
+AUTONOMOUS_PROMPT_FILE = PROJECT_ROOT / "tools" / "prompts" / "runner_autonomous.md"
 DB_DEFAULT = str(PROJECT_ROOT / "mrowisko.db")
 
 PERMISSION_MODE: dict[str, str] = {
@@ -174,13 +175,12 @@ def build_cmd(role: str, prompt: str) -> list[str]:
 
 
 def build_prompt(task: dict, instance_id: str, role: str) -> str:
-    return (
-        f"{role}\n"
-        f"[TRYB AUTONOMICZNY — brak interakcji z użytkownikiem]\n"
-        f"[TASK od: {task['sender']}]\n"
-        f"[ADRES ZWROTNY: {instance_id}]\n"
-        f"Twoje zadanie do realizacji:\n{task['content']}\n"
-        f"Wykonaj session_init, a następnie natychmiast przystąp do realizacji zadania."
+    template = AUTONOMOUS_PROMPT_FILE.read_text(encoding="utf-8")
+    return template.format(
+        role=role,
+        sender=task["sender"],
+        instance_id=instance_id,
+        content=task["content"],
     )
 
 

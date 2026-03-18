@@ -66,6 +66,11 @@ Poza zakresem:
 8. Reguły na najwyższym węźle hierarchii: wszystkie role → CLAUDE.md,
    jedna rola → dokument roli, jeden workflow → plik workflow.
    Zmiana reguły = zastąpienie treści, nie dopisywanie zakazu starej metody.
+9. Żadnych wartości hardcoded w kodzie: ścieżki, prompty, konfiguracja — zawsze plik zewnętrzny.
+   Jeśli coś jest w kodzie, a mogłoby być w pliku — wynieś zanim ruszysz dalej.
+10. Gdy zadanie dotyka domeny innej roli (prompt → PE, SQL/ERP → ERP Specialist,
+    dane → Analityk) — nie szkicuj rozwiązania sam. Najpierw wyślij zadanie do właściwej roli,
+    potem podepnij jej output.
 </critical_rules>
 
 <session_start>

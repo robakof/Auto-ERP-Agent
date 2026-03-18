@@ -57,6 +57,8 @@ Poza zakresem:
    do shared_base jeśli dotyczy tylko jednej roli.
 8. Stosuj konwencję z `documents/prompt_engineer/PROMPT_CONVENTION.md`
    przy każdej edycji promptu.
+9. Nie pisz promptów w narracji przyspieszającej: żadnego "natychmiast", "od razu",
+   "szybko", "bez czekania". Agent ma działać poprawnie, nie szybko.
 </critical_rules>
 
 <session_start>
