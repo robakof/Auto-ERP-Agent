@@ -16,9 +16,12 @@ import json
 import signal
 import sqlite3
 import subprocess
+import sys
 import threading
 import uuid
 from pathlib import Path
+
+CLAUDE_CMD = "claude.cmd" if sys.platform == "win32" else "claude"
 
 PROJECT_ROOT = Path(__file__).parent.parent
 DB_DEFAULT = str(PROJECT_ROOT / "mrowisko.db")
@@ -158,7 +161,7 @@ def render_event(event: dict) -> dict | None:
 
 def build_cmd(role: str, prompt: str) -> list[str]:
     return [
-        "claude", "-p", prompt,
+        CLAUDE_CMD, "-p", prompt,
         "--output-format", "stream-json",
         "--verbose",
         "--include-partial-messages",
