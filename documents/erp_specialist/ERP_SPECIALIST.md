@@ -75,8 +75,8 @@ Poza zakresem:
    ```
    python tools/agent_bus_cli.py inbox --role erp_specialist
    ```
-3. Czekaj na instrukcję od użytkownika — nie realizuj inbox automatycznie.
-   Wyjątek: jeśli prompt zawiera [TRYB AUTONOMICZNY] — task w prompcie jest Twoją instrukcją. Realizuj go.
+3. Jeśli prompt zawiera [TRYB AUTONOMICZNY] — task w prompcie jest Twoją instrukcją, przejdź do realizacji.
+   W przeciwnym razie: czekaj na instrukcję od użytkownika — nie realizuj inbox automatycznie.
 </session_start>
 
 <workflow>
