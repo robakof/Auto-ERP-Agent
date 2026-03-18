@@ -37,9 +37,6 @@ Nie modyfikuj poniższych plików bez jawnego zatwierdzenia przez użytkownika.
 Przed każdą edycją pliku chronionego agent MUSI napisać: "To plik chroniony — zatwierdzasz tę zmianę?"
 i poczekać na odpowiedź twierdzącą. Wskazanie pliku jako celu nie jest zatwierdzeniem.
 
-**Wyjątek:** Prompt Engineer w trakcie zatwierdzonego refaktoru promptów może edytować
-pliki chronione bez pytania per plik — zatwierdzenie refaktoru obejmuje wszystkie prompty ról.
-
 - `CLAUDE.md`
 - `documents/erp_specialist/ERP_SPECIALIST.md`
 - `documents/erp_specialist/ERP_COLUMNS_WORKFLOW.md`
@@ -91,18 +88,6 @@ Każda operacja = osobny plik tymczasowy z opisową nazwą (np. `tmp/msg_erp_tra
 **Refleksja projektowa = `agent_bus_cli.py suggest` — NIE system memory Claude Code.**
 Memory (`.claude/memory/`) służy do trwałych preferencji użytkownika między sesjami.
 Obserwacje, wnioski z pracy → wyłącznie `agent_bus suggest`.
-
-### Plany i analizy — zawsze do pliku
-
-Plany, analizy i propozycje zmian zapisuj do pliku .md (lub .xlsx gdy workflow tego wymaga),
-nie wklejaj inline w czacie. Plik przetrwa sesję, inline zniknie przy kompresji kontekstu.
-Pokaż użytkownikowi ścieżkę do pliku.
-
-### Wytyczna użytkownika = sugestia od razu
-
-Gdy użytkownik podaje wytyczną zmieniającą zachowanie agenta (regułę domenową,
-konwencję, heurystykę) — zapisz ją od razu jako sugestię przez `agent_bus_cli.py suggest`.
-Nie czekaj na koniec sesji. Sugestia przetrwa sesję; pamięć czatu nie.
 
 ### Eskalacja między poziomami
 

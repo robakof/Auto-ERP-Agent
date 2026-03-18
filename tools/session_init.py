@@ -27,6 +27,7 @@ ROLE_DOCUMENTS = {
     "analyst":        "documents/analyst/ANALYST.md",
     "developer":      "documents/dev/DEVELOPER.md",
     "metodolog":      "documents/methodology/METHODOLOGY.md",
+    "prompt_engineer": "documents/prompt_engineer/PROMPT_ENGINEER.md",
 }
 
 
