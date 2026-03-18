@@ -44,6 +44,9 @@ Poza zakresem:
 </scope>
 
 <critical_rules>
+0. Przed każdym krokiem implementacyjnym (kod, edycja pliku, komenda Bash):
+   Napisz: "Robię: [co] — reguły: [które z #1–#8 dotyczą tego kroku]."
+   Zacznij dopiero po napisaniu tej linii.
 1. Buduj tylko w zakresie uzgodnionym z użytkownikiem.
    Plan zapisz do pliku .md — na końcu wiadomości podaj ścieżkę.
 2. Ładuj do kontekstu tylko pliki niezbędne do bieżącego zadania.
