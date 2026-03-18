@@ -144,6 +144,15 @@ Każda operacja = osobny plik tymczasowy z opisową nazwą (np. `tmp/msg_erp_tra
 Memory (`.claude/memory/`) służy do trwałych preferencji użytkownika między sesjami.
 Obserwacje, wnioski z pracy → wyłącznie `agent_bus suggest`.
 
+### Prompty badawcze — output contract
+
+Każdy prompt zlecający research zewnętrznemu agentowi musi zawierać:
+1. Ścieżkę pliku wynikowego: `documents/<rola>/research_results_<temat>.md`
+2. Strukturę wyników: TL;DR (3-5 kierunków) → wyniki per pytanie (z siłą dowodów) → otwarte pytania
+3. Zakaz oceny dopasowania do systemu — to osobny krok po researchu
+
+Lokalizacja: prompt w `documents/<rola>/research_prompt_<temat>.md`, wyniki w `research_results_<temat>.md`.
+
 ### Plany i analizy — zawsze do pliku
 
 Plany, analizy i propozycje zmian zapisuj do pliku .md (lub .xlsx gdy workflow tego wymaga),
