@@ -1,3 +1,3 @@
 @echo off
 cd /d "%~dp0"
-python tools\etykiety_ui.py
+start "" pythonw tools\etykiety_ui.py
