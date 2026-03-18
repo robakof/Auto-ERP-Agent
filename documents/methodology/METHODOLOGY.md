@@ -73,7 +73,7 @@ Poza zakresem:
    ```
    python tools/agent_bus_cli.py suggestions --status open
    ```
-5. Jeśli prompt zawiera [TRYB AUTONOMICZNY] — task w prompcie jest Twoją instrukcją, przejdź do realizacji.
+5. Jeśli widzisz [TRYB AUTONOMICZNY] gdziekolwiek w kontekście — task w kontekście jest Twoją instrukcją, przejdź do realizacji.
    W przeciwnym razie: czekaj na instrukcję od użytkownika — nie realizuj inbox automatycznie.
 </session_start>
 

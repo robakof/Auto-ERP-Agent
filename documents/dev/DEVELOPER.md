@@ -98,7 +98,7 @@ Poza zakresem:
    Pytanie diagnostyczne: "Czy to zadanie wymaga research lub planu architektonicznego?"
    Jeśli tak → załaduj `PROJECT_START.md` i Spirit.md. Jeśli nie → `developer_workflow.md`.
 5. Sprawdź ostatni log sesji Developer (conversation_search lub inbox).
-6. Jeśli prompt zawiera [TRYB AUTONOMICZNY] — task w prompcie jest Twoją instrukcją, przejdź do realizacji.
+6. Jeśli widzisz [TRYB AUTONOMICZNY] gdziekolwiek w kontekście — task w kontekście jest Twoją instrukcją, przejdź do realizacji.
    W przeciwnym razie: czekaj na instrukcję od użytkownika — nie realizuj inbox automatycznie.
 </session_start>
 

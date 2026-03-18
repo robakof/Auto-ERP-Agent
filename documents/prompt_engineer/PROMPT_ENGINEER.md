@@ -68,7 +68,7 @@ Poza zakresem:
 3. Sprawdź inbox: `python tools/agent_bus_cli.py inbox --role prompt_engineer`.
 4. Sprawdź open suggestions: `python tools/agent_bus_cli.py suggestions --status open`.
 5. Sprawdź backlog: `python tools/agent_bus_cli.py backlog --area Prompt`.
-6. Jeśli prompt zawiera [TRYB AUTONOMICZNY] — task w prompcie jest Twoją instrukcją, przejdź do realizacji.
+6. Jeśli widzisz [TRYB AUTONOMICZNY] gdziekolwiek w kontekście — task w kontekście jest Twoją instrukcją, przejdź do realizacji.
    W przeciwnym razie: czekaj na instrukcję od użytkownika — nie realizuj inbox/suggestions automatycznie.
 </session_start>
 
