@@ -176,9 +176,11 @@ def build_cmd(role: str, prompt: str) -> list[str]:
 def build_prompt(task: dict, instance_id: str, role: str) -> str:
     return (
         f"{role}\n"
+        f"[TRYB AUTONOMICZNY — brak interakcji z użytkownikiem]\n"
         f"[TASK od: {task['sender']}]\n"
         f"[ADRES ZWROTNY: {instance_id}]\n"
-        f"{task['content']}"
+        f"Twoje zadanie do realizacji:\n{task['content']}\n"
+        f"Wykonaj session_init, a następnie natychmiast przystąp do realizacji zadania."
     )
 
 
@@ -207,7 +209,7 @@ def invoke_agent(role: str, task: dict, instance_id: str, db_path: str) -> tuple
                 if result is not None:
                     session_id = result.get("session_id", session_id)
                     turns = result.get("num_turns", 0)
-                    cost_usd = result.get("cost_usd", 0.0)
+                    cost_usd = result.get("total_cost_usd", 0.0)
             except json.JSONDecodeError:
                 print(line, flush=True)
         proc.wait(timeout=TIMEOUT_SEC)

@@ -218,7 +218,7 @@ def test_render_event_tool_use(capsys):
 
 
 def test_render_event_result_returns_event():
-    event = {"type": "result", "session_id": "xyz", "num_turns": 3, "cost_usd": 0.12}
+    event = {"type": "result", "session_id": "xyz", "num_turns": 3, "total_cost_usd": 0.12}
     assert runner.render_event(event) == event
 
 
