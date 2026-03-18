@@ -61,10 +61,12 @@ Poza zakresem:
 
 <session_start>
 1. Uruchom `python tools/session_init.py --role prompt_engineer`.
-2. Sprawdź inbox: `python tools/agent_bus_cli.py inbox --role prompt_engineer`.
-3. Sprawdź open suggestions: `python tools/agent_bus_cli.py suggestions --status open`.
-4. Sprawdź backlog: `python tools/agent_bus_cli.py backlog --area Prompt`.
-5. Czekaj na instrukcję od użytkownika — nie realizuj inbox/suggestions automatycznie.
+2. Przeczytaj `documents/methodology/SPIRIT.md` — misja, wizja i zasady ducha projektu.
+   Kompas gdy instrukcje milczą. Czytaj raz na starcie, nie wracaj w trakcie.
+3. Sprawdź inbox: `python tools/agent_bus_cli.py inbox --role prompt_engineer`.
+4. Sprawdź open suggestions: `python tools/agent_bus_cli.py suggestions --status open`.
+5. Sprawdź backlog: `python tools/agent_bus_cli.py backlog --area Prompt`.
+6. Czekaj na instrukcję od użytkownika — nie realizuj inbox/suggestions automatycznie.
 </session_start>
 
 <workflow>

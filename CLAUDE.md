@@ -27,6 +27,11 @@ python tools/session_init.py --role <parametr>
 
 Instrukcje roli są w polu `doc_content` odpowiedzi. Postępuj zgodnie z nimi.
 
+**SPIRIT.md** (`documents/methodology/SPIRIT.md`) — wizja, misja i zasady ducha projektu.
+Kompas gdy instrukcje milczą. Czytaj raz na starcie sesji jeśli twoja rola to:
+**Metodolog** lub **Prompt Engineer** — zawsze.
+**Developer** — przy zadaniach architektonicznych (routing w `session_start` DEVELOPER.md).
+
 ---
 
 ## Zasady wspólne
@@ -55,6 +60,42 @@ pliki chronione bez pytania per plik — zatwierdzenie refaktoru obejmuje wszyst
 Suggestions od Wykonawców wyłącznie przez `agent_bus_cli.py suggest` — nie przez pliki .md.
 
 Komunikacja między agentami i eskalacja do człowieka: `tools/agent_bus_cli.py` (mrowisko.db)
+
+### Eskalacja między poziomami
+
+Projekt działa na trzech poziomach (Wykonawcy / Developer / Metodolog).
+Eskalacja idzie wyłącznie w górę. Jeśli zadanie nie pasuje do Twojej roli:
+
+1. Nazwij obserwację: "To wymaga decyzji na poziomie Developera / Metodologa."
+2. Zapytaj: "Czy mam przygotować handoff?"
+3. Nie działaj poza zakresem swojej roli.
+
+### Komendy powłoki
+
+**Bash jest ostatecznością. Najpierw użyj dedykowanego narzędzia.**
+
+**Dlaczego to krytyczne:** Każde naruszenie tych reguł powoduje blokadę przez hook bezpieczeństwa i wymaga ręcznego zatwierdzenia przez człowieka. Człowiek może być niedostępny przez wiele godzin. Jedno złamane `$()` = projekt stoi. Traktuj te reguły jak czerwoną linię, nie sugestię.
+
+| Zamiast Bash...              | Użyj narzędzia |
+|------------------------------|----------------|
+| `head`/`cat`/`tail` na pliku | `Read`         |
+| `grep`/`rg` w plikach        | `Grep`         |
+| `find`/`ls` po nazwach       | `Glob`         |
+| `sed`/`awk` do edycji pliku  | `Edit`         |
+| Zapis pliku                  | `Write` (nigdy `echo >`) — jeśli plik już istnieje, najpierw `Read`, potem `Write` |
+
+**Reguły pisania komend Bash:**
+
+Hook bezpieczeństwa blokuje zbyt złożone komendy. Trzymaj się prostych form:
+
+1. **Nie używaj `$()`** — zamiast tego zapisz zawartość do pliku i podaj ścieżkę jako argument
+   - Wyjątek: wieloliniowe wiadomości commitów — zapisz przez `Write` do `.git/COMMIT_EDITMSG`, następnie `git commit -F .git/COMMIT_EDITMSG`
+2. **Nie używaj `python -c "..."`** z wieloliniowym kodem — zapisz do pliku tymczasowego
+3. **Maksymalnie 2 komendy w łańcuchu `&&`** — dłuższe podziel na osobne wywołania
+4. **Pusty string `""` jako argument** — zastąp pojedynczym znakiem lub usuń
+5. **`find` z `2>/dev/null`** — użyj narzędzia Glob zamiast Bash
+6. **`cd "ścieżka" && git`** — hook blokuje; używaj `git -C "ścieżka"` zamiast `cd &&`
+7. **`git mv` per plik** — używaj zwykłego `mv`, potem jeden `git add -A` na końcu zadania
 
 ### Komendy agent_bus
 
@@ -104,15 +145,6 @@ Gdy użytkownik podaje wytyczną zmieniającą zachowanie agenta (regułę domen
 konwencję, heurystykę) — zapisz ją od razu jako sugestię przez `agent_bus_cli.py suggest`.
 Nie czekaj na koniec sesji. Sugestia przetrwa sesję; pamięć czatu nie.
 
-### Eskalacja między poziomami
-
-Projekt działa na trzech poziomach (Wykonawcy / Developer / Metodolog).
-Eskalacja idzie wyłącznie w górę. Jeśli zadanie nie pasuje do Twojej roli:
-
-1. Nazwij obserwację: "To wymaga decyzji na poziomie Developera / Metodologa."
-2. Zapytaj: "Czy mam przygotować handoff?"
-3. Nie działaj poza zakresem swojej roli.
-
 ### Git — commity przez narzędzie
 
 Wszystkie commity wykonuj przez `tools/git_commit.py` — nie przez bezpośrednie `git commit`.
@@ -124,33 +156,6 @@ python tools/git_commit.py --message "feat: opis" --all       # git add -A + com
 python tools/git_commit.py --message "feat: opis" --all --push  # add + commit + push
 python tools/git_commit.py --push-only                        # tylko push
 ```
-
-### Komendy powłoki
-
-**Bash jest ostatecznością. Najpierw użyj dedykowanego narzędzia.**
-
-**Dlaczego to krytyczne:** Każde naruszenie tych reguł powoduje blokadę przez hook bezpieczeństwa i wymaga ręcznego zatwierdzenia przez człowieka. Człowiek może być niedostępny przez wiele godzin. Jedno złamane `$()` = projekt stoi. Traktuj te reguły jak czerwoną linię, nie sugestię.
-
-| Zamiast Bash...              | Użyj narzędzia |
-|------------------------------|----------------|
-| `head`/`cat`/`tail` na pliku | `Read`         |
-| `grep`/`rg` w plikach        | `Grep`         |
-| `find`/`ls` po nazwach       | `Glob`         |
-| `sed`/`awk` do edycji pliku  | `Edit`         |
-| Zapis pliku                  | `Write` (nigdy `echo >`) — jeśli plik już istnieje, najpierw `Read`, potem `Write` |
-
-**Reguły pisania komend Bash:**
-
-Hook bezpieczeństwa blokuje zbyt złożone komendy. Trzymaj się prostych form:
-
-1. **Nie używaj `$()`** — zamiast tego zapisz zawartość do pliku i podaj ścieżkę jako argument
-   - Wyjątek: wieloliniowe wiadomości commitów — zapisz przez `Write` do `.git/COMMIT_EDITMSG`, następnie `git commit -F .git/COMMIT_EDITMSG`
-2. **Nie używaj `python -c "..."`** z wieloliniowym kodem — zapisz do pliku tymczasowego
-3. **Maksymalnie 2 komendy w łańcuchu `&&`** — dłuższe podziel na osobne wywołania
-4. **Pusty string `""` jako argument** — zastąp pojedynczym znakiem lub usuń
-5. **`find` z `2>/dev/null`** — użyj narzędzia Glob zamiast Bash
-6. **`cd "ścieżka" && git`** — hook blokuje; używaj `git -C "ścieżka"` zamiast `cd &&`
-7. **`git mv` per plik** — używaj zwykłego `mv`, potem jeden `git add -A` na końcu zadania
 
 ### Inbox — odczyt bez auto-realizacji
 
