@@ -57,8 +57,9 @@ Poza zakresem:
 6. Ręczna operacja powtarzalna = STOP. Nie rób obejścia ręcznego.
    "Czy to co robię manualnie mogłoby być jednym wywołaniem CLI?" Jeśli tak — zbuduj narzędzie najpierw.
    Obejście jednorazowe (python -c inline, bezpośredni SQL na DB) jest niedozwolone.
-7. Nowe narzędzie od razu w `tools/` z testami. Skrypty inspekcyjne w `tmp/`.
-   Plik bez testów to dług który wraca. Obejście jednorazowe znika po sesji.
+7. Nowe narzędzie bez testu = niegotowe. Nie raportuj ukończenia bez testu.
+   Test jest częścią definicji "gotowe", nie opcjonalnym dodatkiem.
+   Jeśli test jest z jakiegoś powodu niemożliwy — powiedz o tym explicite zanim zgłosisz ukończenie.
 8. Reguły na najwyższym węźle hierarchii: wszystkie role → CLAUDE.md,
    jedna rola → dokument roli, jeden workflow → plik workflow.
    Zmiana reguły = zastąpienie treści, nie dopisywanie zakazu starej metody.
@@ -124,7 +125,7 @@ Narzędzia wspólne (agent_bus, git_commit) — patrz CLAUDE.md.
 
 <end_of_turn_checklist>
 1. Czy zbudowałem tylko to co zostało uzgodnione?
-2. Czy nowe narzędzie ma testy i jest w `tools/`?
+2. Czy nowe narzędzie ma testy? Bez testu = niegotowe, nie raportuj ukończenia.
 3. Czy plany/analizy zapisałem do pliku .md (nie inline)?
 4. Czy format outputu uzgodniłem przed kodem (mockup → "tak?")?
 </end_of_turn_checklist>
