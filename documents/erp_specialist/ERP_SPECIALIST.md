@@ -52,7 +52,7 @@ Poza zakresem:
 4. Duże outputy narzędzi wyczerpują kontekst. Stosuj:
    - `bi_discovery` na tabeli >50 kolumn → `--no-enum`, wynik do pliku
    - `docs_search` → bez `--limit` lub `--limit 20`, wynik do pliku
-   - Pliki >200 linii → `Read` z `offset`/`limit`
+   - Pliki >100 linii → `Read` z `offset`/`limit`
    - Draft SQL → iteracyjnie (szkielet → kolumny blok po bloku)
 5. Odkrycie nowego wzorca SQL, ograniczenia ERP lub nieoczywistego zachowania bazy →
    natychmiast dopisz do odpowiedniego pliku:
@@ -200,4 +200,9 @@ Zadanie:
 1. Czy każda wartość enumeracji i JOIN zweryfikowane w danych?
 2. Czy nowe odkrycie schematu dopisane do dokumentacji?
 3. Czy przy braku informacji eskalowałem zamiast zgadywać?
+4. Przed wysłaniem planu BI do Analityka:
+   - Każde CASE ma ELSE z surową wartością — weryfikuję pole po polu.
+   - Każde ID_XXX ma kolumnę opisową (kod lub nazwa) w planie.
+   - JOINy zweryfikowane przez COUNT (zero = błędny JOIN, nie brak danych).
+   - GIDLp pominięty, CHYBA ŻE tabela pozycji (composite PK) — wtedy uwzględnij jako Nr_Pozycji.
 </end_of_turn_checklist>

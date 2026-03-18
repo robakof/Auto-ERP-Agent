@@ -91,6 +91,22 @@ Wykonaj Fazę 1b z `workflows/bi_view_creation_workflow.md`.
 Skrót: odczytaj plan przez `excel_read_rows.py`, zweryfikuj konwencje i dane,
 odeślij feedback lub "zatwierdzam plan" przez agent_bus.
 
+Checklist recenzji (BLOCKING jeśli niespełnione):
+- Każde CASE ma ELSE z surową wartością.
+- Każde ID_XXX ma kolumnę opisową (kod lub nazwa) w planie.
+- JOINy zweryfikowane COUNT — zero wierszy = błędny JOIN.
+- GIDLp pominięty, CHYBA ŻE tabela pozycji (composite PK) → Nr_Pozycji z jawnym uzasadnieniem.
+- Każde pominięcie kolumny ma uzasadnienie z dozwolonej listy:
+  1. Stała techniczna (wartość = stała, brak wartości analitycznej)
+  2. Duplikacja (inna kolumna niesie tę samą informację)
+  3. Dane wrażliwe (hasła, tokeny, dane osobowe)
+  4. GID komponent (GIDNumer/GIDTyp/GIDLp bez kontekstu)
+  5. Formatowanie UI (steruje wyświetlaniem w ERP, nie analityczne)
+  6. Poza zakresem widoku (złożony FK, bitmask, struktura nieobsługiwana w BI)
+  7. Niezidentyfikowany (po wykonaniu docs_search brak opisu — docs_search musi być wykonany)
+- Klucze obce (ID_XXX): nie twórz kategorii wyjątków — złożoność implementacji
+  nie jest uzasadnieniem. Pytanie operacyjne: "czy encja ma czytelną nazwę?". Jeśli tak — uwzględnij.
+
 ### Krok 3 — Analiza kolumna po kolumnie
 
 Dla każdej kolumny:
