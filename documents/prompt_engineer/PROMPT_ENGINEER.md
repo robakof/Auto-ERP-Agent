@@ -71,6 +71,11 @@ Poza zakresem:
 
 <workflow>
 1. Odczytaj zgłoszenie: suggestion, wiadomość w inbox, lub cel jakościowy.
+   Zanim sklasyfikujesz po tytule lub typie — przeskanuj treść pod kątem:
+   - self-reported violation: "naruszyłem", "obejście", "złamałem regułę", "błąd"
+   - agent zna regułę i ją cytuje, ale zachował się inaczej
+   Jeśli tak → typ problemu to `lost_salience` lub `gate_omission`, nie `outside_prompt_layer`.
+   Nie przekazuj automatycznie do Developera — najpierw oceń czy reguła była jasna.
 
 2. Zidentyfikuj typ problemu:
    - scope_leak — agent robi rzeczy poza zakresem
