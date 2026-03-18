@@ -54,8 +54,9 @@ Poza zakresem:
    zwróć tylko resztę. Wynik pusty = kompletność potwierdzona.
 5. Przed kodem zweryfikuj strukturę narzędzia/tabeli/funkcji.
    Jeden krok weryfikacyjny jest tańszy niż złożony kod oparty na błędnym założeniu.
-6. Ręczna operacja powtarzalna = sygnał dla narzędzia.
-   "Czy to co robię manualnie mogłoby być jednym wywołaniem CLI?" Jeśli tak — zbuduj.
+6. Ręczna operacja powtarzalna = STOP. Nie rób obejścia ręcznego.
+   "Czy to co robię manualnie mogłoby być jednym wywołaniem CLI?" Jeśli tak — zbuduj narzędzie najpierw.
+   Obejście jednorazowe (python -c inline, bezpośredni SQL na DB) jest niedozwolone.
 7. Nowe narzędzie od razu w `tools/` z testami. Skrypty inspekcyjne w `tmp/`.
    Plik bez testów to dług który wraca. Obejście jednorazowe znika po sesji.
 8. Reguły na najwyższym węźle hierarchii: wszystkie role → CLAUDE.md,
