@@ -729,6 +729,16 @@ class AgentBus:
         self._conn.commit()
         return cursor.rowcount > 0
 
+    def unclaim_task(self, msg_id: int) -> None:
+        """Release a claimed task back to unread (e.g. after invocation failure)."""
+        self._conn.execute(
+            """UPDATE messages
+               SET status = 'unread', claimed_by = NULL
+               WHERE id = ? AND status = 'claimed'""",
+            (msg_id,),
+        )
+        self._conn.commit()
+
     def get_pending_tasks(self, role: str, instance_id: str) -> list[dict]:
         """Return unread/unclaimed tasks for role OR specific instance_id."""
         rows = self._conn.execute(

@@ -292,7 +292,11 @@ def main(argv: list[str] | None = None) -> None:
                 print(f"[RUNNER] Task #{task['id']} już claimed przez inną instancję — pomijam.\n")
                 continue
             bus.set_instance_busy(instance_id, task["id"])
-            invoke_agent(role=args.role, task=task, instance_id=instance_id, db_path=args.db)
+            try:
+                invoke_agent(role=args.role, task=task, instance_id=instance_id, db_path=args.db)
+            except Exception as exc:
+                print(f"[RUNNER] Błąd invocation: {exc} — cofam claim taska #{task['id']}.\n")
+                bus.unclaim_task(task["id"])
             bus.set_instance_idle(instance_id)
             print()
         else:

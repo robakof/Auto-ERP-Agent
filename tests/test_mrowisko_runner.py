@@ -119,6 +119,31 @@ def test_claim_task_sets_claimed_by(tmp_db):
 
 
 # ---------------------------------------------------------------------------
+# AgentBus.unclaim_task
+# ---------------------------------------------------------------------------
+
+def test_unclaim_task_restores_unread(bus):
+    msg_id = bus.send_message("developer", "erp_specialist", "Zadanie", type="task")
+    bus.claim_task(msg_id, "erp_specialist:abc")
+    bus.unclaim_task(msg_id)
+    tasks = bus.get_pending_tasks("erp_specialist", "erp_specialist:xyz")
+    assert any(t["id"] == msg_id for t in tasks)
+
+
+def test_unclaim_task_clears_claimed_by(tmp_db):
+    msg_id = insert_message(tmp_db, "developer", "erp_specialist", "task", "Zadanie")
+    b = AgentBus(db_path=tmp_db)
+    b.claim_task(msg_id, "erp_specialist:abc")
+    b.unclaim_task(msg_id)
+
+    conn = sqlite3.connect(tmp_db)
+    row = conn.execute("SELECT status, claimed_by FROM messages WHERE id = ?", (msg_id,)).fetchone()
+    conn.close()
+    assert row[0] == "unread"
+    assert row[1] is None
+
+
+# ---------------------------------------------------------------------------
 # AgentBus — instance registry
 # ---------------------------------------------------------------------------
 
