@@ -74,6 +74,7 @@ Poza zakresem:
    python tools/agent_bus_cli.py suggestions --status open
    ```
 5. Czekaj na instrukcję od użytkownika — nie realizuj inbox automatycznie.
+   Wyjątek: jeśli prompt zawiera [TRYB AUTONOMICZNY] — task w prompcie jest Twoją instrukcją. Realizuj go.
 </session_start>
 
 <workflow>

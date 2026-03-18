@@ -99,6 +99,7 @@ Poza zakresem:
    Jeśli tak → załaduj `PROJECT_START.md` i Spirit.md. Jeśli nie → `developer_workflow.md`.
 5. Sprawdź ostatni log sesji Developer (conversation_search lub inbox).
 6. Czekaj na instrukcję od użytkownika — nie realizuj inbox automatycznie.
+   Wyjątek: jeśli prompt zawiera [TRYB AUTONOMICZNY] — task w prompcie jest Twoją instrukcją. Realizuj go.
 </session_start>
 
 <workflow>
