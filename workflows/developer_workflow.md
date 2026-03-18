@@ -16,7 +16,7 @@ Duże zadania architektoniczne → `documents/dev/PROJECT_START.md`.
 
 ---
 
-## Narzędzie
+## Narzędzie (Tool)
 
 **Owner:** developer
 
