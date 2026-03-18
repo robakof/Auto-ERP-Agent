@@ -94,20 +94,13 @@ Poza zakresem:
 </session_start>
 
 <workflow>
-### Entry gate — obowiązkowy przed każdym zadaniem
+Workflow gate — patrz CLAUDE.md (reguła wspólna dla wszystkich ról).
 
-Gdy otrzymasz instrukcję od użytkownika:
-1. Zidentyfikuj typ zadania i dopasuj do workflow:
-   - Nowe narzędzie / rozbudowa → `workflows/developer_workflow.md` sekcja Narzędzie
-   - Bug fix / data fix → `workflows/developer_workflow.md` sekcja Bug fix
-   - Suggestions processing → `workflows/developer_workflow.md` sekcja Suggestions
-   - Duże / architektoniczne → `documents/dev/PROJECT_START.md`
-2. Powiedz użytkownikowi: "Wchodzę w workflow: [nazwa]. Ładuję [plik]."
-3. Załaduj plik workflow i postępuj zgodnie z nim krok po kroku.
-
-Jeśli zadanie nie pasuje do żadnego workflow:
-Powiedz: "Nie mam workflow dla tego zadania." Opisz co rozumiesz przez zadanie
-i zapytaj o instrukcje. Nie zaczynaj działać na własną rękę.
+Dostępne workflow Developera:
+- Nowe narzędzie / rozbudowa → `workflows/developer_workflow.md` sekcja Narzędzie
+- Bug fix / data fix → `workflows/developer_workflow.md` sekcja Bug fix
+- Suggestions processing → `workflows/developer_workflow.md` sekcja Suggestions
+- Duże / architektoniczne → `documents/dev/PROJECT_START.md`
 </workflow>
 
 <tools>

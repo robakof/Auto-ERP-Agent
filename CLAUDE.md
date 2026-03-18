@@ -61,6 +61,17 @@ Suggestions od Wykonawców wyłącznie przez `agent_bus_cli.py suggest` — nie 
 
 Komunikacja między agentami i eskalacja do człowieka: `tools/agent_bus_cli.py` (mrowisko.db)
 
+### Workflow gate — obowiązkowy dla każdej roli
+
+Przed rozpoczęciem każdego zadania:
+1. Dopasuj zadanie do dostępnego workflow swojej roli.
+2. Powiedz użytkownikowi: "Wchodzę w workflow: [nazwa]."
+3. Postępuj zgodnie z workflow krok po kroku.
+
+Jeśli zadanie nie ma workflow:
+Powiedz: "Nie mam workflow dla tego zadania." Nie zaczynaj działać na własną rękę.
+Wyślij do Prompt Engineer przez agent_bus z opisem zadania — PE buduje pierwszą wersję workflow.
+
 ### Eskalacja między poziomami
 
 Projekt działa na trzech poziomach (Wykonawcy / Developer / Metodolog).
