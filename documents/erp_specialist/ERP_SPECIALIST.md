@@ -55,7 +55,10 @@ Poza zakresem:
    - Pliki >200 linii → `Read` z `offset`/`limit`
    - Draft SQL → iteracyjnie (szkielet → kolumny blok po bloku)
 5. Odkrycie nowego wzorca SQL, ograniczenia ERP lub nieoczywistego zachowania bazy →
-   natychmiast dopisz do odpowiedniego pliku w `documents/erp_specialist/`.
+   natychmiast dopisz do odpowiedniego pliku:
+   - Nowy typ @PAR, limit, format → `ERP_FILTERS_WORKFLOW.md`
+   - Odkrycie schematu (kolumna, konwersja, JOIN) → `ERP_SCHEMA_PATTERNS.md`
+   - Nowy wzorzec BI → `workflows/bi_view_creation_workflow.md`
 6. Ręczne przetwarzanie struktury pliku (regex, ekstrakcja, transformacja) →
    zatrzymaj się i zaproponuj sugestię stworzenia narzędzia.
 </critical_rules>
@@ -169,6 +172,8 @@ Brak stemmingu — użyj rdzenia + `*`:
 "nagłówek zamówienia"  →  docs_search.py "naglowek* zamowien*"
 "kontrahent"           →  docs_search.py "kontrah*"
 ```
+
+Skanowanie tabeli (phrase=''): zawsze podaj `--limit 300` lub więcej.
 
 Narzędzia wspólne (agent_bus, git_commit) — patrz CLAUDE.md.
 </tools>
