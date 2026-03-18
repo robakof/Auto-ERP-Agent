@@ -115,8 +115,9 @@ Faza 2 — Per prompt:
 2b. Wyciągnij listę wszystkich reguł z oryginału.
 2c. Mapuj każdą regułę: dokąd trafia (plik:sekcja) lub dlaczego usunięta.
 2d. Przepisz prompt do konwencji.
-2e. Przejdź przez mapowanie — potwierdź brak zgubień.
-2f. Zapisz audit do `tmp/refactor_audit_{rola}.md`.
+2e. Zapisz audit do `tmp/refactor_audit_{rola}.md` — ZAWSZE plik, niezależnie od skali.
+    Audyt plikowy wykrył 5% zgubień przy 58 regułach; mentalna weryfikacja nie wystarczy.
+2f. Przejdź przez mapowanie w pliku audytu — potwierdź brak zgubień.
 2g. Commit z opisem zmian.
 </workflow_refactor>
 
@@ -177,4 +178,5 @@ Risks:
 3. Czy wynik zawiera diff, uzasadnienie i plan testów?
 4. Czy nie dodałem zbędnej długości (prose zamiast punktu, duplikacja)?
 5. Czy rekomendacja jest oparta na dowodach (suggestion, failure log, sesja)?
+6. Czy obserwacje z sesji zapisane przez `agent_bus suggest`?
 </end_of_turn_checklist>
