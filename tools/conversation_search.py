@@ -12,6 +12,9 @@ import sqlite3
 import sys
 from pathlib import Path
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 DEFAULT_DB = Path(__file__).parent.parent / "mrowisko.db"
 SNIPPET_LEN = 150
 
