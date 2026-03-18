@@ -220,7 +220,37 @@ XML tags rezerwujemy dla promptów ról gdzie model musi odróżniać typy instr
 
 ---
 
-## 7. Czego unikać
+## 7. Prompty badawcze (research prompts)
+
+Każdy prompt do zewnętrznego researchera musi zawierać sekcję **Output contract**:
+
+```markdown
+## Output contract
+
+Zapisz wyniki do pliku: `documents/<rola>/research_results_<temat>.md`
+
+Struktura pliku wynikowego:
+# Research: [tytuł]
+Data: YYYY-MM-DD
+
+## TL;DR — 3-5 najbardziej obiecujących kierunków
+## Wyniki per obszar badawczy
+(sekcje odpowiadające pytaniom; dla każdego: opis + siła dowodów [empiryczne / praktyczne / spekulacja])
+## Co nierozwiązane / otwarte pytania
+## Źródła / odniesienia
+
+Czego NIE rób:
+- Nie oceniaj dopasowania do naszego systemu — to osobny krok
+- Nie dawaj jednej odpowiedzi — dawaj pole możliwości
+- Nie skracaj gdy brakuje danych — zaznacz lukę
+```
+
+Lokalizacja promptów: `documents/<rola>/research_prompt_<temat>.md`
+Lokalizacja wyników: `documents/<rola>/research_results_<temat>.md`
+
+---
+
+## 8. Czego unikać
 
 - Duplikacji reguł między warstwami.
 - Prose zamiast numerowanych kroków.
