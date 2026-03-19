@@ -1,5 +1,5 @@
 SELECT TOP 1
-    REPLACE(CAST(CAST(sub.TrE_CenaPoRabacie AS DECIMAL(15,2)) AS VARCHAR(20)), '.', ',') [Ostatnia cena]
+    CAST(sub.TrE_CenaPoRabacie AS DECIMAL(15,2)) [Ostatnia cena]
 FROM (
     -- Ostatnia FZ (dowolna)
     SELECT TOP 1
