@@ -1,0 +1,247 @@
+"""
+wycena_generate.py — Generator Wyceny Zniczy.
+
+Pobiera produkty CZNI z wybranej grupy oferty ERP, generuje plik Excel
+z 16 wierszami BOM na produkt. Wynik oparty na kopii szablonu xlsm.
+
+CLI:
+    python tools/wycena_generate.py --offer-group-id 10729 --client-name "AUCHAN"
+
+Opcje:
+    --offer-group-id INT    GIDNumer grupy oferty z CDN.TwrGrupy
+    --client-name STR       Nazwa klienta wpisywana w kolumnę A
+    --template PATH         Domyślnie: "Wycena 2026 Otorowo Szablon.xlsm"
+    --output PATH           Domyślnie: "Wycena {offer_name}.xlsm" (nazwa z ERP)
+"""
+
+import argparse
+import logging
+import shutil
+import sys
+from pathlib import Path
+
+import openpyxl
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from tools.lib.sql_client import SqlClient
+from tools.lib.wycena_bom import build_bom_rows
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+log = logging.getLogger(__name__)
+
+_PROJECT_ROOT = Path(__file__).parent.parent
+TEMPLATE_PATH = _PROJECT_ROOT / "Wycena 2026 Otorowo Szablon.xlsm"
+SHEET_NAME = "Wycena Zniczy"
+DATA_START_ROW = 3
+
+# Indeksy kolumn (1-based: A=1, B=2, E=5, G=7, H=8, J=10)
+COL_A = 1
+COL_B = 2
+COL_E = 5
+COL_G = 7
+COL_H = 8
+COL_J = 10
+
+
+# ---------------------------------------------------------------------------
+# SQL
+# ---------------------------------------------------------------------------
+
+SQL_OFFER_NAME = """
+SELECT TwG_Nazwa
+FROM CDN.TwrGrupy
+WHERE TwG_GIDNumer = {offer_group_id}
+"""
+
+SQL_PRODUCTS = """
+SELECT TwG_Kod AS produkt_kod, TwG_Nazwa AS produkt_nazwa
+FROM CDN.TwrGrupy
+WHERE TwG_GrONumer = {offer_group_id}
+  AND TwG_GIDTyp = 16
+  AND TwG_Kod LIKE 'CZNI%'
+ORDER BY TwG_Kod
+"""
+
+SQL_UNITS = """
+SELECT j.TwJ_JmZ, j.TwJ_PrzeliczL
+FROM CDN.TwrKarty tw
+JOIN CDN.TwrJm j ON j.TwJ_TwrNumer = tw.Twr_GIDNumer
+                 AND j.TwJ_TwrTyp = tw.Twr_GIDTyp
+WHERE tw.Twr_Kod = '{produkt_kod}'
+  AND j.TwJ_JmZ IN ('opak.', 'paleta')
+"""
+
+SQL_SZKLO_3DIG = """
+SELECT TOP 1 Twr_Kod
+FROM CDN.TwrKarty
+WHERE Twr_Kod LIKE 'SZ%'
+  AND Twr_Nazwa LIKE '%' + SUBSTRING('{produkt_nazwa}', PATINDEX('%[0-9][0-9][0-9]%', '{produkt_nazwa}'), 3) + '%'
+"""
+
+SQL_SZKLO_PREFIX = """
+SELECT TOP 1 Twr_Kod
+FROM CDN.TwrKarty
+WHERE Twr_Kod LIKE 'SZ%'
+  AND Twr_Nazwa LIKE '%' + LEFT('{produkt_nazwa}', CHARINDEX(' ', '{produkt_nazwa}' + ' ', CHARINDEX(' ', '{produkt_nazwa}' + ' ') + 1) - 1) + '%'
+"""
+
+
+# ---------------------------------------------------------------------------
+# ERP queries
+# ---------------------------------------------------------------------------
+
+def _fetch_offer_name(client: SqlClient, offer_group_id: int) -> str:
+    result = client.execute(SQL_OFFER_NAME.format(offer_group_id=offer_group_id), inject_top=1)
+    if result["ok"] and result["rows"]:
+        return result["rows"][0][0]
+    return str(offer_group_id)
+
+
+def _fetch_products(client: SqlClient, offer_group_id: int) -> list[dict]:
+    sql = SQL_PRODUCTS.format(offer_group_id=offer_group_id)
+    result = client.execute(sql, inject_top=None)
+    if not result["ok"]:
+        log.error("Błąd pobierania produktów: %s", result["error"]["message"])
+        return []
+    return [{"kod": row[0], "nazwa": row[1]} for row in result["rows"]]
+
+
+def _fetch_units(client: SqlClient, produkt_kod: str) -> tuple[float | None, float | None]:
+    sql = SQL_UNITS.format(produkt_kod=produkt_kod.replace("'", "''"))
+    result = client.execute(sql, inject_top=None)
+    paletka = None
+    paleta = None
+    if result["ok"]:
+        for row in result["rows"]:
+            jmz, przel = row[0], row[1]
+            try:
+                val = float(str(przel).replace(",", "."))
+            except (ValueError, TypeError):
+                val = None
+            if jmz == "opak.":
+                paletka = val
+            elif jmz == "paleta":
+                paleta = val
+    if paletka is None:
+        log.warning("Brak jednostki 'opak.' dla %s — Paletka i Folia pakowa będą puste", produkt_kod)
+    if paleta is None:
+        log.warning("Brak jednostki 'paleta' dla %s — Paleta i Folia Stretch będą puste", produkt_kod)
+    return paletka, paleta
+
+
+def _fetch_szklo(client: SqlClient, produkt_nazwa: str) -> str | None:
+    safe_nazwa = produkt_nazwa.replace("'", "''")
+
+    # Krok 1: szukaj 3+ cyfr w nazwie
+    if any(c.isdigit() for c in produkt_nazwa):
+        sql = SQL_SZKLO_3DIG.format(produkt_nazwa=safe_nazwa)
+        result = client.execute(sql, inject_top=1)
+        if result["ok"] and result["rows"]:
+            return result["rows"][0][0]
+
+    # Krok 2: szukaj po prefiksie (pierwsze dwa słowa)
+    sql = SQL_SZKLO_PREFIX.format(produkt_nazwa=safe_nazwa)
+    result = client.execute(sql, inject_top=1)
+    if result["ok"] and result["rows"]:
+        return result["rows"][0][0]
+
+    log.warning("Nie znaleziono Szkła dla: %s", produkt_nazwa)
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Excel write
+# ---------------------------------------------------------------------------
+
+def _write_bom(ws, start_row: int, client_name: str, produkt_kod: str, bom_rows: list) -> None:
+    for i, bom in enumerate(bom_rows):
+        row = start_row + i
+        ws.cell(row=row, column=COL_A).value = client_name if i == 0 else None
+        ws.cell(row=row, column=COL_B).value = produkt_kod
+        ws.cell(row=row, column=COL_E).value = bom.wlasciwosc
+        ws.cell(row=row, column=COL_G).value = bom.nazwa
+        ws.cell(row=row, column=COL_H).value = bom.akronim
+        ws.cell(row=row, column=COL_J).value = bom.mianownik
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def generate(offer_group_id: int, client_name: str, template: Path, output: Path | None) -> Path:
+    if not template.exists():
+        raise FileNotFoundError(f"Szablon nie istnieje: {template}")
+
+    client = SqlClient()
+
+    offer_name = _fetch_offer_name(client, offer_group_id)
+    log.info("Oferta: %s (%s)", offer_name, offer_group_id)
+
+    if output is None:
+        safe_name = offer_name.replace("/", "-").replace("\\", "-")
+        output = Path(f"Wycena {safe_name}.xlsm")
+
+    log.info("Plik wynikowy: %s", output)
+    shutil.copy2(template, output)
+
+    wb = openpyxl.load_workbook(output, keep_vba=True)
+    if SHEET_NAME not in wb.sheetnames:
+        raise ValueError(f"Arkusz '{SHEET_NAME}' nie istnieje w szablonie. Dostępne: {wb.sheetnames}")
+    ws = wb[SHEET_NAME]
+
+    products = _fetch_products(client, offer_group_id)
+    log.info("Produktów: %d", len(products))
+
+    current_row = DATA_START_ROW
+    for prod in products:
+        kod = prod["kod"]
+        nazwa = prod["nazwa"]
+
+        paletka, paleta = _fetch_units(client, kod)
+        szklo_akronim = _fetch_szklo(client, nazwa)
+
+        bom_rows = build_bom_rows(
+            paletka=paletka,
+            paleta=paleta,
+            szklo_akronim=szklo_akronim,
+            offer_group_id=offer_group_id,
+        )
+        _write_bom(ws, current_row, client_name, kod, bom_rows)
+        current_row += 16
+
+    wb.save(output)
+    log.info("Zapisano: %s (%d produktów, %d wierszy)", output, len(products), current_row - DATA_START_ROW)
+    return output
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Generator Wyceny Zniczy")
+    parser.add_argument("--offer-group-id", type=int, required=True, dest="offer_group_id",
+                        help="GIDNumer grupy oferty z CDN.TwrGrupy")
+    parser.add_argument("--client-name", required=True, dest="client_name",
+                        help="Nazwa klienta wpisywana w kolumnę A")
+    parser.add_argument("--template", default=None,
+                        help=f"Ścieżka do szablonu (domyślnie: {TEMPLATE_PATH})")
+    parser.add_argument("--output", default=None,
+                        help="Ścieżka do pliku wynikowego (domyślnie: Wycena {nazwa_oferty}.xlsm)")
+    args = parser.parse_args()
+
+    template = Path(args.template) if args.template else TEMPLATE_PATH
+    output = Path(args.output) if args.output else None
+
+    try:
+        result = generate(
+            offer_group_id=args.offer_group_id,
+            client_name=args.client_name,
+            template=template,
+            output=output,
+        )
+        print(f"OK: {result}")
+    except (FileNotFoundError, ValueError) as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
