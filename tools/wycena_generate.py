@@ -33,7 +33,7 @@ log = logging.getLogger(__name__)
 _PROJECT_ROOT = Path(__file__).parent.parent
 TEMPLATE_PATH = _PROJECT_ROOT / "Wycena 2026 Otorowo Szablon.xlsm"
 SHEET_NAME = "Wycena Zniczy"
-DATA_START_ROW = 3
+DATA_START_ROW = 4
 
 # Indeksy kolumn (1-based: A=1, B=2, E=5, G=7, H=8, J=10)
 COL_A = 1
