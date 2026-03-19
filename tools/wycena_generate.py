@@ -208,10 +208,14 @@ def _find_dekiel(
     if srednica is None:
         log.warning("Brak średnicy otworu dla %s — Dekiel pusty", produkt_kod)
         return None
-    kandydaci = dekle.get(srednica, [])
-    if not kandydaci:
-        log.warning("Brak dekla dla średnicy %.1f cm (%s) — Dekiel pusty", srednica, produkt_kod)
+    # Najbliższy rozmiar >= średnicy produktu
+    dopasowany = min((s for s in dekle if s >= srednica), default=None)
+    if dopasowany is None:
+        log.warning("Brak dekla >= %.1f cm dla %s — Dekiel pusty", srednica, produkt_kod)
         return None
+    if dopasowany != srednica:
+        log.info("Dekiel: %.1f cm → %.1f cm (najbliższy w górę) dla %s", srednica, dopasowany, produkt_kod)
+    kandydaci = dekle[dopasowany]
     rapcewicz = [kod for kod, nazwa in kandydaci if "rapcewicz" in nazwa.lower()]
     if rapcewicz:
         return min(rapcewicz)
