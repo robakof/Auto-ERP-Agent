@@ -44,6 +44,10 @@ COL_G = 7
 COL_H = 8
 COL_J = 10
 
+# Kolumny z formułami w szablonie — wymagają FillDown po wpisaniu danych
+# (szablon ma formuły tylko w 16 przykładowych wierszach)
+FORMULA_COLS = [3, 4, 6, 9, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22]
+
 
 # ---------------------------------------------------------------------------
 # SQL
@@ -192,8 +196,9 @@ def _build_column_data(
 # ---------------------------------------------------------------------------
 
 def _write_to_excel(output: Path, col_data: dict[int, list]) -> None:
-    """Otwiera plik przez COM Excela, zapisuje kolumny, zamyka."""
+    """Otwiera plik przez COM Excela, zapisuje kolumny, wypełnia formuły, zamyka."""
     n_rows = len(col_data[COL_A])
+    last_row = DATA_START_ROW + n_rows - 1
     app = xw.App(visible=False, add_book=False)
     try:
         wb = app.books.open(str(output.resolve()))
@@ -203,6 +208,13 @@ def _write_to_excel(output: Path, col_data: dict[int, list]) -> None:
             col_letter = _col_letter(col_idx)
             start_cell = f"{col_letter}{DATA_START_ROW}"
             ws.range(start_cell).options(transpose=True).value = values
+
+        # FillDown na kolumnach z formułami — replikuje auto-fill Excela
+        # (szablon ma formuły tylko w przykładowych wierszach)
+        for col in FORMULA_COLS:
+            ws.range((DATA_START_ROW, col), (last_row, col)).api.FillDown()
+        log.info("FillDown wykonany dla %d kolumn formuł, wiersze %d–%d",
+                 len(FORMULA_COLS), DATA_START_ROW, last_row)
 
         wb.save()
         wb.close()
@@ -238,7 +250,13 @@ def generate(offer_group_id: int, client_name: str, template: Path, output: Path
         output = Path(f"Wycena {safe_name}.xlsm")
 
     log.info("Plik wynikowy: %s", output)
-    shutil.copy2(template, output)
+    try:
+        shutil.copy2(template, output)
+    except PermissionError:
+        raise PermissionError(
+            f"Nie można nadpisać '{output}' — plik jest otwarty w Excelu. "
+            "Zamknij plik lub podaj inną ścieżkę przez --output."
+        )
 
     products = _fetch_products(client, offer_group_id)
     log.info("Produktów: %d", len(products))
