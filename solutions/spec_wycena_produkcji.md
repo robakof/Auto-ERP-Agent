@@ -172,6 +172,6 @@ Pozostałe kolumny:
 - K (Cena jednostkowa) — formuła automatyczna, generator pomija
 - L–V — formuły lub ignorowane, generator pomija
 
-## Otwarte pytania do ustalenia z użytkownikiem
+## Decyzje projektowe
 
-1. Akronim surowca (kolumna H) dla wierszy: Dekiel, Spód, Wkład, Paletka, Paleta — stały czy z ERP?
+- Kolumna H (Akronim surowca) dla wierszy Dekiel, Spód, Wkład, Paletka, Paleta — **puste** (ręcznie, przyszły rozwój)
