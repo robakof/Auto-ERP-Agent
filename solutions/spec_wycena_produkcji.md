@@ -81,8 +81,52 @@ Kolumna `TwJ_PrzeliczL` (VARCHAR) → rzutować na FLOAT.
 |16 | Koszt     | (null)       | BDO                      | —               | 1                            |
 
 Kolumny E, F, G zawsze pre-wypełnione zgodnie z tabelą. Kolumna H — stałe
-akronimy dla Etykiety, Folii; reszta pusta (ręcznie). Kolumna I (Nazwa surowca)
-— pusta (do ręcznego uzupełnienia lub przyszłej automatyzacji).
+akronimy dla Etykiety, Folii; Dekiel — algorytm (patrz niżej); reszta pusta (ręcznie).
+Kolumna I (Nazwa surowca) — pusta (do ręcznego uzupełnienia lub przyszłej automatyzacji).
+
+---
+
+## Algorytm doboru Dekla (kolumna H, wiersz Dekiel)
+
+### Dane źródłowe
+
+**Średnica otworu produktu z ERP (w cm):**
+```sql
+SELECT a.Atr_Wartosc
+FROM CDN.Atrybuty a
+JOIN CDN.TwrKarty tw ON tw.Twr_GIDNumer = a.Atr_ObiNumer
+                     AND tw.Twr_GIDTyp = a.Atr_ObiTyp
+WHERE a.Atr_AtkId = 56   -- ŚREDNICA OTWORU
+  AND tw.Twr_Kod = :produkt_kod
+```
+
+**Tabela dekli:** plik `dekle.xlsx` (arkusz Arkusz2), kolumny: Kod, Nazwa, Średnica dekla (cm)
+
+### Reguła dopasowania
+
+```
+srednica = Atr_Wartosc produktu (float, cm)
+
+kandydaci = dekle WHERE Średnica dekla == srednica
+
+if kandydaci z "Rapcewicz" w nazwie:
+    wynik = min(kod) wśród Rapcewiczów  ← np. DK0022 dla 7.2cm
+else:
+    wynik = min(kod) wśród wszystkich kandydatów
+
+if brak kandydatów:
+    wynik = puste (ręcznie)
+```
+
+### Przykłady
+
+| Średnica otworu | Dopasowanie Rapcewicz | Wynik |
+|---|---|---|
+| 7.2 cm | DK0022, DK0023, DK0024 | **DK0022** |
+| 7.8 cm | DK0063 | **DK0063** |
+| 9.5 cm | DK0061 | **DK0061** |
+| 10.1 cm | DK0062 | **DK0062** |
+| 5.9 cm | brak | DK0002 (pierwszy) |
 
 ---
 
