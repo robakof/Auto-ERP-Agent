@@ -163,9 +163,15 @@ Szablon ma 45642 wierszy pre-alokowanych (puste). Generator nadpisuje od wiersza
 
 ---
 
+## Kolumny generowane przez skrypt
+
+Generator wypełnia TYLKO kolumny: **A, B, E, F, G, H, J**
+
+Pozostałe kolumny:
+- C (EAN), D (Nazwa) — formuły z arkusza `Baza_towarów_i_stanów`, generator pomija
+- K (Cena jednostkowa) — formuła automatyczna, generator pomija
+- L–V — formuły lub ignorowane, generator pomija
+
 ## Otwarte pytania do ustalenia z użytkownikiem
 
-1. Kolumny C, D — formuły WYSZUKAJ.PIONOWO czy puste?
-2. Kolumny K–V — formuły z szablonu czy puste?
-3. Arkusz Baza_towarów_i_stanów — uwzględnić w wynikowym pliku?
-4. Akronim surowca (kolumna H) dla wierszy: Dekiel, Spód, Wkład, Paletka, Paleta — czy jest stały lub do wyciągnięcia z ERP?
+1. Akronim surowca (kolumna H) dla wierszy: Dekiel, Spód, Wkład, Paletka, Paleta — stały czy z ERP?
