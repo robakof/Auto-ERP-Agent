@@ -3,6 +3,7 @@ wycena_generate.py — Generator Wyceny Zniczy.
 
 Pobiera produkty CZNI z wybranej grupy oferty ERP, generuje plik Excel
 z 16 wierszami BOM na produkt. Wynik oparty na kopii szablonu xlsm.
+Zapis przez xlwings (COM) — zachowuje tabele, formuły i makra Excela.
 
 CLI:
     python tools/wycena_generate.py --offer-group-id 10729 --client-name "AUCHAN"
@@ -11,7 +12,7 @@ Opcje:
     --offer-group-id INT    GIDNumer grupy oferty z CDN.TwrGrupy
     --client-name STR       Nazwa klienta wpisywana w kolumnę A
     --template PATH         Domyślnie: "Wycena 2026 Otorowo Szablon.xlsm"
-    --output PATH           Domyślnie: "Wycena {offer_name}.xlsm" (nazwa z ERP)
+    --output PATH           Domyślnie: "Wycena {nazwa_oferty}.xlsm" (nazwa z ERP)
 """
 
 import argparse
@@ -20,7 +21,7 @@ import shutil
 import sys
 from pathlib import Path
 
-import openpyxl
+import xlwings as xw
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -124,23 +125,21 @@ def _fetch_units(client: SqlClient, produkt_kod: str) -> tuple[float | None, flo
             elif jmz == "paleta":
                 paleta = val
     if paletka is None:
-        log.warning("Brak jednostki 'opak.' dla %s — Paletka i Folia pakowa będą puste", produkt_kod)
+        log.warning("Brak jednostki 'opak.' dla %s", produkt_kod)
     if paleta is None:
-        log.warning("Brak jednostki 'paleta' dla %s — Paleta i Folia Stretch będą puste", produkt_kod)
+        log.warning("Brak jednostki 'paleta' dla %s", produkt_kod)
     return paletka, paleta
 
 
 def _fetch_szklo(client: SqlClient, produkt_nazwa: str) -> str | None:
     safe_nazwa = produkt_nazwa.replace("'", "''")
 
-    # Krok 1: szukaj 3+ cyfr w nazwie
     if any(c.isdigit() for c in produkt_nazwa):
         sql = SQL_SZKLO_3DIG.format(produkt_nazwa=safe_nazwa)
         result = client.execute(sql, inject_top=1)
         if result["ok"] and result["rows"]:
             return result["rows"][0][0]
 
-    # Krok 2: szukaj po prefiksie (pierwsze dwa słowa)
     sql = SQL_SZKLO_PREFIX.format(produkt_nazwa=safe_nazwa)
     result = client.execute(sql, inject_top=1)
     if result["ok"] and result["rows"]:
@@ -151,18 +150,74 @@ def _fetch_szklo(client: SqlClient, produkt_nazwa: str) -> str | None:
 
 
 # ---------------------------------------------------------------------------
-# Excel write
+# Budowanie danych BOM
 # ---------------------------------------------------------------------------
 
-def _write_bom(ws, start_row: int, client_name: str, produkt_kod: str, bom_rows: list) -> None:
-    for i, bom in enumerate(bom_rows):
-        row = start_row + i
-        ws.cell(row=row, column=COL_A).value = client_name if i == 0 else None
-        ws.cell(row=row, column=COL_B).value = produkt_kod
-        ws.cell(row=row, column=COL_E).value = bom.wlasciwosc
-        ws.cell(row=row, column=COL_G).value = bom.nazwa
-        ws.cell(row=row, column=COL_H).value = bom.akronim
-        ws.cell(row=row, column=COL_J).value = bom.mianownik
+def _build_column_data(
+    products: list[dict],
+    client: SqlClient,
+    offer_group_id: int,
+    client_name: str,
+) -> dict[int, list]:
+    """Zwraca słownik {numer_kolumny: lista_wartości} dla wszystkich produktów."""
+    cols = {COL_A: [], COL_B: [], COL_E: [], COL_G: [], COL_H: [], COL_J: []}
+
+    for prod in products:
+        kod = prod["kod"]
+        nazwa = prod["nazwa"]
+
+        paletka, paleta = _fetch_units(client, kod)
+        szklo_akronim = _fetch_szklo(client, nazwa)
+
+        bom_rows = build_bom_rows(
+            paletka=paletka,
+            paleta=paleta,
+            szklo_akronim=szklo_akronim,
+            offer_group_id=offer_group_id,
+        )
+
+        for i, bom in enumerate(bom_rows):
+            cols[COL_A].append(client_name if i == 0 else None)
+            cols[COL_B].append(kod)
+            cols[COL_E].append(bom.wlasciwosc)
+            cols[COL_G].append(bom.nazwa)
+            cols[COL_H].append(bom.akronim)
+            cols[COL_J].append(bom.mianownik)
+
+    return cols
+
+
+# ---------------------------------------------------------------------------
+# Excel write przez xlwings (COM)
+# ---------------------------------------------------------------------------
+
+def _write_to_excel(output: Path, col_data: dict[int, list]) -> None:
+    """Otwiera plik przez COM Excela, zapisuje kolumny, zamyka."""
+    n_rows = len(col_data[COL_A])
+    app = xw.App(visible=False, add_book=False)
+    try:
+        wb = app.books.open(str(output.resolve()))
+        ws = wb.sheets[SHEET_NAME]
+
+        for col_idx, values in col_data.items():
+            col_letter = _col_letter(col_idx)
+            start_cell = f"{col_letter}{DATA_START_ROW}"
+            ws.range(start_cell).options(transpose=True).value = values
+
+        wb.save()
+        wb.close()
+        log.info("Zapisano %d wierszy przez xlwings", n_rows)
+    finally:
+        app.quit()
+
+
+def _col_letter(n: int) -> str:
+    """Zamienia numer kolumny (1-based) na literę (A, B, ..., Z, AA, ...)."""
+    result = ""
+    while n > 0:
+        n, remainder = divmod(n - 1, 26)
+        result = chr(65 + remainder) + result
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -185,33 +240,15 @@ def generate(offer_group_id: int, client_name: str, template: Path, output: Path
     log.info("Plik wynikowy: %s", output)
     shutil.copy2(template, output)
 
-    wb = openpyxl.load_workbook(output, keep_vba=True)
-    if SHEET_NAME not in wb.sheetnames:
-        raise ValueError(f"Arkusz '{SHEET_NAME}' nie istnieje w szablonie. Dostępne: {wb.sheetnames}")
-    ws = wb[SHEET_NAME]
-
     products = _fetch_products(client, offer_group_id)
     log.info("Produktów: %d", len(products))
 
-    current_row = DATA_START_ROW
-    for prod in products:
-        kod = prod["kod"]
-        nazwa = prod["nazwa"]
+    col_data = _build_column_data(products, client, offer_group_id, client_name)
 
-        paletka, paleta = _fetch_units(client, kod)
-        szklo_akronim = _fetch_szklo(client, nazwa)
+    _write_to_excel(output, col_data)
 
-        bom_rows = build_bom_rows(
-            paletka=paletka,
-            paleta=paleta,
-            szklo_akronim=szklo_akronim,
-            offer_group_id=offer_group_id,
-        )
-        _write_bom(ws, current_row, client_name, kod, bom_rows)
-        current_row += 16
-
-    wb.save(output)
-    log.info("Zapisano: %s (%d produktów, %d wierszy)", output, len(products), current_row - DATA_START_ROW)
+    total_rows = len(col_data[COL_A])
+    log.info("Gotowe: %s (%d produktów, %d wierszy)", output, len(products), total_rows)
     return output
 
 
