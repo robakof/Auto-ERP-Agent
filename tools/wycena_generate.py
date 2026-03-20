@@ -35,6 +35,7 @@ log = logging.getLogger(__name__)
 _PROJECT_ROOT = Path(__file__).parent.parent
 TEMPLATE_PATH = _PROJECT_ROOT / "Wycena 2026 Otorowo Szablon.xlsm"
 DEKLE_PATH = _PROJECT_ROOT / "dekle.xlsx"
+SPODY_PATH = _PROJECT_ROOT / "spody.xlsx"
 SHEET_NAME = "Wycena Zniczy"
 DATA_START_ROW = 4
 
@@ -204,21 +205,66 @@ def _find_dekiel(
     dekle: dict[float, list[tuple[str, str]]],
     srednica: float | None,
     produkt_kod: str,
-) -> str | None:
+) -> tuple[str | None, float | None]:
+    """Zwraca (kod_dekla, matched_size_cm) lub (None, None) gdy brak dopasowania."""
     if srednica is None:
         log.warning("Brak średnicy otworu dla %s — Dekiel pusty", produkt_kod)
-        return None
+        return None, None
     # Najbliższy rozmiar >= średnicy produktu
     dopasowany = min((s for s in dekle if s >= srednica), default=None)
     if dopasowany is None:
         log.warning("Brak dekla >= %.1f cm dla %s — Dekiel pusty", srednica, produkt_kod)
-        return None
+        return None, None
     if dopasowany != srednica:
-        log.info("Dekiel: %.1f cm → %.1f cm (najbliższy w górę) dla %s", srednica, dopasowany, produkt_kod)
+        log.info("Dekiel: %.1f cm -> %.1f cm (najblizszy w gore) dla %s", srednica, dopasowany, produkt_kod)
     kandydaci = dekle[dopasowany]
     rapcewicz = [kod for kod, nazwa in kandydaci if "rapcewicz" in nazwa.lower()]
-    if rapcewicz:
-        return min(rapcewicz)
+    kod = min(rapcewicz) if rapcewicz else min(k for k, _ in kandydaci)
+    return kod, dopasowany
+
+
+# ---------------------------------------------------------------------------
+# Spód — ładowanie tabeli i dopasowanie
+# ---------------------------------------------------------------------------
+
+def _load_spody(path: Path) -> dict[int, list[tuple[str, str]]]:
+    """Wczytuje spody.xlsx (Arkusz2) → {rozmiar_mm: [(kod, nazwa), ...]}."""
+    if not path.exists():
+        raise FileNotFoundError(f"Plik spody.xlsx nie istnieje: {path}")
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    ws = wb["Arkusz2"]
+    result: dict[int, list[tuple[str, str]]] = {}
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        kod, nazwa, rozmiar = row[0], row[1], row[2]
+        if kod is None or rozmiar is None:
+            continue
+        try:
+            rm = int(rozmiar)
+        except (ValueError, TypeError):
+            continue
+        result.setdefault(rm, []).append((str(kod), str(nazwa) if nazwa else ""))
+    wb.close()
+    log.info("Wczytano %d rozmiarów spodów z %s", len(result), path.name)
+    return result
+
+
+def _find_spod(
+    spody: dict[int, list[tuple[str, str]]],
+    dekiel_size_cm: float | None,
+    produkt_kod: str,
+) -> str | None:
+    """Zwraca kod spodu o następnym rozmiarze powyżej rozmiaru dekla."""
+    if dekiel_size_cm is None:
+        log.warning("Brak rozmiaru dekla dla %s — Spód pusty", produkt_kod)
+        return None
+    dekiel_mm = round(dekiel_size_cm * 10)
+    # Najbliższy rozmiar ściśle > rozmiaru dekla
+    dopasowany = min((s for s in spody if s > dekiel_mm), default=None)
+    if dopasowany is None:
+        log.warning("Brak spodu > %d mm dla %s — Spód pusty", dekiel_mm, produkt_kod)
+        return None
+    log.info("Spod: dekiel %d mm -> spod %d mm dla %s", dekiel_mm, dopasowany, produkt_kod)
+    kandydaci = spody[dopasowany]
     return min(kod for kod, _ in kandydaci)
 
 
@@ -230,6 +276,7 @@ def _build_column_data(
     products: list[dict],
     client: SqlClient,
     dekle: dict,
+    spody: dict,
     offer_group_id: int,
     client_name: str,
 ) -> dict[int, list]:
@@ -243,13 +290,15 @@ def _build_column_data(
         paletka, paleta = _fetch_units(client, kod)
         szklo_akronim = _fetch_szklo(client, nazwa)
         srednica = _fetch_srednica(client, kod)
-        dekiel_akronim = _find_dekiel(dekle, srednica, kod)
+        dekiel_akronim, dekiel_size_cm = _find_dekiel(dekle, srednica, kod)
+        spod_akronim = _find_spod(spody, dekiel_size_cm, kod)
 
         bom_rows = build_bom_rows(
             paletka=paletka,
             paleta=paleta,
             szklo_akronim=szklo_akronim,
             dekiel_akronim=dekiel_akronim,
+            spod_akronim=spod_akronim,
             offer_group_id=offer_group_id,
         )
 
@@ -335,7 +384,8 @@ def generate(offer_group_id: int, client_name: str, template: Path, output: Path
     log.info("Produktów: %d", len(products))
 
     dekle = _load_dekle(DEKLE_PATH)
-    col_data = _build_column_data(products, client, dekle, offer_group_id, client_name)
+    spody = _load_spody(SPODY_PATH)
+    col_data = _build_column_data(products, client, dekle, spody, offer_group_id, client_name)
 
     _write_to_excel(output, col_data)
 
