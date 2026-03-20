@@ -199,16 +199,20 @@ def _draw_product_card(
     else:
         _placeholder(c, photo_x, photo_area_y, inner_w, PHOTO_H_MAX, tr["no_photo"], font_regular)
 
-    # ---- NAZWA (18px → 13.5pt, uppercase, bold, wycentrowana) ----
+    # ---- NAZWA (uppercase, bold, wycentrowana) ----
     name_sz = 11
-    name_y  = photo_area_y - 6 * mm
+    # Wyśrodkowanie pionowe: wyrównanie odstępu nad i pod blokiem tekstowym
+    avail_h  = photo_area_y - cy - PAD
+    block_h  = 7 * mm + name_sz + 6 * mm + 3 * (5.5 * mm)
+    top_marg = max(4 * mm, (avail_h - block_h) / 2)
+    name_y   = photo_area_y - top_marg
     c.setFillColor(COLOR_BLACK)
     c.setFont(font_bold, name_sz)
     name_text = product.nazwa.upper()
     nw = c.stringWidth(name_text, font_bold, name_sz)
     c.drawString(cx + (CELL_W - nw) / 2, name_y, name_text)
 
-    # ---- CENA (24px → 18pt, pomarańczowa, wycentrowana — hierarchia: nazwa > cena) ----
+    # ---- CENA (pogrubiona, szara, wycentrowana) ----
     parts        = product.cena.split()
     price_number = parts[0] if parts else product.cena
     price_suffix = tr["price_suffix"]
@@ -223,15 +227,14 @@ def _draw_product_card(
     sw  = c.stringWidth(price_suffix, font_regular, suf_sz)
     px  = cx + (CELL_W - nw2 - sw) / 2
 
-    c.setFillColor(COLOR_BLACK)
+    c.setFillColor(COLOR_GRAY)
     c.setFont(font_bold, num_sz)
     c.drawString(px, price_y, price_number + " ")
 
-    c.setFillColor(COLOR_GRAY)
     c.setFont(font_regular, suf_sz)
     c.drawString(px + nw2, price_y + 1, price_suffix)
 
-    # ---- PARAMETRY (14px → 10.5pt, wycentrowane, line-height 1.6) ----
+    # ---- PARAMETRY (do lewej, przesunięte -5mm od inner_x) ----
     params = [
         (tr["label_wysokosc"],     product.wysokosc),
         (tr["label_czas_palenia"], product.czas_palenia),
@@ -240,8 +243,9 @@ def _draw_product_card(
 
     label_sz = 8.5
     value_sz = 8.5
-    row_h    = 5.5 * mm   # line-height 1.6
+    row_h    = 5.5 * mm
     param_y  = price_y - 6 * mm
+    param_x  = max(cx + 1 * mm, inner_x - 5 * mm)
 
     for i, (label, value) in enumerate(params):
         ry = param_y - i * row_h
@@ -249,17 +253,19 @@ def _draw_product_card(
         # Linia separatora
         c.setStrokeColor(COLOR_PARAM_LINE)
         c.setLineWidth(0.4)
-        c.line(inner_x, ry + row_h - 0.8 * mm, inner_x + inner_w, ry + row_h - 0.8 * mm)
+        c.line(param_x, ry + row_h - 0.8 * mm, cx + CELL_W - PAD, ry + row_h - 0.8 * mm)
 
         # Etykieta — do lewej
         c.setFillColor(COLOR_GRAY)
         c.setFont(font_regular, label_sz)
-        c.drawString(inner_x, ry, label + ":")
+        label_str = label + ": "
+        label_w   = c.stringWidth(label_str, font_regular, label_sz)
+        c.drawString(param_x, ry, label_str)
 
-        # Wartość — do prawej
+        # Wartość — do lewej, za etykietą
         c.setFillColor(COLOR_BLACK)
         c.setFont(font_bold, value_sz)
-        c.drawRightString(cx + CELL_W - PAD, ry, value)
+        c.drawString(param_x + label_w, ry, value)
 
 
 def _get_line(nazwa: str) -> str:
