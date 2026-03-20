@@ -25,14 +25,16 @@ Kolumny: Kod_Magazynu_Transakcji, Kod_Magazynu_Docelowego.
 Jeśli użytkownik nie podał konkretnej lokalizacji i pyta o "magazyn główny" — użyj BUSZ_GŁ.
 
 ### Handlowcy
-Aktywni handlowcy (kolumna Akronim_Operatora lub Handlowiec w widokach):
+Aktywni handlowcy — różne kolumny używają różnych akronimów:
 
-| Imię i nazwisko   | Akronim |
-|-------------------|---------|
-| Olga Dominczak    | OD      |
-| Łukasz Kurdupski  | LK      |
-| Mariusz Siedlecki | MS      |
-| Michał Dębski     | MD      |
-| Rafał Chojnacki   | RC      |
+| Imię i nazwisko   | Operator (MagNag) | Opiekun (ZamNag, KntKarty) | Akwizytor (ZamNag) |
+|-------------------|-------------------|-----------------------------|--------------------|
+| Olga Dominczak    | OD                | ODOMINCZAK                  | PH_ODOMINCZAK      |
+| Łukasz Kurdupski  | LK                | ŁKURDUPSKI                  | PH_ŁKURDUPSKI      |
+| Mariusz Siedlecki | MS                | MSIEDLECKI                  | PH_MSIEDLECKI      |
+| Michał Dębski     | MD                | (brak Opiekuna)             | PH_MDĘBSKI         |
+| Rafał Chojnacki   | RC                | RCHOJNACKI                  | PH_RCHOJNACKI      |
 
-Gdy użytkownik pyta po imieniu lub nazwisku, mapuj na akronim operatora.
+Gdy pytanie dotyczy zamówień lub kontrahentów — użyj kolumny Opiekun_Akronim lub Akwizytor_Akronim.
+Gdy pytanie dotyczy operacji magazynowych (MagNag) — użyj Akronim_Operatora (krótki kod).
+Gdy użytkownik pyta po imieniu lub nazwisku — dobierz akronim do kontekstu widoku.

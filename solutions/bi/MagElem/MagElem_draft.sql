@@ -42,10 +42,10 @@ SELECT TOP 100000
 
     -- === CECHY / PARTIE ===
     e.MaE_CCKNumer                                                      AS ID_Klasy_Cechy,
-    RTRIM(e.MaE_Cecha)                                                   AS Cecha,
+    NULLIF(RTRIM(e.MaE_Cecha), '')                                       AS Cecha,
     e.MaE_CCK2Numer                                                     AS ID_Klasy_Cechy2,
-    RTRIM(e.MaE_Cecha2)                                                  AS Cecha2,
-    RTRIM(e.MaE_Ean)                                                     AS EAN,
+    NULLIF(RTRIM(e.MaE_Cecha2), '')                                     AS Cecha2,
+    NULLIF(RTRIM(e.MaE_Ean), '')                                        AS EAN,
     e.MaE_TPaId                                                         AS ID_Partii,
 
     -- === ILOŚĆ I JEDNOSTKI ===

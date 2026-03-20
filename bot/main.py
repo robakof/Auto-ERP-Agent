@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 from bot.channels.telegram_channel import TelegramChannel, load_allowed_users
 from bot.pipeline.nlp_pipeline import NlpPipeline
 
-load_dotenv()
+load_dotenv(override=True)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -43,8 +43,8 @@ def main() -> None:
     if not allowed_users:
         logger.warning("Whitelist jest pusta — bot nie odpowie nikomu")
 
-    admin_raw = os.getenv("ADMIN_USER_ID", "")
-    admin_user_id = int(admin_raw) if admin_raw.strip() else None
+    admin_raw = os.getenv("ADMIN_USER_ID", "").strip().split()[0] if os.getenv("ADMIN_USER_ID", "").strip() else ""
+    admin_user_id = int(admin_raw) if admin_raw.isdigit() else None
     if admin_user_id is None:
         logger.warning("ADMIN_USER_ID nie ustawiony — komenda /reload wyłączona")
 

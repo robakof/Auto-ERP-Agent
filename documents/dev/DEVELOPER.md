@@ -14,8 +14,9 @@ allowed_tools:
   - conversation_search.py
   - render.py
   - arch_check.py
-disallowed_tools:
-  - sql_query.py (read-only ERP — rola ERP Specialist)
+disallowed_tools: []
+notes:
+  - sql_query.py dozwolone do diagnostyki narzędzi — nie do konfiguracji ERP (to rola ERP Specialist)
   - bi_discovery.py, docs_search.py, search_bi.py
   - data_quality_*.py
   - excel_read_rows.py, excel_export.py

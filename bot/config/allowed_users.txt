@@ -2,3 +2,4 @@
 # Linie zaczynajace sie od # sa ignorowane
 # Telegram user_id mozna sprawdzic przez @userinfobot
 8613685854
+8511622674
