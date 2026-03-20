@@ -18,7 +18,10 @@ from typing import Optional
 import openpyxl
 
 
-PHOTOS_DIR = r"D:\UdzialySieciowe\ZDJĘCIA\ZDJĘCIA PRODUKTÓW\jpg do systemu"
+PHOTOS_DIRS = [
+    r"D:\UdzialySieciowe\ZDJĘCIA\ZDJĘCIA PRODUKTÓW\jpg do systemu",
+    r"D:\UdzialySieciowe\ZDJĘCIA\ZDJĘCIA PRODUKTÓW",
+]
 
 BURNING_TIME_HOURS = {
     2.0: 48,
@@ -64,11 +67,12 @@ def _parse_burning_time(nazwa: str, lang: str) -> str:
 
 
 def _find_photo(kod: str) -> Optional[str]:
-    """Szuka pliku zdjęcia: najpierw .jpg, potem .png."""
-    for ext in (".jpg", ".png"):
-        path = os.path.join(PHOTOS_DIR, kod + ext)
-        if os.path.exists(path):
-            return path
+    """Szuka pliku zdjęcia: najpierw w podkatalogu, potem w katalogu wyżej. Formaty: .jpg, .png."""
+    for directory in PHOTOS_DIRS:
+        for ext in (".jpg", ".png"):
+            path = os.path.join(directory, kod + ext)
+            if os.path.exists(path):
+                return path
     return None
 
 
