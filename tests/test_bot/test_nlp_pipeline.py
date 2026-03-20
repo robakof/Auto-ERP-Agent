@@ -99,6 +99,45 @@ class TestNlpPipelineValidationError:
         assert not pipeline.executor.execute.called
 
 
+class TestNlpPipelineRetry:
+    def test_retry_on_execution_error_succeeds(self):
+        """Pierwszy execute() failuje, drugi po retry przechodzi."""
+        pipeline = make_pipeline(sql="SELECT TOP 50 * FROM AIBI.Zamowienia")
+        pipeline.executor.execute.side_effect = [
+            make_execution_result(ok=False, error="invalid column"),
+            make_execution_result(ok=True),
+        ]
+        result = pipeline.run(user_id="u1", question="ile zamówień?")
+        assert result.error is None
+        assert pipeline._client.messages.create.call_count == 2
+
+    def test_hint_included_in_retry_prompt(self):
+        """Retry prompt zawiera wskazówkę z błędem."""
+        pipeline = make_pipeline(sql="SELECT TOP 50 * FROM AIBI.Zamowienia")
+        pipeline.executor.execute.side_effect = [
+            make_execution_result(ok=False, error="syntax error"),
+            make_execution_result(ok=True),
+        ]
+        pipeline.run(user_id="u1", question="ile zamówień?")
+        retry_call = pipeline._client.messages.create.call_args_list[1]
+        user_msg = retry_call.kwargs["messages"][0]["content"]
+        assert "syntax error" in user_msg
+
+    def test_two_retries_exhausted_returns_error(self):
+        """Po 2 retry nadal błąd → EXECUTION_ERROR."""
+        pipeline = make_pipeline(sql="SELECT TOP 50 * FROM AIBI.Zamowienia")
+        pipeline.executor.execute.return_value = make_execution_result(ok=False, error="err")
+        result = pipeline.run(user_id="u1", question="ile zamówień?")
+        assert result.error == "EXECUTION_ERROR"
+        assert pipeline._client.messages.create.call_count == 3  # original + 2 retries
+
+    def test_no_retry_when_execution_ok(self):
+        """Gdy execute() od razu OK — brak retry."""
+        pipeline = make_pipeline()
+        pipeline.run(user_id="u1", question="ile zamówień?")
+        assert pipeline._client.messages.create.call_count == 1
+
+
 class TestNlpPipelineLogging:
     def test_logs_written(self, tmp_path):
         pipeline = make_pipeline()

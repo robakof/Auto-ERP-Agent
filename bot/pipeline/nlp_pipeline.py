@@ -40,6 +40,11 @@ DEFAULT_LOG_DIR = Path(__file__).parent.parent.parent / "logs" / "bot"
 
 NO_SQL_MARKER = "NO_SQL"
 
+RETRY_HINTS = [
+    "Poprzednie zapytanie zwróciło błąd: {error}. Wygeneruj prostszą wersję — unikaj podzapytań.",
+    "Zapytanie nadal zwraca błąd: {error}. Użyj tylko podstawowego SELECT z WHERE i prostym GROUP BY. Bez podzapytań, bez HAVING, bez funkcji okienkowych.",
+]
+
 SYSTEM_PROMPT_TEMPLATE = """Jesteś asystentem danych dla firmy. Twoim zadaniem jest generowanie zapytań SQL na podstawie pytań użytkownika.
 
 {business_context}
@@ -115,8 +120,25 @@ class NlpPipeline:
             self._log(user_id, question, sql, 0, answer, time.monotonic() - start)
             return PipelineResult(answer=answer, sql=sql, row_count=0, error="VALIDATION_ERROR")
 
-        # Wykonanie
+        # Wykonanie z retry
         execution = self.executor.execute(validation.sql)
+        current_sql = validation.sql
+
+        for hint_template in RETRY_HINTS:
+            if execution.ok:
+                break
+            hint = hint_template.format(error=execution.error or "nieznany błąd")
+            retry_sql = self._generate_sql(question, history, hint=hint)
+            if retry_sql.strip() != NO_SQL_MARKER:
+                retry_validation = self.validator.validate(retry_sql)
+                if retry_validation.ok:
+                    execution = self.executor.execute(retry_validation.sql)
+                    current_sql = retry_validation.sql
+
+        if not execution.ok:
+            answer = "Nie udało się wykonać zapytania. Spróbuj przeformułować pytanie."
+            self._log(user_id, question, current_sql, 0, answer, time.monotonic() - start)
+            return PipelineResult(answer=answer, sql=current_sql, row_count=0, error="EXECUTION_ERROR")
 
         # Call 2: formatowanie odpowiedzi
         answer = self.formatter.format(
@@ -126,20 +148,22 @@ class NlpPipeline:
         )
 
         self.conversation.save_turn(user_id, question, answer)
-        self._log(user_id, question, validation.sql, execution.row_count, answer, time.monotonic() - start)
+        self._log(user_id, question, current_sql, execution.row_count, answer, time.monotonic() - start)
 
         return PipelineResult(
             answer=answer,
-            sql=validation.sql,
+            sql=current_sql,
             row_count=execution.row_count,
             error=None,
         )
 
-    def _generate_sql(self, question: str, history: str) -> str:
+    def _generate_sql(self, question: str, history: str, hint: str = "") -> str:
         system = SYSTEM_PROMPT_TEMPLATE.format(catalog=self._catalog_text, business_context=self._business_context)
         user_content = question
         if history:
             user_content = f"Historia rozmowy:\n{history}\n\nPytanie: {question}"
+        if hint:
+            user_content = f"{user_content}\n\n{hint}"
 
         message = self._client.messages.create(
             model=self.model,
