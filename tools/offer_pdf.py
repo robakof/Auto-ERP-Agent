@@ -212,7 +212,7 @@ def _draw_product_card(
     price_number = parts[0] if parts else product.cena
     price_suffix = tr["price_suffix"]
 
-    num_sz = 15
+    num_sz = 11
     suf_sz = 8.5
     price_y = name_y - 7 * mm
 
@@ -222,13 +222,13 @@ def _draw_product_card(
     sw  = c.stringWidth(price_suffix, font_regular, suf_sz)
     px  = cx + (CELL_W - nw2 - sw) / 2
 
-    c.setFillColor(COLOR_ORANGE)
+    c.setFillColor(COLOR_BLACK)
     c.setFont(font_bold, num_sz)
     c.drawString(px, price_y, price_number + " ")
 
     c.setFillColor(COLOR_GRAY)
     c.setFont(font_regular, suf_sz)
-    c.drawString(px + nw2, price_y + 1.5, price_suffix)
+    c.drawString(px + nw2, price_y + 1, price_suffix)
 
     # ---- PARAMETRY (14px → 10.5pt, wycentrowane, line-height 1.6) ----
     params = [
@@ -250,23 +250,15 @@ def _draw_product_card(
         c.setLineWidth(0.4)
         c.line(inner_x, ry + row_h - 0.8 * mm, inner_x + inner_w, ry + row_h - 0.8 * mm)
 
-        # Etykieta i wartość — wycentrowane jako para
+        # Etykieta — do lewej
         c.setFillColor(COLOR_GRAY)
         c.setFont(font_regular, label_sz)
-        label_str = label + ":  "
-        lw = c.stringWidth(label_str, font_regular, label_sz)
+        c.drawString(inner_x, ry, label + ":")
 
-        c.setFont(font_bold, value_sz)
-        vw = c.stringWidth(value, font_bold, value_sz)
-
-        row_x = cx + (CELL_W - lw - vw) / 2
-        c.setFillColor(COLOR_GRAY)
-        c.setFont(font_regular, label_sz)
-        c.drawString(row_x, ry, label_str)
-
+        # Wartość — do prawej
         c.setFillColor(COLOR_BLACK)
         c.setFont(font_bold, value_sz)
-        c.drawString(row_x + lw, ry, value)
+        c.drawRightString(cx + CELL_W - PAD, ry, value)
 
 
 def _placeholder(c, x, y, w, h, text, font):
