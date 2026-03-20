@@ -6,6 +6,7 @@ Zawartość karty: zdjęcie → nazwa (uppercase) → 3 parametry → cena (oran
 Obsługa 3 języków: PL / EN / RO.
 """
 
+import re
 from pathlib import Path
 
 from reportlab.lib import colors
@@ -261,6 +262,11 @@ def _draw_product_card(
         c.drawRightString(cx + CELL_W - PAD, ry, value)
 
 
+def _get_line(nazwa: str) -> str:
+    """Wyciąga identyfikator linii z nazwy — usuwa końcowy numer i wszystko po nim."""
+    return re.sub(r'\s+\d.*$', '', nazwa).strip()
+
+
 def _placeholder(c, x, y, w, h, text, font):
     c.setFillColor(COLOR_PLACEHOLDER_BG)
     c.rect(x, y, w, h, fill=1, stroke=0)
@@ -297,8 +303,19 @@ def generate_pdf(
             return PHOTO_H_MAX
         return PHOTO_H_MIN + ((p.wysokosc_val - h_min) / h_range) * (PHOTO_H_MAX - PHOTO_H_MIN)
 
+    # Wstaw None-padding przy zmianie linii produktów (nowa linia → nowy wiersz)
+    padded: list = []
+    current_line = None
+    for p in products:
+        line = _get_line(p.nazwa)
+        if current_line is not None and line != current_line:
+            while len(padded) % COLS != 0:
+                padded.append(None)
+        padded.append(p)
+        current_line = line
+
     per_page   = COLS * ROWS
-    total_pages = (len(products) + per_page - 1) // per_page
+    total_pages = (len(padded) + per_page - 1) // per_page
     grid_top_y = PAGE_H - MARGIN_V - HEADER_H
 
     for page_idx in range(total_pages):
@@ -307,7 +324,9 @@ def generate_pdf(
 
         _draw_header(c, lang, font_header)
 
-        for i, product in enumerate(products[page_idx * per_page: (page_idx + 1) * per_page]):
+        for i, product in enumerate(padded[page_idx * per_page: (page_idx + 1) * per_page]):
+            if product is None:
+                continue
             col    = i % COLS
             row    = i // COLS
             cell_x = MARGIN_H + col * (CELL_W + GAP)
