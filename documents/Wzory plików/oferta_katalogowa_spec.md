@@ -41,7 +41,8 @@ Kolumna: `Atr_Wartosc` — wysokość netto produktu w cm
 
 ### 5. Zdjęcia produktów
 Katalog: `D:\UdzialySieciowe\ZDJĘCIA\ZDJĘCIA PRODUKTÓW\jpg do systemu\`
-Konwencja nazwy pliku: `{Twr_Kod}.jpg`
+Konwencja nazwy pliku: `{Twr_Kod}.jpg` lub `{Twr_Kod}.png`
+Priorytet: najpierw `.jpg`, fallback `.png`. Oba formaty są w użyciu w systemie.
 
 ---
 
