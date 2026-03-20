@@ -16,7 +16,7 @@ from pathlib import Path
 
 from telegram import Update
 from telegram.constants import ChatAction
-from telegram.ext import Application, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +41,18 @@ def load_allowed_users(path: Path) -> set[int]:
 
 
 class TelegramChannel:
-    def __init__(self, token: str, pipeline, allowed_users: set[int]) -> None:
+    def __init__(
+        self,
+        token: str,
+        pipeline,
+        allowed_users: set[int],
+        allowed_users_path: Path | None = None,
+        admin_user_id: int | None = None,
+    ) -> None:
         self._pipeline = pipeline
         self._allowed_users = allowed_users
+        self._allowed_users_path = allowed_users_path
+        self._admin_user_id = admin_user_id
         self._app = (
             Application.builder()
             .token(token)
@@ -52,6 +61,30 @@ class TelegramChannel:
         self._app.add_handler(
             MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message)
         )
+        self._app.add_handler(
+            CommandHandler("reload", self.handle_reload)
+        )
+
+    async def handle_reload(self, update: Update, context) -> None:
+        user_id = update.effective_user.id
+
+        if self._admin_user_id is None or user_id != self._admin_user_id:
+            logger.warning("Nieautoryzowana proba /reload: user_id=%s", user_id)
+            return
+
+        if self._allowed_users_path is None:
+            await update.message.reply_text("Reload niedostępny — brak ścieżki konfiguracji.")
+            return
+
+        try:
+            self._allowed_users = load_allowed_users(self._allowed_users_path)
+            logger.info("/reload — whitelist przeładowana, %d użytkowników", len(self._allowed_users))
+            await update.message.reply_text(
+                f"Whitelist przeładowana. Aktywnych użytkowników: {len(self._allowed_users)}."
+            )
+        except (ValueError, OSError) as e:
+            logger.error("/reload — błąd odczytu pliku: %s", e)
+            await update.message.reply_text("Błąd odczytu pliku whitelist — sprawdź logi.")
 
     async def handle_message(self, update: Update, context) -> None:
         user_id = update.effective_user.id

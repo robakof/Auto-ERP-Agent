@@ -43,8 +43,19 @@ def main() -> None:
     if not allowed_users:
         logger.warning("Whitelist jest pusta — bot nie odpowie nikomu")
 
+    admin_raw = os.getenv("ADMIN_USER_ID", "")
+    admin_user_id = int(admin_raw) if admin_raw.strip() else None
+    if admin_user_id is None:
+        logger.warning("ADMIN_USER_ID nie ustawiony — komenda /reload wyłączona")
+
     pipeline = NlpPipeline()
-    channel = TelegramChannel(token=token, pipeline=pipeline, allowed_users=allowed_users)
+    channel = TelegramChannel(
+        token=token,
+        pipeline=pipeline,
+        allowed_users=allowed_users,
+        allowed_users_path=ALLOWED_USERS_PATH,
+        admin_user_id=admin_user_id,
+    )
     channel.run()
 
 
