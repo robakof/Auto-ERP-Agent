@@ -117,6 +117,7 @@ class NlpPipeline:
         validation = self.validator.validate(sql)
         if not validation.ok:
             answer = "Nie udało się wygenerować poprawnego zapytania. Spróbuj przeformułować pytanie."
+            self.conversation.save_turn(user_id, question, answer)
             self._log(user_id, question, sql, 0, answer, time.monotonic() - start)
             return PipelineResult(answer=answer, sql=sql, row_count=0, error="VALIDATION_ERROR")
 
@@ -137,6 +138,7 @@ class NlpPipeline:
 
         if not execution.ok:
             answer = "Nie udało się wykonać zapytania. Spróbuj przeformułować pytanie."
+            self.conversation.save_turn(user_id, question, answer)
             self._log(user_id, question, current_sql, 0, answer, time.monotonic() - start)
             return PipelineResult(answer=answer, sql=current_sql, row_count=0, error="EXECUTION_ERROR")
 
