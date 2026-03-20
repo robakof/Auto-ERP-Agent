@@ -1,3 +1,8 @@
+USE [ERPXL_CEIM];
+GO
+
+CREATE OR ALTER VIEW AIBI.MagElem AS
+
 -- MagElem draft SELECT
 -- Brudnopis widoku BI dla CDN.MagElem (pozycje dokumentów magazynowych)
 -- Nie używać CREATE VIEW — wyłącznie SELECT

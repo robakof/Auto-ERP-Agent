@@ -852,6 +852,35 @@
         "Zamowienia z e-Sklepu vs tradycyjne"
       ],
       "notes": "ZaE_FlagaNB=constant N (zawsze od netto). AkwTyp=8224 (KSl) nie ma tabeli w CDN — 793 pozycji (0.3%) bez Akwizytor_Akronim. ID_Cennika=-1 mozliwy (brak Nazwa_Cennika dla tych pozycji — identycznie jak TraElem)."
+    },
+    {
+      "name": "AIBI.MagElem",
+      "file": "solutions/bi/views/MagElem.sql",
+      "description": "",
+      "columns": [
+        "Typ_Dokumentu",
+        "ID_Dokumentu",
+        "Nr_Dokumentu",
+        "Nr_Pozycji",
+        "Pozycja_Na_Dokumencie",
+        "ID_Towaru",
+        "Kod_Towaru",
+        "Nazwa_Towaru",
+        "Cecha",
+        "Cecha2",
+        "EAN",
+        "ID_Partii",
+        "Ilosc",
+        "Jednostka_Pomocnicza",
+        "Typ_Przelicznika_JM",
+        "Przelicznik_Mianownik",
+        "Przelicznik_Licznik",
+        "ID_Jednostki_Logistycznej",
+        "Opis",
+        "Status_Pozycji"
+      ],
+      "example_questions": [],
+      "notes": ""
     }
   ]
 }
