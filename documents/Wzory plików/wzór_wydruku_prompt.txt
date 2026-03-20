@@ -1,72 +1,56 @@
-Stwórz responsywny komponent UI (HTML + CSS, ewentualnie Tailwind), który przedstawia siatkę kart produktów.
+Stwórz komponent UI (HTML + CSS lub Tailwind) przedstawiający siatkę kart produktów.
 
-Układ:
-- 3 kolumny na desktopie, 2 na tablecie, 1 na mobile
-- każda karta ma zaokrąglone rogi, delikatny cień i jasne tło
-- odstępy między kartami ~24px
+UKŁAD:
+- 3 kolumny desktop, 2 tablet, 1 mobile
+- gap między kartami: 24px
+- karta:
+  - padding: 24px
+  - border-radius: 16px
+  - box-shadow: delikatny (np. 0 8px 20px rgba(0,0,0,0.05))
+  - tło: białe
 
-Zawartość każdej karty (od góry):
-1. Obraz produktu (wyśrodkowany, mały pojemnik / wkład zniczowy)
-2. Nazwa produktu (uppercase, pogrubiona)
-3. Lista parametrów:
-   - Wysokość: X cm
-   - Czas palenia: X h
-   - Opakowanie: X szt.
-4. Cena na dole (wyróżniona kolorem pomarańczowym, większa czcionka)
+OBRAZ:
+- wyśrodkowany
+- wysokość: ~120px
+- margin-bottom: 16px
 
-Dane do wyświetlenia:
+TYPOGRAFIA (BARDZO WAŻNE — trzymaj się dokładnie):
 
-1.
-Nazwa: WKŁAD CEIM 2
-Wysokość: 11 cm
-Czas palenia: 48 h
-Opakowanie: 20 szt.
-Cena: 1,16 zł / szt.
+NAZWA PRODUKTU:
+- font-size: 18px
+- font-weight: 700
+- text-transform: uppercase
+- letter-spacing: 0.5px
+- margin-bottom: 12px
 
-2.
-Nazwa: WKŁAD CEIM 3
-Wysokość: 14 cm
-Czas palenia: 72 h
-Opakowanie: 20 szt.
-Cena: 1,36 zł / szt.
+PARAMETRY (tekst typu "Wysokość", "Czas palenia"):
+- font-size: 14px
+- kolor: #666
+- line-height: 1.6
 
-3.
-Nazwa: WKŁAD CEIM 4
-Wysokość: 17 cm
-Czas palenia: 96 h
-Opakowanie: 16 szt.
-Cena: 1,77 zł / szt.
+WARTOŚCI (np. "11 cm", "48 h"):
+- font-weight: 600
+- kolor: #222
 
-4.
-Nazwa: WKŁAD CEIM 5
-Wysokość: 21 cm
-Czas palenia: 120 h
-Opakowanie: 20 szt.
-Cena: 2,27 zł / szt.
+CENA:
+- font-size: 24px
+- font-weight: 700
+- kolor: #c96a2b (pomarańczowy)
+- margin-top: 16px
 
-5.
-Nazwa: WKŁAD CEIM 5
-Wysokość: 21 cm
-Czas palenia: 120 h
-Opakowanie: 20 szt.
-Cena: 2,29 zł / szt.
+DANE:
 
-6.
-Nazwa: WKŁAD CEIM 5 szeroki
-Wysokość: 18 cm
-Czas palenia: 96 h
-Opakowanie: 16 szt.
-Cena: 2,29 zł / szt.
+[tu zostaw dane jak wcześniej]
 
-Styl:
-- minimalistyczny, nowoczesny
-- font sans-serif
+STYL:
+- nowoczesny, minimalistyczny
+- font-family: Inter, sans-serif
 - dużo whitespace
-- kolor akcentu: pomarańcz (#c96a2b lub podobny)
+- wszystko wyśrodkowane
 
-Dodatkowo:
-- użyj komponentowej struktury (np. powtarzalna karta)
-- zadbaj o estetyczne wyrównanie tekstów
-- obraz może być placeholderem (np. szary box)
+DODATKOWO:
+- zachowaj wyraźną hierarchię: nazwa > cena > parametry
+- NIE używaj małych fontów — UI ma być czytelny jak w sklepie internetowym
+- zastosuj spójne odstępy (8px grid)
 
-Zwróć kompletny kod HTML + CSS.
+Zwróć pełny kod HTML + CSS.
