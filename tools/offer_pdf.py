@@ -12,11 +12,36 @@ from pathlib import Path
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 from tools.offer_data import ProductData
+
+_PROJECT_ROOT = Path(__file__).parent.parent
+_LOGO_PDF     = _PROJECT_ROOT / "documents" / "Wzory plików" / "logo CEiM krzywe.pdf"
+_LOGO_PNG_CACHE = None
+
+
+def _get_logo_png():
+    global _LOGO_PNG_CACHE
+    if _LOGO_PNG_CACHE:
+        return _LOGO_PNG_CACHE
+    if not _LOGO_PDF.exists():
+        return None
+    try:
+        import fitz
+        doc  = fitz.open(str(_LOGO_PDF))
+        page = doc[0]
+        pix  = page.get_pixmap(matrix=fitz.Matrix(4, 4), alpha=True)
+        out  = _PROJECT_ROOT / "tmp" / "logo_ceim.png"
+        out.parent.mkdir(exist_ok=True)
+        pix.save(str(out))
+        _LOGO_PNG_CACHE = str(out)
+        return _LOGO_PNG_CACHE
+    except Exception:
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -125,17 +150,41 @@ def _draw_header(c: canvas.Canvas, lang: str, font_header: str):
     tr   = TRANSLATIONS[lang]
     text = tr["header_wklady"]
     y    = PAGE_H - MARGIN_V - HEADER_H
+    text_y = y + HEADER_H * 0.5 - 4
 
     # Pomarańczowa linia akcentująca (wg brandbook)
     c.setStrokeColor(COLOR_ORANGE)
     c.setLineWidth(2.5)
     c.line(MARGIN_H, y + 2 * mm, PAGE_W - MARGIN_H, y + 2 * mm)
 
-    # Tekst wycentrowany — Garamond Bold
-    c.setFillColor(COLOR_BLACK)
+    # Logo + tekst wycentrowane jako całość
     c.setFont(font_header, 22)
-    tw = c.stringWidth(text, font_header, 22)
-    c.drawString((PAGE_W - tw) / 2, y + HEADER_H * 0.5 - 4, text)
+    tw      = c.stringWidth(text, font_header, 22)
+    logo_path = _get_logo_png()
+    logo_h  = HEADER_H - 4 * mm
+    logo_w  = 0
+    gap     = 0
+
+    if logo_path:
+        try:
+            img    = ImageReader(logo_path)
+            iw, ih = img.getSize()
+            logo_w = logo_h * iw / ih
+            gap    = 4 * mm
+        except Exception:
+            logo_path = None
+
+    total_w = logo_w + gap + tw
+    start_x = (PAGE_W - total_w) / 2
+
+    if logo_path:
+        logo_y = y + (HEADER_H - logo_h) / 2
+        c.drawImage(logo_path, start_x, logo_y,
+                    width=logo_w, height=logo_h,
+                    preserveAspectRatio=True, mask="auto")
+
+    c.setFillColor(COLOR_BLACK)
+    c.drawString(start_x + logo_w + gap, text_y, text)
 
 
 # ---------------------------------------------------------------------------
