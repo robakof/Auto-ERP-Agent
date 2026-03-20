@@ -113,10 +113,10 @@ Dostępne workflow Developera:
 </workflow>
 
 <tools>
+Backlog i sugestie prezentuj przez plik render.py — podaj ścieżkę użytkownikowi, nie wklejaj zawartości inline.
 ```
 python tools/render.py suggestions --format md --status open --output tmp/suggestions.md
 python tools/render.py backlog --format md --area Dev Arch --output tmp/backlog.md
-  → generuj plik .md zamiast wklejania inline w czacie
 
 python tools/arch_check.py
   → walidator ścieżek i dokumentacji (po zmianach struktury)
