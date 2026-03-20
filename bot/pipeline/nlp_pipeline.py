@@ -35,11 +35,14 @@ load_dotenv()
 
 DEFAULT_MODEL = os.getenv("BOT_MODEL_GENERATE", "claude-sonnet-4-6")
 CATALOG_PATH = Path(__file__).parent.parent.parent / "solutions" / "bi" / "catalog.json"
+BUSINESS_CONTEXT_PATH = Path(__file__).parent.parent / "config" / "business_context.txt"
 DEFAULT_LOG_DIR = Path(__file__).parent.parent.parent / "logs" / "bot"
 
 NO_SQL_MARKER = "NO_SQL"
 
 SYSTEM_PROMPT_TEMPLATE = """Jesteś asystentem danych dla firmy. Twoim zadaniem jest generowanie zapytań SQL na podstawie pytań użytkownika.
+
+{business_context}
 
 Dostępne widoki w schemacie AIBI:
 {catalog}
@@ -73,6 +76,12 @@ class NlpPipeline:
         self.formatter = AnswerFormatter()
         self.log_dir = DEFAULT_LOG_DIR
         self._catalog_text = self._load_catalog()
+        self._business_context = self._load_business_context()
+
+    def _load_business_context(self) -> str:
+        if not BUSINESS_CONTEXT_PATH.exists():
+            return ""
+        return BUSINESS_CONTEXT_PATH.read_text(encoding="utf-8")
 
     def _load_catalog(self) -> str:
         if not CATALOG_PATH.exists():
@@ -127,7 +136,7 @@ class NlpPipeline:
         )
 
     def _generate_sql(self, question: str, history: str) -> str:
-        system = SYSTEM_PROMPT_TEMPLATE.format(catalog=self._catalog_text)
+        system = SYSTEM_PROMPT_TEMPLATE.format(catalog=self._catalog_text, business_context=self._business_context)
         user_content = question
         if history:
             user_content = f"Historia rozmowy:\n{history}\n\nPytanie: {question}"

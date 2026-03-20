@@ -44,9 +44,9 @@ SELECT  7, 'MaE_TwrNumer', 'Identyfikator towaru', '3290, 3282, 5478',
         'ID_Towaru', 'Bezpośrednio (CASE WHEN 0 THEN NULL ELSE val END)',
         'Tak', '', 'FK do CDN.TwrKarty'
 UNION ALL
-SELECT  8, '(JOIN CDN.TwrKarty)', 'Kod towaru', 'CWKZ0033, NIEO0263',
+SELECT  8, '(JOIN CDN.TwrKarty)', 'Kod towaru (aktualny)', 'CWKZ0033, NIEO0263',
         'Kod_Towaru', 'Twr_Kod z JOINu TwrKarty',
-        'Tak', '', 'MaE_TwrKod dostępne bezpośrednio ale JOIN daje aktualny kod'
+        'Nie', 'Duplikat aliasu — Kod_Towaru pochodzi z MaE_TwrKod (row 9); JOIN TwrKarty tylko dla Nazwa_Towaru', 'Poprawka iteracja 2 — usunięcie duplikatu (Analityk msg 141)'
 UNION ALL
 SELECT  9, 'MaE_TwrKod', 'Kod towaru (denormalizowany)', 'CWKZ0033, NIEO0263',
         'Kod_Towaru', 'Bezpośrednio — MaE_TwrKod (historyczny w momencie transakcji)',
