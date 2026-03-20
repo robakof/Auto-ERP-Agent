@@ -78,7 +78,8 @@ Zrozumieć dane przed napisaniem kodu. Nie zgadywać.
 5. Weryfikacja numerów dokumentów:
    - Krok 1: zbierz wszystkie podtypy z tabeli źródłowej (`GROUP BY TypPole`)
    - Krok 2: sprawdź `solutions/reference/numeracja_wzorce.tsv` — wzorce formatów dla TraNag (25 typów), ZamNag, ZP, NM, NO, UP, KB, RK. Jeśli wszystkie podtypy są tam — nie eskaluj do usera.
-   - Krok 3 (tylko gdy format nieznany): zapytanie z `CDN.NazwaObiektu(TypPole, NumerPole, 0, 2)` — po jednym przykładzie na każdy nieznany podtyp. Zapisz do `solutions/bi/{NazwaWidoku}/{NazwaWidoku}_objects.sql`, przekaż ścieżkę userowi.
+   - Krok 2b (jeśli podtyp brak w TSV): sprawdź `solutions/reference/obiekty.tsv` (kolumna `Ob_Skrot` dla danego GIDTypu) — jeśli skrót znany, użyj formatu `SKRÓT-Nr/MM/YY[/Seria]` przez analogię do istniejących wzorców. Nie eskaluj jeśli skrót wystarczy.
+   - Krok 3 (tylko gdy skrót nieznany lub format niestandardowy): zapytanie z `CDN.NazwaObiektu(TypPole, NumerPole, 0, 2)` — po jednym przykładzie na każdy nieznany podtyp. Zapisz do `solutions/bi/{NazwaWidoku}/{NazwaWidoku}_objects.sql`, przekaż ścieżkę userowi.
    - Nie pisz numeracji dokumentów dopóki nie masz zweryfikowanego formatu (z TSV lub od usera)
 
 6. Zbadaj klucze obce bez oczywistej tabeli docelowej:

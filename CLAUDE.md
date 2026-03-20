@@ -42,20 +42,24 @@ Nie modyfikuj poniższych plików bez jawnego zatwierdzenia przez użytkownika.
 Przed każdą edycją pliku chronionego agent MUSI napisać: "To plik chroniony — zatwierdzasz tę zmianę?"
 i poczekać na odpowiedź twierdzącą. Wskazanie pliku jako celu nie jest zatwierdzeniem.
 
-**Wyjątek:** Prompt Engineer w trakcie zatwierdzonego refaktoru promptów może edytować
-pliki chronione bez pytania per plik — zatwierdzenie refaktoru obejmuje wszystkie prompty ról.
+**Wyjątek:** Prompt Engineer ma pełen dostęp do wszystkich plików chronionych bez pytania —
+edycja promptów jest jego podstawową rolą.
 
 - `CLAUDE.md`
 - `documents/erp_specialist/ERP_SPECIALIST.md`
 - `documents/erp_specialist/ERP_COLUMNS_WORKFLOW.md`
 - `documents/erp_specialist/ERP_FILTERS_WORKFLOW.md`
-- `workflows/bi_view_creation_workflow.md`
 - `documents/erp_specialist/ERP_SCHEMA_PATTERNS.md`
 - `documents/erp_specialist/ERP_SQL_SYNTAX.md`
+- `documents/erp_specialist/PROMPT_ERP_SQL_REPORT.md`
 - `documents/analyst/ANALYST.md`
+- `documents/analyst/analyst_start.md`
 - `documents/dev/DEVELOPER.md`
 - `documents/methodology/METHODOLOGY.md`
 - `documents/methodology/SPIRIT.md`
+- `documents/prompt_engineer/PROMPT_ENGINEER.md`
+- `documents/prompt_engineer/PROMPT_CONVENTION.md`
+- `workflows/bi_view_creation_workflow.md`
 
 Suggestions od Wykonawców wyłącznie przez `agent_bus_cli.py suggest` — nie przez pliki .md.
 

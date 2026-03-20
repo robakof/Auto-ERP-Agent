@@ -1,0 +1,3 @@
+-- MagNag draft SELECT
+-- Brudnopis widoku BI dla CDN.MagNag
+-- Nie używać CREATE VIEW — wyłącznie SELECT
