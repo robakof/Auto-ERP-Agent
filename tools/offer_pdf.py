@@ -264,7 +264,7 @@ def _draw_product_card(
 
 def _get_line(nazwa: str) -> str:
     """Wyciąga identyfikator linii z nazwy — usuwa końcowy numer i wszystko po nim."""
-    return re.sub(r'\s+\d.*$', '', nazwa).strip()
+    return re.sub(r'\s+\d.*$', '', nazwa).strip().lower()
 
 
 def _placeholder(c, x, y, w, h, text, font):
