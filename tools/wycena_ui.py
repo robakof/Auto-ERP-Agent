@@ -78,41 +78,35 @@ class WycenaApp(tk.Tk):
                   font=("Segoe UI", 13, "bold")).grid(
             row=0, column=0, columnspan=3, pady=(0, 14), sticky="w")
 
-        # Grupa oferty
-        ttk.Label(frame, text="Oferta:").grid(row=1, column=0, sticky="w", **pad)
+        # Katalog oferty
+        ttk.Label(frame, text="Katalog:").grid(row=1, column=0, sticky="w", **pad)
         self._oferta_var = tk.StringVar()
         self._oferta_cb = ttk.Combobox(frame, textvariable=self._oferta_var,
                                        state="readonly", width=36)
         self._oferta_cb.grid(row=1, column=1, columnspan=2, sticky="w", **pad)
         self._oferta_cb.bind("<<ComboboxSelected>>", self._on_oferta_change)
 
-        # Nazwa klienta
-        ttk.Label(frame, text="Klient:").grid(row=2, column=0, sticky="w", **pad)
-        self._klient_var = tk.StringVar()
-        self._klient_entry = ttk.Entry(frame, textvariable=self._klient_var, width=38)
-        self._klient_entry.grid(row=2, column=1, columnspan=2, sticky="w", **pad)
-
         # Plik wynikowy
-        ttk.Label(frame, text="Plik wynikowy:").grid(row=3, column=0, sticky="w", **pad)
+        ttk.Label(frame, text="Plik wynikowy:").grid(row=2, column=0, sticky="w", **pad)
         self._output_var = tk.StringVar()
         self._output_entry = ttk.Entry(frame, textvariable=self._output_var, width=32)
-        self._output_entry.grid(row=3, column=1, sticky="w", **pad)
+        self._output_entry.grid(row=2, column=1, sticky="w", **pad)
         ttk.Button(frame, text="…", width=3,
-                   command=self._browse_output).grid(row=3, column=2, padx=(0, 12))
+                   command=self._browse_output).grid(row=2, column=2, padx=(0, 12))
 
         ttk.Separator(frame, orient="horizontal").grid(
-            row=4, column=0, columnspan=3, sticky="ew", pady=8)
+            row=3, column=0, columnspan=3, sticky="ew", pady=8)
 
         self._gen_btn = ttk.Button(frame, text="Generuj", command=self._on_generate)
-        self._gen_btn.grid(row=5, column=0, columnspan=3, pady=(4, 0))
+        self._gen_btn.grid(row=4, column=0, columnspan=3, pady=(4, 0))
 
-        self._status_var = tk.StringVar(value="Ładowanie listy ofert…")
+        self._status_var = tk.StringVar(value="Ładowanie listy katalogów…")
         self._status_lbl = ttk.Label(frame, textvariable=self._status_var,
                                      foreground="gray", wraplength=420)
-        self._status_lbl.grid(row=6, column=0, columnspan=3, pady=(10, 0), sticky="w")
+        self._status_lbl.grid(row=5, column=0, columnspan=3, pady=(10, 0), sticky="w")
 
         self._progress = ttk.Progressbar(frame, mode="indeterminate", length=420)
-        self._progress.grid(row=7, column=0, columnspan=3, pady=(6, 0))
+        self._progress.grid(row=6, column=0, columnspan=3, pady=(6, 0))
         self._progress.grid_remove()
 
     # ------------------------------------------------------------------
@@ -131,18 +125,17 @@ class WycenaApp(tk.Tk):
 
     def _on_oferty_loaded(self, oferty: list):
         self._oferty = oferty
-        self._oferta_cb["values"] = [f"{nazwa}" for _, _, nazwa in oferty]
+        self._oferta_cb["values"] = [nazwa for _, _, nazwa in oferty]
         if oferty:
             self._oferta_cb.current(0)
             self._on_oferta_change()
-        self._set_status("Wybierz ofertę, sprawdź nazwę klienta i kliknij Generuj.", "gray")
+        self._set_status("Wybierz katalog i kliknij Generuj.", "gray")
 
     def _on_oferta_change(self, _event=None):
         idx = self._oferta_cb.current()
         if idx < 0 or idx >= len(self._oferty):
             return
-        _, kod, nazwa = self._oferty[idx]
-        self._klient_var.set(nazwa)
+        _, _, nazwa = self._oferty[idx]
         safe = nazwa.replace("/", "-").replace("\\", "-")
         self._output_var.set(str(_PROJECT_ROOT / f"Wycena {safe}.xlsm"))
 
@@ -158,11 +151,7 @@ class WycenaApp(tk.Tk):
     def _on_generate(self):
         idx = self._oferta_cb.current()
         if idx < 0 or idx >= len(self._oferty):
-            messagebox.showwarning("Brak wyboru", "Wybierz grupę oferty.")
-            return
-        klient = self._klient_var.get().strip()
-        if not klient:
-            messagebox.showwarning("Brak klienta", "Podaj nazwę klienta.")
+            messagebox.showwarning("Brak wyboru", "Wybierz katalog oferty.")
             return
         output_str = self._output_var.get().strip()
         if not output_str:
@@ -170,7 +159,7 @@ class WycenaApp(tk.Tk):
             return
 
         gid, _, nazwa = self._oferty[idx]
-        self._start_generate(gid, klient, Path(output_str))
+        self._start_generate(gid, nazwa, Path(output_str))
 
     def _start_generate(self, offer_group_id: int, client_name: str, output: Path):
         self._gen_btn.state(["disabled"])
