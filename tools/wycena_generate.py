@@ -37,6 +37,7 @@ TEMPLATE_PATH = _PROJECT_ROOT / "Wycena 2026 Otorowo Szablon.xlsm"
 DEKLE_PATH = _PROJECT_ROOT / "dekle.xlsx"
 SPODY_PATH = _PROJECT_ROOT / "spody.xlsx"
 TACKA_PATH = _PROJECT_ROOT / "tacka.xlsx"
+WKLADY_PATH = _PROJECT_ROOT / "waga składak.xlsx"
 SHEET_NAME = "Wycena Zniczy"
 DATA_START_ROW = 4
 
@@ -87,6 +88,15 @@ FROM CDN.TwrKarty tw
 JOIN CDN.TwrKody ean ON ean.TwK_TwrNumer = tw.Twr_GIDNumer
 WHERE tw.Twr_Kod = '{produkt_kod}'
   AND ean.TwK_Domyslny = 1
+"""
+
+SQL_GRAMATURA_WKLADU = """
+SELECT a.Atr_Wartosc
+FROM CDN.Atrybuty a
+JOIN CDN.TwrKarty tw ON tw.Twr_GIDNumer = a.Atr_ObiNumer
+                    AND tw.Twr_GIDTyp = a.Atr_ObiTyp
+WHERE a.Atr_AtkId = 10
+  AND tw.Twr_Kod = '{produkt_kod}'
 """
 
 SQL_SREDNICA = """
@@ -242,6 +252,54 @@ def _find_paletka(
 
 
 # ---------------------------------------------------------------------------
+# Wkład — ładowanie tabeli i dopasowanie
+# ---------------------------------------------------------------------------
+
+def _load_wklady(path: Path) -> dict[int, str]:
+    """Wczytuje waga skladak.xlsx (Arkusz1) -> {waga_g: kod}."""
+    if not path.exists():
+        raise FileNotFoundError(f"Plik waga skladak.xlsx nie istnieje: {path}")
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    ws = wb["Arkusz1"]
+    result: dict[int, str] = {}
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        waga, kod = row[0], row[1]
+        if waga is None or kod is None:
+            continue
+        try:
+            result[int(waga)] = str(kod)
+        except (ValueError, TypeError):
+            continue
+    wb.close()
+    log.info("Wczytano %d wkladow z %s", len(result), path.name)
+    return result
+
+
+def _fetch_gramatura_wkladu(client: SqlClient, produkt_kod: str) -> int | None:
+    sql = SQL_GRAMATURA_WKLADU.format(produkt_kod=produkt_kod.replace("'", "''"))
+    result = client.execute(sql, inject_top=1)
+    if result["ok"] and result["rows"]:
+        try:
+            return int(float(str(result["rows"][0][0]).replace(",", ".")))
+        except (ValueError, TypeError):
+            pass
+    return None
+
+
+def _find_wklad(
+    wklady: dict[int, str],
+    gramatura: int | None,
+    produkt_kod: str,
+) -> str | None:
+    if gramatura is None:
+        return None
+    kod = wklady.get(gramatura)
+    if kod is None:
+        log.warning("Brak wkladu dla gramatura=%dg dla %s -- Wklad pusty", gramatura, produkt_kod)
+    return kod
+
+
+# ---------------------------------------------------------------------------
 # Dekiel — ładowanie tabeli i dopasowanie
 # ---------------------------------------------------------------------------
 
@@ -354,6 +412,7 @@ def _build_column_data(
     dekle: dict,
     spody: dict,
     tacka: dict,
+    wklady: dict,
     offer_group_id: int,
     client_name: str,
 ) -> dict[int, list]:
@@ -371,6 +430,8 @@ def _build_column_data(
         dekiel_akronim, dekiel_size_cm = _find_dekiel(dekle, srednica, kod)
         spod_akronim = _find_spod(spody, dekiel_size_cm, kod)
         paletka_akronim = _find_paletka(tacka, paletka, warstwa, ean, kod)
+        gramatura = _fetch_gramatura_wkladu(client, kod)
+        wklad_akronim = _find_wklad(wklady, gramatura, kod)
 
         bom_rows = build_bom_rows(
             paletka=paletka,
@@ -379,6 +440,7 @@ def _build_column_data(
             dekiel_akronim=dekiel_akronim,
             spod_akronim=spod_akronim,
             paletka_akronim=paletka_akronim,
+            wklad_akronim=wklad_akronim,
             offer_group_id=offer_group_id,
         )
 
@@ -466,7 +528,8 @@ def generate(offer_group_id: int, client_name: str, template: Path, output: Path
     dekle = _load_dekle(DEKLE_PATH)
     spody = _load_spody(SPODY_PATH)
     tacka = _load_tacka(TACKA_PATH)
-    col_data = _build_column_data(products, client, dekle, spody, tacka, offer_group_id, client_name)
+    wklady = _load_wklady(WKLADY_PATH)
+    col_data = _build_column_data(products, client, dekle, spody, tacka, wklady, offer_group_id, client_name)
 
     _write_to_excel(output, col_data)
 

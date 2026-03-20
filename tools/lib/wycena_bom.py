@@ -22,6 +22,7 @@ def build_bom_rows(
     dekiel_akronim: Optional[str],
     spod_akronim: Optional[str],
     paletka_akronim: Optional[str],
+    wklad_akronim: Optional[str],
     offer_group_id: int,
 ) -> list[BomRow]:
     """
@@ -33,6 +34,7 @@ def build_bom_rows(
     dekiel_akronim: kod dekla z algorytmu dopasowania po średnicy lub None
     spod_akronim: kod spodu z algorytmu (następny rozmiar powyżej dekla) lub None
     paletka_akronim: kod tacki z tacka.xlsx (wg Na warstwie + EAN) lub None
+    wklad_akronim: kod wkladu z waga skladak.xlsx (wg gramatura AtkId=10) lub None
     offer_group_id: ID grupy oferty — wyznacza mianownik Szkła (0.99)
     """
     folia_pakowa = math.ceil((1000 / 45) * paletka) if paletka is not None else None
@@ -49,7 +51,7 @@ def build_bom_rows(
         BomRow("Surowiec", "Farba lakier do szkła",    None,          None),
         BomRow("Surowiec", "Spód",                     spod_akronim,  1),
         BomRow("Surowiec", "Szkło",                    szklo_akronim, szklo_mianownik),
-        BomRow("Surowiec", "Wkład",                    None,          1),
+        BomRow("Surowiec", "Wkład",                    wklad_akronim, 1),
         BomRow("Koszt",    "Energia Otorowo",           None,          1),
         BomRow("Koszt",    "Godzina pracy malarni",    None,          None),
         BomRow("Koszt",    "Dodatkowe koszty Otorowo", None,          1),
