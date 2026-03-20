@@ -36,6 +36,7 @@ _PROJECT_ROOT = Path(__file__).parent.parent
 TEMPLATE_PATH = _PROJECT_ROOT / "Wycena 2026 Otorowo Szablon.xlsm"
 DEKLE_PATH = _PROJECT_ROOT / "dekle.xlsx"
 SPODY_PATH = _PROJECT_ROOT / "spody.xlsx"
+TACKA_PATH = _PROJECT_ROOT / "tacka.xlsx"
 SHEET_NAME = "Wycena Zniczy"
 DATA_START_ROW = 4
 
@@ -77,7 +78,15 @@ FROM CDN.TwrKarty tw
 JOIN CDN.TwrJm j ON j.TwJ_TwrNumer = tw.Twr_GIDNumer
                  AND j.TwJ_TwrTyp = tw.Twr_GIDTyp
 WHERE tw.Twr_Kod = '{produkt_kod}'
-  AND j.TwJ_JmZ IN ('opak.', 'paleta')
+  AND j.TwJ_JmZ IN ('opak.', 'paleta', 'warstwa')
+"""
+
+SQL_EAN = """
+SELECT TOP 1 ean.TwK_Kod
+FROM CDN.TwrKarty tw
+JOIN CDN.TwrKody ean ON ean.TwK_TwrNumer = tw.Twr_GIDNumer
+WHERE tw.Twr_Kod = '{produkt_kod}'
+  AND ean.TwK_Domyslny = 1
 """
 
 SQL_SREDNICA = """
@@ -124,11 +133,12 @@ def _fetch_products(client: SqlClient, offer_group_id: int) -> list[dict]:
     return [{"kod": row[0], "nazwa": row[1]} for row in result["rows"]]
 
 
-def _fetch_units(client: SqlClient, produkt_kod: str) -> tuple[float | None, float | None]:
+def _fetch_units(client: SqlClient, produkt_kod: str) -> tuple[float | None, float | None, float | None]:
     sql = SQL_UNITS.format(produkt_kod=produkt_kod.replace("'", "''"))
     result = client.execute(sql, inject_top=None)
     paletka = None
     paleta = None
+    warstwa = None
     if result["ok"]:
         for row in result["rows"]:
             jmz, przel = row[0], row[1]
@@ -140,11 +150,13 @@ def _fetch_units(client: SqlClient, produkt_kod: str) -> tuple[float | None, flo
                 paletka = val
             elif jmz == "paleta":
                 paleta = val
+            elif jmz == "warstwa":
+                warstwa = val
     if paletka is None:
         log.warning("Brak jednostki 'opak.' dla %s", produkt_kod)
-    if paleta is None:
-        log.warning("Brak jednostki 'paleta' dla %s", produkt_kod)
-    return paletka, paleta
+    if warstwa is None:
+        log.warning("Brak jednostki 'warstwa' dla %s", produkt_kod)
+    return paletka, paleta, warstwa
 
 
 def _fetch_szklo(client: SqlClient, produkt_nazwa: str) -> str | None:
@@ -163,6 +175,70 @@ def _fetch_szklo(client: SqlClient, produkt_nazwa: str) -> str | None:
 
     log.warning("Nie znaleziono Szkła dla: %s", produkt_nazwa)
     return None
+
+
+# ---------------------------------------------------------------------------
+# EAN
+# ---------------------------------------------------------------------------
+
+def _fetch_ean(client: SqlClient, produkt_kod: str) -> str | None:
+    sql = SQL_EAN.format(produkt_kod=produkt_kod.replace("'", "''"))
+    result = client.execute(sql, inject_top=1)
+    if result["ok"] and result["rows"]:
+        return str(result["rows"][0][0])
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Paletka (Tacka) — ładowanie tabeli i dopasowanie
+# ---------------------------------------------------------------------------
+
+def _load_tacka(path: Path) -> dict[int, dict[str, str]]:
+    """Wczytuje tacka.xlsx (Arkusz2) → {na_warstwie: {'ceim': kod, 'bez': kod}}."""
+    if not path.exists():
+        raise FileNotFoundError(f"Plik tacka.xlsx nie istnieje: {path}")
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    ws = wb["Arkusz2"]
+    result: dict[int, dict[str, str]] = {}
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        kod, nazwa, na_warstwie = row[0], row[1], row[2]
+        if kod is None or na_warstwie is None:
+            continue
+        try:
+            nw = int(na_warstwie)
+        except (ValueError, TypeError):
+            continue
+        nazwa_lower = (nazwa or "").lower()
+        is_ceim = "ceim" in nazwa_lower or ("nadruk" in nazwa_lower and "bez" not in nazwa_lower)
+        typ = "ceim" if is_ceim else "bez"
+        result.setdefault(nw, {})[typ] = str(kod)
+    wb.close()
+    log.info("Wczytano %d rozmiarow tacek z %s", len(result), path.name)
+    return result
+
+
+def _find_paletka(
+    tacka: dict[int, dict[str, str]],
+    paletka: float | None,
+    warstwa: float | None,
+    ean: str | None,
+    produkt_kod: str,
+) -> str | None:
+    if paletka is None or warstwa is None:
+        log.warning("Brak danych do obliczenia Na warstwie dla %s -- Paletka pusta", produkt_kod)
+        return None
+    na_warstwie = int(round(warstwa / paletka))
+    if na_warstwie not in tacka:
+        log.warning("Brak tacki dla Na warstwie=%d dla %s -- Paletka pusta", na_warstwie, produkt_kod)
+        return None
+    is_ceim = ean is not None and ean.startswith("59077025")
+    typ = "ceim" if is_ceim else "bez"
+    warianty = tacka[na_warstwie]
+    if typ in warianty:
+        return warianty[typ]
+    fallback = next(iter(warianty.values()))
+    log.warning("Brak wariantu '%s' dla Na warstwie=%d u %s -- uzyto %s", typ, na_warstwie, produkt_kod, fallback)
+    return fallback
 
 
 # ---------------------------------------------------------------------------
@@ -277,6 +353,7 @@ def _build_column_data(
     client: SqlClient,
     dekle: dict,
     spody: dict,
+    tacka: dict,
     offer_group_id: int,
     client_name: str,
 ) -> dict[int, list]:
@@ -287,11 +364,13 @@ def _build_column_data(
         kod = prod["kod"]
         nazwa = prod["nazwa"]
 
-        paletka, paleta = _fetch_units(client, kod)
+        paletka, paleta, warstwa = _fetch_units(client, kod)
+        ean = _fetch_ean(client, kod)
         szklo_akronim = _fetch_szklo(client, nazwa)
         srednica = _fetch_srednica(client, kod)
         dekiel_akronim, dekiel_size_cm = _find_dekiel(dekle, srednica, kod)
         spod_akronim = _find_spod(spody, dekiel_size_cm, kod)
+        paletka_akronim = _find_paletka(tacka, paletka, warstwa, ean, kod)
 
         bom_rows = build_bom_rows(
             paletka=paletka,
@@ -299,6 +378,7 @@ def _build_column_data(
             szklo_akronim=szklo_akronim,
             dekiel_akronim=dekiel_akronim,
             spod_akronim=spod_akronim,
+            paletka_akronim=paletka_akronim,
             offer_group_id=offer_group_id,
         )
 
@@ -385,7 +465,8 @@ def generate(offer_group_id: int, client_name: str, template: Path, output: Path
 
     dekle = _load_dekle(DEKLE_PATH)
     spody = _load_spody(SPODY_PATH)
-    col_data = _build_column_data(products, client, dekle, spody, offer_group_id, client_name)
+    tacka = _load_tacka(TACKA_PATH)
+    col_data = _build_column_data(products, client, dekle, spody, tacka, offer_group_id, client_name)
 
     _write_to_excel(output, col_data)
 
