@@ -65,7 +65,7 @@ def _parse_burning_time(nazwa: str, lang: str) -> str:
 
 def _find_photo(kod: str) -> Optional[str]:
     """Szuka pliku zdjęcia: najpierw .jpg, potem .png."""
-    for ext in (".jpg", ".png"):
+    for ext in (".png", ".jpg"):
         path = os.path.join(PHOTOS_DIR, kod + ext)
         if os.path.exists(path):
             return path
