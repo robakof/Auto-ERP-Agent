@@ -11,6 +11,7 @@ Duże zadania architektoniczne → `documents/dev/PROJECT_START.md`.
 |---|---|
 | Nowe narzędzie / rozbudowa | Narzędzie |
 | Bug fix / data fix | Bug fix |
+| Drobna zmiana (≤5 linii, jeden plik) | Patch |
 | Suggestions od Wykonawców | Suggestions |
 | Zamknięcie sesji | Zamknięcie |
 
@@ -82,6 +83,40 @@ PASS jeśli:
 - [ ] Przyczyna zidentyfikowana (nie tylko objaw)
 - [ ] Zasięg zdiagnozowany (blind spot query)
 - [ ] Fix zweryfikowany
+- [ ] Commit
+
+---
+
+## Patch
+
+**Owner:** developer
+
+Drobne zmiany istniejących narzędzi — nie bug fix, nie nowe narzędzie.
+
+### Zakres
+
+- Zmiana ≤5 linii kodu
+- Jeden plik
+- Nie zmienia interfejsu (API, argumenty CLI, format outputu)
+- Przykłady: dodanie wartości do enuma, zmiana domyślnego parametru, poprawka walidacji
+
+### Steps
+
+1. Read pliku którego dotyczy zmiana.
+2. Edit — wprowadź zmianę.
+3. Test smoke (jeśli dotyczy) — upewnij się że narzędzie działa.
+4. Commit z opisem zmiany.
+
+### Forbidden
+
+- Zmiany interfejsu (wymagają workflow Narzędzie + konsultacja z rolami które używają)
+- Zmiany >5 linii (oceń czy to nie nowe narzędzie)
+
+### Exit gate
+
+PASS jeśli:
+- [ ] Zmiana ≤5 linii, jeden plik
+- [ ] Smoke test OK (jeśli dotyczy)
 - [ ] Commit
 
 ---

@@ -201,7 +201,15 @@ Po zakończeniu:
 python tools/agent_bus_cli.py backlog-update --id <id> --status done
 ```
 
+Odkładając zadanie na później (bez anulowania):
+```
+python tools/agent_bus_cli.py backlog-update --id <id> --status deferred
+```
+
 Inne role widzą `in_progress` i nie duplikują pracy.
+
+**Odczyt backlogu:** `render.py backlog` bez `--status` zwraca domyślnie tylko `planned`.
+Żeby zobaczyć wszystkie statusy: `--status all` lub `agent_bus_cli.py backlog` (bez filtru).
 
 ### Logowanie i refleksja
 
