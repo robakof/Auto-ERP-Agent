@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/dcyprowski/Desktop/Automatyzacja konfiguracji systemu/**)",
+      "Bash(python bot/pipeline/nlp_pipeline.py --question \"Pokaż 5 ostatnich zamówień sprzedaży\" --verbose)",
+      "Bash(cd \"C:\\\\Users\\\\dcyprowski\\\\Desktop\\\\Automatyzacja konfiguracji systemu\" && python bot/pipeline/nlp_pipeline.py --question \"Jakie zamówienia ma kontrahent NELMA?\" --verbose 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\dcyprowski\\\\Desktop\\\\Automatyzacja konfiguracji systemu\" && python bot/pipeline/nlp_pipeline.py --question \"Które zamówienia są w trakcie realizacji?\" --verbose 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\dcyprowski\\\\Desktop\\\\Automatyzacja konfiguracji systemu\" && python bot/pipeline/nlp_pipeline.py --question \"Jakie rezerwacje są aktywne na magazynie głównym?\" --verbose 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\dcyprowski\\\\Desktop\\\\Automatyzacja konfiguracji systemu\" && python bot/pipeline/nlp_pipeline.py --question \"Podaj NIP i adres firmy MARCO\" --verbose 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\dcyprowski\\\\Desktop\\\\Automatyzacja konfiguracji systemu\" && python bot/pipeline/nlp_pipeline.py --question \"Którzy kontrahenci mają blokadę transakcji?\" --verbose 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\dcyprowski\\\\Desktop\\\\Automatyzacja konfiguracji systemu\" && python bot/pipeline/nlp_pipeline.py --question \"Jakie dokumenty są rozliczone z fakturą FS-1/06/23/FRA?\" --verbose 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\dcyprowski\\\\Desktop\\\\Automatyzacja konfiguracji systemu\" && python bot/pipeline/nlp_pipeline.py --question \"Ile zamówień złożono w marcu 2026?\" --verbose 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\dcyprowski\\\\Desktop\\\\Automatyzacja konfiguracji systemu\" && python bot/pipeline/nlp_pipeline.py --question \"Pokaż kontrahentów z grupy 01.KLIENCI\" --verbose 2>&1)"
+    ]
+  }
+}

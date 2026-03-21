@@ -29,5 +29,5 @@ tmp/
 *.tmp
 
 # Narzędziowe
-.claude/
+.claude/memory/
 Prompt.md
