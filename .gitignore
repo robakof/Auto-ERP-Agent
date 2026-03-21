@@ -30,4 +30,10 @@ tmp/
 
 # Narzędziowe
 .claude/memory/
+.claude/settings.json
+.claude/settings.local.json
+bot/.claude/settings.local.json
 Prompt.md
+
+# Baza danych (lokalna dla każdej maszyny, synchronizacja w przyszłości)
+mrowisko.db

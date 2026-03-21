@@ -17,7 +17,7 @@ import sys
 
 
 SAFE_PREFIXES = [
-    "python", "python3",
+    "py", "python", "python3",
     "git",
     "pytest", "py.test",
     "pip", "pip3",

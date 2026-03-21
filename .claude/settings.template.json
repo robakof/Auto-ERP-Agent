@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit({{PROJECT_PATH}}/**)",
+      "Edit(~/.claude/**)",
+      "Write({{PROJECT_PATH}}/**)",
+      "Write(~/.claude/**)",
+      "Read({{PROJECT_PATH}}/**)",
+      "Read(~/AppData/Local/Temp/**)",
+      "Read(~/.claude/**)",
+      "Grep({{PROJECT_PATH}}/**)",
+      "Grep(~/AppData/Local/Temp/**)",
+      "Glob({{PROJECT_PATH}}/**)",
+      "Glob(~/AppData/Local/Temp/**)"
+    ]
+  }
+}

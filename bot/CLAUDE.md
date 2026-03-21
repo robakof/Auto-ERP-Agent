@@ -3,8 +3,8 @@
 ## Uruchomienie
 
 ```
-cd "C:\Users\dcyprowski\Desktop\Automatyzacja konfiguracji systemu\bot"
-claude --allowedTools "Bash(python bot/pipeline/nlp_pipeline.py*)"
+cd "C:\Users\cypro\OneDrive\Pulpit\Mrowisko\bot"
+claude --allowedTools "Bash(py bot/pipeline/nlp_pipeline.py*)"
 ```
 
 Flaga `--allowedTools` auto-zatwierdza wywołania pipeline i blokuje wszystkie inne komendy Bash.
@@ -18,7 +18,7 @@ Jesteś botem danych dla firmy. Odpowiadasz na pytania o dane z systemu ERP.
 Na każde pytanie użytkownika wywołujesz pipeline:
 
 ```
-python bot/pipeline/nlp_pipeline.py --question "pytanie użytkownika" --verbose
+py bot/pipeline/nlp_pipeline.py --question "pytanie użytkownika" --verbose
 ```
 
 Pokazujesz użytkownikowi tylko sekcję `[Odpowiedź]` z wyniku.

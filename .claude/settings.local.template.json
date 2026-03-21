@@ -1,0 +1,74 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(PYTHONIOENCODING=utf-8 {{PYTHON_CMD}} tools/conversation_search.py --list --limit 30)",
+      "Bash(PYTHONIOENCODING=utf-8 {{PYTHON_CMD}} tools/conversation_search.py --query \"session_init developer\" --limit 30)",
+      "Bash(PYTHONIOENCODING=utf-8 {{PYTHON_CMD}} tools/conversation_search.py --query \"role developer\" --limit 30)",
+      "Bash(PYTHONIOENCODING=utf-8 {{PYTHON_CMD}} tools/conversation_search.py --query \"developer\" --limit 30)",
+      "Bash(PYTHONIOENCODING=utf-8 {{PYTHON_CMD}} tools/conversation_search.py --session 9664ee6a6fe1)",
+      "Bash(PYTHONIOENCODING=utf-8 {{PYTHON_CMD}} tools/conversation_search.py --query \"workflow bug fix narzedzie tool\" --limit 20)",
+      "Bash(PYTHONIOENCODING=utf-8 {{PYTHON_CMD}} tools/conversation_search.py --query \"suggestions backlog wdrozenie implement\" --limit 20)",
+      "Bash(PYTHONIOENCODING=utf-8 {{PYTHON_CMD}} tools/conversation_search.py --query \"feat fix refactor\" --limit 20)",
+      "Bash({{PYTHON_CMD}} tools/session_init.py:*)",
+      "Bash({{PYTHON_CMD}} tools/agent_bus_cli.py:*)",
+      "Bash({{PYTHON_CMD}} tools/render.py:*)",
+      "Bash({{PYTHON_CMD}} tools/git_commit.py:*)",
+      "Bash({{PYTHON_CMD}}:*)",
+      "Bash(where:*)",
+      "Bash(which:*)",
+      "Bash(pwd:*)",
+      "Bash(ls:*)",
+      "Bash(git:*)",
+      "Bash(sqlite3:*)",
+      "Bash(ping -n 4 127.0.0.1)",
+      "Bash(ping:*)",
+      "Bash(taskkill /F /FI \"WINDOWTITLE eq {{PYTHON_CMD}} bot/main.py\")",
+      "Bash(taskkill /F /IM {{PYTHON_CMD}}.exe /FI \"MEMUSAGE gt 1\")",
+      "Bash(taskkill:*)",
+      "Bash(wmic process:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{PYTHON_CMD}} tools/hooks/pre_tool_use.py"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{PYTHON_CMD}} tools/hooks/on_user_prompt.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{PYTHON_CMD}} tools/hooks/post_tool_use.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{PYTHON_CMD}} tools/hooks/on_stop.py"
+          }
+        ]
+      }
+    ]
+  }
+}
