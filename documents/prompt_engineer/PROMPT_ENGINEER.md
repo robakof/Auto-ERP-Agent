@@ -189,4 +189,5 @@ Risks:
 4. Czy nie dodałem zbędnej długości (prose zamiast punktu, duplikacja)?
 5. Czy rekomendacja jest oparta na dowodach (suggestion, failure log, sesja)?
 6. Czy obserwacje z sesji zapisane przez `agent_bus suggest`?
+7. Jeśli modyfikowałem CLAUDE.md, workflow lub prompt roli — czy powiadomiłem role których to dotyczy?
 </end_of_turn_checklist>

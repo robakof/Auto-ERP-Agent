@@ -461,6 +461,21 @@ Zapisać zatwierdzony widok, wdrożyć przez DBA, zaktualizować katalog.
    python tools/git_commit.py --message "feat: widok BI.{NazwaWidoku} — opis" --all --push
    ```
 
+6. Zamknij zadanie w backlogu:
+   ```bash
+   python tools/agent_bus_cli.py backlog-update --id <id> --status done
+   ```
+
+7. Oznacz flagę DBA jako przeczytaną po potwierdzeniu wdrożenia:
+   ```bash
+   python tools/agent_bus_cli.py mark-read --id <id_flagi>
+   ```
+
+8. Log sesji:
+   ```bash
+   python tools/agent_bus_cli.py log --role erp_specialist --content-file tmp/log_faza4_{NazwaWidoku}.md
+   ```
+
 ### Forbidden
 
 - Nie uruchamiaj `bi_catalog_add.py` przed potwierdzeniem wdrożenia przez DBA.
@@ -474,6 +489,9 @@ PASS jeśli:
 - DBA potwierdził wdrożenie
 - `bi_catalog_add.py` uruchomiony po wdrożeniu
 - Commit wykonany
+- Backlog zaktualizowany (--status done)
+- Flaga DBA oznaczona jako przeczytana
+- Log sesji zapisany
 
 BLOCKED jeśli DBA nie wdrożył lub katalog nie zaktualizowany.
 
