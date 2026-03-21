@@ -32,11 +32,17 @@ def load_allowed_users(path: Path) -> set[int]:
     if not path.exists():
         raise ValueError(f"Plik allowed_users nie istnieje: {path}")
     ids = set()
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         line = line.strip()
         if not line or line.startswith("#"):
             continue
-        ids.add(int(line))
+        try:
+            ids.add(int(line))
+        except ValueError:
+            raise ValueError(
+                f"allowed_users.txt linia {lineno}: nieprawidłowy format '{line}' "
+                f"— oczekiwano liczby całkowitej (komentarze inline '#' są niedozwolone)"
+            )
     return ids
 
 

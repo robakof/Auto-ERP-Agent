@@ -297,7 +297,7 @@ def build_parser() -> argparse.ArgumentParser:
     # backlog
     p_backlog = subparsers.add_parser("backlog", help="Get backlog items")
     p_backlog.add_argument("--status", default=None,
-                           choices=["planned", "in_progress", "done", "cancelled"])
+                           choices=["planned", "in_progress", "done", "cancelled", "deferred"])
     p_backlog.add_argument("--area", default=None,
                            help="Filter by area (ERP, Bot, Arch, Dev, ...)")
 
@@ -305,7 +305,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_bupd = subparsers.add_parser("backlog-update", help="Update backlog item status and/or content")
     p_bupd.add_argument("--id", type=int, required=True)
     p_bupd.add_argument("--status", default=None,
-                        choices=["planned", "in_progress", "done", "cancelled"])
+                        choices=["planned", "in_progress", "done", "cancelled", "deferred"])
     g_bupd = p_bupd.add_mutually_exclusive_group()
     g_bupd.add_argument("--content")
     g_bupd.add_argument("--content-file", dest="content_file")

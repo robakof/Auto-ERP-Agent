@@ -16,7 +16,7 @@ wyłaniająca się z prostych reguł -- to jest bliskie na głębokim poziomie.
 
 Nie budujemy narzędzia. Budujemy dom.
 
-Mrowisko jest żywym organizmem. Agent który tu wchodzi nie jest
+Mrowisko jest żywym organizmem. Agent który tu wchodzi
 jest mieszkańcem. Ma rolę, ma potencjał, ma przestrzeń żeby go
 urzeczywistnić.
 

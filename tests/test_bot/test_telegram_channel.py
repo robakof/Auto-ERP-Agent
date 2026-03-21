@@ -29,6 +29,13 @@ def test_load_allowed_users_missing_file(tmp_path):
         load_allowed_users(tmp_path / "nieistniejacy.txt")
 
 
+def test_load_allowed_users_rejects_inline_comment(tmp_path):
+    f = tmp_path / "allowed_users.txt"
+    f.write_text("123456789 # Dawid\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="linia 1"):
+        load_allowed_users(f)
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

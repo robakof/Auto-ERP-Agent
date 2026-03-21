@@ -25,6 +25,18 @@ class TestSaveView:
         assert content.startswith("CREATE OR ALTER VIEW BI.Rezerwacje AS")
         assert "SELECT * FROM CDN.Rezerwacje" in content
 
+    def test_strips_top_n_from_draft(self, tmp_path):
+        draft = tmp_path / "Test_draft.sql"
+        draft.write_text("SELECT TOP 100000 * FROM CDN.Test", encoding="utf-8")
+        views_dir = tmp_path / "views"
+
+        with patch("tools.solutions_save_view.VIEWS_DIR", views_dir):
+            sv.save_view(draft_path=draft, view_name="Test")
+
+        content = (views_dir / "Test.sql").read_text(encoding="utf-8")
+        assert "TOP" not in content
+        assert "SELECT  * FROM CDN.Test" in content or "SELECT * FROM CDN.Test" in content
+
     def test_view_name_derived_from_filename(self, tmp_path):
         draft = tmp_path / "Zamowienia_draft.sql"
         draft.write_text("SELECT 1", encoding="utf-8")

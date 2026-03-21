@@ -10,6 +10,8 @@ import os
 import sys
 from pathlib import Path
 
+PID_FILE = Path(__file__).parent / "bot.pid"
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from dotenv import load_dotenv
@@ -47,6 +49,9 @@ def main() -> None:
     admin_user_id = int(admin_raw) if admin_raw.isdigit() else None
     if admin_user_id is None:
         logger.warning("ADMIN_USER_ID nie ustawiony — komenda /reload wyłączona")
+
+    PID_FILE.write_text(str(os.getpid()), encoding="utf-8")
+    logger.info("PID %d zapisany do %s", os.getpid(), PID_FILE)
 
     pipeline = NlpPipeline()
     channel = TelegramChannel(

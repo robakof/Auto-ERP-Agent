@@ -11,6 +11,7 @@ Output: JSON na stdout zgodny z kontraktem narzędzi agenta.
 """
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -43,7 +44,7 @@ def save_view(
         }
 
     name = view_name or _view_name_from_path(draft_path)
-    draft_sql = draft_path.read_text(encoding="utf-8")
+    draft_sql = re.sub(r'\bTOP\s+\d+\s*', '', draft_path.read_text(encoding="utf-8"), flags=re.IGNORECASE)
 
     VIEWS_DIR.mkdir(parents=True, exist_ok=True)
     view_file = VIEWS_DIR / f"{name}.sql"
