@@ -22,6 +22,7 @@ python tools/session_init.py --role <parametr>
 | ERP Specialist | Konfiguracja okien ERP, widoki BI, analiza danych | `erp_specialist` |
 | Analityk Danych | Analiza jakości danych, przegląd widoków BI | `analyst` |
 | Developer | Rozbudowa narzędzi, architektury, wytycznych | `developer` |
+| Architect | Projektowanie architektury systemu, code review, ADR | `architect` |
 | Metodolog | Ocena metody pracy, kształtowanie procesu | `metodolog` |
 | Prompt Engineer | Edycja, kompresja i wersjonowanie promptów agentów | `prompt_engineer` |
 
@@ -55,6 +56,7 @@ edycja promptów jest jego podstawową rolą.
 - `documents/analyst/ANALYST.md`
 - `documents/analyst/analyst_start.md`
 - `documents/dev/DEVELOPER.md`
+- `documents/architect/ARCHITECT.md`
 - `documents/methodology/METHODOLOGY.md`
 - `documents/methodology/SPIRIT.md`
 - `documents/prompt_engineer/PROMPT_ENGINEER.md`

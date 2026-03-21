@@ -26,6 +26,7 @@ ROLE_DOCUMENTS = {
     "erp_specialist": "documents/erp_specialist/ERP_SPECIALIST.md",
     "analyst":        "documents/analyst/ANALYST.md",
     "developer":      "documents/dev/DEVELOPER.md",
+    "architect":      "documents/architect/ARCHITECT.md",
     "metodolog":      "documents/methodology/METHODOLOGY.md",
     "prompt_engineer": "documents/prompt_engineer/PROMPT_ENGINEER.md",
 }
