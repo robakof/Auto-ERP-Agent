@@ -106,6 +106,9 @@ Drobne zmiany istniejących narzędzi — nie bug fix, nie nowe narzędzie.
 2. Edit — wprowadź zmianę.
 3. Test smoke (jeśli dotyczy) — upewnij się że narzędzie działa.
 4. Commit z opisem zmiany.
+5. Jeśli zmiana dotyczy dokumentów instrukcyjnych (CLAUDE.md, workflow/*.md, documents/*/[ROLA].md):
+   Wyślij notyfikację do Prompt Engineer — PE jest gatekeeperem spójności promptów
+   i musi poinformować inne role o zmianie.
 
 ### Forbidden
 
@@ -118,6 +121,7 @@ PASS jeśli:
 - [ ] Zmiana ≤5 linii, jeden plik
 - [ ] Smoke test OK (jeśli dotyczy)
 - [ ] Commit
+- [ ] Jeśli zmiana dotyczy dokumentów instrukcyjnych → notyfikacja do PE
 
 ---
 
