@@ -110,6 +110,31 @@ class TestCliSuggestAndBacklog:
         assert suggestions["count"] == 1
         assert suggestions["data"][0]["backlog_id"] == bid
 
+    def test_suggest_status_bulk(self, db, tmp_path):
+        s1 = run_cli(["suggest", "--from", "developer", "--content", "S1"], db)["id"]
+        s2 = run_cli(["suggest", "--from", "developer", "--content", "S2"], db)["id"]
+        s3 = run_cli(["suggest", "--from", "developer", "--content", "S3"], db)["id"]
+        b1 = run_cli(["backlog-add", "--title", "B1", "--content", "x"], db)["id"]
+
+        updates = [
+            {"id": s1, "status": "implemented"},
+            {"id": s2, "status": "rejected"},
+            {"id": s3, "status": "in_backlog", "backlog_id": b1},
+        ]
+        bulk_file = tmp_path / "sug_updates.json"
+        bulk_file.write_text(json.dumps(updates), encoding="utf-8")
+
+        result = run_cli(["suggest-status-bulk", "--file", str(bulk_file)], db)
+        assert result["ok"] is True
+        assert result["updated"] == 3
+
+        all_sugg = run_cli(["suggestions"], db)
+        by_id = {s["id"]: s for s in all_sugg["data"]}
+        assert by_id[s1]["status"] == "implemented"
+        assert by_id[s2]["status"] == "rejected"
+        assert by_id[s3]["status"] == "in_backlog"
+        assert by_id[s3]["backlog_id"] == b1
+
     def test_backlog_add_and_list(self, db):
         result = run_cli(
             ["backlog-add", "--title", "Fix bot", "--content", "Opis problemu",
@@ -344,3 +369,72 @@ class TestCliDelete:
         ids_in_inbox = [m["id"] for m in inbox["data"]]
         assert id1 not in ids_in_inbox
         assert id2 not in ids_in_inbox
+
+
+class TestBacklogUpdateBulk:
+    def test_bulk_update_status(self, db, tmp_path):
+        id1 = run_cli(["backlog-add", "--title", "Task 1", "--content", "C1"], db)["id"]
+        id2 = run_cli(["backlog-add", "--title", "Task 2", "--content", "C2"], db)["id"]
+        id3 = run_cli(["backlog-add", "--title", "Task 3", "--content", "C3"], db)["id"]
+
+        updates = [
+            {"id": id1, "status": "done"},
+            {"id": id2, "status": "in_progress"},
+            {"id": id3, "status": "cancelled"},
+        ]
+        bulk_file = tmp_path / "updates.json"
+        bulk_file.write_text(json.dumps(updates), encoding="utf-8")
+
+        result = run_cli(["backlog-update-bulk", "--file", str(bulk_file)], db)
+        assert result["ok"] is True
+        assert result["updated"] == 3
+
+        backlog = run_cli(["backlog"], db)
+        by_id = {i["id"]: i for i in backlog["data"]}
+        assert by_id[id1]["status"] == "done"
+        assert by_id[id2]["status"] == "in_progress"
+        assert by_id[id3]["status"] == "cancelled"
+
+    def test_bulk_update_content(self, db, tmp_path):
+        id1 = run_cli(["backlog-add", "--title", "Task A", "--content", "old A"], db)["id"]
+        id2 = run_cli(["backlog-add", "--title", "Task B", "--content", "old B"], db)["id"]
+
+        updates = [
+            {"id": id1, "content": "new content A"},
+            {"id": id2, "content": "new content B"},
+        ]
+        bulk_file = tmp_path / "updates.json"
+        bulk_file.write_text(json.dumps(updates), encoding="utf-8")
+
+        result = run_cli(["backlog-update-bulk", "--file", str(bulk_file)], db)
+        assert result["ok"] is True
+        assert result["updated"] == 2
+
+        backlog = run_cli(["backlog"], db)
+        by_id = {i["id"]: i for i in backlog["data"]}
+        assert by_id[id1]["content"] == "new content A"
+        assert by_id[id2]["content"] == "new content B"
+
+    def test_bulk_update_status_and_content(self, db, tmp_path):
+        id1 = run_cli(["backlog-add", "--title", "Combined", "--content", "old"], db)["id"]
+
+        updates = [
+            {"id": id1, "status": "done", "content": "zaktualizowane"},
+        ]
+        bulk_file = tmp_path / "updates.json"
+        bulk_file.write_text(json.dumps(updates), encoding="utf-8")
+
+        result = run_cli(["backlog-update-bulk", "--file", str(bulk_file)], db)
+        assert result["ok"] is True
+
+        backlog = run_cli(["backlog"], db)
+        item = next(i for i in backlog["data"] if i["id"] == id1)
+        assert item["status"] == "done"
+        assert item["content"] == "zaktualizowane"
+
+    def test_bulk_empty_list(self, db, tmp_path):
+        bulk_file = tmp_path / "empty.json"
+        bulk_file.write_text("[]", encoding="utf-8")
+        result = run_cli(["backlog-update-bulk", "--file", str(bulk_file)], db)
+        assert result["ok"] is True
+        assert result["updated"] == 0

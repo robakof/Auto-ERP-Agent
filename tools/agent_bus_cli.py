@@ -129,6 +129,19 @@ def cmd_suggest_status(args: argparse.Namespace, bus: AgentBus) -> dict:
     return {"ok": True}
 
 
+def cmd_suggest_status_bulk(args: argparse.Namespace, bus: AgentBus) -> dict:
+    import json as _json
+    updates = _json.loads(Path(args.file).read_text(encoding="utf-8"))
+    updated = 0
+    for item in updates:
+        item_id = item["id"]
+        status = item["status"]
+        backlog_id = item.get("backlog_id")
+        bus.update_suggestion_status(item_id, status, backlog_id=backlog_id)
+        updated += 1
+    return {"ok": True, "updated": updated}
+
+
 def cmd_mark_read(args: argparse.Namespace, bus: AgentBus) -> dict:
     if getattr(args, "all", False):
         count = bus.mark_all_read(args.role)
@@ -178,6 +191,20 @@ def cmd_backlog_update(args: argparse.Namespace, bus: AgentBus) -> dict:
     if args.content_file or args.content:
         bus.update_backlog_content(args.id, _read_content(args))
     return {"ok": True}
+
+
+def cmd_backlog_update_bulk(args: argparse.Namespace, bus: AgentBus) -> dict:
+    import json as _json
+    updates = _json.loads(Path(args.file).read_text(encoding="utf-8"))
+    updated = 0
+    for item in updates:
+        item_id = item["id"]
+        if "status" in item:
+            bus.update_backlog_status(item_id, item["status"])
+        if "content" in item:
+            bus.update_backlog_content(item_id, item["content"])
+        updated += 1
+    return {"ok": True, "updated": updated}
 
 
 def cmd_log(args: argparse.Namespace, bus: AgentBus) -> dict:
@@ -273,6 +300,10 @@ def build_parser() -> argparse.ArgumentParser:
                       choices=["open", "in_backlog", "rejected", "implemented"])
     p_ss.add_argument("--backlog-id", dest="backlog_id", type=int, default=None)
 
+    # suggest-status-bulk
+    p_ss_bulk = subparsers.add_parser("suggest-status-bulk", help="Update multiple suggestion statuses from JSON file")
+    p_ss_bulk.add_argument("--file", required=True, help="JSON file with list of {id, status, backlog_id?}")
+
     # mark-read
     p_mr = subparsers.add_parser("mark-read", help="Mark messages as read")
     p_mr.add_argument("--ids", type=int, nargs="+", default=None)
@@ -309,6 +340,10 @@ def build_parser() -> argparse.ArgumentParser:
     g_bupd = p_bupd.add_mutually_exclusive_group()
     g_bupd.add_argument("--content")
     g_bupd.add_argument("--content-file", dest="content_file")
+
+    # backlog-update-bulk
+    p_bupd_bulk = subparsers.add_parser("backlog-update-bulk", help="Update multiple backlog items from JSON file")
+    p_bupd_bulk.add_argument("--file", required=True, help="JSON file with list of {id, status?, content?}")
 
     # log
     p_log = subparsers.add_parser("log", help="Add a session log entry")
@@ -347,11 +382,13 @@ def main():
         "suggest-bulk": cmd_suggest_bulk,
         "suggestions": cmd_suggestions,
         "suggest-status": cmd_suggest_status,
+        "suggest-status-bulk": cmd_suggest_status_bulk,
         "mark-read": cmd_mark_read,
         "backlog-add": cmd_backlog_add,
         "backlog-add-bulk": cmd_backlog_add_bulk,
         "backlog": cmd_backlog,
         "backlog-update": cmd_backlog_update,
+        "backlog-update-bulk": cmd_backlog_update_bulk,
         "log": cmd_log,
         "delete": cmd_delete,
         "flag": cmd_flag,
