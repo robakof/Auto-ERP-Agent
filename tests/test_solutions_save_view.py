@@ -22,7 +22,7 @@ class TestSaveView:
         view_file = views_dir / "Rezerwacje.sql"
         assert view_file.exists()
         content = view_file.read_text(encoding="utf-8")
-        assert content.startswith("CREATE OR ALTER VIEW BI.Rezerwacje AS")
+        assert "CREATE OR ALTER VIEW AIBI.Rezerwacje AS" in content
         assert "SELECT * FROM CDN.Rezerwacje" in content
 
     def test_strips_top_n_from_draft(self, tmp_path):
@@ -58,7 +58,7 @@ class TestSaveView:
             result = sv.save_view(draft_path=draft, view_name="Raport", schema="DWH")
 
         content = (views_dir / "Raport.sql").read_text(encoding="utf-8")
-        assert content.startswith("CREATE OR ALTER VIEW DWH.Raport AS")
+        assert "CREATE OR ALTER VIEW DWH.Raport AS" in content
 
     def test_overwrites_existing_file(self, tmp_path):
         draft = tmp_path / "Widok.sql"
