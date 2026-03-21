@@ -10,6 +10,8 @@ import os
 import sys
 from pathlib import Path
 
+PID_FILE = Path(__file__).parent / "bot.pid"
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from dotenv import load_dotenv
@@ -17,7 +19,7 @@ from dotenv import load_dotenv
 from bot.channels.telegram_channel import TelegramChannel, load_allowed_users
 from bot.pipeline.nlp_pipeline import NlpPipeline
 
-load_dotenv()
+load_dotenv(override=True)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -43,8 +45,22 @@ def main() -> None:
     if not allowed_users:
         logger.warning("Whitelist jest pusta — bot nie odpowie nikomu")
 
+    admin_raw = os.getenv("ADMIN_USER_ID", "").strip().split()[0] if os.getenv("ADMIN_USER_ID", "").strip() else ""
+    admin_user_id = int(admin_raw) if admin_raw.isdigit() else None
+    if admin_user_id is None:
+        logger.warning("ADMIN_USER_ID nie ustawiony — komenda /reload wyłączona")
+
+    PID_FILE.write_text(str(os.getpid()), encoding="utf-8")
+    logger.info("PID %d zapisany do %s", os.getpid(), PID_FILE)
+
     pipeline = NlpPipeline()
-    channel = TelegramChannel(token=token, pipeline=pipeline, allowed_users=allowed_users)
+    channel = TelegramChannel(
+        token=token,
+        pipeline=pipeline,
+        allowed_users=allowed_users,
+        allowed_users_path=ALLOWED_USERS_PATH,
+        admin_user_id=admin_user_id,
+    )
     channel.run()
 
 

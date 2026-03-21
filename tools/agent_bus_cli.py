@@ -189,6 +189,12 @@ def cmd_log(args: argparse.Namespace, bus: AgentBus) -> dict:
     return {"ok": True, "id": lid}
 
 
+def cmd_delete(args: argparse.Namespace, bus: AgentBus) -> dict:
+    for msg_id in args.ids:
+        bus.archive_message(msg_id)
+    return {"ok": True, "archived": args.ids}
+
+
 def cmd_flag(args: argparse.Namespace, bus: AgentBus) -> dict:
     reason = Path(args.reason_file).read_text(encoding="utf-8") if args.reason_file else args.reason
     flag_id = bus.flag_for_human(
@@ -291,7 +297,7 @@ def build_parser() -> argparse.ArgumentParser:
     # backlog
     p_backlog = subparsers.add_parser("backlog", help="Get backlog items")
     p_backlog.add_argument("--status", default=None,
-                           choices=["planned", "in_progress", "done", "cancelled"])
+                           choices=["planned", "in_progress", "done", "cancelled", "deferred"])
     p_backlog.add_argument("--area", default=None,
                            help="Filter by area (ERP, Bot, Arch, Dev, ...)")
 
@@ -299,7 +305,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_bupd = subparsers.add_parser("backlog-update", help="Update backlog item status and/or content")
     p_bupd.add_argument("--id", type=int, required=True)
     p_bupd.add_argument("--status", default=None,
-                        choices=["planned", "in_progress", "done", "cancelled"])
+                        choices=["planned", "in_progress", "done", "cancelled", "deferred"])
     g_bupd = p_bupd.add_mutually_exclusive_group()
     g_bupd.add_argument("--content")
     g_bupd.add_argument("--content-file", dest="content_file")
@@ -311,6 +317,10 @@ def build_parser() -> argparse.ArgumentParser:
     g_log.add_argument("--content")
     g_log.add_argument("--content-file", dest="content_file")
     p_log.add_argument("--session-id", dest="session_id", default=None)
+
+    # delete
+    p_delete = subparsers.add_parser("delete", help="Archive (soft-delete) messages by id")
+    p_delete.add_argument("--id", dest="ids", type=int, nargs="+", required=True)
 
     # flag
     p_flag = subparsers.add_parser("flag", help="Flag something for human review")
@@ -343,6 +353,7 @@ def main():
         "backlog": cmd_backlog,
         "backlog-update": cmd_backlog_update,
         "log": cmd_log,
+        "delete": cmd_delete,
         "flag": cmd_flag,
     }
     result = commands[args.command](args, bus)

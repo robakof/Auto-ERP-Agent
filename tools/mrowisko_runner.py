@@ -16,11 +16,15 @@ import json
 import signal
 import sqlite3
 import subprocess
+import sys
 import threading
 import uuid
 from pathlib import Path
 
+CLAUDE_CMD = "claude.cmd" if sys.platform == "win32" else "claude"
+
 PROJECT_ROOT = Path(__file__).parent.parent
+AUTONOMOUS_PROMPT_FILE = PROJECT_ROOT / "tools" / "prompts" / "runner_autonomous.md"
 DB_DEFAULT = str(PROJECT_ROOT / "mrowisko.db")
 
 PERMISSION_MODE: dict[str, str] = {
@@ -156,12 +160,15 @@ def render_event(event: dict) -> dict | None:
 # Agent invocation
 # ---------------------------------------------------------------------------
 
-def build_cmd(role: str, prompt: str) -> list[str]:
+def build_cmd(role: str, prompt: str, task_content: str) -> list[str]:
+    system_injection = f"[TRYB AUTONOMICZNY]\nTask do realizacji:\n{task_content}"
     return [
-        "claude", "-p", prompt,
+        CLAUDE_CMD, "-p", prompt,
         "--output-format", "stream-json",
         "--verbose",
         "--include-partial-messages",
+        "--no-session-persistence",
+        "--append-system-prompt", system_injection,
         "--max-turns", MAX_TURNS,
         "--max-budget-usd", MAX_BUDGET_USD,
         "--permission-mode", PERMISSION_MODE.get(role, "default"),
@@ -169,17 +176,19 @@ def build_cmd(role: str, prompt: str) -> list[str]:
     ]
 
 
-def build_prompt(task: dict, instance_id: str) -> str:
-    return (
-        f"[TASK od: {task['sender']}]\n"
-        f"[ADRES ZWROTNY: {instance_id}]\n"
-        f"{task['content']}"
+def build_prompt(task: dict, instance_id: str, role: str) -> str:
+    template = AUTONOMOUS_PROMPT_FILE.read_text(encoding="utf-8")
+    return template.format(
+        role=role,
+        sender=task["sender"],
+        instance_id=instance_id,
+        content=task["content"],
     )
 
 
 def invoke_agent(role: str, task: dict, instance_id: str, db_path: str) -> tuple[str, str]:
-    prompt = build_prompt(task, instance_id)
-    cmd = build_cmd(role, prompt)
+    prompt = build_prompt(task, instance_id, role)
+    cmd = build_cmd(role, prompt, task["content"])
 
     session_id = uuid.uuid4().hex[:12]
     turns, cost_usd = 0, 0.0
@@ -202,7 +211,7 @@ def invoke_agent(role: str, task: dict, instance_id: str, db_path: str) -> tuple
                 if result is not None:
                     session_id = result.get("session_id", session_id)
                     turns = result.get("num_turns", 0)
-                    cost_usd = result.get("cost_usd", 0.0)
+                    cost_usd = result.get("total_cost_usd", 0.0)
             except json.JSONDecodeError:
                 print(line, flush=True)
         proc.wait(timeout=TIMEOUT_SEC)
@@ -289,7 +298,11 @@ def main(argv: list[str] | None = None) -> None:
                 print(f"[RUNNER] Task #{task['id']} już claimed przez inną instancję — pomijam.\n")
                 continue
             bus.set_instance_busy(instance_id, task["id"])
-            invoke_agent(role=args.role, task=task, instance_id=instance_id, db_path=args.db)
+            try:
+                invoke_agent(role=args.role, task=task, instance_id=instance_id, db_path=args.db)
+            except Exception as exc:
+                print(f"[RUNNER] Błąd invocation: {exc} — cofam claim taska #{task['id']}.\n")
+                bus.unclaim_task(task["id"])
             bus.set_instance_idle(instance_id)
             print()
         else:

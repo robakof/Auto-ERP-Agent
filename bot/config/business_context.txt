@@ -1,0 +1,40 @@
+## Kontekst firmy: CEiM — producent zniczy i lampionów
+
+### Magazyny
+Gdy użytkownik wymienia magazyn z nazwy potocznej, użyj odpowiedniego kodu w WHERE.
+Kolumny: Kod_Magazynu_Transakcji, Kod_Magazynu_Docelowego.
+
+| Potoczna nazwa / słowa kluczowe      | Kod          | Charakterystyka                                    |
+|--------------------------------------|--------------|----------------------------------------------------|
+| magazyn główny, Buszewo, BUSZ        | BUSZ_GŁ      | Główny magazyn konfekcyjny (WMS) — najważniejszy   |
+| Otorowo, OTOR, baza                  | OTOR_GŁ      | Magazyn główny Otorowo — nadwyżki, zapasy          |
+| surowce Otorowo                      | OTOR_SUR     | Surowce produkcyjne Otorowo                        |
+| Piaskowo, wkłady, wyroby gotowe      | PIAS_WG      | Wyroby gotowe Piaskowo                             |
+| surowce Piaskowo                     | PIAS_SUR     | Surowce do składów Piaskowo                        |
+| produkcja w toku, Piaskowo w toku    | PIAS_WTOKU   | Produkcja w toku Piaskowo                          |
+| JAS, sezonowy, nadwyżki sezonowe     | MAG_JAS      | Zewnętrzny magazyn sezonowy JAS-FBG                |
+| sklep, Szamotuły, kwiaciarnia        | SZAM_SKLEP   | Sklep stacjonarny Szamotuły                        |
+| Franowo, Poznań, hurtownia Poznań    | POZN_FRAN    | Punkt sprzedaży hurtowej dla kwiaciarni (Poznań)   |
+| 7R, Seven R, operator logistyczny    | MAG_7R       | Magazyn zewnętrzny 7R (płatność za dobę/paletę)    |
+| AT, AT Krotoszyn, konsygnacja AT     | MAG_AT       | Magazyn konsygnacyjny kontrahenta AT Krotoszyn     |
+| szkło, Vitro, depozyt szkła          | SZKŁO_DEPO   | Magazyn Vitro — depozyt szkła                      |
+| reklamacje Buszewo                   | BUSZ_REK     | Magazyn reklamacji Buszewo                         |
+| reklamacje Otorowo                   | OTOR_REK     | Magazyn reklamacji Otorowo                         |
+| Kurnik                               | MAG_SEZON2   | Magazyn sezonowy Kurnik                            |
+
+Jeśli użytkownik nie podał konkretnej lokalizacji i pyta o "magazyn główny" — użyj BUSZ_GŁ.
+
+### Handlowcy
+Aktywni handlowcy — różne kolumny używają różnych akronimów:
+
+| Imię i nazwisko   | Operator (MagNag) | Opiekun (ZamNag, KntKarty) | Akwizytor (ZamNag) |
+|-------------------|-------------------|-----------------------------|--------------------|
+| Olga Dominczak    | OD                | ODOMINCZAK                  | PH_ODOMINCZAK      |
+| Łukasz Kurdupski  | LK                | ŁKURDUPSKI                  | PH_ŁKURDUPSKI      |
+| Mariusz Siedlecki | MS                | MSIEDLECKI                  | PH_MSIEDLECKI      |
+| Michał Dębski     | MD                | (brak Opiekuna)             | PH_MDĘBSKI         |
+| Rafał Chojnacki   | RC                | RCHOJNACKI                  | PH_RCHOJNACKI      |
+
+Gdy pytanie dotyczy zamówień lub kontrahentów — użyj kolumny Opiekun_Akronim lub Akwizytor_Akronim.
+Gdy pytanie dotyczy operacji magazynowych (MagNag) — użyj Akronim_Operatora (krótki kod).
+Gdy użytkownik pyta po imieniu lub nazwisku — dobierz akronim do kontekstu widoku.

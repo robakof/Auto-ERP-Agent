@@ -29,6 +29,13 @@ def test_load_allowed_users_missing_file(tmp_path):
         load_allowed_users(tmp_path / "nieistniejacy.txt")
 
 
+def test_load_allowed_users_rejects_inline_comment(tmp_path):
+    f = tmp_path / "allowed_users.txt"
+    f.write_text("123456789 # Dawid\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="linia 1"):
+        load_allowed_users(f)
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -49,7 +56,7 @@ def make_context() -> MagicMock:
     return ctx
 
 
-def make_channel(allowed_ids=None, answer="Odpowiedź."):
+def make_channel(allowed_ids=None, answer="Odpowiedź.", allowed_users_path=None, admin_user_id=None):
     pipeline = MagicMock()
     pipeline.run.return_value = MagicMock(answer=answer, sql=None, error=None)
 
@@ -60,6 +67,8 @@ def make_channel(allowed_ids=None, answer="Odpowiedź."):
             token="fake-token",
             pipeline=pipeline,
             allowed_users=allowed,
+            allowed_users_path=allowed_users_path,
+            admin_user_id=admin_user_id,
         )
     channel._pipeline = pipeline
     return channel
@@ -96,7 +105,7 @@ def test_authorized_user_gets_answer():
     )
 
     channel._pipeline.run.assert_called_once_with(user_id="111", question="Ile zamówień?")
-    update.message.reply_text.assert_called_once_with(answer)
+    update.message.reply_text.assert_called_once_with(answer, parse_mode="HTML")
 
 
 def test_long_answer_split():
@@ -114,6 +123,77 @@ def test_long_answer_split():
         call.args[0] for call in update.message.reply_text.call_args_list
     )
     assert sent == long_answer
+
+
+# ---------------------------------------------------------------------------
+# /reload
+# ---------------------------------------------------------------------------
+
+
+def make_reload_update(user_id: int) -> MagicMock:
+    update = MagicMock()
+    update.effective_user.id = user_id
+    update.message.reply_text = AsyncMock()
+    return update
+
+
+def test_reload_admin_reloads_whitelist(tmp_path):
+    users_file = tmp_path / "allowed_users.txt"
+    users_file.write_text("111\n222\n", encoding="utf-8")
+
+    channel = make_channel(
+        allowed_ids={111},
+        allowed_users_path=users_file,
+        admin_user_id=111,
+    )
+    update = make_reload_update(user_id=111)
+
+    asyncio.get_event_loop().run_until_complete(
+        channel.handle_reload(update, MagicMock())
+    )
+
+    assert channel._allowed_users == {111, 222}
+    update.message.reply_text.assert_called_once()
+    assert "2" in update.message.reply_text.call_args.args[0]
+
+
+def test_reload_non_admin_silent_reject(caplog):
+    channel = make_channel(admin_user_id=111)
+    update = make_reload_update(user_id=999)
+
+    with caplog.at_level(logging.WARNING):
+        asyncio.get_event_loop().run_until_complete(
+            channel.handle_reload(update, MagicMock())
+        )
+
+    update.message.reply_text.assert_not_called()
+    assert any("999" in r.message for r in caplog.records)
+
+
+def test_reload_no_admin_configured_silent_reject():
+    channel = make_channel(admin_user_id=None)
+    update = make_reload_update(user_id=111)
+
+    asyncio.get_event_loop().run_until_complete(
+        channel.handle_reload(update, MagicMock())
+    )
+
+    update.message.reply_text.assert_not_called()
+
+
+def test_reload_missing_file_returns_error(tmp_path):
+    channel = make_channel(
+        allowed_users_path=tmp_path / "nieistniejacy.txt",
+        admin_user_id=111,
+    )
+    update = make_reload_update(user_id=111)
+
+    asyncio.get_event_loop().run_until_complete(
+        channel.handle_reload(update, MagicMock())
+    )
+
+    update.message.reply_text.assert_called_once()
+    assert "Błąd" in update.message.reply_text.call_args.args[0]
 
 
 def test_typing_action_sent_before_pipeline():

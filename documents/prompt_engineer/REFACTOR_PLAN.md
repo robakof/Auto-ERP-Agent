@@ -32,10 +32,10 @@ Artefakt audytu: `tmp/refactor_audit_{rola}.md`
 | # | Dokument | Linie | Typ zmiany | Nowe pliki | Status |
 |---|---|---|---|---|---|
 | 1 | `PROMPT_ENGINEER.md` | 270→140 | Refaktor do konwencji | - | ✓ done |
-| 2 | `DEVELOPER.md` | 437 | Refaktor + rozbicie | 2 nowe pliki | planned |
-| 3 | `ERP_SPECIALIST.md` | 272 | Refaktor do konwencji | - | planned |
-| 4 | `ANALYST.md` | 217 | Refaktor do konwencji | - | planned |
-| 5 | `METHODOLOGY.md` | 367 | Esej → prompt operacyjny | - | planned |
+| 2 | `DEVELOPER.md` | 437→130 | Refaktor + rozbicie | `developer_workflow.md`, `CODE_STANDARDS.md` | ✓ done |
+| 3 | `ERP_SPECIALIST.md` | 273→180 | Refaktor do konwencji | - | ✓ done |
+| 4 | `ANALYST.md` | 217→150 | Refaktor do konwencji | - | ✓ done |
+| 5 | `METHODOLOGY.md` | 367→130 | Esej → prompt + teoria | `METHODOLOGY_THEORY.md` | ✓ done |
 | 6 | `CLAUDE.md` | ~200 | Porządkowanie hierarchii | - | planned (ostatni) |
 
 ---

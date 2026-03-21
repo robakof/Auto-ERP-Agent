@@ -119,6 +119,31 @@ def test_claim_task_sets_claimed_by(tmp_db):
 
 
 # ---------------------------------------------------------------------------
+# AgentBus.unclaim_task
+# ---------------------------------------------------------------------------
+
+def test_unclaim_task_restores_unread(bus):
+    msg_id = bus.send_message("developer", "erp_specialist", "Zadanie", type="task")
+    bus.claim_task(msg_id, "erp_specialist:abc")
+    bus.unclaim_task(msg_id)
+    tasks = bus.get_pending_tasks("erp_specialist", "erp_specialist:xyz")
+    assert any(t["id"] == msg_id for t in tasks)
+
+
+def test_unclaim_task_clears_claimed_by(tmp_db):
+    msg_id = insert_message(tmp_db, "developer", "erp_specialist", "task", "Zadanie")
+    b = AgentBus(db_path=tmp_db)
+    b.claim_task(msg_id, "erp_specialist:abc")
+    b.unclaim_task(msg_id)
+
+    conn = sqlite3.connect(tmp_db)
+    row = conn.execute("SELECT status, claimed_by FROM messages WHERE id = ?", (msg_id,)).fetchone()
+    conn.close()
+    assert row[0] == "unread"
+    assert row[1] is None
+
+
+# ---------------------------------------------------------------------------
 # AgentBus — instance registry
 # ---------------------------------------------------------------------------
 
@@ -193,7 +218,7 @@ def test_render_event_tool_use(capsys):
 
 
 def test_render_event_result_returns_event():
-    event = {"type": "result", "session_id": "xyz", "num_turns": 3, "cost_usd": 0.12}
+    event = {"type": "result", "session_id": "xyz", "num_turns": 3, "total_cost_usd": 0.12}
     assert runner.render_event(event) == event
 
 
@@ -208,20 +233,29 @@ def test_build_instance_id_format():
 
 
 def test_build_cmd_erp_permission():
-    cmd = runner.build_cmd("erp_specialist", "prompt")
+    cmd = runner.build_cmd("erp_specialist", "prompt", "task content")
     idx = cmd.index("--permission-mode")
     assert cmd[idx + 1] == "acceptEdits"
 
 
 def test_build_cmd_developer_default():
-    cmd = runner.build_cmd("developer", "prompt")
+    cmd = runner.build_cmd("developer", "prompt", "task content")
     idx = cmd.index("--permission-mode")
     assert cmd[idx + 1] == "default"
 
 
+def test_build_cmd_injects_autonomous_system_prompt():
+    cmd = runner.build_cmd("erp_specialist", "prompt", "Zbuduj widok")
+    idx = cmd.index("--append-system-prompt")
+    injected = cmd[idx + 1]
+    assert "[TRYB AUTONOMICZNY]" in injected
+    assert "Zbuduj widok" in injected
+
+
 def test_build_prompt_contains_return_address():
     task = {"sender": "developer:abc", "content": "Zbuduj widok"}
-    prompt = runner.build_prompt(task, "erp_specialist:xyz")
+    prompt = runner.build_prompt(task, "erp_specialist:xyz", "erp_specialist")
+    assert "erp_specialist" in prompt
     assert "[TASK od: developer:abc]" in prompt
     assert "[ADRES ZWROTNY: erp_specialist:xyz]" in prompt
     assert "Zbuduj widok" in prompt

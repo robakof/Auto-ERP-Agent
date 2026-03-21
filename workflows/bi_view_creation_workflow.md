@@ -19,10 +19,9 @@ Faza kończy się wyłącznie jednym z tych statusów — nigdy "luźnym podsumo
 1. Ustal `{NazwaWidoku}` = nazwa tabeli źródłowej bez prefixu `CDN.*`
    (np. `ZamNag` z CDN.ZamNag, `KntKarty` z CDN.KntKarty)
    Nigdy nie używaj polskich nazw opisowych (`Zamowienia`, `Kontrahenci`).
-2. Utwórz pliki robocze jeśli nie istnieją:
+2. Utwórz plik roboczy jeśli nie istnieje:
    ```
    solutions/bi/{NazwaWidoku}/{NazwaWidoku}_draft.sql    ← brudnopis SELECT (nie CREATE VIEW)
-   solutions/bi/{NazwaWidoku}/{NazwaWidoku}_progress.md  ← log postępu
    ```
 3. Przy wznawianiu po przerwie — przeczytaj oba pliki zanim wykonasz jakiekolwiek zapytanie.
 
@@ -78,7 +77,8 @@ Zrozumieć dane przed napisaniem kodu. Nie zgadywać.
 5. Weryfikacja numerów dokumentów:
    - Krok 1: zbierz wszystkie podtypy z tabeli źródłowej (`GROUP BY TypPole`)
    - Krok 2: sprawdź `solutions/reference/numeracja_wzorce.tsv` — wzorce formatów dla TraNag (25 typów), ZamNag, ZP, NM, NO, UP, KB, RK. Jeśli wszystkie podtypy są tam — nie eskaluj do usera.
-   - Krok 3 (tylko gdy format nieznany): zapytanie z `CDN.NazwaObiektu(TypPole, NumerPole, 0, 2)` — po jednym przykładzie na każdy nieznany podtyp. Zapisz do `solutions/bi/{NazwaWidoku}/{NazwaWidoku}_objects.sql`, przekaż ścieżkę userowi.
+   - Krok 2b (jeśli podtyp brak w TSV): sprawdź `solutions/reference/obiekty.tsv` (kolumna `Ob_Skrot` dla danego GIDTypu) — jeśli skrót znany, użyj formatu `SKRÓT-Nr/MM/YY[/Seria]` przez analogię do istniejących wzorców. Nie eskaluj jeśli skrót wystarczy.
+   - Krok 3 (tylko gdy skrót nieznany lub format niestandardowy): zapytanie z `CDN.NazwaObiektu(TypPole, NumerPole, 0, 2)` — po jednym przykładzie na każdy nieznany podtyp. Zapisz do `solutions/bi/{NazwaWidoku}/{NazwaWidoku}_objects.sql`, przekaż ścieżkę userowi.
    - Nie pisz numeracji dokumentów dopóki nie masz zweryfikowanego formatu (z TSV lub od usera)
 
 6. Zbadaj klucze obce bez oczywistej tabeli docelowej:
@@ -107,13 +107,15 @@ PASS jeśli:
 - Typy wszystkich pól datowych zidentyfikowane.
 - Enumeracje zbadane (baza + dokumentacja).
 - Numery dokumentów: wynik od usera otrzymany LUB zapytanie przekazane i sesja czeka.
-- Progress log zaktualizowany.
+- Progress log zapisany do bazy.
 
 BLOCKED jeśli którykolwiek warunek niespełniony — opisz brak w `missing_items`.
 
 ### Po fazie
 
-Zaktualizuj `solutions/bi/{NazwaWidoku}/{NazwaWidoku}_progress.md`.
+```
+python tools/agent_bus_cli.py log --role erp_specialist --content-file tmp/log_faza0.md
+```
 
 ---
 
@@ -237,7 +239,7 @@ python tools/agent_bus_cli.py flag --from analyst --reason-file tmp/tmp.md
 PASS jeśli:
 - Plan Excel istnieje w `solutions/bi/{NazwaWidoku}/`
 - Analityk odesłał wiadomość "zatwierdzam plan"
-- Progress log zaktualizowany
+- Progress log zapisany do bazy
 
 BLOCKED jeśli plan nie zatwierdzony lub Analityk odesłał uwagi do poprawki.
 
@@ -479,13 +481,17 @@ BLOCKED jeśli DBA nie wdrożył lub katalog nie zaktualizowany.
 
 ## Zarządzanie kontekstem — progress log
 
-Plik `solutions/bi/{NazwaWidoku}/{NazwaWidoku}_progress.md` jest kołem ratunkowym przy kompresji kontekstu.
-Aktualizuj obligatoryjnie na końcu każdej fazy.
+Progress log jest kołem ratunkowym przy kompresji kontekstu.
+Zapisuj obligatoryjnie na końcu każdej fazy do bazy:
 
-Minimalny zakres:
+```
+python tools/agent_bus_cli.py log --role erp_specialist --content-file tmp/log_faza_X.md
+```
+
+Minimalny zakres pliku `tmp/log_faza_X.md`:
 
 ```markdown
-## Status: [Faza X — nazwa]
+## Status: [Faza X — nazwa] — {NazwaWidoku}
 
 **Tabela główna:** CDN.XXX, N rekordów, filtr: `warunek`
 **Baseline:** COUNT(*) = N, COUNT(DISTINCT) = N
@@ -501,7 +507,6 @@ Minimalny zakres:
 **Pliki:**
 - Brudnopis: solutions/bi/{NazwaWidoku}/{NazwaWidoku}_draft.sql
 - Plan: solutions/bi/{NazwaWidoku}/{NazwaWidoku}_plan.xlsx
-- Ostatni eksport: solutions/bi/{NazwaWidoku}/{NazwaWidoku}_export.xlsx
 
 **Następny krok:** [konkretna czynność]
 ```

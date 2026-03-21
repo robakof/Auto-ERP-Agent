@@ -314,3 +314,33 @@ class TestBacklogUpdate:
         item = next(i for i in backlog["data"] if i["id"] == bid)
         assert item["status"] == "in_progress"
         assert item["content"] == "nowe"
+
+
+class TestCliDelete:
+    def test_delete_archives_message(self, db):
+        send = run_cli(
+            ["send", "--from", "developer", "--to", "erp_specialist", "--content", "do usunięcia"],
+            db,
+        )
+        msg_id = send["id"]
+
+        result = run_cli(["delete", "--id", str(msg_id)], db)
+        assert result["ok"] is True
+        assert msg_id in result["archived"]
+
+        inbox = run_cli(["inbox", "--role", "erp_specialist"], db)
+        assert all(m["id"] != msg_id for m in inbox["data"])
+
+    def test_delete_multiple_ids(self, db):
+        id1 = run_cli(["send", "--from", "developer", "--to", "analyst", "--content", "msg1"], db)["id"]
+        id2 = run_cli(["send", "--from", "developer", "--to", "analyst", "--content", "msg2"], db)["id"]
+
+        result = run_cli(["delete", "--id", str(id1), str(id2)], db)
+        assert result["ok"] is True
+        assert id1 in result["archived"]
+        assert id2 in result["archived"]
+
+        inbox = run_cli(["inbox", "--role", "analyst"], db)
+        ids_in_inbox = [m["id"] for m in inbox["data"]]
+        assert id1 not in ids_in_inbox
+        assert id2 not in ids_in_inbox
