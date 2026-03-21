@@ -1,0 +1,56 @@
+Stwórz komponent UI (HTML + CSS lub Tailwind) przedstawiający siatkę kart produktów.
+
+UKŁAD:
+- 3 kolumny desktop, 2 tablet, 1 mobile
+- gap między kartami: 24px
+- karta:
+  - padding: 24px
+  - border-radius: 16px
+  - box-shadow: delikatny (np. 0 8px 20px rgba(0,0,0,0.05))
+  - tło: białe
+
+OBRAZ:
+- wyśrodkowany
+- wysokość: ~120px
+- margin-bottom: 16px
+
+TYPOGRAFIA (BARDZO WAŻNE — trzymaj się dokładnie):
+
+NAZWA PRODUKTU:
+- font-size: 18px
+- font-weight: 700
+- text-transform: uppercase
+- letter-spacing: 0.5px
+- margin-bottom: 12px
+
+PARAMETRY (tekst typu "Wysokość", "Czas palenia"):
+- font-size: 14px
+- kolor: #666
+- line-height: 1.6
+
+WARTOŚCI (np. "11 cm", "48 h"):
+- font-weight: 600
+- kolor: #222
+
+CENA:
+- font-size: 24px
+- font-weight: 700
+- kolor: #c96a2b (pomarańczowy)
+- margin-top: 16px
+
+DANE:
+
+[tu zostaw dane jak wcześniej]
+
+STYL:
+- nowoczesny, minimalistyczny
+- font-family: Inter, sans-serif
+- dużo whitespace
+- wszystko wyśrodkowane
+
+DODATKOWO:
+- zachowaj wyraźną hierarchię: nazwa > cena > parametry
+- NIE używaj małych fontów — UI ma być czytelny jak w sklepie internetowym
+- zastosuj spójne odstępy (8px grid)
+
+Zwróć pełny kod HTML + CSS.

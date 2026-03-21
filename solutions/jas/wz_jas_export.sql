@@ -186,4 +186,4 @@ GROUP BY
     adw.raw_ulica, adw.w1, adw.w2, adw.p1, adw.p2,
     lt.Name
 
-ORDER BY t.TrN_GIDNumer, lt.Name;
+-- ORDER BY usuniete — niedozwolone w definicji widoku SQL Server
