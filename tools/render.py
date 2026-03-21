@@ -62,7 +62,8 @@ STATUS_COLORS = {
 
 def fetch(view: str, bus: AgentBus, args: argparse.Namespace) -> list[dict]:
     if view == "backlog":
-        items = bus.get_backlog(status=getattr(args, "status", None))
+        status = getattr(args, "status", "planned")
+        items = bus.get_backlog(status=None if status == "all" else status)
         area = getattr(args, "area", None)
         if area:
             items = [i for i in items if i.get("area") in area]
@@ -367,10 +368,12 @@ def build_parser() -> argparse.ArgumentParser:
         p = sub.add_parser(view)
         p.add_argument("--format", required=True, choices=["md", "xlsx", "json"])
         p.add_argument("--output", default=None)
-        p.add_argument("--status", default=None)
         if view == "backlog":
+            p.add_argument("--status", default="planned",
+                           help="Filter by status (default: planned). Use 'all' to show everything.")
             p.add_argument("--area", nargs="+", default=None)
-        if view == "suggestions":
+        else:
+            p.add_argument("--status", default=None)
             p.add_argument("--author", default=None)
             p.add_argument("--type", default=None,
                            choices=["rule", "tool", "discovery", "observation"])

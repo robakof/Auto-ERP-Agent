@@ -61,6 +61,26 @@ class TestBacklogMd:
         assert r.returncode == 0
         assert "Fix bot" in out.read_text(encoding="utf-8")
 
+    def test_default_status_excludes_done(self, db):
+        path, tmp = db
+        bus = AgentBus(db_path=path)
+        item_id = bus.add_backlog_item("Done item", "gotowe", area="Dev", value="niska", effort="mala")
+        bus.update_backlog_status(item_id, "done")
+        out = tmp / "out_default.md"
+        r = run(["backlog", "--format", "md", "--output", str(out)], path)
+        assert r.returncode == 0
+        assert "Done item" not in out.read_text(encoding="utf-8")
+
+    def test_status_all_includes_done(self, db):
+        path, tmp = db
+        bus = AgentBus(db_path=path)
+        item_id = bus.add_backlog_item("Done item2", "gotowe", area="Dev", value="niska", effort="mala")
+        bus.update_backlog_status(item_id, "done")
+        out = tmp / "out_all.md"
+        r = run(["backlog", "--format", "md", "--status", "all", "--output", str(out)], path)
+        assert r.returncode == 0
+        assert "Done item2" in out.read_text(encoding="utf-8")
+
 
 class TestBacklogXlsx:
     def test_creates_xlsx(self, db):
