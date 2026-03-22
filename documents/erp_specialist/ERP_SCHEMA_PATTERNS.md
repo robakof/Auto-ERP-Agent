@@ -343,10 +343,38 @@ UPPER(MaN_CechaOpis) LIKE '%SEZON%'
 
 ### Operatorzy (CDN.OpeKarty)
 
+**UWAGA:** Kolumna `Ope_Kod` NIE ISTNIEJE — zwraca SQL_ERROR. Używaj `Ope_Ident` (login operatora).
+
 ```sql
-JOIN cdn.OpeKarty ON TrN_OpeNumerW = Ope_GIDNumer AND TrN_OpeTypW = Ope_GIDTyp
+LEFT JOIN CDN.OpeKarty ope ON ope.Ope_GIDNumer = [pole]OpeNumer
+-- Kolumna opisowa: Ope_Ident (login, np. "ADMIN", "JAN.KOWALSKI")
+
+-- W filtrze:
 WHERE Ope_Ident LIKE '%' + ??Wystawiajacy + '%'
 ```
+
+### Adresy kontrahentów (CDN.KntAdresy)
+
+Tabela `CDN.KntAdresy` — adresy dostawy kontrahentów.
+
+| GIDTyp | Nazwa | Opis |
+|--------|-------|------|
+| 864 | Adr | Adres podstawowy |
+| 896 | AdrAl | Adres inny |
+
+```sql
+LEFT JOIN CDN.KntAdresy kna
+    ON kna.KnA_GIDNumer = [pole]KnANumer
+   AND kna.KnA_GIDTyp   = [pole]KnATyp
+   AND [pole]KnANumer > 0
+```
+
+Kolumny opisowe:
+- `KnA_Akronim` — alias adresu (główna kolumna identyfikująca)
+- `KnA_Nazwa1` — nazwa firmy/odbiorcy
+- `KnA_Miasto`, `KnA_Ulica` — adres fizyczny
+
+Weryfikacja JOIN na `CDN.MagNag`: 167 232 = 167 232 (100%).
 
 ### Płatności (CDN.TraPlat)
 
