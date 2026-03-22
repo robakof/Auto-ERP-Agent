@@ -881,6 +881,16 @@
       ],
       "example_questions": [],
       "notes": ""
+    },
+    {
+      "name": "AIBI.MagNag",
+      "file": "views/MagNag.sql",
+      "description": "Nagłówki dokumentów magazynowych (PM, AWD, WM, ZWM) z pełnymi danymi kontrahenta, adresu dostawy, magazynów, operatorów, dokumentu źródłowego, zamówienia źródłowego i centrum. Typy dokumentów i stany przetłumaczone na etykiety PL.",
+      "primary_table": "CDN.MagNag",
+      "joins": ["CDN.KntKarty", "CDN.KntAdresy", "CDN.Magazyny", "CDN.OpeKarty", "CDN.FrmStruktura", "CDN.ZamNag"],
+      "columns": ["Typ_Dokumentu", "ID_Dokumentu", "Nr_Dokumentu", "Rok_Transakcji", "Miesiac_Transakcji", "Seria", "Typ_Dokumentu_Zrodlowego", "ID_Dokumentu_Zrodlowego", "Nr_Dokumentu_Zrodlowego", "ID_Magazynu_Transakcji", "Kod_Magazynu_Transakcji", "Nazwa_Magazynu_Transakcji", "Typ_Transakcji", "ID_Kontrahenta", "Akronim_Kontrahenta", "Nazwa_Kontrahenta", "ID_Adresu_Kontrahenta", "Akronim_Adresu_Kontrahenta", "ID_Operatora", "Akronim_Operatora", "Data_Wystawienia", "Stan_Dokumentu", "Status_Zlecenia", "ID_Magazynu_Docelowego", "Kod_Magazynu_Docelowego", "Nazwa_Magazynu_Docelowego", "ID_Centrum", "Nazwa_Centrum", "Cecha", "ID_Operatora_Modyfikujacego", "Akronim_Operatora_Modyfikujacego", "ID_Operatora_Realizujacego", "Akronim_Operatora_Realizujacego", "ID_Zamowienia", "Nr_Zamowienia", "DataCzas_Modyfikacji", "DataCzas_Od", "DataCzas_Do", "Data_Zatwierdzenia", "Realizacja_Procent", "Sposob_Dostawy", "Priorytet_Zlecenia", "Powiazanie_Zrodlowe", "Dokument_WMS"],
+      "example_questions": ["dokumenty magazynowe dla kontrahenta X", "przesunięcia MM w tym miesiącu", "niezatwierdzone dokumenty magazynowe", "przyjęcia z zamówienia ZZ-123", "wydania magazynowe z magazynu X", "jakie dokumenty źródłowe dla PM-123"],
+      "notes": "Typ_Dokumentu: PM=Przyjęcie magazynowe (1089), AWD=Awizo dostawy (1093), WM=Wydanie magazynowe (1601), ZWM=Zlecenie wydania (1605). Stan_Dokumentu: Bufor/Zatwierdzony/Anulowany. Typ_Transakcji: Zakup/Sprzedaż/Przesunięcie MM. CDN.KntAdresy JOIN 100% weryfikowany."
     }
   ]
 }
