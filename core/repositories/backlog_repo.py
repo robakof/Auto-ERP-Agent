@@ -129,11 +129,39 @@ class BacklogRepository(Repository[BacklogItem]):
         Raises:
             ValidationError: Jeśli nieprawidłowa wartość enuma w bazie
         """
+        # Graceful degradation: mapowanie wariantów kodowania (legacy data)
+        VALUE_ALIASES = {"średnia": "srednia", "�rednia": "srednia"}
+        EFFORT_ALIASES = {
+            "mała": "mala", "ma�a": "mala",
+            "średnia": "srednia", "�rednia": "srednia",
+            "duża": "duza", "du�a": "duza",
+        }
+
         try:
             area_enum = BacklogArea(row["area"]) if row["area"] else None
             status_enum = BacklogStatus(row["status"])
-            value_enum = BacklogValue(row["value"]) if row["value"] else None
-            effort_enum = BacklogEffort(row["effort"]) if row["effort"] else None
+
+            # Optional fields: graceful degradation dla nieprawidłowych wartości
+            value_raw = row["value"]
+            if value_raw:
+                value_normalized = VALUE_ALIASES.get(value_raw, value_raw)
+                try:
+                    value_enum = BacklogValue(value_normalized)
+                except ValueError:
+                    value_enum = None  # Unknown value - keep as None
+            else:
+                value_enum = None
+
+            effort_raw = row["effort"]
+            if effort_raw:
+                effort_normalized = EFFORT_ALIASES.get(effort_raw, effort_raw)
+                try:
+                    effort_enum = BacklogEffort(effort_normalized)
+                except ValueError:
+                    effort_enum = None  # Unknown effort - keep as None
+            else:
+                effort_enum = None
+
         except ValueError as e:
             raise ValidationError(f"Invalid enum value in database: {e}")
 

@@ -202,6 +202,8 @@ class BacklogArea(Enum):
     DEV = "Dev"
     ARCH = "Arch"
     ERP = "ERP"
+    PROMPT = "Prompt"
+    METODOLOG = "Metodolog"
 
 
 class BacklogStatus(Enum):
