@@ -226,37 +226,105 @@ class AgentBus:
         session_id: str = None,
     ) -> int:
         """Send a message from one role to another. Returns message id."""
+        from core.repositories.message_repo import MessageRepository
+        from core.entities.messaging import Message, MessageType
+
+        # Legacy API validation (backward compatible)
         if type not in ALLOWED_MESSAGE_TYPES:
             raise ValueError(f"Invalid message type '{type}'. Allowed: {sorted(ALLOWED_MESSAGE_TYPES)}")
-        cursor = self._conn.execute(
-            """INSERT INTO messages (sender, recipient, type, content, session_id)
-               VALUES (?, ?, ?, ?, ?)""",
-            (sender, recipient, type, content, session_id),
+
+        # Type mapping: legacy API → domain model
+        TYPE_MAP = {
+            "suggestion": MessageType.SUGGESTION,
+            "task": MessageType.TASK,
+            "info": MessageType.DIRECT,
+            "flag_human": MessageType.ESCALATION,
+        }
+
+        # Convert dict → entity
+        type_enum = TYPE_MAP.get(type, MessageType.DIRECT)  # Graceful default
+        message = Message(
+            sender=sender,
+            recipient=recipient,
+            content=content,
+            type=type_enum,
+            session_id=session_id
         )
-        self._auto_commit()
-        return cursor.lastrowid
+
+        # Save via repository (CRITICAL: pass connection for transaction support)
+        conn = self._conn if self._in_transaction else None
+        repo = MessageRepository(db_path=self._db_path, conn=conn)
+        saved = repo.save(message)
+
+        # Return ID (backward compatible)
+        return saved.id
 
     def get_inbox(self, role: str, status: str = "unread") -> list[dict]:
         """Get messages for a role filtered by status. Ordered by created_at ASC."""
-        rows = self._conn.execute(
-            """SELECT id, sender, recipient, type, content, status,
-                      session_id, created_at, read_at
-               FROM messages
-               WHERE recipient = ? AND status = ?
-               ORDER BY created_at ASC""",
-            (role, status),
-        ).fetchall()
-        return [dict(row) for row in rows]
+        from core.repositories.message_repo import MessageRepository
+        from core.entities.messaging import MessageStatus
+
+        # Query via repository (transaction support)
+        conn = self._conn if self._in_transaction else None
+        repo = MessageRepository(db_path=self._db_path, conn=conn)
+        messages = repo.find_by_recipient(recipient=role)
+
+        # Filter by status (str → enum)
+        status_enum = MessageStatus(status)
+        filtered = [m for m in messages if m.status == status_enum]
+
+        # Sort by created_at ASC (backward compatible)
+        filtered.sort(key=lambda m: m.created_at)
+
+        # Reverse mapping: domain model → legacy API (backward compatible)
+        TYPE_REVERSE_MAP = {
+            "direct": "info",  # MessageType.DIRECT → legacy "info"
+            "escalation": "flag_human",  # MessageType.ESCALATION → legacy "flag_human"
+            # "suggestion", "task" already match
+        }
+
+        # Convert entity → dict (backward compatible)
+        result = []
+        for m in filtered:
+            # Reverse map type dla backward compatibility
+            type_value = m.type.value
+            type_legacy = TYPE_REVERSE_MAP.get(type_value, type_value)
+
+            result.append({
+                "id": m.id,
+                "sender": m.sender,
+                "recipient": m.recipient,
+                "type": type_legacy,  # Reverse mapped to legacy API
+                "content": m.content,
+                "status": m.status.value,  # MessageStatus enum → str
+                "session_id": m.session_id,
+                "created_at": m.created_at.isoformat() if m.created_at else None,
+                "read_at": m.read_at.isoformat() if m.read_at else None,
+            })
+        return result
 
     def mark_read(self, message_id: int) -> None:
         """Mark a message as read and set read_at timestamp."""
-        self._conn.execute(
-            """UPDATE messages
-               SET status = 'read', read_at = datetime('now')
-               WHERE id = ?""",
-            (message_id,),
-        )
-        self._auto_commit()
+        from core.repositories.message_repo import MessageRepository
+
+        # Repository query (transaction support)
+        conn = self._conn if self._in_transaction else None
+        repo = MessageRepository(db_path=self._db_path, conn=conn)
+
+        # Get message
+        message = repo.get(message_id)
+        if not message:
+            return  # Silent failure (backward compatible)
+
+        # Call entity method (updates status + read_at)
+        try:
+            message.mark_read()
+        except Exception:
+            # If already read — graceful (backward compatible)
+            return
+
+        # Save updated message
+        repo.save(message)
 
     def archive_message(self, message_id: int) -> None:
         """Archive a message (status='archived')."""

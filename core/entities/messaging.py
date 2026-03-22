@@ -24,6 +24,7 @@ class MessageStatus(Enum):
     """Status wiadomości."""
     UNREAD = "unread"
     READ = "read"
+    ARCHIVED = "archived"
 
 
 class MessageType(Enum):

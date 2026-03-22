@@ -29,17 +29,28 @@ class MessageRepository(Repository[Message]):
         42
     """
 
-    def __init__(self, db_path: str = "mrowisko.db"):
+    def __init__(self, db_path: str = "mrowisko.db", conn: Optional[sqlite3.Connection] = None):
         """
         Args:
             db_path: Ścieżka do bazy SQLite (domyślnie mrowisko.db w root)
+            conn: Opcjonalne zewnętrzne połączenie (dla transaction support w AgentBus)
         """
-        self.db_path = db_path
-        self._ensure_table_exists()
+        self._db_path = db_path
+        self._external_conn = conn  # Shared connection from AgentBus transaction
+        # Tylko tworzymy tabelę gdy standalone mode (nie w transaction)
+        if not conn:
+            self._ensure_table_exists()
 
     def _get_connection(self) -> sqlite3.Connection:
-        """Tworzy połączenie z bazą danych."""
-        conn = sqlite3.connect(self.db_path)
+        """
+        Zwraca połączenie z bazą danych.
+
+        Jeśli repository ma zewnętrzne połączenie (transaction mode) — używa go.
+        W przeciwnym razie tworzy nowe połączenie (standalone mode).
+        """
+        if self._external_conn:
+            return self._external_conn
+        conn = sqlite3.connect(self._db_path)
         conn.row_factory = sqlite3.Row
         return conn
 
@@ -48,30 +59,45 @@ class MessageRepository(Repository[Message]):
         """
         Context manager dla połączenia z bazą danych.
 
-        Automatycznie:
-        - commituje transakcję przy sukcesie
-        - rollbackuje przy wyjątku
-        - zamyka połączenie
-        - tłumaczy wyjątki SQLite na domenowe
+        Transaction-aware:
+        - Jeśli repository ma external_conn (transaction mode):
+          używa go, NIE commituje, NIE zamyka (zarządza tym AgentBus)
+        - Jeśli standalone mode:
+          tworzy własne połączenie, commituje, zamyka
+
+        Error handling:
+        - IntegrityError → ValidationError
+        - OperationalError, DatabaseError → PersistenceError
+        - Rollback tylko w standalone mode
         """
         conn = self._get_connection()
+        shared_conn = (self._external_conn is not None)
+
         try:
             yield conn
-            conn.commit()
+            # Commit tylko jeśli standalone mode (nie transaction)
+            if not shared_conn:
+                conn.commit()
         except sqlite3.IntegrityError as e:
-            conn.rollback()
+            if not shared_conn:
+                conn.rollback()
             raise ValidationError(f"Integrity constraint violation: {e}")
         except sqlite3.OperationalError as e:
-            conn.rollback()
+            if not shared_conn:
+                conn.rollback()
             raise PersistenceError(f"Database operation failed: {e}")
         except sqlite3.DatabaseError as e:
-            conn.rollback()
+            if not shared_conn:
+                conn.rollback()
             raise PersistenceError(f"Database error: {e}")
         except Exception:
-            conn.rollback()
+            if not shared_conn:
+                conn.rollback()
             raise
         finally:
-            conn.close()
+            # Zamykamy tylko jeśli standalone mode
+            if not shared_conn:
+                conn.close()
 
     def _ensure_table_exists(self) -> None:
         """
