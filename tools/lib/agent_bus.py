@@ -511,24 +511,7 @@ class AgentBus:
 
     # --- Trace ---
 
-    def add_trace_event(self, session_id: str, tool_name: str, summary: str = None) -> int:
-        """Log a tool use event for a session."""
-        cursor = self._conn.execute(
-            "INSERT INTO trace (session_id, tool_name, summary) VALUES (?, ?, ?)",
-            (session_id, tool_name, summary),
-        )
-        self._conn.commit()
-        return cursor.lastrowid
-
-    def get_trace(self, session_id: str) -> list[dict]:
-        """Get all trace events for a session."""
-        rows = self._conn.execute(
-            "SELECT id, session_id, tool_name, summary, created_at FROM trace WHERE session_id = ? ORDER BY id",
-            (session_id,),
-        ).fetchall()
-        return [dict(row) for row in rows]
-
-    # --- Sessions / trace module ---
+    # --- Sessions module ---
 
     def upsert_session(
         self,
