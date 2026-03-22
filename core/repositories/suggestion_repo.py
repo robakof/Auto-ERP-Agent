@@ -5,13 +5,14 @@ Mapowanie między Suggestion (domain model) a tabela suggestions (SQLite).
 """
 
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime
 from typing import Optional, List
 from pathlib import Path
 
 from .base import Repository
 from ..entities.messaging import Suggestion, SuggestionStatus, SuggestionType
-from ..exceptions import NotFoundError, ValidationError
+from ..exceptions import NotFoundError, ValidationError, PersistenceError
 
 
 class SuggestionRepository(Repository[Suggestion]):
@@ -45,6 +46,41 @@ class SuggestionRepository(Repository[Suggestion]):
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row  # Pozwala na dostęp do kolumn po nazwie
         return conn
+
+    @contextmanager
+    def _connection(self):
+        """
+        Context manager dla połączenia z bazą danych.
+
+        Automatycznie:
+        - commituje transakcję przy sukcesie
+        - rollbackuje przy wyjątku
+        - zamyka połączenie
+        - tłumaczy wyjątki SQLite na domenowe
+
+        Example:
+            with self._connection() as conn:
+                conn.execute("INSERT INTO ...")
+                # Auto-commit on success
+        """
+        conn = self._get_connection()
+        try:
+            yield conn
+            conn.commit()
+        except sqlite3.IntegrityError as e:
+            conn.rollback()
+            raise ValidationError(f"Integrity constraint violation: {e}")
+        except sqlite3.OperationalError as e:
+            conn.rollback()
+            raise PersistenceError(f"Database operation failed: {e}")
+        except sqlite3.DatabaseError as e:
+            conn.rollback()
+            raise PersistenceError(f"Database error: {e}")
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
     def _ensure_table_exists(self) -> None:
         """
@@ -82,13 +118,22 @@ class SuggestionRepository(Repository[Suggestion]):
 
         Returns:
             Suggestion z danymi z DB
+
+        Raises:
+            ValidationError: Jeśli nieprawidłowa wartość enuma w bazie
         """
+        try:
+            type_enum = SuggestionType(row["type"])
+            status_enum = SuggestionStatus(row["status"])
+        except ValueError as e:
+            raise ValidationError(f"Invalid enum value in database: {e}")
+
         return Suggestion(
             author=row["author"],
             content=row["content"],
             title=row["title"],
-            type=SuggestionType(row["type"]),
-            status=SuggestionStatus(row["status"]),
+            type=type_enum,
+            status=status_enum,
             backlog_id=row["backlog_id"],
             session_id=row["session_id"],
             id=row["id"],
@@ -126,8 +171,7 @@ class SuggestionRepository(Repository[Suggestion]):
         Returns:
             Suggestion jeśli istnieje, None jeśli nie znaleziono
         """
-        conn = self._get_connection()
-        try:
+        with self._connection() as conn:
             cursor = conn.execute(
                 """SELECT id, author, recipients, title, content, type, status, backlog_id,
                           session_id, created_at
@@ -137,8 +181,6 @@ class SuggestionRepository(Repository[Suggestion]):
             )
             row = cursor.fetchone()
             return self._row_to_entity(row) if row else None
-        finally:
-            conn.close()
 
     def save(self, entity: Suggestion) -> Suggestion:
         """
@@ -160,11 +202,9 @@ class SuggestionRepository(Repository[Suggestion]):
             raise ValidationError("Suggestion must have author and content")
 
         if not entity.title:
-            # Auto-generate title z pierwszych 80 znaków contentu
-            entity.title = entity.content[:80].split("\n")[0]
+            raise ValidationError("Suggestion must have a title (auto-generated in __post_init__)")
 
-        conn = self._get_connection()
-        try:
+        with self._connection() as conn:
             row_data = self._entity_to_row(entity)
 
             if entity.is_persisted():
@@ -189,10 +229,7 @@ class SuggestionRepository(Repository[Suggestion]):
                 )
                 entity.id = cursor.lastrowid
 
-            conn.commit()
             return entity
-        finally:
-            conn.close()
 
     def delete(self, id: int) -> bool:
         """
@@ -204,13 +241,23 @@ class SuggestionRepository(Repository[Suggestion]):
         Returns:
             True jeśli usunięto, False jeśli sugestia nie istniała
         """
-        conn = self._get_connection()
-        try:
+        with self._connection() as conn:
             cursor = conn.execute("DELETE FROM suggestions WHERE id = ?", (id,))
-            conn.commit()
             return cursor.rowcount > 0
-        finally:
-            conn.close()
+
+    def exists(self, id: int) -> bool:
+        """
+        Sprawdza czy Suggestion o podanym ID istnieje.
+
+        Args:
+            id: ID sugestii
+
+        Returns:
+            True jeśli sugestia istnieje, False jeśli nie
+        """
+        with self._connection() as conn:
+            cursor = conn.execute("SELECT 1 FROM suggestions WHERE id = ? LIMIT 1", (id,))
+            return cursor.fetchone() is not None
 
     def find_all(self) -> List[Suggestion]:
         """
@@ -222,8 +269,7 @@ class SuggestionRepository(Repository[Suggestion]):
         Note:
             Może zwrócić tysiące rekordów — używaj ostrożnie
         """
-        conn = self._get_connection()
-        try:
+        with self._connection() as conn:
             cursor = conn.execute(
                 """SELECT id, author, recipients, title, content, type, status, backlog_id,
                           session_id, created_at
@@ -231,8 +277,28 @@ class SuggestionRepository(Repository[Suggestion]):
                    ORDER BY created_at DESC, id DESC"""
             )
             return [self._row_to_entity(row) for row in cursor.fetchall()]
-        finally:
-            conn.close()
+
+    def _find_by(self, field: str, value) -> List[Suggestion]:
+        """
+        Generic query method dla prostych WHERE field = value.
+
+        Args:
+            field: Nazwa kolumny (np. "status", "author", "type")
+            value: Wartość do filtrowania
+
+        Returns:
+            Lista Suggestion spełniających warunek
+        """
+        with self._connection() as conn:
+            cursor = conn.execute(
+                f"""SELECT id, author, recipients, title, content, type, status, backlog_id,
+                           session_id, created_at
+                    FROM suggestions
+                    WHERE {field} = ?
+                    ORDER BY created_at DESC, id DESC""",
+                (value,)
+            )
+            return [self._row_to_entity(row) for row in cursor.fetchall()]
 
     def find_by_status(self, status: SuggestionStatus) -> List[Suggestion]:
         """
@@ -244,19 +310,7 @@ class SuggestionRepository(Repository[Suggestion]):
         Returns:
             Lista Suggestion o podanym statusie
         """
-        conn = self._get_connection()
-        try:
-            cursor = conn.execute(
-                """SELECT id, author, recipients, title, content, type, status, backlog_id,
-                          session_id, created_at
-                   FROM suggestions
-                   WHERE status = ?
-                   ORDER BY created_at DESC, id DESC""",
-                (status.value,)
-            )
-            return [self._row_to_entity(row) for row in cursor.fetchall()]
-        finally:
-            conn.close()
+        return self._find_by("status", status.value)
 
     def find_by_author(self, author: str) -> List[Suggestion]:
         """
@@ -268,19 +322,7 @@ class SuggestionRepository(Repository[Suggestion]):
         Returns:
             Lista Suggestion od podanego autora
         """
-        conn = self._get_connection()
-        try:
-            cursor = conn.execute(
-                """SELECT id, author, recipients, title, content, type, status, backlog_id,
-                          session_id, created_at
-                   FROM suggestions
-                   WHERE author = ?
-                   ORDER BY created_at DESC, id DESC""",
-                (author,)
-            )
-            return [self._row_to_entity(row) for row in cursor.fetchall()]
-        finally:
-            conn.close()
+        return self._find_by("author", author)
 
     def find_by_type(self, type: SuggestionType) -> List[Suggestion]:
         """
@@ -292,16 +334,4 @@ class SuggestionRepository(Repository[Suggestion]):
         Returns:
             Lista Suggestion o podanym typie
         """
-        conn = self._get_connection()
-        try:
-            cursor = conn.execute(
-                """SELECT id, author, recipients, title, content, type, status, backlog_id,
-                          session_id, created_at
-                   FROM suggestions
-                   WHERE type = ?
-                   ORDER BY created_at DESC, id DESC""",
-                (type.value,)
-            )
-            return [self._row_to_entity(row) for row in cursor.fetchall()]
-        finally:
-            conn.close()
+        return self._find_by("type", type.value)

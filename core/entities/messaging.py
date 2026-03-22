@@ -122,7 +122,7 @@ class Suggestion(Entity):
     Attributes:
         author: Rola autora (np. "erp_specialist")
         content: Treść sugestii
-        title: Krótki tytuł (opcjonalnie)
+        title: Krótki tytuł (opcjonalnie, auto-generowany z content jeśli pusty)
         type: Typ sugestii
         status: Status (open/implemented/rejected/deferred)
         backlog_id: ID powiązanego zadania w backlogu (jeśli wdrożone)
@@ -147,6 +147,11 @@ class Suggestion(Entity):
     status: SuggestionStatus = SuggestionStatus.OPEN
     backlog_id: Optional[int] = None
     session_id: Optional[str] = None
+
+    def __post_init__(self):
+        """Auto-generuje title z contentu jeśli nie podano."""
+        if not self.title and self.content:
+            self.title = self.content[:80].split("\n")[0]
 
     def implement(self, backlog_id: Optional[int] = None) -> None:
         """

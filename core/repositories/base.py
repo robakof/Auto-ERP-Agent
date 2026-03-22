@@ -95,3 +95,19 @@ class Repository(ABC, Generic[T]):
             Używaj ostrożnie — może zwrócić tysiące rekordów
         """
         pass
+
+    @abstractmethod
+    def exists(self, id: int) -> bool:
+        """
+        Sprawdza czy encja o podanym ID istnieje.
+
+        Args:
+            id: Identyfikator encji
+
+        Returns:
+            True jeśli encja istnieje, False jeśli nie
+
+        Note:
+            Szybsza niż get() — nie deserializuje całej encji
+        """
+        pass

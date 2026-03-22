@@ -50,3 +50,14 @@ class ValidationError(DomainError):
         ValidationError: Title cannot be empty
     """
     pass
+
+
+class PersistenceError(DomainError):
+    """
+    Błąd persystencji (zapis/odczyt z bazy danych).
+
+    Przykład:
+        >>> repo.save(entity)  # raises PersistenceError
+        PersistenceError: Database operation failed: database is locked
+    """
+    pass
