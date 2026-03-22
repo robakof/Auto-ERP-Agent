@@ -67,7 +67,7 @@ Dodać do PROMPT_ENGINEER.md zasadę przy projektowaniu nowej roli:
 - Nie pisać szczegółowych kroków workflow zanim nie zobaczymy jak rola działa w praktyce
 - Workflow nabudowywać iteracyjnie na podstawie rzeczywistych sesji i failure modes
 
----
+---1
 
 ### #83 — Self-reported violation = analiza compliance, nie tool request
 **Typ:** rule

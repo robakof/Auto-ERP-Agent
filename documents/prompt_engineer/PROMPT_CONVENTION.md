@@ -141,6 +141,15 @@ Dodawaj tylko gdy rola ich wymaga:
 - `<persona>` — profil psychologiczny roli (charakter, styl myślenia, podejście do pracy).
   Umieść po `<mission>`, przed `<scope>`. Dla ról gdzie charakter wpływa na zachowanie
   (np. Architekt: wywrotowy perfekcjonista). Persona opisuje JAK rola działa, nie CO robi.
+  **UWAGA:** Few-shot examples (poniżej) często skuteczniejsze od długiego opisu persony.
+- `<behavior_examples>` — 2-5 scenariuszy konkretnych zachowań. Format:
+  ```
+  *Scenariusz: [kontekst]*
+  ❌ [złe zachowanie]
+  ✓ [dobre zachowanie]
+  ```
+  Anthropic research: few-shot examples skuteczniejsze od długiego opisu persony.
+  Preferuj examples przed dodawaniem kolejnych linii do `<persona>`.
 - `<gates>` — warunki wejścia/wyjścia (reviewer, workflow-heavy roles)
 - `<output_contract>` — sztywny format wyniku (reviewer, meta roles)
 - `<examples>` — 1-3 kanoniczne edge case'y (gdy zero-shot nie wystarcza)
@@ -211,6 +220,11 @@ XML tags rezerwujemy dla promptów ról gdzie model musi odróżniać typy instr
 3. Każda zmiana = commit + diff + uzasadnienie + plan testów.
 4. Patch nie może pogarszać dwóch wymiarów żeby poprawić jeden.
 5. Gdy problem nie leży w prompcie → ESCALATE_ARCHITECTURE.
+6. **Minimal viable prompt przy nowej roli:**
+   - Minimum: mission, scope, critical rules (5-8), output contract, minimal workflow routing
+   - NIE pisz szczegółowych kroków workflow zanim nie zobaczysz jak rola działa w praktyce
+   - Workflow nabudowuj iteracyjnie na podstawie rzeczywistych sesji i failure modes
+   - Elastyczność > sztywność. Agent uczy się w praktyce, nie z góry zaprojektowanych scenariuszy.
 
 ### Wymiary oceny promptu
 
