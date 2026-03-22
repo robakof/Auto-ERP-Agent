@@ -10,16 +10,20 @@ Usage:
 """
 
 import argparse
-import json
 import sys
 from pathlib import Path
-
-import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.lib.agent_bus import AgentBus
+from tools.lib.renderers import (
+    render_json,
+    render_md,
+    render_backlog_md,
+    render_suggestions_md,
+    render_xlsx,
+    render_session_trace_xlsx,
+)
 
 DB_PATH = "mrowisko.db"
 
@@ -46,16 +50,6 @@ VIEWS = {
         "title": "Messages",
         "columns": ["id", "sender", "recipient", "type", "content", "status", "created_at", "read_at"],
     },
-}
-
-SESSION_TRACE_TOOL_COLUMNS = ["id", "tool_name", "input_summary", "is_error", "tokens_out", "timestamp"]
-SESSION_TRACE_TOKEN_COLUMNS = ["turn_index", "input_tokens", "output_tokens", "cache_read_tokens", "cache_create_tokens", "duration_ms", "timestamp"]
-
-VALUE_COLORS = {"wysoka": "C6EFCE", "srednia": "FFEB9C", "niska": "FFC7CE"}
-STATUS_COLORS = {
-    "planned": "FFFFFF", "in_progress": "FFEB9C", "done": "C6EFCE", "cancelled": "F2F2F2", "deferred": "DCE6F1",
-    "open": "FFFFFF", "in_backlog": "FFEB9C", "implemented": "C6EFCE", "rejected": "FFC7CE",
-    "unread": "FFFFFF", "read": "F2F2F2", "archived": "F2F2F2",
 }
 
 # --- Data fetch ---
@@ -92,270 +86,6 @@ def fetch(view: str, bus: AgentBus, args: argparse.Namespace) -> list[dict]:
             limit=getattr(args, "limit", 200),
         )
     return []
-
-# --- Renderers ---
-
-def render_json(data: list[dict], title: str, output: Path) -> None:
-    payload = {"title": title, "data": data, "count": len(data)}
-    output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-
-
-def render_backlog_md(data: list[dict], title: str, output: Path) -> None:
-    """Backlog md: summary tables grouped by effort/value, then detailed sections."""
-    from datetime import date
-    today = date.today().strftime("%Y-%m-%d")
-    lines = [f"# {title} — {today}\n", f"*{len(data)} pozycji*\n", "---\n"]
-
-    def table_rows(items):
-        rows = ["| id | tytuł | obszar | wartość | effort |",
-                "|----|-------|--------|---------|--------|"]
-        for r in items:
-            rows.append(f"| {r.get('id','')} | {r.get('title','')} | {r.get('area','')} | {r.get('value','')} | {r.get('effort','')} |")
-        return rows
-
-    groups = [
-        ("Szybkie strzały (wysoka wartość, mała praca)",
-         [r for r in data if r.get("value") == "wysoka" and r.get("effort") == "mala"]),
-        ("Wysoka wartość, średnia praca",
-         [r for r in data if r.get("value") == "wysoka" and r.get("effort") == "srednia"]),
-        ("Wysoka wartość, duża praca",
-         [r for r in data if r.get("value") == "wysoka" and r.get("effort") == "duza"]),
-        ("Średnia wartość, mała praca",
-         [r for r in data if r.get("value") == "srednia" and r.get("effort") == "mala"]),
-        ("Średnia wartość, średnia/duża praca",
-         [r for r in data if r.get("value") == "srednia" and r.get("effort") in ("srednia", "duza")]),
-        ("Pozostałe",
-         [r for r in data if r.get("value") not in ("wysoka", "srednia") or r.get("effort") not in ("mala", "srednia", "duza")]),
-    ]
-
-    for heading, items in groups:
-        if not items:
-            continue
-        lines.append(f"## {heading}\n")
-        lines.extend(table_rows(items))
-        lines.append("")
-
-    lines.append("---\n")
-    lines.append("## Szczegóły\n")
-
-    for row in data:
-        item_id = row.get("id")
-        item_title = row.get("title", "")
-        lines.append(f"### [{item_id}] {item_title}")
-        meta = []
-        for col in ["area", "value", "effort", "status", "created_at"]:
-            val = row.get(col)
-            if val:
-                if col == "created_at":
-                    val = str(val)[:10]
-                meta.append(f"**{col}:** {val}")
-        if meta:
-            lines.append("  ".join(meta))
-        content = (row.get("content") or "").strip()
-        if content:
-            lines.append(f"\n{content}")
-        lines.append("")
-
-    output.write_text("\n".join(lines), encoding="utf-8")
-
-
-def render_suggestions_md(data: list[dict], title: str, output: Path) -> None:
-    """Suggestions md: table at top (grouped by type), full content sections below."""
-    from datetime import date
-    today = date.today().strftime("%Y-%m-%d")
-    lines = [f"# {title} — {today}\n", f"*{len(data)} sugestii*\n", "---\n"]
-
-    TYPE_ORDER = ["rule", "tool", "discovery", "observation"]
-    TYPE_LABELS = {
-        "rule": "Zasady (rule)",
-        "tool": "Narzędzia (tool)",
-        "discovery": "Odkrycia (discovery)",
-        "observation": "Obserwacje (observation)",
-    }
-
-    def table_rows(items):
-        rows = [
-            "| id | autor | tytuł | status | data |",
-            "|----|-------|-------|--------|------|",
-        ]
-        for r in items:
-            date_val = str(r.get("created_at", ""))[:10]
-            rows.append(
-                f"| {r.get('id','')} | {r.get('author','')} "
-                f"| {r.get('title','')} | {r.get('status','')} | {date_val} |"
-            )
-        return rows
-
-    grouped = {t: [r for r in data if r.get("type") == t] for t in TYPE_ORDER}
-    other = [r for r in data if r.get("type") not in TYPE_ORDER]
-    if other:
-        grouped["observation"] = grouped.get("observation", []) + other
-
-    for type_key in TYPE_ORDER:
-        items = grouped.get(type_key, [])
-        if not items:
-            continue
-        lines.append(f"## {TYPE_LABELS[type_key]}\n")
-        lines.extend(table_rows(items))
-        lines.append("")
-
-    lines.append("---\n")
-    lines.append("## Treści\n")
-
-    for type_key in TYPE_ORDER:
-        items = grouped.get(type_key, [])
-        if not items:
-            continue
-        lines.append(f"### {TYPE_LABELS[type_key]}\n")
-        for row in items:
-            sid = row.get("id")
-            stitle = row.get("title") or ""
-            author = row.get("author", "")
-            status = row.get("status", "")
-            date_val = str(row.get("created_at", ""))[:10]
-            lines.append(f"#### [{sid}] {stitle}")
-            lines.append(f"**autor:** {author}  **status:** {status}  **data:** {date_val}")
-            content = (row.get("content") or "").strip()
-            if content:
-                lines.append(f"\n{content}")
-            lines.append("")
-
-    output.write_text("\n".join(lines), encoding="utf-8")
-
-
-def render_md(data: list[dict], columns: list[str], title: str, output: Path) -> None:
-    """Human-readable md: each item as a section with metadata + content (if present)."""
-    META_COLS = ["id", "area", "value", "effort", "status", "created_at", "sender", "author", "role"]
-    CONTENT_COLS = ["content", "title"]
-
-    lines = [f"# {title} — {len(data)} pozycji\n"]
-    for row in data:
-        item_title = str(row.get("title") or row.get("id") or "")
-        item_id = row.get("id")
-        heading = f"## [{item_id}] {item_title}" if item_id and item_title and item_title != str(item_id) else f"## {item_title or item_id}"
-        lines.append(heading)
-
-        meta = []
-        for col in META_COLS:
-            if col in columns and row.get(col) is not None:
-                val = str(row[col])
-                if col == "created_at":
-                    val = val[:10]
-                meta.append(f"**{col}:** {val}")
-        if meta:
-            lines.append("  ".join(meta))
-
-        content = row.get("content") or ""
-        if content and "content" not in columns:
-            lines.append(f"\n{content.strip()}")
-        elif content:
-            lines.append(f"\n{content.strip()}")
-
-        lines.append("\n---\n")
-
-    output.write_text("\n".join(lines), encoding="utf-8")
-
-
-def render_xlsx(data: list[dict], columns: list[str], title: str, output: Path) -> None:
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = title[:31]
-
-    header_fill = PatternFill("solid", fgColor="2D6A9F")
-    header_font = Font(bold=True, color="FFFFFF")
-    for col, name in enumerate(columns, 1):
-        cell = ws.cell(row=1, column=col, value=name.upper())
-        cell.fill = header_fill
-        cell.font = header_font
-        cell.alignment = Alignment(horizontal="center")
-
-    for row_idx, item in enumerate(data, 2):
-        for col_idx, col in enumerate(columns, 1):
-            val = item.get(col)
-            if col == "created_at" and val:
-                val = val[:10]
-            cell = ws.cell(row=row_idx, column=col_idx, value=val)
-            if col == "value" and val in VALUE_COLORS:
-                cell.fill = PatternFill("solid", fgColor=VALUE_COLORS[val])
-            if col == "status" and val in STATUS_COLORS:
-                cell.fill = PatternFill("solid", fgColor=STATUS_COLORS[val])
-
-    for col_idx, col in enumerate(columns, 1):
-        letter = openpyxl.utils.get_column_letter(col_idx)
-        ws.column_dimensions[letter].width = 60 if col in ("title", "content") else 14
-
-    ws.auto_filter.ref = f"A1:{openpyxl.utils.get_column_letter(len(columns))}{len(data)+1}"
-    wb.save(str(output))
-
-
-def render_session_trace_xlsx(trace: dict, output: Path) -> None:
-    """Render session trace as multi-sheet XLSX: Summary, ToolCalls, TokenUsage."""
-    wb = openpyxl.Workbook()
-    header_fill = PatternFill("solid", fgColor="2D6A9F")
-    header_font = Font(bold=True, color="FFFFFF")
-    error_fill = PatternFill("solid", fgColor="FFC7CE")
-
-    def write_header(ws, columns):
-        for col, name in enumerate(columns, 1):
-            cell = ws.cell(row=1, column=col, value=name.upper())
-            cell.fill = header_fill
-            cell.font = header_font
-            cell.alignment = Alignment(horizontal="center")
-
-    # Sheet 1: Summary
-    ws_sum = wb.active
-    ws_sum.title = "Summary"
-    session = trace["session"]
-    tool_calls = trace["tool_calls"]
-    token_usage = trace["token_usage"]
-    total_input = sum(t.get("input_tokens") or 0 for t in token_usage)
-    total_output = sum(t.get("output_tokens") or 0 for t in token_usage)
-    total_cache = sum(t.get("cache_read_tokens") or 0 for t in token_usage)
-    total_duration = sum(t.get("duration_ms") or 0 for t in token_usage)
-    error_count = sum(1 for tc in tool_calls if tc.get("is_error"))
-    summary_rows = [
-        ("session_id", session.get("id")),
-        ("claude_session_id", session.get("claude_session_id")),
-        ("role", session.get("role")),
-        ("started_at", session.get("started_at")),
-        ("ended_at", session.get("ended_at")),
-        ("transcript_path", session.get("transcript_path")),
-        ("tool_calls_total", len(tool_calls)),
-        ("tool_calls_errors", error_count),
-        ("turns_total", len(token_usage)),
-        ("input_tokens_total", total_input),
-        ("output_tokens_total", total_output),
-        ("cache_read_tokens_total", total_cache),
-        ("duration_ms_total", total_duration),
-    ]
-    write_header(ws_sum, ["metric", "value"])
-    for row_idx, (metric, value) in enumerate(summary_rows, 2):
-        ws_sum.cell(row=row_idx, column=1, value=metric)
-        ws_sum.cell(row=row_idx, column=2, value=value)
-    ws_sum.column_dimensions["A"].width = 30
-    ws_sum.column_dimensions["B"].width = 60
-
-    # Sheet 2: ToolCalls
-    ws_tc = wb.create_sheet("ToolCalls")
-    write_header(ws_tc, SESSION_TRACE_TOOL_COLUMNS)
-    for row_idx, tc in enumerate(tool_calls, 2):
-        for col_idx, col in enumerate(SESSION_TRACE_TOOL_COLUMNS, 1):
-            cell = ws_tc.cell(row=row_idx, column=col_idx, value=tc.get(col))
-            if col == "is_error" and tc.get("is_error"):
-                cell.fill = error_fill
-    ws_tc.column_dimensions["B"].width = 20
-    ws_tc.column_dimensions["C"].width = 60
-    ws_tc.auto_filter.ref = f"A1:{openpyxl.utils.get_column_letter(len(SESSION_TRACE_TOOL_COLUMNS))}{len(tool_calls)+1}"
-
-    # Sheet 3: TokenUsage
-    ws_tu = wb.create_sheet("TokenUsage")
-    write_header(ws_tu, SESSION_TRACE_TOKEN_COLUMNS)
-    for row_idx, tu in enumerate(token_usage, 2):
-        for col_idx, col in enumerate(SESSION_TRACE_TOKEN_COLUMNS, 1):
-            ws_tu.cell(row=row_idx, column=col_idx, value=tu.get(col))
-    ws_tu.auto_filter.ref = f"A1:{openpyxl.utils.get_column_letter(len(SESSION_TRACE_TOKEN_COLUMNS))}{len(token_usage)+1}"
-
-    wb.save(str(output))
 
 # --- CLI ---
 
