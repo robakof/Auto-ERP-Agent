@@ -32,6 +32,26 @@ def _read_content(args: argparse.Namespace) -> str:
     return args.content
 
 
+def _bulk_json_processor(file_path: str, handler) -> list:
+    """Process JSON array file with handler function.
+
+    Reads JSON array from file and applies handler to each item.
+
+    Args:
+        file_path: Path to JSON file containing array of items
+        handler: Function that processes each item and returns a result
+
+    Returns:
+        List of results from handler calls
+    """
+    items = json.loads(Path(file_path).read_text(encoding="utf-8"))
+    results = []
+    for item in items:
+        result = handler(item)
+        results.append(result)
+    return results
+
+
 def cmd_send(args: argparse.Namespace, bus: AgentBus) -> dict:
     msg_id = bus.send_message(
         sender=args.sender,
@@ -125,16 +145,12 @@ def cmd_suggest_status(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 
 def cmd_suggest_status_bulk(args: argparse.Namespace, bus: AgentBus) -> dict:
-    import json as _json
-    updates = _json.loads(Path(args.file).read_text(encoding="utf-8"))
-    updated = 0
-    for item in updates:
-        item_id = item["id"]
-        status = item["status"]
-        backlog_id = item.get("backlog_id")
-        bus.update_suggestion_status(item_id, status, backlog_id=backlog_id)
-        updated += 1
-    return {"ok": True, "updated": updated}
+    def handler(item):
+        bus.update_suggestion_status(item["id"], item["status"], backlog_id=item.get("backlog_id"))
+        return item["id"]
+
+    results = _bulk_json_processor(args.file, handler)
+    return {"ok": True, "updated": len(results)}
 
 
 def cmd_mark_read(args: argparse.Namespace, bus: AgentBus) -> dict:
@@ -159,11 +175,8 @@ def cmd_backlog_add(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 
 def cmd_backlog_add_bulk(args: argparse.Namespace, bus: AgentBus) -> dict:
-    import json as _json
-    items = _json.loads(Path(args.file).read_text(encoding="utf-8"))
-    ids = []
-    for item in items:
-        bid = bus.add_backlog_item(
+    def handler(item):
+        return bus.add_backlog_item(
             title=item["title"],
             content=item.get("content", ""),
             area=item.get("area"),
@@ -171,7 +184,8 @@ def cmd_backlog_add_bulk(args: argparse.Namespace, bus: AgentBus) -> dict:
             effort=item.get("effort"),
             source_id=item.get("source_id"),
         )
-        ids.append(bid)
+
+    ids = _bulk_json_processor(args.file, handler)
     return {"ok": True, "ids": ids, "count": len(ids)}
 
 
@@ -189,17 +203,15 @@ def cmd_backlog_update(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 
 def cmd_backlog_update_bulk(args: argparse.Namespace, bus: AgentBus) -> dict:
-    import json as _json
-    updates = _json.loads(Path(args.file).read_text(encoding="utf-8"))
-    updated = 0
-    for item in updates:
-        item_id = item["id"]
+    def handler(item):
         if "status" in item:
-            bus.update_backlog_status(item_id, item["status"])
+            bus.update_backlog_status(item["id"], item["status"])
         if "content" in item:
-            bus.update_backlog_content(item_id, item["content"])
-        updated += 1
-    return {"ok": True, "updated": updated}
+            bus.update_backlog_content(item["id"], item["content"])
+        return item["id"]
+
+    results = _bulk_json_processor(args.file, handler)
+    return {"ok": True, "updated": len(results)}
 
 
 def cmd_log(args: argparse.Namespace, bus: AgentBus) -> dict:
