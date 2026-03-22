@@ -5,6 +5,7 @@ Mapowanie między Suggestion (domain model) a tabela suggestions (SQLite).
 """
 
 import sqlite3
+import json
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Optional, List
@@ -128,12 +129,21 @@ class SuggestionRepository(Repository[Suggestion]):
         except ValueError as e:
             raise ValidationError(f"Invalid enum value in database: {e}")
 
+        # Deserialize recipients from JSON
+        recipients = None
+        if row["recipients"]:
+            try:
+                recipients = json.loads(row["recipients"])
+            except (json.JSONDecodeError, TypeError):
+                recipients = None
+
         return Suggestion(
             author=row["author"],
             content=row["content"],
             title=row["title"],
             type=type_enum,
             status=status_enum,
+            recipients=recipients,
             backlog_id=row["backlog_id"],
             session_id=row["session_id"],
             id=row["id"],
@@ -150,8 +160,14 @@ class SuggestionRepository(Repository[Suggestion]):
         Returns:
             Dict z danymi gotowymi do INSERT/UPDATE
         """
+        # Serialize recipients to JSON
+        recipients_json = None
+        if entity.recipients:
+            recipients_json = json.dumps(entity.recipients, ensure_ascii=False)
+
         return {
             "author": entity.author,
+            "recipients": recipients_json,
             "title": entity.title,
             "content": entity.content,
             "type": entity.type.value,
@@ -211,21 +227,21 @@ class SuggestionRepository(Repository[Suggestion]):
                 # UPDATE
                 conn.execute(
                     """UPDATE suggestions
-                       SET author = ?, title = ?, content = ?, type = ?, status = ?,
-                           backlog_id = ?, session_id = ?
+                       SET author = ?, recipients = ?, title = ?, content = ?, type = ?,
+                           status = ?, backlog_id = ?, session_id = ?
                        WHERE id = ?""",
-                    (row_data["author"], row_data["title"], row_data["content"],
-                     row_data["type"], row_data["status"], row_data["backlog_id"],
-                     row_data["session_id"], entity.id)
+                    (row_data["author"], row_data["recipients"], row_data["title"],
+                     row_data["content"], row_data["type"], row_data["status"],
+                     row_data["backlog_id"], row_data["session_id"], entity.id)
                 )
             else:
                 # INSERT
                 cursor = conn.execute(
-                    """INSERT INTO suggestions (author, title, content, type, status, backlog_id, session_id, created_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (row_data["author"], row_data["title"], row_data["content"],
-                     row_data["type"], row_data["status"], row_data["backlog_id"],
-                     row_data["session_id"], row_data["created_at"])
+                    """INSERT INTO suggestions (author, recipients, title, content, type, status, backlog_id, session_id, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (row_data["author"], row_data["recipients"], row_data["title"],
+                     row_data["content"], row_data["type"], row_data["status"],
+                     row_data["backlog_id"], row_data["session_id"], row_data["created_at"])
                 )
                 entity.id = cursor.lastrowid
 

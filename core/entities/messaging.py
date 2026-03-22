@@ -125,6 +125,7 @@ class Suggestion(Entity):
         title: Krótki tytuł (opcjonalnie, auto-generowany z content jeśli pusty)
         type: Typ sugestii
         status: Status (open/implemented/rejected/deferred)
+        recipients: Lista ról do których skierowana sugestia (opcjonalnie)
         backlog_id: ID powiązanego zadania w backlogu (jeśli wdrożone)
         session_id: ID sesji w której powstała sugestia
 
@@ -145,6 +146,7 @@ class Suggestion(Entity):
     title: str = ""
     type: SuggestionType = SuggestionType.OBSERVATION
     status: SuggestionStatus = SuggestionStatus.OPEN
+    recipients: Optional[list[str]] = None
     backlog_id: Optional[int] = None
     session_id: Optional[str] = None
 

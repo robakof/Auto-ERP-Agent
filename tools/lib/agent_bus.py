@@ -279,17 +279,34 @@ class AgentBus:
         recipients: list[str] = None,
         session_id: str = None,
     ) -> int:
-        """Add a suggestion from an agent. Returns suggestion id."""
-        recipients_json = json.dumps(recipients, ensure_ascii=False) if recipients else None
-        if not title:
-            title = content[:80].split("\n")[0]
-        cursor = self._conn.execute(
-            """INSERT INTO suggestions (author, recipients, title, content, type, session_id)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (author, recipients_json, title, content, type, session_id),
+        """Add a suggestion from an agent. Returns suggestion id.
+
+        NOTE: Delegates to SuggestionRepository (M3 adapter pattern).
+        """
+        from core.repositories.suggestion_repo import SuggestionRepository
+        from core.entities.messaging import Suggestion, SuggestionType
+
+        # Convert string type to enum (backward compatibility)
+        try:
+            type_enum = SuggestionType(type)
+        except ValueError:
+            type_enum = SuggestionType.OBSERVATION
+
+        # Create entity (title auto-generated in __post_init__ if empty)
+        suggestion = Suggestion(
+            author=author,
+            content=content,
+            title=title,
+            type=type_enum,
+            recipients=recipients,
+            session_id=session_id
         )
-        self._auto_commit()
-        return cursor.lastrowid
+
+        # Save via repository
+        repo = SuggestionRepository(db_path=self._db_path)
+        saved = repo.save(suggestion)
+
+        return saved.id
 
     def get_suggestions(
         self,
@@ -297,33 +314,46 @@ class AgentBus:
         author: str = None,
         type: str = None,
     ) -> list[dict]:
-        """Get suggestions. Newest first. Optional status, author, type filters."""
-        conditions = []
-        params = []
-        if status:
-            conditions.append("status = ?")
-            params.append(status)
-        if author:
-            conditions.append("author = ?")
-            params.append(author)
-        if type:
-            conditions.append("type = ?")
-            params.append(type)
-        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-        rows = self._conn.execute(
-            f"""SELECT id, author, recipients, title, content, type, status, backlog_id,
-                       session_id, created_at
-                FROM suggestions
-                {where}
-                ORDER BY created_at DESC, id DESC""",
-            params,
-        ).fetchall()
+        """Get suggestions. Newest first. Optional status, author, type filters.
+
+        NOTE: Delegates to SuggestionRepository (M3 adapter pattern).
+        """
+        from core.repositories.suggestion_repo import SuggestionRepository
+        from core.entities.messaging import SuggestionStatus, SuggestionType
+
+        repo = SuggestionRepository(db_path=self._db_path)
+
+        # Query based on filters
+        if status and author and type:
+            # Multiple filters - use find_all and filter manually (TODO: optimize with composite query)
+            suggestions = repo.find_all()
+            suggestions = [s for s in suggestions if s.status.value == status and s.author == author and s.type.value == type]
+        elif status:
+            suggestions = repo.find_by_status(SuggestionStatus(status))
+        elif author:
+            suggestions = repo.find_by_author(author)
+        elif type:
+            suggestions = repo.find_by_type(SuggestionType(type))
+        else:
+            suggestions = repo.find_all()
+
+        # Convert entities to dicts (backward compatibility)
         result = []
-        for row in rows:
-            d = dict(row)
-            if d["recipients"]:
-                d["recipients"] = json.loads(d["recipients"])
+        for s in suggestions:
+            d = {
+                "id": s.id,
+                "author": s.author,
+                "recipients": s.recipients,
+                "title": s.title,
+                "content": s.content,
+                "type": s.type.value,
+                "status": s.status.value,
+                "backlog_id": s.backlog_id,
+                "session_id": s.session_id,
+                "created_at": s.created_at.isoformat()
+            }
             result.append(d)
+
         return result
 
     def update_suggestion_status(
@@ -332,13 +362,49 @@ class AgentBus:
         status: str,
         backlog_id: int = None,
     ) -> None:
-        """Update suggestion status and optionally link to backlog item."""
-        self._conn.execute(
-            """UPDATE suggestions SET status = ?, backlog_id = ?
-               WHERE id = ?""",
-            (status, backlog_id, suggestion_id),
-        )
-        self._auto_commit()
+        """Update suggestion status and optionally link to backlog item.
+
+        NOTE: Delegates to SuggestionRepository (M3 adapter pattern).
+        """
+        from core.repositories.suggestion_repo import SuggestionRepository
+        from core.entities.messaging import SuggestionStatus
+
+        repo = SuggestionRepository(db_path=self._db_path)
+
+        # Load entity
+        suggestion = repo.get(suggestion_id)
+        if not suggestion:
+            return  # Silently ignore if not found (backward compatible behavior)
+
+        # Map old status names to new ones (backward compatibility)
+        status_map = {
+            "in_backlog": "implemented",  # Old name for implemented + linked to backlog
+            "open": "open",
+            "implemented": "implemented",
+            "rejected": "rejected",
+            "deferred": "deferred"
+        }
+        normalized_status = status_map.get(status, status)
+
+        # Update status using entity methods when possible
+        if normalized_status == "implemented":
+            suggestion.implement(backlog_id=backlog_id)
+        elif normalized_status == "rejected":
+            suggestion.reject()
+        elif normalized_status == "deferred":
+            suggestion.defer()
+        else:
+            # Direct status update for other cases
+            try:
+                suggestion.status = SuggestionStatus(normalized_status)
+            except ValueError:
+                # Unknown status - keep suggestion unchanged
+                pass
+            if backlog_id is not None:
+                suggestion.backlog_id = backlog_id
+
+        # Save
+        repo.save(suggestion)
 
     # --- Backlog ---
 
