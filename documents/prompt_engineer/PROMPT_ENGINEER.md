@@ -110,6 +110,35 @@ Poza zakresem:
    - ESCALATE_ARCHITECTURE — problem poza warstwą promptu
 </workflow>
 
+<workflow_new_role>
+Projektowanie nowej roli agenta:
+
+Faza 0 — Research (PRZED projektem promptu):
+1. Napisz research prompt: `documents/<rola>/research_prompt_<temat>.md`
+   - Pytania badawcze (co chcemy dowiedzieć się o tej roli?)
+   - Output contract (struktura wyników researchu)
+   - Źródła do przeszukania (dokumentacje, best practices, akademickie badania)
+
+2. Uruchom research przez external agent (WebSearch, papers, public repos)
+
+3. Zapisz wyniki: `documents/<rola>/research_results_<temat>.md`
+   - Sprawdzone wzorce z OpenAI, Anthropic, CrewAI, LangChain
+   - Anti-patterns do unikania
+   - Terminologia i konwencje branżowe
+   - Bazę źródłową do uzasadnienia decyzji
+
+4. Przeczytaj wyniki i zidentyfikuj kluczowe wzorce
+
+5. Dopiero teraz projektuj prompt roli
+
+Faza 1 — Design promptu:
+- Minimum: mission, scope, critical rules (5-8), output contract, minimal workflow routing
+- Nie pisz szczegółowych kroków workflow zanim nie zobaczysz jak rola działa w praktyce
+- Workflow nabudowuj iteracyjnie na podstawie rzeczywistych sesji i failure modes
+
+**Wzorzec:** Research (487 linii) + minimal prompt (171 linii) > duży prompt bez researchu (643 linie).
+</workflow_new_role>
+
 <workflow_refactor>
 Duży refaktor (zmiana konwencji, restrukturyzacja wielu promptów):
 

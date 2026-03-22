@@ -8,6 +8,10 @@
 
 | id | autor | tytuł | status | data |
 |----|-------|-------|--------|------|
+| 161 | developer | Onboarding gap — gdzie pracować jako non-developer współpracownik? | open | 2026-03-22 |
+| 158 | developer | Narzędzia pomocnicze: maintain actively or delete | open | 2026-03-22 |
+| 156 | prompt_engineer | Research-driven design — używaj częściej | open | 2026-03-22 |
+| 154 | prompt_engineer | Few-shot examples > długi opis persony | open | 2026-03-22 |
 | 145 | prompt_engineer | Agent bez roli = STOP, wymaga mocnego gate | open | 2026-03-22 |
 | 141 | architect | Nowy kod w core/, stary w tools/ przez adaptery | open | 2026-03-22 |
 | 134 | prompt_engineer | Research przed promptem nowej roli — standardowy krok PE | open | 2026-03-22 |
@@ -34,8 +38,6 @@
 
 | id | autor | tytuł | status | data |
 |----|-------|-------|--------|------|
-| 144 | developer | 13 backlogów zamkniętych w jednej sesji - quick wins effective | open | 2026-03-22 |
-| 139 | architect | invocation_log śledzi wywołania agent→agent | open | 2026-03-22 |
 | 137 | architect | Tabele trace i state są martwe/legacy | open | 2026-03-22 |
 | 133 | architect | 75k rekordów tool_calls/token_usage — gotowe do analizy | open | 2026-03-22 |
 | 122 | architect | _loom jako seed replikacji | open | 2026-03-21 |
@@ -44,19 +46,17 @@
 
 | id | autor | tytuł | status | data |
 |----|-------|-------|--------|------|
-| 146 | architect | Architect pracuje zbyt krótkowzrocznie | open | 2026-03-22 |
-| 143 | developer | Pattern - zrealizowane backlogi nie zamknięte | open | 2026-03-22 |
-| 142 | developer | Rename narzędzia wymaga update settings.local.json | open | 2026-03-22 |
-| 140 | architect | Moment strategiczny na refaktor | open | 2026-03-22 |
+| 162 | developer | Verification gates nie działają bez enforcement — backlog #104 był już done | open | 2026-03-22 |
+| 155 | prompt_engineer | Inbox rośnie szybciej niż przetwarzamy | open | 2026-03-22 |
+| 153 | prompt_engineer | Persona Architekta — 2 iteracje, wciąż nie działa | open | 2026-03-22 |
+| 151 | developer | Backlog items mogą być przestarzałe — lifecycle problem | open | 2026-03-22 |
 | 138 | architect | Bot wymaga hardeningu przed skalowaniem | open | 2026-03-22 |
-| 136 | architect | Dict-based architecture nie skaluje się | open | 2026-03-22 |
 | 135 | prompt_engineer | Verification gates — gdzie jeszcze brakuje? | open | 2026-03-22 |
 | 131 | architect | Granica Architect vs Developer rozmyta | open | 2026-03-21 |
 | 130 | architect | _loom wygląda na porzucony | open | 2026-03-21 |
 | 129 | architect | Nazewnictwo narzędzi — brak konwencji | open | 2026-03-21 |
 | 128 | architect | tmp/ jako de facto inbox człowieka | open | 2026-03-21 |
 | 127 | architect | mrowisko.db — podwójna odpowiedzialność | open | 2026-03-21 |
-| 126 | prompt_engineer | Code maturity levels — wzorzec referencyjny dla oceny jakości kodu | open | 2026-03-21 |
 | 121 | architect | Istniejący ARCHITECTURE.md w documents/dev/ | open | 2026-03-21 |
 | 109 | developer | bot eval (id=84) krytyczny przed kolejną rundą zmian promptu | open | 2026-03-20 |
 | 105 | analyst | MagElem — duplikat aliasu Kod_Towaru — planowanie dwóch źródeł dla jednej kolumny | open | 2026-03-20 |
@@ -71,6 +71,145 @@
 ## Treści
 
 ### Zasady (rule)
+
+#### [161] Onboarding gap — gdzie pracować jako non-developer współpracownik?
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+Arek tworzył pliki w rootcie bo nie miał guidance gdzie pracować.
+
+**Problem:** Dokumentacja zakłada że user = developer lub agent. Nie ma instrukcji dla współpracowników (nie-developerzy, nie-agenci) gdzie tworzyć swoje pliki robocze.
+
+**Rozwiązania:**
+
+**Opcja A:** documents/human/ar/README.md
+```markdown
+# Pliki robocze Arka
+
+Ten folder to Twoja przestrzeń robocza:
+- wyceny/ — pliki wycen klientów
+- dokumenty/ — dokumenty Word, mapowania, ikony
+- xlsx/ — pliki Excel robocze
+- skrypty/ — skrypty .bat do szybkiego uruchamiania narzędzi
+
+Pliki tu są tracked w git i synchronizowane między maszynami.
+```
+
+**Opcja B:** CLAUDE.md sekcja dla współpracowników
+```markdown
+## Dla współpracowników (nie-agenci)
+
+Twoje pliki robocze należą do `documents/human/<twoje_imię>/`:
+- Wyceny, dokumenty, Excel → tu
+- Skrypty pomocnicze → tu
+- NIE do roota projektu (root tylko dla konfiguracji)
+```
+
+**Opcja C:** Narzędzie onboardingowe
+```bash
+python tools/setup_human_workspace.py --name arek
+# Tworzy documents/human/arek/ + README.md
+```
+
+**Rekomendacja:** A (README.md) teraz, B (CLAUDE.md) jeśli więcej osób dołączy.
+
+#### [158] Narzędzia pomocnicze: maintain actively or delete
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+verify.py pokazuje koszt porzuconych narzędzi — działało, ale straciło aktualność przy refaktorze nazw (search_docs → docs_search).
+
+**Problem:** Narzędzia pomocnicze (verify, setup_machine) w limbo:
+- Nie są usuwane (ktoś kiedyś używał)
+- Nie są utrzymywane (nazwy się zmieniają, narzędzia przestają działać)
+- Result: technical debt + mylące nowych użytkowników
+
+**Zasada:**
+Każde narzędzie onboardingowe/pomocnicze ma status:
+- **Active:** utrzymywane przy refaktorach, testy, dokumentowane
+- **Deprecated:** jawnie oznaczone jako przestarzałe, termin usunięcia
+- **Deleted:** usunięte z repo
+
+Nie ma statusu "istnieje ale nie działa".
+
+**Akcja:**
+- verify.py → Active (naprawione, przeniesione do tools/)
+- Przejrzeć inne narzędzia pomocnicze (setup_machine.py, etc.)
+
+#### [156] Research-driven design — używaj częściej
+**autor:** prompt_engineer  **status:** open  **data:** 2026-03-22
+
+## 4. Research-driven design działa — używaj tego wzorca częściej
+
+**Obserwacja:**
+Rola Architect została zaprojektowana przez wzorzec:
+1. Research prompt (pytania badawcze)
+2. Research execution (zewnętrzne narzędzie)
+3. Research results (487 linii, 27 źródeł)
+4. Prompt design na podstawie wyników
+
+Efekt: prompt 171 linii (minimal viable), ale oparty o sprawdzone wzorce z OpenAI, Anthropic, CrewAI, LangChain + akademickie badania.
+
+**Korzyści:**
+- Nie wymyślamy od zera — korzystamy z praktyk produkcyjnych
+- Identyfikujemy anti-patterns przed wdrożeniem
+- Mamy bazę źródłową do uzasadnienia decyzji
+- Research można wielokrotnie wykorzystać (np. dziś character_designer, language_impact)
+
+**Gdzie zastosować dalej:**
+- **Researcher role** — już jest research_prompt, brakuje implementation
+- **Multi-agent orchestration** — supervisor pattern, handoffs, delegation (gdy zaczniemy auto-wywoływanie)
+- **Long-context optimization** — gdy budżet tokenowy zacznie być problemem
+- **Eval & testing** — gdy zaczniemy mierzyć quality agentów
+
+**Wzorzec do sformalizowania:**
+Przy projektowaniu **nowej roli** lub **dużej zmiany architektury**:
+1. Research prompt → documents/<rola>/research_prompt_<temat>.md
+2. External research (WebSearch, papers)
+3. Results → documents/<rola>/research_results_<temat>.md
+4. Design based on results
+
+**Typ:** rule
+
+#### [154] Few-shot examples > długi opis persony
+**autor:** prompt_engineer  **status:** open  **data:** 2026-03-22
+
+## 2. Few-shot examples > długi opis persony
+
+**Obserwacja z researchu:**
+> Few-shot examples są często skuteczniejsze od coraz dłuższego opisu persony. Anthropic zaleca 2-5 przykładów.
+> (character_designer.md:133-135)
+
+**Obecny stan:**
+Żadna rola w Mrowisko nie ma few-shot examples zachowań. Mamy tylko:
+- Opisy cech ("wywrotowy perfekcjonista")
+- Reguły ogólne ("proponuj zanim pytają")
+
+Brak konkretnych scenariuszy:
+```
+Scenariusz: odkryłeś problem podczas audytu
+❌ Czekasz aż user zapyta
+✓ Mówisz od razu: "Widzę dict hell, proponuję Domain Model — oto ADR"
+```
+
+**Dlaczego to ważne:**
+Model lepiej uczy się z przykładów niż z abstrakcji. "Bądź proaktywny" to abstrakcja. "Gdy widzisz problem, mów od razu, nie czekaj" + przykład = konkret.
+
+**Rekomendacja:**
+Przy kolejnej edycji promptu **dowolnej roli** — dodaj 2-3 przykłady zachowań przed dodawaniem kolejnych linii opisu persony.
+
+Format:
+```markdown
+**Przykłady zachowań:**
+
+*Scenariusz 1: [kontekst]*
+❌ [złe zachowanie]
+✓ [dobre zachowanie]
+
+*Scenariusz 2: [kontekst]*
+❌ [złe]
+✓ [dobre]
+```
+
+**Typ:** rule
 
 #### [145] Agent bez roli = STOP, wymaga mocnego gate
 **autor:** prompt_engineer  **status:** open  **data:** 2026-03-22
@@ -357,16 +496,6 @@ i generuje szkielet diagramu do uzupełnienia.
 
 ### Odkrycia (discovery)
 
-#### [144] 13 backlogów zamkniętych w jednej sesji - quick wins effective
-**autor:** developer  **status:** open  **data:** 2026-03-22
-
-Sesja 2026-03-22: 13 zadań (niska/średnia wartość, mała praca) zamkniętych w ~3h. Format "małe szybkie cleanup" działa - wysokie tempo, niski context cost, widoczny progress.
-
-#### [139] invocation_log śledzi wywołania agent→agent
-**autor:** architect  **status:** open  **data:** 2026-03-22
-
-Tabela do mrowisko_runner — loguje from_role, to_role, depth, turns, cost. 6 rekordów testowych. Będzie kluczowa przy multi-agent.
-
 #### [137] Tabele trace i state są martwe/legacy
 **autor:** architect  **status:** open  **data:** 2026-03-22
 
@@ -394,45 +523,203 @@ Warto rozważyć: wydzielenie _loom do osobnego repo lub lepsze udokumentowanie.
 
 ### Obserwacje (observation)
 
-#### [146] Architect pracuje zbyt krótkowzrocznie
-**autor:** architect  **status:** open  **data:** 2026-03-22
+#### [162] Verification gates nie działają bez enforcement — backlog #104 był już done
+**autor:** developer  **status:** open  **data:** 2026-03-22
 
 type: observation
-title: Architect pracuje zbyt krótkowzrocznie — proponuje rozwiązania zamiast strategii
+title: Verification gates nie działają bez enforcement — backlog #104 był już done
 
-Sesja 2026-03-22: Przy analizie gotowości na wieloagentowość Architect:
-1. Zaczął proponować konkretne rozwiązania techniczne (pivot na Agent Teams, draft promptu autonomicznego)
-2. Wchodził w domenę Prompt Engineera (projektowanie promptu)
-3. Nie przedstawił strategicznego planu z priorytetami i trade-offami
-4. Nie odniósł się do całości roadmapy (ADR-001, Faza 3, runner) jako systemu zależności
+## Co się stało
 
-Oczekiwanie użytkownika: plan strategiczny z kolejnością działań, nie implementacja.
-Architekt powinien myśleć w horyzoncie miesięcy, nie pojedynczych tasków.
+Dzisiaj (2026-03-22) dostałem zadanie "zrób backlog #104 — transakcje atomowe".
 
-#### [143] Pattern - zrealizowane backlogi nie zamknięte
+**Przebieg:**
+1. Rozpocząłem pracę zgodnie z workflow developer_workflow.md
+2. Napisałem plan implementacji (tmp/plan_atomic_transactions.md)
+3. User zatwierdził plan
+4. Dopiero przy próbie commitowania odkryłem że **wszystko było już zaimplementowane w commit 3b3fe17**
+
+**Duplikacja:**
+- ~2h pracy (plan, analiza, weryfikacja testów)
+- Plan 80 linii (tmp/plan_atomic_transactions.md)
+- Context: ~40k tokenów
+
+**Backlog status:** #104 był "planned" mimo że kod był już w produkcji.
+
+## Problem głębszy niż workflow
+
+**Sugestia #147 istniała:**
+> "Przed dodaniem zadania do backlogu lub rozpoczęciem realizacji: sprawdź czy funkcjonalność już nie istnieje."
+
+**Developer_workflow.md krok 2a istniał:**
+> "Sprawdź czy funkcjonalność/fix już nie istnieje w kodzie (grep, glob, git log)"
+
+**Ale ja nie zastosowałem tej reguły.**
+
+## Dlaczego verification gate nie zadziałał?
+
+1. **Workflow mówi "sprawdź kod"** — ale nie mówi "sprawdź status backlogu w bazie"
+2. **Założyłem że backlog item planned = do zrobienia** — nie pomyślałem że może być outdated
+3. **Brak automatycznej weryfikacji** — człowiek musi pamiętać o checkliście
+
+## Pattern
+
+To nie pierwsza taka sytuacja:
+- Sugestia #143: "Dwa backlogi (#86, #89) były już zrealizowane ale pozostały planned"
+- Sugestia #151: "Backlog items mogą być przestarzałe — lifecycle problem"
+
+**Trend:** Backlog items tracą sync z reality.
+
+## Root cause
+
+**Backlog lifecycle nie jest zarządzany automatycznie:**
+- Gdy Developer implementuje feature poza backlog workflow (np. w ramach innego zadania), nie aktualizuje powiązanych backlog items
+- Gdy user dodaje backlog item, nie sprawdza czy feature już istnieje
+- Brak mechanizmu "verify актуальności" przed rozpoczęciem pracy
+
+## Rekomendacje
+
+**Opcja A: Enforcement w workflow (human-driven)**
+```markdown
+Developer workflow krok 1 (przed rozpoczęciem zadania z backlogu):
+1a. Uruchom: `py tools/agent_bus_cli.py backlog --id <id>` — sprawdź tytuł i opis
+1b. Grep/Glob po kodzie — szukaj czy funkcjonalność już nie istnieje
+1c. Git log — szukaj po słowach kluczowych z tytułu backlogu
+1d. Jeśli istnieje → backlog-update --status done, STOP, nie implementuj ponownie
+```
+
+**Opcja B: Narzędzie weryfikacji (tool-assisted)**
+```bash
+py tools/backlog_verify.py --id 104
+# Wynik:
+# ✗ "transaction" found in git log (commit 3b3fe17)
+# ✗ "with bus.transaction()" found in tools/lib/agent_bus.py:193
+# ✗ test_transaction_commit found in tests/test_agent_bus.py:434
+#
+# WARNING: Backlog #104 może być już zrealizowany. Sprawdź ręcznie przed rozpoczęciem pracy.
+```
+
+**Opcja C: Status enrichment (context-driven)**
+Dodać pole `last_verified` do backlog items:
+- Developer przed rozpoczęciem pracy: `backlog-verify --id 104` → zapisuje timestamp
+- Backlog starszy niż 7 dni bez weryfikacji → flagowane jako "may be outdated"
+
+**Opcja D: Git integration (automated)**
+```bash
+# Przy każdym commit: skanuj commit message po "#<id>"
+# Jeśli backlog #104 jest w message → auto-update status na "in_progress" lub pytaj Developer
+git commit -m "feat: transaction context manager (#104)"
+# Hook: py tools/git_commit_hook.py wykrywa #104 → backlog-update --id 104 --status done?
+```
+
+## Moja rekomendacja
+
+**Start z Opcją A** (enforcement w workflow) — zero kosztu, jasna wartość.
+
+Dodać do developer_workflow.md krok 0 (przed krokiem 1):
+```
+Krok 0 — Weryfikacja czy zadanie nie jest już zrobione (MANDATORY)
+
+Przed rozpoczęciem pracy z backlog item:
+1. Odczytaj backlog: `agent_bus_cli.py backlog --id <id>`
+2. Wyciągnij kluczowe słowa z tytułu (np. "transakcje atomowe" → "transaction")
+3. Grep po kodzie: `grep -r "transaction" tools/ tests/`
+4. Git log: `git log --all --oneline --grep="transaction"`
+5. Jeśli funkcjonalność już istnieje:
+   - Backlog update: `backlog-update --id <id> --status done`
+   - STOP — nie implementuj ponownie
+   - Napisz w czacie: "Backlog #<id> był już zrealizowany w commit <hash>"
+
+Jeśli nie ma w kodzie → kontynuuj workflow od kroku 1.
+```
+
+**Ewolucja:** Jeśli Opcja A nie wystarczy (ludzie zapominają) → zbudować Opcję B (narzędzie backlog_verify.py).
+
+## Typ
+
+observation + rule
+
+#### [155] Inbox rośnie szybciej niż przetwarzamy
+**autor:** prompt_engineer  **status:** open  **data:** 2026-03-22
+
+## 3. Inbox rośnie szybciej niż zdążamy przetwarzać
+
+**Obserwacja:**
+- Dzisiaj inbox: 9 wiadomości nieprzeczytanych
+- Część z poprzednich sesji (#148 z 2026-03-20, #157 z 2026-03-21)
+- PE przetwarza 1-3 wiadomości per sesja, ale dostaje 2-4 nowych
+
+**Trend:**
+Inbox rośnie liniowo. Przy tym tempie za tydzień będzie 15-20 wiadomości zaległych.
+
+**Root cause:**
+- Developer i Architect generują suggestions często
+- PE ma dużo zadań (patche promptów, researche, analizy)
+- Brak priorytetyzacji inbox (wszystko unread, brak severity)
+
+**Rekomendacja:**
+1. **Dodać pole `priority` do messages/suggestions** (critical/high/medium/low)
+   - Developer/Architect oznacza przy wysyłaniu
+   - PE filtruje: `agent_bus_cli.py inbox --priority critical`
+
+2. **Weekly cleanup session** — raz w tygodniu PE dedykuje sesję tylko na inbox
+   - Przejście przez wszystkie unread
+   - Część → backlog (later)
+   - Część → mark-read (not actionable)
+   - Część → natychmiastowa akcja
+
+3. **Alternatywa:** Developer robi pre-filtering — sprawdza czy suggestion nie duplikuje istniejącego backlogu przed wysłaniem do PE
+
+**Typ:** observation
+
+#### [153] Persona Architekta — 2 iteracje, wciąż nie działa
+**autor:** prompt_engineer  **status:** open  **data:** 2026-03-22
+
+## 1. Persona Architekta — 2 iteracje, wciąż nie działa jak oczekiwano
+
+**Obserwacja:**
+- Sesja 2026-03-22 rano: feedback #177 — Architekt reaktywny mimo persony
+- Dzisiaj: poprawka promptu (proaktywność, fundamenty przed detalami)
+- User nadal nie zadowolony: "nie udało mi się doprowadzić do stanu oczekiwanego"
+
+**Problem głębszy niż prompt:**
+Research pokazuje że **persona NIE ma stabilnie potwierdzonego wpływu na trafność merytoryczną** — może pomóc, może zaszkodzić (character_designer.md:15-16).
+
+**Hipoteza:**
+Może problem nie jest w personie, tylko w czymś innym:
+- Brak konkretnych przykładów zachowań (few-shot examples)?
+- Brak tone of voice (jak mówi, jak formułuje)?
+- Konflikt między personą a critical_rules (persona mówi "bądź wywrotowy", ale reguły mówią "uzgadniaj")?
+- Model po prostu nie "łapie" abstrakcyjnych cech jak "wywrotowy perfekcjonista"?
+
+**Rekomendacja:**
+Zanim zrobisz 3. iterację persony Architekta — **przetestuj eksperymentalnie**:
+1. Stwórz 2 warianty promptu Architekta:
+   - Wariant A: obecna persona + tone of voice + 3 przykłady
+   - Wariant B: bez persony, tylko critical_rules + examples
+2. Uruchom Architekta z każdym wariantem na tym samym zadaniu (np. audyt niewielkiego repo)
+3. Porównaj outputy: który jest bardziej proaktywny, który lepiej identyfikuje fundamenty
+
+Jeśli wariant B (bez persony) działa lepiej — persona szkodzi, nie pomaga.
+
+**Typ:** observation
+
+#### [151] Backlog items mogą być przestarzałe — lifecycle problem
 **autor:** developer  **status:** open  **data:** 2026-03-22
 
-Dwa backlogi (#86 mark-read, #89 conversation_search auto-approve) były już zrealizowane ale pozostały planned. Developer nie zamknął po implementacji. PE może sprawdzić czy workflow Developer ma checkpoint "zweryfikuj czy już done".
+3 z 4 zadań dziś:
+- #105: Aktualny ✓
+- #107: Aktualny ✓
+- #106: Przestarzały (render.py już miał JSON)
 
-#### [142] Rename narzędzia wymaga update settings.local.json
-**autor:** developer  **status:** open  **data:** 2026-03-22
+**Problem:** Backlog items nie mają mechanizmu weryfikacji "czy to jeszcze aktualne?".
 
-Rename conversation_search.py → search_conversation.py wymaga ręcznego update auto-approve w `.claude/settings.local.json`. Można dodać krok w workflow rename: grep settings.local.json dla starej nazwy, przypomnieć o update.
-
-#### [140] Moment strategiczny na refaktor
-**autor:** architect  **status:** open  **data:** 2026-03-22
-
-Projekt po stabilizacji promptów, przed skokiem złożoności (multi-agent). Budżet tokenów wykorzystany w 10%. Lepiej przebudować teraz niż po implementacji kolejnej warstwy. ADR-001 to fundament.
+**Obserwacja:** Może potrzebny `backlog-verify` workflow — periodyczny przegląd czy zadania są aktualne? Lub `--created-before <data>` filter dla starych items.
 
 #### [138] Bot wymaga hardeningu przed skalowaniem
 **autor:** architect  **status:** open  **data:** 2026-03-22
 
 Krytyczny brak: error handling dla Anthropic API. Bot crashuje przy rate limit lub API error. Dodatkowo: God Object w nlp_pipeline.py (218 linii, 7 odpowiedzialności), brak rate limiting per user.
-
-#### [136] Dict-based architecture nie skaluje się
-**autor:** architect  **status:** open  **data:** 2026-03-22
-
-Przy rosnącej liczbie agentów i sesji równoległych, podejście proceduralne z dictami staje się nieczytelne i trudne do utrzymania. Logika rozproszona po wielu plikach, brak walidacji typów, brak enkapsulacji. ADR-001 adresuje ten problem.
 
 #### [135] Verification gates — gdzie jeszcze brakuje?
 **autor:** prompt_engineer  **status:** open  **data:** 2026-03-22
@@ -493,27 +780,6 @@ W tmp/ jest ~40 plików: handoffy, logi, sugestie, eksporty. To tam ląduje wszy
 **autor:** architect  **status:** open  **data:** 2026-03-21
 
 Baza trzyma zarówno komunikację agentów (messages, backlog, suggestions) jak i historię sesji Claude Code (conversation, tool_calls, token_usage). To dwa różne concerns w jednym pliku. Przy synchronizacji (#90) może to komplikować — historia sesji jest per-maszyna, komunikacja powinna być shared. Rozważyć podział na dwie bazy lub wyraźną separację tabel.
-
-#### [126] Code maturity levels — wzorzec referencyjny dla oceny jakości kodu
-**autor:** prompt_engineer  **status:** open  **data:** 2026-03-21
-
-Code maturity levels (junior/mid/senior) — wzorzec dla code review w systemie.
-
-Wprowadzone w ARCHITECT.md:
-- Tabela 8 wymiarów: Funkcje, Naming, Abstrakcja, Error handling, Edge cases, Tests, Dependencies, Structure
-- Konkretne kryteria per poziom (junior/mid/senior)
-- Wymóg w code review: ogólny poziom + uzasadnienie (2-3 zdania z przykładami)
-
-Potencjalne zastosowania:
-1. Code review przez Architekta (główne)
-2. Self-assessment Developera przed przekazaniem kodu do review (opcjonalne)
-3. Onboarding nowych agentów / ról które piszą kod (benchmark jakości)
-4. Ocena postępu projektu (ile kodu na poziomie senior vs mid vs junior)
-
-Obserwacja:
-Ten wzorzec może być użyteczny nie tylko dla Architekta — może być referencją dla wszystkich ról które oceniają jakość kodu (PE przy ocenie narzędzi, Metodolog przy ocenie metody pracy).
-
-Nie wymaga akcji teraz — obserwacja do rozważenia w przyszłości jeśli role zaczną potrzebować wspólnego języka do oceny dojrzałości kodu.
 
 #### [121] Istniejący ARCHITECTURE.md w documents/dev/
 **autor:** architect  **status:** open  **data:** 2026-03-21
