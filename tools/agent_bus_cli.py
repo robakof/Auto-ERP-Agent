@@ -48,11 +48,6 @@ def cmd_inbox(args: argparse.Namespace, bus: AgentBus) -> dict:
     return {"ok": True, "data": messages, "count": len(messages)}
 
 
-def cmd_state(args: argparse.Namespace, bus: AgentBus) -> dict:
-    entries = bus.get_state(role=args.role, type=args.type, limit=args.limit)
-    return {"ok": True, "data": entries, "count": len(entries)}
-
-
 
 _SUGGEST_TYPES = ("rule", "tool", "discovery", "observation")
 
@@ -257,12 +252,6 @@ def build_parser() -> argparse.ArgumentParser:
     p_inbox.add_argument("--status", default="unread",
                          choices=["unread", "read", "archived"])
 
-    # state
-    p_state = subparsers.add_parser("state", help="Get state entries for a role")
-    p_state.add_argument("--role", required=True)
-    p_state.add_argument("--type", default=None)
-    p_state.add_argument("--limit", type=int, default=20)
-
     # suggest
     p_suggest = subparsers.add_parser("suggest", help="Add a suggestion from an agent")
     p_suggest.add_argument("--from", dest="sender", required=True)
@@ -377,7 +366,6 @@ def main():
     commands = {
         "send": cmd_send,
         "inbox": cmd_inbox,
-        "state": cmd_state,
         "suggest": cmd_suggest,
         "suggest-bulk": cmd_suggest_bulk,
         "suggestions": cmd_suggestions,

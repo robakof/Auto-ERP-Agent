@@ -235,57 +235,6 @@ class AgentBus:
 
     # --- State ---
 
-    def write_state(
-        self,
-        role: str,
-        type: str,
-        content: str,
-        session_id: str = None,
-        metadata: dict = None,
-    ) -> int:
-        """Write a state entry (progress, reflection, backlog_item). Returns id."""
-        meta_json = json.dumps(metadata, ensure_ascii=False) if metadata else None
-        cursor = self._conn.execute(
-            """INSERT INTO state (role, type, content, session_id, metadata)
-               VALUES (?, ?, ?, ?, ?)""",
-            (role, type, content, session_id, meta_json),
-        )
-        self._conn.commit()
-        return cursor.lastrowid
-
-    def get_state(
-        self,
-        role: str,
-        type: str = None,
-        limit: int = 20,
-    ) -> list[dict]:
-        """Get state entries for a role. Newest first. Optional type filter."""
-        if type:
-            rows = self._conn.execute(
-                """SELECT id, role, type, content, session_id, created_at, metadata
-                   FROM state
-                   WHERE role = ? AND type = ?
-                   ORDER BY created_at DESC, id DESC
-                   LIMIT ?""",
-                (role, type, limit),
-            ).fetchall()
-        else:
-            rows = self._conn.execute(
-                """SELECT id, role, type, content, session_id, created_at, metadata
-                   FROM state
-                   WHERE role = ?
-                   ORDER BY created_at DESC, id DESC
-                   LIMIT ?""",
-                (role, limit),
-            ).fetchall()
-        result = []
-        for row in rows:
-            d = dict(row)
-            if d["metadata"]:
-                d["metadata"] = json.loads(d["metadata"])
-            result.append(d)
-        return result
-
     # --- Suggestions ---
 
     def add_suggestion(
