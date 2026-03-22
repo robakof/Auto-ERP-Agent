@@ -1,10 +1,28 @@
 # ARCHITECTURE: Mrowisko
 
-*Dokument przygotowany: 2026-03-21 | Wersja: 1.0*
+*Dokument przygotowany: 2026-03-21 | Wersja: 1.1*
 
 ---
 
-## 1. Wizja systemu
+## 1. Słownik
+
+> Poznaj nomenklaturę przed czytaniem szczegółów.
+
+| Termin | Definicja |
+|--------|-----------|
+| **Agent** | Instancja Claude Code z przypisaną rolą |
+| **Rola** | Zestaw uprawnień, narzędzi i workflow (np. ERP Specialist) |
+| **Workflow** | Sekwencja kroków realizacji konkretnego typu zadania |
+| **Sugestia** | Obserwacja agenta zapisana do przeglądu (suggest) |
+| **Backlog** | Kolejka zadań do realizacji |
+| **Flag** | Eskalacja do człowieka |
+| **Horyzont** | Etap rozwoju projektu (H1/H2/H3) |
+| **Wykonawca** | Rola realizująca zadania domenowe (ERP Specialist, Analityk, Bot) |
+| **Meta-rola** | Rola budująca system (Developer, Architect, PE, Metodolog) |
+
+---
+
+## 2. Wizja systemu
 
 **Mrowisko** — inkubator wirtualnego życia AI. System wieloagentowy, w którym agenci LLM
 autonomicznie prowadzą firmę produkcyjną. ERP Comarch XL jest pierwszym terenem działania,
@@ -12,7 +30,7 @@ nie celem samym w sobie.
 
 Pełna wizja: `documents/methodology/SPIRIT.md`
 
-### 1.1 Horyzonty rozwoju
+### 2.1 Horyzonty rozwoju
 
 | Horyzont | Cel | Status |
 |----------|-----|--------|
@@ -22,14 +40,14 @@ Pełna wizja: `documents/methodology/SPIRIT.md`
 
 ---
 
-## 2. Diagram wysokiego poziomu
+## 3. Diagram wysokiego poziomu
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                              CZŁOWIEK                                     │
 │                         (nadzór, decyzje)                                │
 └─────────────────────────────────┬────────────────────────────────────────┘
-                                  │ flag / eskalacja
+                                  │ flag / eskalacja (każda rola może)
                                   ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                         WARSTWA AGENTÓW (Claude Code)                     │
@@ -40,7 +58,7 @@ Pełna wizja: `documents/methodology/SPIRIT.md`
 │  └──────┬──────┘  └─────┬─────┘  └──────┬──────┘  └──────────┬──────────┘│
 │         │               │               │                    │           │
 │         └───────────────┴───────┬───────┴────────────────────┘           │
-│                                 │                                         │
+│                     (wielokanałowa komunikacja)                          │
 │                          ┌──────┴──────┐                                  │
 │                          │  agent_bus  │                                  │
 │                          │ (mrowisko.db)│                                 │
@@ -74,25 +92,30 @@ Pełna wizja: `documents/methodology/SPIRIT.md`
 
 ---
 
-## 3. Warstwy systemu
+## 4. Warstwy systemu
 
-### 3.1 Warstwa agentów
+### 4.1 Warstwa agentów
 
 System wieloagentowy z 6 rolami operującymi w Claude Code (VS Code).
 
-| Rola | Zakres | Eskaluje do |
-|------|--------|-------------|
-| **ERP Specialist** | Konfiguracja okien ERP, widoki BI, kolumny, filtry | Developer |
-| **Analityk** | Analiza jakości danych, przegląd widoków BI | Developer |
-| **Bot** | Odpowiedzi na pytania o dane ERP (Telegram) | — |
-| **Developer** | Budowa narzędzi, integracja, CI/CD | Metodolog |
-| **Architect** | Projektowanie architektury, code review, ADR | Metodolog |
-| **Prompt Engineer** | Edycja promptów ról, kompresja, wersjonowanie | Metodolog |
-| **Metodolog** | Kształtowanie procesu, zasady pracy, wizja | Człowiek |
+| Rola | Zakres | Typ |
+|------|--------|-----|
+| **ERP Specialist** | Konfiguracja okien ERP, widoki BI, kolumny, filtry | Wykonawca |
+| **Analityk** | Analiza jakości danych, przegląd widoków BI | Wykonawca |
+| **Bot** | Odpowiedzi na pytania o dane ERP (Telegram) | Wykonawca |
+| **Developer** | Budowa narzędzi, integracja, CI/CD | Meta-rola |
+| **Architect** | Projektowanie architektury, code review, ADR | Meta-rola |
+| **Prompt Engineer** | Edycja promptów ról, kompresja, wersjonowanie | Meta-rola |
+| **Metodolog** | Kształtowanie procesu, zasady pracy, wizja | Meta-rola |
 
-**Zasada eskalacji:** Wykonawcy (ERP/Analyst/Bot) → Developer/Architect/PE → Metodolog → Człowiek
+**Model eskalacji:** Wielokanałowy, nie hierarchiczny.
 
-### 3.2 Warstwa komunikacji (agent_bus)
+- Każda rola może eskalować do **człowieka** (flag)
+- Developer ↔ Architect ↔ Prompt Engineer — wzajemna komunikacja
+- Wykonawcy → Meta-role (gdy problem wykracza poza domenę)
+- Meta-role → Metodolog (gdy problem dotyczy procesu/wizji)
+
+### 4.2 Warstwa komunikacji (agent_bus)
 
 Centralna szyna komunikacji między agentami. Wszystko w SQLite (`mrowisko.db`).
 
@@ -101,12 +124,21 @@ Centralna szyna komunikacji między agentami. Wszystko w SQLite (`mrowisko.db`).
 | **messages** | Wiadomości między rolami (send/inbox) |
 | **suggestions** | Obserwacje i propozycje (open → in_backlog → implemented) |
 | **backlog** | Zadania do realizacji (planned → in_progress → done) |
-| **session_logs** | Logi sesji per rola |
+| **session_log** | Logi sesji per rola |
 | **flags** | Eskalacje do człowieka |
+
+**Historia sesji (również w mrowisko.db):**
+
+| Tabela | Zawartość |
+|--------|-----------|
+| **sessions** | Metadane sesji Claude Code |
+| **conversation** | Pełna historia wiadomości |
+| **tool_calls** | Wywołania narzędzi |
+| **token_usage** | Zużycie tokenów |
 
 **CLI:** `tools/agent_bus_cli.py` — wszystkie operacje przez JSON stdout.
 
-### 3.3 Warstwa narzędzi
+### 4.3 Warstwa narzędzi
 
 ~50 skryptów Python w `tools/`. Każde narzędzie:
 - Przyjmuje argumenty CLI
@@ -127,20 +159,20 @@ Centralna szyna komunikacji między agentami. Wszystko w SQLite (`mrowisko.db`).
 
 **Współdzielona logika:** `tools/lib/` (SqlClient, ExcelWriter, ExcelReader, AgentBus, output)
 
-### 3.4 Warstwa danych
+### 4.4 Warstwa danych
 
 | Źródło | Technologia | Zawartość |
 |--------|-------------|-----------|
 | **SQL Server** | MSSQL | ERP Comarch XL (CDN.*), widoki BI (AIBI.*) |
 | **docs.db** | SQLite FTS5 | Indeks dokumentacji ERP (~7 MB) |
-| **mrowisko.db** | SQLite | Komunikacja agentów, backlog, logi |
+| **mrowisko.db** | SQLite | Komunikacja agentów, backlog, logi, historia sesji |
 | **solutions/** | Pliki .sql + JSON | Rozwiązania SQL, katalog okien ERP |
 
 ---
 
-## 4. Komponenty produktowe
+## 5. Komponenty produktowe
 
-### 4.1 Bot Telegram (`bot/`)
+### 5.1 Bot Telegram (`bot/`)
 
 Odpowiada na pytania o dane ERP w naturalnym języku.
 
@@ -158,37 +190,28 @@ Pytanie użytkownika → NLP Pipeline → SQL → Answer Formatter → Odpowied�
 
 *Szczegóły techniczne: patrz `documents/architecture/bot.md` (do utworzenia)*
 
-### 4.2 Oferty katalogowe
+### 5.2 Oferty katalogowe
 
 Generowanie PDF z ofertami produktowymi na podstawie danych z ERP.
 
-- `tools/offer_generator.py` — logika
-- `tools/offer_pdf.py` — renderowanie PDF
-- `tools/offer_ui.py` — prosty GUI
-
-### 4.3 Wyceny
+### 5.3 Wyceny
 
 Generowanie arkuszy wycen dla klientów.
 
-- `tools/wycena_generate.py` — logika
-- `tools/wycena_ui.py` — GUI
-
-### 4.4 Etykiety wysyłkowe
+### 5.4 Etykiety wysyłkowe
 
 Drukowanie etykiet na podstawie zamówień.
 
-- `tools/etykiety_export.py` — eksport danych
-- `tools/etykiety_ui.py` — GUI
-
 ---
 
-## 5. Struktura dokumentacji
+## 6. Struktura dokumentacji
+
+> **UWAGA:** Struktura wymaga refaktoru — chaos, brak folderu dla człowieka.
 
 ```
 documents/
 ├── ARCHITECTURE.md        # Ten dokument — architektura systemu
-├── architecture/          # Szczegóły per moduł (tworzone w miarę potrzeb)
-│   └── (bot.md, erp_agent.md, security.md — do utworzenia)
+├── architecture/          # Szczegóły per moduł (do utworzenia)
 ├── analyst/               # Instrukcje Analityka
 ├── architect/             # Instrukcje Architekta
 ├── dev/                   # Instrukcje Developera + plany
@@ -199,9 +222,11 @@ documents/
 └── Wzory plików/          # Szablony ofert, brandbook
 ```
 
+**Problem:** Brak wydzielonego folderu dla człowieka (eksporty, plany, backlogi, sugestie, propozycje do review). Powinien być Obsidian-friendly.
+
 ---
 
-## 6. _loom — seed replikacji
+## 7. _loom — seed replikacji
 
 Katalog `_loom/` zawiera minimalne szablony do uruchomienia Mrowiska w nowym projekcie:
 
@@ -211,11 +236,19 @@ Katalog `_loom/` zawiera minimalne szablony do uruchomienia Mrowiska w nowym pro
 
 Cel: replikacja metodologii do innych domen (nie tylko ERP).
 
+**Problem architektoniczny:** Odpinalność meta-warstwy od wykonawczej.
+
+Przy wdrożeniu u klienta:
+- Zostawiamy: role wykonawcze (ERP Specialist, Analityk, Bot)
+- Odpinamy: meta-role (Developer, Architect, PE, Metodolog)
+
+Wymaga przemyślenia struktury repo tak, aby "narzędzia do tworzenia narzędzi" były łatwo odpinalne i przypinalne.
+
 ---
 
-## 7. Przepływ pracy
+## 8. Przepływ pracy
 
-### 7.1 Sesja agenta
+### 8.1 Sesja agenta
 
 ```
 1. session_init.py --role <rola>
@@ -236,7 +269,7 @@ Cel: replikacja metodologii do innych domen (nie tylko ERP).
    → agent_bus_cli.py flag (gdy potrzebna decyzja człowieka)
 ```
 
-### 7.2 Workflow gate
+### 8.2 Workflow gate
 
 Każda rola ma zdefiniowane workflow. Agent:
 1. Dopasowuje zadanie do workflow
@@ -247,7 +280,7 @@ Brak workflow → eskalacja do Prompt Engineer (który tworzy workflow).
 
 ---
 
-## 8. Bezpieczeństwo
+## 9. Bezpieczeństwo
 
 | Warstwa | Zabezpieczenie |
 |---------|---------------|
@@ -262,27 +295,14 @@ Brak workflow → eskalacja do Prompt Engineer (który tworzy workflow).
 
 ---
 
-## 9. Otwarte decyzje architektoniczne
+## 10. Otwarte decyzje architektoniczne
 
 | ID | Temat | Status |
 |----|-------|--------|
 | #90 | Synchronizacja mrowisko.db między maszynami | planned |
-| — | Rozdzielenie _loom jako osobnego repo | do rozważenia |
+| — | Odpinalność meta-warstwy (_loom) od wykonawczej | do zaprojektowania |
+| — | Folder dla człowieka (Obsidian-friendly) | do zaprojektowania |
 | — | Wersjonowanie promptów ról (git tags?) | do rozważenia |
-
----
-
-## 10. Słownik
-
-| Termin | Definicja |
-|--------|-----------|
-| **Agent** | Instancja Claude Code z przypisaną rolą |
-| **Rola** | Zestaw uprawnień, narzędzi i workflow (np. ERP Specialist) |
-| **Workflow** | Sekwencja kroków realizacji konkretnego typu zadania |
-| **Sugestia** | Obserwacja agenta zapisana do przeglądu (suggest) |
-| **Backlog** | Kolejka zadań do realizacji |
-| **Flag** | Eskalacja do człowieka |
-| **Horyzont** | Etap rozwoju projektu (H1/H2/H3) |
 
 ---
 
