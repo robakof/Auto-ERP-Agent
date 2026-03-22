@@ -29,12 +29,16 @@ class BacklogRepository(Repository[BacklogItem]):
         42
     """
 
-    def __init__(self, db_path: str = "mrowisko.db"):
+    def __init__(self, db_path: str = "mrowisko.db", conn: Optional[sqlite3.Connection] = None):
         """
         Args:
             db_path: Ścieżka do bazy SQLite (domyślnie mrowisko.db w root)
+            conn: Optional shared connection (for transaction support).
+                  If provided, repository uses it and does NOT commit/close.
+                  If None, repository creates own connection and commits.
         """
         self.db_path = db_path
+        self._shared_conn = conn
         self._ensure_table_exists()
 
     def _get_connection(self) -> sqlite3.Connection:
@@ -48,30 +52,46 @@ class BacklogRepository(Repository[BacklogItem]):
         """
         Context manager dla połączenia z bazą danych.
 
+        Transaction-aware:
+        - Jeśli shared connection (self._shared_conn) → używa go, NIE commituje, NIE zamyka
+          (zarządza tym AgentBus transaction context)
+        - Jeśli brak shared connection → tworzy własne, commituje, zamyka (standalone mode)
+
         Automatycznie:
-        - commituje transakcję przy sukcesie
-        - rollbackuje przy wyjątku
-        - zamyka połączenie
+        - rollbackuje przy wyjątku (tylko standalone mode)
         - tłumaczy wyjątki SQLite na domenowe
         """
-        conn = self._get_connection()
-        try:
-            yield conn
-            conn.commit()
-        except sqlite3.IntegrityError as e:
-            conn.rollback()
-            raise ValidationError(f"Integrity constraint violation: {e}")
-        except sqlite3.OperationalError as e:
-            conn.rollback()
-            raise PersistenceError(f"Database operation failed: {e}")
-        except sqlite3.DatabaseError as e:
-            conn.rollback()
-            raise PersistenceError(f"Database error: {e}")
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            conn.close()
+        if self._shared_conn:
+            # Transaction mode - używaj shared connection
+            # NIE commituj, NIE zamykaj (zarządza tym AgentBus)
+            try:
+                yield self._shared_conn
+            except sqlite3.IntegrityError as e:
+                raise ValidationError(f"Integrity constraint violation: {e}")
+            except sqlite3.OperationalError as e:
+                raise PersistenceError(f"Database operation failed: {e}")
+            except sqlite3.DatabaseError as e:
+                raise PersistenceError(f"Database error: {e}")
+        else:
+            # Standalone mode - własne połączenie
+            conn = self._get_connection()
+            try:
+                yield conn
+                conn.commit()
+            except sqlite3.IntegrityError as e:
+                conn.rollback()
+                raise ValidationError(f"Integrity constraint violation: {e}")
+            except sqlite3.OperationalError as e:
+                conn.rollback()
+                raise PersistenceError(f"Database operation failed: {e}")
+            except sqlite3.DatabaseError as e:
+                conn.rollback()
+                raise PersistenceError(f"Database error: {e}")
+            except Exception:
+                conn.rollback()
+                raise
+            finally:
+                conn.close()
 
     def _ensure_table_exists(self) -> None:
         """
@@ -192,9 +212,8 @@ class BacklogRepository(Repository[BacklogItem]):
         if not entity.title:
             raise ValidationError("BacklogItem must have a title")
 
-        # Auto-update updated_at przy zapisie
-        if entity.is_persisted():
-            entity.updated_at = datetime.now()
+        # Auto-update updated_at przy zapisie (INSERT i UPDATE)
+        entity.updated_at = datetime.now()
 
         with self._connection() as conn:
             row_data = self._entity_to_row(entity)

@@ -429,52 +429,123 @@ class AgentBus:
         effort: str = None,
         source_id: int = None,
     ) -> int:
-        """Add a backlog item. Returns backlog id."""
-        cursor = self._conn.execute(
-            """INSERT INTO backlog (title, content, area, value, effort, source_id)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (title, content, area, value, effort, source_id),
+        """Add a backlog item. Returns backlog id.
+
+        NOTE: Delegates to BacklogRepository (M3 adapter pattern).
+        """
+        from core.repositories.backlog_repo import BacklogRepository
+        from core.entities.messaging import BacklogItem, BacklogArea, BacklogValue, BacklogEffort
+
+        # Convert string values to enums (optional fields)
+        area_enum = BacklogArea(area) if area else None
+        value_enum = BacklogValue(value) if value else None
+        effort_enum = BacklogEffort(effort) if effort else None
+
+        # Create entity
+        item = BacklogItem(
+            title=title,
+            content=content,
+            area=area_enum,
+            value=value_enum,
+            effort=effort_enum,
+            source_id=source_id
         )
-        self._auto_commit()
-        return cursor.lastrowid
+
+        # Save via repository (transaction-aware)
+        conn = self._conn if self._in_transaction else None
+        repo = BacklogRepository(db_path=self._db_path, conn=conn)
+        saved = repo.save(item)
+
+        return saved.id
 
     def get_backlog(self, status: str = None, area: str = None) -> list[dict]:
-        """Get backlog items. Newest first. Optional status/area filter."""
-        conditions = []
-        params = []
-        if status:
-            conditions.append("status = ?")
-            params.append(status)
-        if area:
-            conditions.append("area = ?")
-            params.append(area)
-        where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-        rows = self._conn.execute(
-            f"""SELECT id, title, content, area, value, effort, status,
-                      source_id, created_at, updated_at
-               FROM backlog {where}
-               ORDER BY created_at DESC, id DESC""",
-            params,
-        ).fetchall()
-        return [dict(row) for row in rows]
+        """Get backlog items. Newest first. Optional status/area filter.
+
+        NOTE: Delegates to BacklogRepository (M3 adapter pattern).
+        """
+        from core.repositories.backlog_repo import BacklogRepository
+        from core.entities.messaging import BacklogStatus, BacklogArea
+
+        conn = self._conn if self._in_transaction else None
+        repo = BacklogRepository(db_path=self._db_path, conn=conn)
+
+        # Query based on filters
+        if status and area:
+            # Both filters - manual filter in-memory (TODO: optimize with composite query)
+            items = repo.find_all()
+            items = [item for item in items if item.status.value == status and item.area and item.area.value == area]
+        elif status:
+            items = repo.find_by_status(BacklogStatus(status))
+        elif area:
+            items = repo.find_by_area(BacklogArea(area))
+        else:
+            items = repo.find_all()
+
+        # Convert entities to dicts (backward compatibility)
+        result = []
+        for item in items:
+            d = {
+                "id": item.id,
+                "title": item.title,
+                "content": item.content,
+                "area": item.area.value if item.area else None,
+                "value": item.value.value if item.value else None,
+                "effort": item.effort.value if item.effort else None,
+                "status": item.status.value,
+                "source_id": item.source_id,
+                "created_at": item.created_at.isoformat(),
+                "updated_at": item.updated_at.isoformat() if item.updated_at else None
+            }
+            result.append(d)
+
+        return result
 
     def update_backlog_status(self, backlog_id: int, status: str) -> None:
-        """Update backlog item status and set updated_at."""
-        self._conn.execute(
-            """UPDATE backlog SET status = ?, updated_at = datetime('now')
-               WHERE id = ?""",
-            (status, backlog_id),
-        )
-        self._auto_commit()
+        """Update backlog item status and set updated_at.
+
+        NOTE: Delegates to BacklogRepository (M3 adapter pattern).
+        """
+        from core.repositories.backlog_repo import BacklogRepository
+        from core.entities.messaging import BacklogStatus
+
+        conn = self._conn if self._in_transaction else None
+        repo = BacklogRepository(db_path=self._db_path, conn=conn)
+
+        # Load entity
+        item = repo.get(backlog_id)
+        if not item:
+            return  # Silently ignore if not found (backward compatible)
+
+        # Update status
+        try:
+            item.status = BacklogStatus(status)
+        except ValueError:
+            # Unknown status - keep item unchanged
+            return
+
+        # Save (updated_at auto-updated in repository)
+        repo.save(item)
 
     def update_backlog_content(self, backlog_id: int, content: str) -> None:
-        """Update backlog item content and set updated_at."""
-        self._conn.execute(
-            """UPDATE backlog SET content = ?, updated_at = datetime('now')
-               WHERE id = ?""",
-            (content, backlog_id),
-        )
-        self._auto_commit()
+        """Update backlog item content and set updated_at.
+
+        NOTE: Delegates to BacklogRepository (M3 adapter pattern).
+        """
+        from core.repositories.backlog_repo import BacklogRepository
+
+        conn = self._conn if self._in_transaction else None
+        repo = BacklogRepository(db_path=self._db_path, conn=conn)
+
+        # Load entity
+        item = repo.get(backlog_id)
+        if not item:
+            return  # Silently ignore if not found (backward compatible)
+
+        # Update content
+        item.content = content
+
+        # Save (updated_at auto-updated in repository)
+        repo.save(item)
 
     # --- Session log ---
 
