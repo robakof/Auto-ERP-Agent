@@ -138,6 +138,9 @@ Poza zakresem:
 
 Dodawaj tylko gdy rola ich wymaga:
 
+- `<persona>` — profil psychologiczny roli (charakter, styl myślenia, podejście do pracy).
+  Umieść po `<mission>`, przed `<scope>`. Dla ról gdzie charakter wpływa na zachowanie
+  (np. Architekt: wywrotowy perfekcjonista). Persona opisuje JAK rola działa, nie CO robi.
 - `<gates>` — warunki wejścia/wyjścia (reviewer, workflow-heavy roles)
 - `<output_contract>` — sztywny format wyniku (reviewer, meta roles)
 - `<examples>` — 1-3 kanoniczne edge case'y (gdy zero-shot nie wystarcza)
