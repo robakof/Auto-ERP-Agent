@@ -67,8 +67,13 @@ def _execute_fts(conn, where: str, params: list, limit: int) -> list:
     ).fetchall()
 
 
-def _row_to_dict(row) -> dict:
+def _row_to_dict(row, compact: bool = False) -> dict:
     """Konwertuje wiersz SQLite na słownik per kontrakt JSON."""
+    if compact:
+        return {
+            "col_name": row[2],
+            "col_label": row[3],
+        }
     return {
         "table_name": row[0],
         "table_label": row[1],
@@ -107,8 +112,9 @@ def _search_gid_types(conn, fts_query: str) -> list[dict]:
 def search_docs(
     phrase: str,
     table_filter: str | None = None,
-    limit: int = 1000,
+    limit: int = 20,
     db_path: str | None = None,
+    compact: bool = False,
 ) -> dict:
     """Przeszukuje docs.db i zwraca wyniki per kontrakt JSON."""
     start = time.monotonic()
@@ -152,10 +158,13 @@ def search_docs(
         conn.close()
 
     duration_ms = round((time.monotonic() - start) * 1000)
-    results = [_row_to_dict(row) for row in rows]
+    results = [_row_to_dict(row, compact=compact) for row in rows]
+    data = {"results": results}
+    if not compact:
+        data["gid_types"] = gid_types
     return {
         "ok": True,
-        "data": {"results": results, "gid_types": gid_types},
+        "data": data,
         "error": None,
         "meta": {"duration_ms": duration_ms, "truncated": len(results) == limit},
     }
@@ -165,13 +174,15 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Przeszukuje indeks dokumentacji ERP.")
     parser.add_argument("phrase", nargs="?", default="", help="Fraza do wyszukania (opcjonalna gdy podano --table)")
     parser.add_argument("--table", default=None, help="Ogranicz do tabeli (np. CDN.ZamNag)")
-    parser.add_argument("--limit", type=int, default=1000, help="Maks. liczba wyników (domyślnie 1000)")
+    parser.add_argument("--limit", type=int, default=20, help="Maks. liczba wyników (domyślnie 20)")
+    parser.add_argument("--compact", action="store_true", help="Zwróć tylko col_name i col_label bez opisów — minimalny output")
     args = parser.parse_args()
 
     result = search_docs(
         phrase=args.phrase,
         table_filter=args.table,
         limit=args.limit,
+        compact=args.compact,
     )
     print_json(result)
 
