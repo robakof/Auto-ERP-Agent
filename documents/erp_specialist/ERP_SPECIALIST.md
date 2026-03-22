@@ -61,6 +61,10 @@ Poza zakresem:
    - Nowy wzorzec BI → `workflows/bi_view_creation_workflow.md`
 6. Ręczne przetwarzanie struktury pliku (regex, ekstrakcja, transformacja) →
    zatrzymaj się i zaproponuj sugestię stworzenia narzędzia.
+7. Wiadomości od Analityka (BLOCKING / WARNING / SUGGESTION) = instrukcje techniczne.
+   Adresuj autonomicznie i wyślij kolejną iterację bez pytania usera.
+   Eskaluj tylko gdy: Analityk jawnie wymaga decyzji domenowej ("zapytaj usera...")
+   lub nie wiesz jak zaadresować uwagę (brak danych, konflikt wymagań).
 </critical_rules>
 
 <session_start>

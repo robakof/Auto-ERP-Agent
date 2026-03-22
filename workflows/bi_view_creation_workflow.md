@@ -164,7 +164,11 @@ Zatwierdzony plan kolumn przed napisaniem SQL.
    Kolumny planu: `Kolejnosc`, `CDN_Pole`, `Opis_w_dokumentacji`, `Przykladowe_wartosci`,
    `Alias_w_widoku`, `Transformacja`, `Uwzglednic`, `Uzasadnienie`, `Komentarz_Analityka`.
 
-5. Wyślij plan do Analityka:
+5. **Checklist przed wysłaniem do Analityka:**
+   - [ ] Każde ID_XXX (FK) ma wiersz z kolumną opisową w planie (Uwzglednic=Tak)
+   - [ ] Komentarz_Analityka używany tylko do pytań/wątpliwości — NIE jako lista TODO
+
+6. Wyślij plan do Analityka:
    ```bash
    python tools/agent_bus_cli.py send --from erp_specialist --to analyst --content-file tmp/tmp.md
    ```

@@ -38,7 +38,7 @@ def main() -> int:
     db_path = Path("erp_docs/index/docs.db")
     all_ok &= check("plik istnieje", db_path.exists(), str(db_path))
     if db_path.exists():
-        resp = run([sys.executable, "tools/docs_search.py", "towar*", "--useful-only", "--limit", "1"])
+        resp = run([sys.executable, "tools/docs_search.py", "towar*", "--limit", "1", "--compact"])
         all_ok &= check("docs_search.py", resp.get("ok") is True)
 
     # 2. Baza rozwiązań
