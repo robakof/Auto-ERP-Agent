@@ -43,8 +43,8 @@ class Entity:
         True
     """
 
-    id: Optional[int] = None
-    created_at: datetime = field(default_factory=datetime.now)
+    id: Optional[int] = field(default=None, kw_only=True)
+    created_at: datetime = field(default_factory=datetime.now, kw_only=True)
 
     def is_persisted(self) -> bool:
         """

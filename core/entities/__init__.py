@@ -8,6 +8,30 @@ Moduły:
 - bot: User, Query, QueryResult, Conversation — bot Telegram (Milestone 5)
 """
 
-# Milestone 1 exports (będą dodane po implementacji)
-# from .base import Entity, Status
-# from .messaging import Message, Suggestion, BacklogItem
+# Milestone 1 exports
+from .base import Entity, Status
+from .messaging import (
+    Message, MessageStatus, MessageType,
+    Suggestion, SuggestionStatus, SuggestionType,
+    BacklogItem, BacklogArea, BacklogStatus, BacklogValue, BacklogEffort
+)
+
+__all__ = [
+    # Base
+    "Entity",
+    "Status",
+    # Message
+    "Message",
+    "MessageStatus",
+    "MessageType",
+    # Suggestion
+    "Suggestion",
+    "SuggestionStatus",
+    "SuggestionType",
+    # BacklogItem
+    "BacklogItem",
+    "BacklogArea",
+    "BacklogStatus",
+    "BacklogValue",
+    "BacklogEffort",
+]
