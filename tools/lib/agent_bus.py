@@ -302,8 +302,9 @@ class AgentBus:
             session_id=session_id
         )
 
-        # Save via repository
-        repo = SuggestionRepository(db_path=self._db_path)
+        # Save via repository (transaction-aware)
+        conn = self._conn if self._in_transaction else None
+        repo = SuggestionRepository(db_path=self._db_path, conn=conn)
         saved = repo.save(suggestion)
 
         return saved.id
@@ -321,7 +322,8 @@ class AgentBus:
         from core.repositories.suggestion_repo import SuggestionRepository
         from core.entities.messaging import SuggestionStatus, SuggestionType
 
-        repo = SuggestionRepository(db_path=self._db_path)
+        conn = self._conn if self._in_transaction else None
+        repo = SuggestionRepository(db_path=self._db_path, conn=conn)
 
         # Query based on filters
         if status and author and type:
@@ -338,8 +340,17 @@ class AgentBus:
             suggestions = repo.find_all()
 
         # Convert entities to dicts (backward compatibility)
+        # Reverse status mapping: new → old API names
+        status_reverse_map = {
+            "implemented": "in_backlog",  # Map back to old API name
+        }
+
         result = []
         for s in suggestions:
+            # Apply reverse mapping for backward compatibility
+            status_value = s.status.value
+            api_status = status_reverse_map.get(status_value, status_value)
+
             d = {
                 "id": s.id,
                 "author": s.author,
@@ -347,7 +358,7 @@ class AgentBus:
                 "title": s.title,
                 "content": s.content,
                 "type": s.type.value,
-                "status": s.status.value,
+                "status": api_status,  # Use mapped status for old API
                 "backlog_id": s.backlog_id,
                 "session_id": s.session_id,
                 "created_at": s.created_at.isoformat()
@@ -369,7 +380,8 @@ class AgentBus:
         from core.repositories.suggestion_repo import SuggestionRepository
         from core.entities.messaging import SuggestionStatus
 
-        repo = SuggestionRepository(db_path=self._db_path)
+        conn = self._conn if self._in_transaction else None
+        repo = SuggestionRepository(db_path=self._db_path, conn=conn)
 
         # Load entity
         suggestion = repo.get(suggestion_id)
