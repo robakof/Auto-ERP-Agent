@@ -1,0 +1,320 @@
+"""
+Repository dla encji Message.
+
+Mapowanie między Message (domain model) a tabela messages (SQLite).
+"""
+
+import sqlite3
+from contextlib import contextmanager
+from datetime import datetime
+from typing import Optional, List
+
+from .base import Repository
+from ..entities.messaging import Message, MessageStatus, MessageType
+from ..exceptions import NotFoundError, ValidationError, PersistenceError
+
+
+class MessageRepository(Repository[Message]):
+    """
+    Repository dla Message — persystencja do SQLite.
+
+    Tabela: messages
+    Schema: id, sender, recipient, content, type, status, session_id, created_at, read_at
+
+    Example:
+        >>> repo = MessageRepository("mrowisko.db")
+        >>> msg = Message(sender="developer", recipient="analyst", content="Check data")
+        >>> msg = repo.save(msg)
+        >>> msg.id  # Auto-generated
+        42
+    """
+
+    def __init__(self, db_path: str = "mrowisko.db"):
+        """
+        Args:
+            db_path: Ścieżka do bazy SQLite (domyślnie mrowisko.db w root)
+        """
+        self.db_path = db_path
+        self._ensure_table_exists()
+
+    def _get_connection(self) -> sqlite3.Connection:
+        """Tworzy połączenie z bazą danych."""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    @contextmanager
+    def _connection(self):
+        """
+        Context manager dla połączenia z bazą danych.
+
+        Automatycznie:
+        - commituje transakcję przy sukcesie
+        - rollbackuje przy wyjątku
+        - zamyka połączenie
+        - tłumaczy wyjątki SQLite na domenowe
+        """
+        conn = self._get_connection()
+        try:
+            yield conn
+            conn.commit()
+        except sqlite3.IntegrityError as e:
+            conn.rollback()
+            raise ValidationError(f"Integrity constraint violation: {e}")
+        except sqlite3.OperationalError as e:
+            conn.rollback()
+            raise PersistenceError(f"Database operation failed: {e}")
+        except sqlite3.DatabaseError as e:
+            conn.rollback()
+            raise PersistenceError(f"Database error: {e}")
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    def _ensure_table_exists(self) -> None:
+        """
+        Upewnia się że tabela messages istnieje.
+
+        Note: W produkcji tabela już istnieje (utworzona przez agent_bus).
+        Ta metoda jest safety net dla testów.
+        """
+        with self._connection() as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    sender TEXT NOT NULL,
+                    recipient TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    type TEXT DEFAULT 'direct',
+                    status TEXT DEFAULT 'unread',
+                    session_id TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    read_at DATETIME
+                )
+            """)
+
+    def _row_to_entity(self, row: sqlite3.Row) -> Message:
+        """
+        Konwertuje wiersz z DB na encję Message.
+
+        Args:
+            row: Wiersz z sqlite3 (Row object)
+
+        Returns:
+            Message z danymi z DB
+
+        Raises:
+            ValidationError: Jeśli nieprawidłowa wartość enuma w bazie
+        """
+        try:
+            type_enum = MessageType(row["type"])
+            status_enum = MessageStatus(row["status"])
+        except ValueError as e:
+            raise ValidationError(f"Invalid enum value in database: {e}")
+
+        return Message(
+            sender=row["sender"],
+            recipient=row["recipient"],
+            content=row["content"],
+            type=type_enum,
+            status=status_enum,
+            session_id=row["session_id"],
+            id=row["id"],
+            created_at=datetime.fromisoformat(row["created_at"]) if row["created_at"] else datetime.now(),
+            read_at=datetime.fromisoformat(row["read_at"]) if row["read_at"] else None
+        )
+
+    def _entity_to_row(self, entity: Message) -> dict:
+        """
+        Konwertuje encję Message na dict dla DB.
+
+        Args:
+            entity: Message do zapisu
+
+        Returns:
+            Dict z danymi gotowymi do INSERT/UPDATE
+        """
+        return {
+            "sender": entity.sender,
+            "recipient": entity.recipient,
+            "content": entity.content,
+            "type": entity.type.value,
+            "status": entity.status.value,
+            "session_id": entity.session_id,
+            "created_at": entity.created_at.isoformat(),
+            "read_at": entity.read_at.isoformat() if entity.read_at else None
+        }
+
+    def get(self, id: int) -> Optional[Message]:
+        """
+        Pobiera Message po ID.
+
+        Args:
+            id: ID wiadomości
+
+        Returns:
+            Message jeśli istnieje, None jeśli nie znaleziono
+        """
+        with self._connection() as conn:
+            cursor = conn.execute(
+                """SELECT id, sender, recipient, content, type, status, session_id,
+                          created_at, read_at
+                   FROM messages
+                   WHERE id = ?""",
+                (id,)
+            )
+            row = cursor.fetchone()
+            return self._row_to_entity(row) if row else None
+
+    def save(self, entity: Message) -> Message:
+        """
+        Zapisuje Message do bazy.
+
+        Jeśli entity.id is None → INSERT
+        Jeśli entity.id is not None → UPDATE
+
+        Args:
+            entity: Message do zapisania
+
+        Returns:
+            Message z ustawionym ID
+
+        Raises:
+            ValidationError: Jeśli brak wymaganych pól
+        """
+        if not entity.sender or not entity.recipient or not entity.content:
+            raise ValidationError("Message must have sender, recipient, and content")
+
+        with self._connection() as conn:
+            row_data = self._entity_to_row(entity)
+
+            if entity.is_persisted():
+                # UPDATE
+                conn.execute(
+                    """UPDATE messages
+                       SET sender = ?, recipient = ?, content = ?, type = ?, status = ?,
+                           session_id = ?, read_at = ?
+                       WHERE id = ?""",
+                    (row_data["sender"], row_data["recipient"], row_data["content"],
+                     row_data["type"], row_data["status"], row_data["session_id"],
+                     row_data["read_at"], entity.id)
+                )
+            else:
+                # INSERT
+                cursor = conn.execute(
+                    """INSERT INTO messages (sender, recipient, content, type, status, session_id, created_at, read_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (row_data["sender"], row_data["recipient"], row_data["content"],
+                     row_data["type"], row_data["status"], row_data["session_id"],
+                     row_data["created_at"], row_data["read_at"])
+                )
+                entity.id = cursor.lastrowid
+
+            return entity
+
+    def delete(self, id: int) -> bool:
+        """
+        Usuwa Message po ID.
+
+        Args:
+            id: ID wiadomości do usunięcia
+
+        Returns:
+            True jeśli usunięto, False jeśli wiadomość nie istniała
+        """
+        with self._connection() as conn:
+            cursor = conn.execute("DELETE FROM messages WHERE id = ?", (id,))
+            return cursor.rowcount > 0
+
+    def exists(self, id: int) -> bool:
+        """
+        Sprawdza czy Message o podanym ID istnieje.
+
+        Args:
+            id: ID wiadomości
+
+        Returns:
+            True jeśli wiadomość istnieje, False jeśli nie
+        """
+        with self._connection() as conn:
+            cursor = conn.execute("SELECT 1 FROM messages WHERE id = ? LIMIT 1", (id,))
+            return cursor.fetchone() is not None
+
+    def find_all(self) -> List[Message]:
+        """
+        Pobiera wszystkie wiadomości.
+
+        Returns:
+            Lista Message (pusta jeśli brak), posortowana po created_at DESC
+
+        Note:
+            Może zwrócić tysiące rekordów — używaj ostrożnie
+        """
+        with self._connection() as conn:
+            cursor = conn.execute(
+                """SELECT id, sender, recipient, content, type, status, session_id,
+                          created_at, read_at
+                   FROM messages
+                   ORDER BY created_at DESC, id DESC"""
+            )
+            return [self._row_to_entity(row) for row in cursor.fetchall()]
+
+    def _find_by(self, field: str, value) -> List[Message]:
+        """
+        Generic query method dla prostych WHERE field = value.
+
+        Args:
+            field: Nazwa kolumny (np. "status", "sender", "recipient")
+            value: Wartość do filtrowania
+
+        Returns:
+            Lista Message spełniających warunek
+        """
+        with self._connection() as conn:
+            cursor = conn.execute(
+                f"""SELECT id, sender, recipient, content, type, status, session_id,
+                           created_at, read_at
+                    FROM messages
+                    WHERE {field} = ?
+                    ORDER BY created_at DESC, id DESC""",
+                (value,)
+            )
+            return [self._row_to_entity(row) for row in cursor.fetchall()]
+
+    def find_by_status(self, status: MessageStatus) -> List[Message]:
+        """
+        Pobiera wiadomości po statusie.
+
+        Args:
+            status: Status do filtrowania (MessageStatus enum)
+
+        Returns:
+            Lista Message o podanym statusie
+        """
+        return self._find_by("status", status.value)
+
+    def find_by_recipient(self, recipient: str) -> List[Message]:
+        """
+        Pobiera wiadomości po odbiorcy.
+
+        Args:
+            recipient: Nazwa roli odbiorcy (np. "developer", "analyst")
+
+        Returns:
+            Lista Message dla podanego odbiorcy
+        """
+        return self._find_by("recipient", recipient)
+
+    def find_by_sender(self, sender: str) -> List[Message]:
+        """
+        Pobiera wiadomości po nadawcy.
+
+        Args:
+            sender: Nazwa roli nadawcy (np. "architect", "erp_specialist")
+
+        Returns:
+            Lista Message od podanego nadawcy
+        """
+        return self._find_by("sender", sender)
