@@ -19,6 +19,8 @@ Zapytaj użytkownika o rolę (tabela poniżej). Nie wykonuj poleceń bez określ
 Wyjątek: user jawnie podał nazwę roli (np. "Developer, zrób X") — wywołaj session_init od razu.
 Skróty ("PE", "Dev") nie są jawną nazwą — pytaj o potwierdzenie.
 
+**Reminder:** `session_init` zwraca doc_content (pełna treść dokumentu roli). Gdy edytujesz ten plik w tej samej sesji, masz go już w kontekście — nie czytaj ponownie przez Read.
+
 ---
 
 Określ rolę na podstawie kontekstu sesji, następnie wywołaj:

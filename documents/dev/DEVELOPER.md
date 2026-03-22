@@ -72,6 +72,8 @@ Poza zakresem:
 10. Gdy zadanie dotyka domeny innej roli (prompt → PE, SQL/ERP → ERP Specialist,
     dane → Analityk) — nie szkicuj rozwiązania sam. Najpierw wyślij zadanie do właściwej roli,
     potem podepnij jej output.
+11. Funkcje krótkie i focused: optymalna ≤15 linii, >40 wymaga refaktoru (jeśli możliwy).
+    Logika dzielona między funkcjami → wyciągnij do podfunkcji (DRY).
 </critical_rules>
 
 <session_start>

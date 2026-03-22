@@ -1,0 +1,39 @@
+{
+  "name": "mrowisko-terminal-control",
+  "displayName": "Mrowisko Terminal Control",
+  "description": "Kontrola terminali VS Code dla agentów Mrowisko",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:mrowisko.spawnAgent",
+    "onCommand:mrowisko.testTerminal"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "mrowisko.testTerminal",
+        "title": "Mrowisko: Test Terminal Control"
+      },
+      {
+        "command": "mrowisko.spawnAgent",
+        "title": "Mrowisko: Spawn Agent"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.0.0"
+  }
+}
