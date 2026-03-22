@@ -426,3 +426,73 @@ class TestSessionsTraceModule:
         assert "sessions" in names
         assert "tool_calls" in names
         assert "token_usage" in names
+
+
+class TestTransactions:
+    """Test transaction context manager for atomic operations."""
+
+    def test_transaction_commit(self, bus):
+        """Transaction commits all operations on success."""
+        with bus.transaction():
+            id1 = bus.add_backlog_item(title="Task 1", content="Content 1")
+            id2 = bus.add_backlog_item(title="Task 2", content="Content 2")
+
+        items = bus.get_backlog()
+        assert len(items) == 2
+        assert items[0]["title"] == "Task 2"  # newest first
+        assert items[1]["title"] == "Task 1"
+
+    def test_transaction_rollback(self, bus):
+        """Transaction rolls back all operations on exception."""
+        try:
+            with bus.transaction():
+                bus.add_backlog_item(title="Task 1", content="Content 1")
+                raise ValueError("Simulated error")
+        except ValueError:
+            pass
+
+        items = bus.get_backlog()
+        assert len(items) == 0  # rollback — nothing saved
+
+    def test_transaction_nested_not_supported(self, bus):
+        """Nested transactions raise RuntimeError."""
+        with pytest.raises(RuntimeError, match="Nested transactions"):
+            with bus.transaction():
+                with bus.transaction():
+                    pass
+
+    def test_backward_compat_auto_commit(self, bus):
+        """Without transaction context, operations auto-commit as before."""
+        id1 = bus.add_backlog_item(title="Task 1", content="Content 1")
+        items = bus.get_backlog()
+        assert len(items) == 1  # auto-commit worked
+
+    def test_transaction_multiple_operations(self, bus):
+        """Transaction supports mixed operations across tables."""
+        with bus.transaction():
+            sid = bus.add_suggestion(author="developer", content="Suggestion 1")
+            bid = bus.add_backlog_item(title="Task 1", content="From suggestion", source_id=sid)
+            bus.update_suggestion_status(sid, "in_backlog", backlog_id=bid)
+
+        suggestions = bus.get_suggestions()
+        backlog = bus.get_backlog()
+        assert len(suggestions) == 1
+        assert len(backlog) == 1
+        assert suggestions[0]["status"] == "in_backlog"
+        assert suggestions[0]["backlog_id"] == bid
+        assert backlog[0]["source_id"] == sid
+
+    def test_transaction_rollback_mixed_operations(self, bus):
+        """Failed transaction rolls back operations across multiple tables."""
+        try:
+            with bus.transaction():
+                bus.add_suggestion(author="developer", content="Suggestion 1")
+                bus.add_backlog_item(title="Task 1", content="Content 1")
+                bus.send_message(sender="dev", recipient="analyst", content="Test msg")
+                raise ValueError("Simulated error")
+        except ValueError:
+            pass
+
+        assert len(bus.get_suggestions()) == 0
+        assert len(bus.get_backlog()) == 0
+        assert len(bus.get_inbox("analyst")) == 0

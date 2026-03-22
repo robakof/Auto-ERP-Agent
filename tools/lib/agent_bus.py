@@ -7,6 +7,7 @@ backlog items).
 
 import json
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 
 ALLOWED_MESSAGE_TYPES = {"suggestion", "task", "info", "flag_human"}
@@ -174,6 +175,7 @@ class AgentBus:
         self._conn.executescript(_SCHEMA_SQL)
         self._run_migrations()
         self._conn.commit()
+        self._in_transaction = False
 
     def _run_migrations(self) -> None:
         for stmt in _MIGRATE_SQL:
@@ -181,6 +183,37 @@ class AgentBus:
                 self._conn.execute(stmt)
             except Exception:
                 pass  # kolumna/tabela już istnieje
+
+    def _auto_commit(self) -> None:
+        """Commit only if NOT in explicit transaction context."""
+        if not self._in_transaction:
+            self._auto_commit()
+
+    @contextmanager
+    def transaction(self):
+        """Explicit transaction context manager for atomic operations.
+
+        Usage:
+            with bus.transaction():
+                bus.update_backlog_status(...)
+                bus.update_backlog_content(...)
+                # commit on exit, rollback on exception
+
+        Raises:
+            RuntimeError: If already in a transaction (nested not supported).
+        """
+        if self._in_transaction:
+            raise RuntimeError("Nested transactions not supported")
+
+        self._in_transaction = True
+        try:
+            yield
+            self._auto_commit()
+        except Exception:
+            self._conn.rollback()
+            raise
+        finally:
+            self._in_transaction = False
 
     # --- Messages ---
 
@@ -200,7 +233,7 @@ class AgentBus:
                VALUES (?, ?, ?, ?, ?)""",
             (sender, recipient, type, content, session_id),
         )
-        self._conn.commit()
+        self._auto_commit()
         return cursor.lastrowid
 
     def get_inbox(self, role: str, status: str = "unread") -> list[dict]:
@@ -223,7 +256,7 @@ class AgentBus:
                WHERE id = ?""",
             (message_id,),
         )
-        self._conn.commit()
+        self._auto_commit()
 
     def archive_message(self, message_id: int) -> None:
         """Archive a message (status='archived')."""
@@ -231,7 +264,7 @@ class AgentBus:
             "UPDATE messages SET status = 'archived' WHERE id = ?",
             (message_id,),
         )
-        self._conn.commit()
+        self._auto_commit()
 
     # --- State ---
 
@@ -255,7 +288,7 @@ class AgentBus:
                VALUES (?, ?, ?, ?, ?, ?)""",
             (author, recipients_json, title, content, type, session_id),
         )
-        self._conn.commit()
+        self._auto_commit()
         return cursor.lastrowid
 
     def get_suggestions(
@@ -305,7 +338,7 @@ class AgentBus:
                WHERE id = ?""",
             (status, backlog_id, suggestion_id),
         )
-        self._conn.commit()
+        self._auto_commit()
 
     # --- Backlog ---
 
@@ -324,7 +357,7 @@ class AgentBus:
                VALUES (?, ?, ?, ?, ?, ?)""",
             (title, content, area, value, effort, source_id),
         )
-        self._conn.commit()
+        self._auto_commit()
         return cursor.lastrowid
 
     def get_backlog(self, status: str = None, area: str = None) -> list[dict]:
@@ -354,7 +387,7 @@ class AgentBus:
                WHERE id = ?""",
             (status, backlog_id),
         )
-        self._conn.commit()
+        self._auto_commit()
 
     def update_backlog_content(self, backlog_id: int, content: str) -> None:
         """Update backlog item content and set updated_at."""
@@ -363,7 +396,7 @@ class AgentBus:
                WHERE id = ?""",
             (content, backlog_id),
         )
-        self._conn.commit()
+        self._auto_commit()
 
     # --- Session log ---
 
@@ -379,7 +412,7 @@ class AgentBus:
                VALUES (?, ?, ?)""",
             (role, content, session_id),
         )
-        self._conn.commit()
+        self._auto_commit()
         return cursor.lastrowid
 
     def get_session_log(self, role: str, limit: int = 20) -> list[dict]:
@@ -447,7 +480,7 @@ class AgentBus:
             "UPDATE messages SET status = 'read', read_at = datetime('now') WHERE id = ?",
             (message_id,),
         )
-        self._conn.commit()
+        self._auto_commit()
 
     def mark_all_read(self, role: str) -> int:
         """Mark all unread messages for a role as read. Returns count of updated rows."""
@@ -455,7 +488,7 @@ class AgentBus:
             "UPDATE messages SET status = 'read', read_at = datetime('now') WHERE recipient = ? AND status = 'unread'",
             (role,),
         )
-        self._conn.commit()
+        self._auto_commit()
         return cursor.rowcount
 
     # --- Trace ---
@@ -481,7 +514,7 @@ class AgentBus:
                    ended_at          = COALESCE(excluded.ended_at, ended_at)""",
             (session_id, role, claude_session_id, transcript_path, ended_at),
         )
-        self._conn.commit()
+        self._auto_commit()
 
     def add_tool_call(
         self,
@@ -498,7 +531,7 @@ class AgentBus:
                VALUES (?, ?, ?, ?, ?, COALESCE(?, datetime('now')))""",
             (session_id, tool_name, input_summary, is_error, tokens_out, timestamp),
         )
-        self._conn.commit()
+        self._auto_commit()
         return cursor.lastrowid
 
     def add_token_usage(
@@ -521,7 +554,7 @@ class AgentBus:
             (session_id, turn_index, input_tokens, output_tokens,
              cache_read_tokens, cache_create_tokens, duration_ms, timestamp),
         )
-        self._conn.commit()
+        self._auto_commit()
         return cursor.lastrowid
 
     def get_session_trace(self, session_id: str) -> dict:
@@ -565,7 +598,7 @@ class AgentBus:
                VALUES (?, ?, ?, ?, ?)""",
             (session_id, speaker, content, event_type, raw_payload),
         )
-        self._conn.commit()
+        self._auto_commit()
         return cursor.lastrowid
 
     def get_conversation(self, session_id: str) -> list[dict]:
@@ -593,7 +626,7 @@ class AgentBus:
                    started_at = datetime('now'), last_seen_at = datetime('now')""",
             (instance_id, role),
         )
-        self._conn.commit()
+        self._auto_commit()
 
     def heartbeat(self, instance_id: str) -> None:
         """Update last_seen_at for a running instance."""
@@ -601,7 +634,7 @@ class AgentBus:
             "UPDATE agent_instances SET last_seen_at = datetime('now') WHERE instance_id = ?",
             (instance_id,),
         )
-        self._conn.commit()
+        self._auto_commit()
 
     def set_instance_busy(self, instance_id: str, task_id: int) -> None:
         """Mark instance as busy with an active task."""
@@ -609,7 +642,7 @@ class AgentBus:
             "UPDATE agent_instances SET status = 'busy', active_task_id = ? WHERE instance_id = ?",
             (task_id, instance_id),
         )
-        self._conn.commit()
+        self._auto_commit()
 
     def set_instance_idle(self, instance_id: str) -> None:
         """Mark instance as idle and clear active task."""
@@ -617,7 +650,7 @@ class AgentBus:
             "UPDATE agent_instances SET status = 'idle', active_task_id = NULL WHERE instance_id = ?",
             (instance_id,),
         )
-        self._conn.commit()
+        self._auto_commit()
 
     def terminate_instance(self, instance_id: str) -> None:
         """Mark instance as terminated."""
@@ -625,7 +658,7 @@ class AgentBus:
             "UPDATE agent_instances SET status = 'terminated' WHERE instance_id = ?",
             (instance_id,),
         )
-        self._conn.commit()
+        self._auto_commit()
 
     def get_free_instances(self, role: str) -> list[dict]:
         """Return idle instances for role with recent heartbeat (TTL=60s)."""
@@ -658,7 +691,7 @@ class AgentBus:
                WHERE id = ? AND status = 'unread'""",
             (instance_id, msg_id),
         )
-        self._conn.commit()
+        self._auto_commit()
         return cursor.rowcount > 0
 
     def unclaim_task(self, msg_id: int) -> None:
@@ -669,7 +702,7 @@ class AgentBus:
                WHERE id = ? AND status = 'claimed'""",
             (msg_id,),
         )
-        self._conn.commit()
+        self._auto_commit()
 
     def get_pending_tasks(self, role: str, instance_id: str) -> list[dict]:
         """Return unread/unclaimed tasks for role OR specific instance_id."""
