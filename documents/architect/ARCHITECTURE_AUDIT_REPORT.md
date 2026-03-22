@@ -323,17 +323,281 @@ telegram_channel → nlp_pipeline → { validator, executor, formatter, conversa
 
 ---
 
+## Faza 5: Inspekcja solutions/, erp_docs/
+
+### 5.1 Struktura solutions/
+
+| Metryka | Wartość |
+|---------|---------|
+| Katalogów | 86 |
+| Plików | 239 |
+| .sql | 208 (87%) |
+| .xlsx | 20 |
+| .md | 7 |
+| .json | 2 |
+| .tsv | 2 |
+
+**Główne obszary:**
+
+| Obszar | Plików | Opis |
+|--------|--------|------|
+| `solutions/bi/` | 73 | Widoki BI — foldery robocze + finalne views/ |
+| `solutions/bi/views/` | 15 | Finalne widoki SQL (deployed) |
+| `solutions/solutions in ERP windows/` | 156 | Konfiguracje kolumn/filtrów okien ERP |
+| `solutions/jas/` | 3 | Eksporty JAS (etykiety) |
+| `solutions/procedures/` | 1 | Procedury SQL |
+| `solutions/reference/` | 4 | Referencje (prefiksy, numeracja) |
+
+---
+
+### 5.2 Widoki BI — spójność
+
+| Test | Wynik |
+|------|-------|
+| Widoki w views/ | 15 |
+| Widoki w catalog.json | 13 |
+| **Brak w katalogu** | 2 ⚠ (`MagNag`, `wz_jas_export`) |
+| Konwencja nazw folderów | ✓ Spójna (`<Widok>_draft.sql`, `*_plan.xlsx`) |
+
+**Severity: Low** — 2 widoki niezadokumentowane w catalog.json. Bot BI może nie znać ich metadanych.
+
+**Rekomendacja:** Dodać `MagNag` i `wz_jas_export` do catalog.json.
+
+---
+
+### 5.3 ERP windows — problemy
+
+| Problem | Severity | Opis |
+|---------|----------|------|
+| **Encoding** | Medium | Polskie znaki zepsute (`p�atno�ci`, `Zam�wienia`) |
+| **Spacje w ścieżkach** | Low | `solutions in ERP windows` — utrudnia automatyzację |
+| **Głęboka hierarchia** | Low | 3-4 poziomy zagnieżdżenia (`Okno/Zakładka/columns/`) |
+
+**25 typów okien/zakładek** zidentyfikowanych (Handlowe, Magazynowe, Zamówienia, Towary, etc.)
+
+**Rekomendacja:**
+1. Naprawić encoding plików (UTF-8 BOM lub konwersja)
+2. Rozważyć rename `solutions in ERP windows` → `solutions/erp_windows`
+
+---
+
+### 5.4 erp_docs/index/docs.db
+
+Baza SQLite z indeksem schematu ERP Comarch XL:
+
+| Tabela | Rekordy | Opis |
+|--------|---------|------|
+| tables | 1,165 | Tabele CDN.* |
+| columns | 18,632 | Kolumny z opisami |
+| relations | 10,406 | FK relacje |
+| gid_types | 456 | Typy GID |
+| columns_fts | 18,632 | FTS indeks kolumn |
+| gid_types_fts | 456 | FTS indeks GID |
+
+**Severity: Low** — dobrze zorganizowane, FTS działa.
+
+---
+
+### 5.5 Podsumowanie Fazy 5
+
+| Obszar | Severity | Opis |
+|--------|----------|------|
+| BI views | Low | 2 widoki brak w catalog.json |
+| ERP windows encoding | Medium | Polskie znaki zepsute |
+| ERP windows struktura | Low | Spacje w ścieżkach, głęboka hierarchia |
+| erp_docs | Low | Kompletne, FTS działa |
+
+**Ogólna ocena Fazy 5:** Katalog solutions/ jest **funkcjonalny**, ale wymaga porządków:
+1. **Ważne:** Naprawić encoding w `solutions in ERP windows/`
+2. Uzupełnić catalog.json o brakujące widoki
+3. Rozważyć rename katalogu ERP windows
+
+---
+
+## Faza 6: Inspekcja _loom
+
+### 6.1 Cel i struktura
+
+**LOOM** = **L**ayered **O**bservation and **O**rchestration **M**ethodology
+
+Zarodek metodologii do bootstrappowania nowych projektów z agentami LLM.
+
+| Metryka | Wartość |
+|---------|---------|
+| Katalogów | 5 |
+| Plików | 12 (.md) |
+| Cel | Seed dla nowych projektów |
+
+**Struktura:**
+```
+_loom/
+├── README.md              ← dokumentacja LOOM
+├── seed.md                ← bootstrap script (kopiowany jako CLAUDE.md)
+├── CLAUDE_template.md     ← szablon z placeholderami
+└── documents/
+    ├── dev/               ← DEVELOPER.md, PROJECT_START.md, templates/
+    └── methodology/       ← METHODOLOGY.md, templates/
+```
+
+---
+
+### 6.2 Relacja z głównym projektem
+
+| Test | Wynik |
+|------|-------|
+| Plików wspólnych z documents/ | 8 |
+| Plików tylko w _loom | 1 (`methodology_progress.md`) |
+| Synchronizacja | ✗ Brak — kopie mogą się rozjechać |
+
+**Problem:** _loom zawiera uproszczone wersje DEVELOPER.md i METHODOLOGY.md. Główne dokumenty w documents/ są znacznie bardziej rozbudowane (narzędzia, workflow, agent_bus). Brak mechanizmu synchronizacji.
+
+---
+
+### 6.3 Problemy architektoniczne
+
+| Problem | Severity | Opis |
+|---------|----------|------|
+| **Brak sync** | Medium | _loom może być nieaktualny względem głównych docs |
+| **Duplikacja** | Low | 8 plików istnieje w dwóch wersjach |
+| **Niejasne ownership** | Low | Kto aktualizuje _loom gdy Mrowisko ewoluuje? |
+| **Brak testowania** | Low | Seed.md nigdy nie był uruchomiony na nowym projekcie? |
+
+---
+
+### 6.4 Rekomendacje
+
+1. **Wydzielić _loom jako osobne repo** — GitHub: `CyperCyper/loom` (zgodnie z seed.md)
+2. **Dodać workflow sync** — gdy główne documents/ ewoluują, aktualizować _loom
+3. **Dokumentować różnice** — Mrowisko = full implementation, _loom = minimal seed
+4. **Przetestować bootstrap** — uruchomić seed.md na pustym projekcie
+
+---
+
+### 6.5 Podsumowanie Fazy 6
+
+| Obszar | Severity | Opis |
+|--------|----------|------|
+| Koncepcja | ✓ OK | Sensowny seed dla nowych projektów |
+| Implementacja | Medium | Brak sync, duplikacja, nieteststowany |
+
+**Ogólna ocena Fazy 6:** _loom to **dobra koncepcja**, ale wymaga dojrzenia:
+1. Wydzielenie jako osobne repo
+2. Mechanizm synchronizacji z głównym projektem
+3. Test na realnym nowym projekcie
+
+---
+
 ## Następne kroki
 
 - [x] Faza 1: Inspekcja tools/
 - [x] Faza 2: Inspekcja agent_bus (mrowisko.db)
 - [x] Faza 3: Inspekcja bot/
 - [x] Faza 4: Inspekcja dokumentacji ról
-- [ ] Faza 5: Inspekcja solutions/, erp_docs/
-- [ ] Faza 6: Inspekcja _loom
-- [ ] Faza 7: Meta-analiza + raport końcowy
+- [x] Faza 5: Inspekcja solutions/, erp_docs/
+- [x] Faza 6: Inspekcja _loom
+- [x] Faza 7: Meta-analiza + raport końcowy
 
 ---
 
+## Faza 7: Meta-analiza + raport końcowy
+
+### 7.1 Podsumowanie findings per severity
+
+| Severity | Liczba | Opis |
+|----------|--------|------|
+| **Critical** | 1 | Bot może crashować przy API errors |
+| **High** | 2 | nlp_pipeline.py God Object, brak rate limiting |
+| **Medium** | 6 | God scripts, legacy DB, encoding, _loom sync |
+| **Low** | 8 | Nazewnictwo, duplikacje, drobne braki |
+
+---
+
+### 7.2 Top 5 Action Items (prioritized)
+
+| # | Severity | Obszar | Działanie | Effort |
+|---|----------|--------|-----------|--------|
+| 1 | **Critical** | bot/ | Dodać try/except dla `anthropic.APIError`, `RateLimitError` w `nlp_pipeline.py` | Mały |
+| 2 | High | bot/ | Rozbić `nlp_pipeline.py` (218 linii) na mniejsze komponenty | Średni |
+| 3 | High | bot/ | Dodać rate limiting per user (max N zapytań/minutę) | Mały |
+| 4 | Medium | mrowisko.db | Cleanup policy dla `tool_calls`/`token_usage` (>30 dni → archiwum) | Mały |
+| 5 | Medium | _loom | Wydzielić jako osobne repo, dodać sync workflow | Średni |
+
+---
+
+### 7.3 Tech Debt Inventory
+
+| Obszar | Opis | Severity |
+|--------|------|----------|
+| **bot/nlp_pipeline.py** | God Object: 7 odpowiedzialności, 218 linii | High |
+| **tools/wycena_generate.py** | God script: 571 linii | Medium |
+| **tools/render.py** | God script: 449 linii | Medium |
+| **tools/agent_bus_cli.py** | God script: 402 linii (ale CLI — możliwe OK) | Low |
+| **mrowisko.db:state** | Legacy tabela — częściowo zmigrowana | Medium |
+| **mrowisko.db:trace** | Martwa tabela (0 rekordów) | Low |
+| **mrowisko.db:tool_calls** | 30k rekordów, brak cleanup | Medium |
+| **mrowisko.db:token_usage** | 44k rekordów, brak cleanup | Medium |
+| **solutions/ERP windows** | Zepsute polskie znaki (encoding) | Medium |
+| **_loom** | Brak sync z głównym repo | Medium |
+
+---
+
+### 7.4 Ogólna ocena dojrzałości
+
+| Wymiar | Ocena | Komentarz |
+|--------|-------|-----------|
+| **Modularność tools/** | Mid | 78% używa lib/, ale 4 god scripts |
+| **Kontrakty API** | Mid-Senior | Spójny JSON contract (print_json), dobra walidacja |
+| **Bezpieczeństwo bot/** | Mid-Senior | Solidne guardrails SQL, whitelist, ale brak error handling API |
+| **Dokumentacja ról** | Senior | Spójny format XML-like, kompletne instrukcje |
+| **Baza danych** | Mid | Integralność OK, ale legacy + brak cleanup |
+| **Architektura bot/** | Junior-Mid | God Object, in-memory sessions, brak rate limiting |
+| **_loom** | Junior | Koncepcja OK, implementacja niedojrzała |
+
+**Ogólna ocena systemu: Mid**
+
+System jest **funkcjonalny i dobrze udokumentowany**, ale wymaga hardeningu przed skalowaniem:
+- Bot potrzebuje error handling i refaktoru
+- Narzędzia wymagają rozbicia god scripts
+- Baza potrzebuje cleanup policy
+
+---
+
+### 7.5 Architektura — silne strony
+
+1. **Trójpoziomowa struktura ról** — jasna separacja (Wykonawcy / Developer / Metodolog)
+2. **agent_bus jako centralny hub** — spójna komunikacja między agentami
+3. **Spójne kontrakty JSON** — każde narzędzie zwraca `{"ok": bool, ...}`
+4. **Workflow-driven development** — role mają jasne workflow do każdego typu zadania
+5. **Refleksja przez suggestions** — mechanizm ciągłego doskonalenia
+
+---
+
+### 7.6 Rekomendacje strategiczne
+
+| Horyzont | Rekomendacja |
+|----------|--------------|
+| **Teraz** | Fix critical: error handling w bocie |
+| **Krótkoterminowo** | Refactor nlp_pipeline.py, dodać rate limiting |
+| **Średnioterminowo** | Cleanup policy dla DB, rozbić god scripts |
+| **Długoterminowo** | Wydzielić _loom, rozważyć zewnętrzną bazę (sync między maszynami) |
+
+---
+
+## Podsumowanie audytu
+
+| Metryka | Wartość |
+|---------|---------|
+| Faz audytu | 7 |
+| Findings Critical | 1 |
+| Findings High | 2 |
+| Findings Medium | 6 |
+| Findings Low | 8 |
+| Ogólna ocena | **Mid** — funkcjonalny, wymaga hardeningu |
+
+**Konkluzja:** Mrowisko ma solidne fundamenty (architektura ról, agent_bus, dokumentacja). Główne ryzyka koncentrują się w module bot/ (error handling, God Object) i operacjach (cleanup DB). Priorytetem jest fix critical w bocie — reszta to kontrolowany tech debt.
+
+---
+
+*Audyt zakończony: 2026-03-22*
 *Raport utrzymywany przez: Architect*
 *Lokalizacja: documents/architect/ARCHITECTURE_AUDIT_REPORT.md*

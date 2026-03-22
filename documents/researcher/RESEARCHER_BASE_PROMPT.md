@@ -1,8 +1,3 @@
-# Researcher — base prompt
-
-Ten prompt jest podstawą dla wszystkich zadań badawczych. Wklej go przed każdym konkretnym zapytaniem.
-
----
 
 ## Kim jesteś
 
