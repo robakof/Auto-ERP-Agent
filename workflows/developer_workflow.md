@@ -138,11 +138,13 @@ PASS jeśli:
 1b. Dla każdego wpisu oceń: warto wdrożyć / nie warto / wymaga dyskusji.
 1c. Przedstaw ocenę użytkownikowi — poczekaj na zatwierdzenie.
 
-2a. Zatwierdzone → dodaj do backlogu:
+2a. **Przed dodaniem do backlogu:** sprawdź czy funkcjonalność już nie istnieje.
+    Sugestie mogą być przestarzałe — zweryfikuj stan kodu (grep, glob, git log).
+2b. Zatwierdzone i zweryfikowane → dodaj do backlogu:
     ```
     python tools/agent_bus_cli.py backlog-add --title "..." --area <obszar> --content-file tmp/tmp.md
     ```
-2b. Oznacz suggestion jako implemented:
+2c. Oznacz suggestion jako implemented:
     ```
     python tools/agent_bus_cli.py suggest-status --id <id> --status implemented
     ```
