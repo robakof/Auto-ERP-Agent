@@ -11,6 +11,7 @@ Usage:
 
 import argparse
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -29,32 +30,50 @@ DB_PATH = "mrowisko.db"
 
 # --- View definitions ---
 
+@dataclass
+class ViewConfig:
+    name: str
+    title: str
+    columns: list[str]
+    default_output_dir: str
+
 VIEWS = {
-    "backlog": {
-        "title": "Backlog",
-        "columns": ["id", "title", "area", "value", "effort", "status", "created_at"],
-    },
-    "suggestions": {
-        "title": "Suggestions",
-        "columns": ["id", "type", "author", "title", "status", "created_at"],
-    },
-    "inbox": {
-        "title": "Inbox",
-        "columns": ["id", "sender", "type", "content", "status", "created_at"],
-    },
-    "session-log": {
-        "title": "Session Log",
-        "columns": ["id", "role", "content", "session_id", "created_at"],
-    },
-    "messages": {
-        "title": "Messages",
-        "columns": ["id", "sender", "recipient", "type", "content", "status", "created_at", "read_at"],
-    },
+    "backlog": ViewConfig(
+        name="backlog",
+        title="Backlog",
+        columns=["id", "title", "area", "value", "effort", "status", "created_at"],
+        default_output_dir="documents/human/backlog",
+    ),
+    "suggestions": ViewConfig(
+        name="suggestions",
+        title="Suggestions",
+        columns=["id", "type", "author", "title", "status", "created_at"],
+        default_output_dir="documents/human/suggestions",
+    ),
+    "inbox": ViewConfig(
+        name="inbox",
+        title="Inbox",
+        columns=["id", "sender", "type", "content", "status", "created_at"],
+        default_output_dir="documents/human/inbox",
+    ),
+    "session-log": ViewConfig(
+        name="session-log",
+        title="Session Log",
+        columns=["id", "role", "content", "session_id", "created_at"],
+        default_output_dir="documents/human/logs",
+    ),
+    "messages": ViewConfig(
+        name="messages",
+        title="Messages",
+        columns=["id", "sender", "recipient", "type", "content", "status", "created_at", "read_at"],
+        default_output_dir="documents/human/inbox",
+    ),
 }
 
 # --- Data fetch ---
 
-def fetch(view: str, bus: AgentBus, args: argparse.Namespace) -> list[dict]:
+def fetch(view_config: ViewConfig, bus: AgentBus, args: argparse.Namespace) -> list[dict]:
+    view = view_config.name
     if view == "backlog":
         status = getattr(args, "status", "planned")
         items = bus.get_backlog(status=None if status == "all" else status)
@@ -144,7 +163,7 @@ def main():
         if not trace:
             print(f"Sesja '{args.session}' nie znaleziona w DB.", file=sys.stderr)
             sys.exit(1)
-        output = Path(args.output) if args.output else Path("views") / f"session_trace_{args.session}.xlsx"
+        output = Path(args.output) if args.output else Path("documents/human/logs") / f"session_trace_{args.session}.xlsx"
         output.parent.mkdir(parents=True, exist_ok=True)
         render_session_trace_xlsx(trace, output)
         tc_count = len(trace["tool_calls"])
@@ -153,23 +172,23 @@ def main():
         return
 
     cfg = VIEWS[view]
-    data = fetch(view, bus, args)
+    data = fetch(cfg, bus, args)
 
     ext = args.format
-    output = Path(args.output) if args.output else Path("views") / f"{view}.{ext}"
+    output = Path(args.output) if args.output else Path(cfg.default_output_dir) / f"{view}.{ext}"
     output.parent.mkdir(parents=True, exist_ok=True)
 
     if ext == "json":
-        render_json(data, cfg["title"], output)
+        render_json(data, cfg.title, output)
     elif ext == "md":
         if view == "backlog":
-            render_backlog_md(data, cfg["title"], output)
+            render_backlog_md(data, cfg.title, output)
         elif view == "suggestions":
-            render_suggestions_md(data, cfg["title"], output)
+            render_suggestions_md(data, cfg.title, output)
         else:
-            render_md(data, cfg["columns"], cfg["title"], output)
+            render_md(data, cfg.columns, cfg.title, output)
     elif ext == "xlsx":
-        render_xlsx(data, cfg["columns"], cfg["title"], output)
+        render_xlsx(data, cfg.columns, cfg.title, output)
 
     print(f"{output} ({len(data)} pozycji)")
 
