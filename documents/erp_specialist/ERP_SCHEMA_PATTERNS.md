@@ -263,6 +263,41 @@ Przydatne dla widoków łączących zamówienia z dokumentami realizacji.
 
 ---
 
+## Dokumenty źródłowe — ZrdTyp/ZrdNumer (multi-type reference)
+
+Gdy tabela ma ZrdTyp/ZrdNumer wskazujące na wiele typów dokumentów (np. MagNag: 21 typów):
+
+1. **Zidentyfikuj główne typy:**
+   - TraNag (GIDTyp różne od 960) — pokrywa większość typów
+   - ZamNag (GIDTyp = 960)
+
+2. **Buduj LEFT JOIN dla każdego głównego typu:**
+   ```sql
+   LEFT JOIN CDN.TraNag zrd_tra
+     ON TrN_GIDNumer = ZrdNumer
+     AND TrN_GIDTyp = ZrdTyp
+     AND ZrdNumer > 0
+     AND ZrdTyp <> 960
+
+   LEFT JOIN CDN.ZamNag zrd_zan
+     ON ZaN_GIDNumer = ZrdNumer
+     AND ZrdTyp = 960
+     AND ZrdNumer > 0
+   ```
+
+3. **CASE dla Nr_Dokumentu_Zrodlowego:**
+   ```sql
+   CASE
+     WHEN ZrdNumer = 0 THEN NULL
+     WHEN ZrdTyp = 960 THEN [format ZS z ZamNag]
+     ELSE [format TraNag ze skrótem z obiekty.tsv]
+   END
+   ```
+
+Nie buduj osobnego JOIN per typ — wystarczą 2-3 główne kategorie.
+
+---
+
 ## JOIN kontrahenta (dwuczęściowy klucz)
 
 ```sql

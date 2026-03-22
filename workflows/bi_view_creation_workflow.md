@@ -64,7 +64,9 @@ Zrozumieć dane przed napisaniem kodu. Nie zgadywać.
    - Jeśli brak w obiekty.tsv: `SELECT OB_GIDTyp, OB_Nazwa FROM CDN.Obiekty WHERE OB_GIDTyp IN (...)`
    - Sprawdź dokumentację: `python tools/docs_search.py "nazwa_pola" --table CDN.MainTable`
    - CASE musi pokrywać wartości z bazy ORAZ z dokumentacji (mogą pojawić się jutro).
-   - Nieznana wartość bez odpowiednika → ESCALATE do usera z surówką (ile rekordów, jakie pola).
+   - **Brak opisu wartości:** Oceń czy rozkodowanie jest niezbędne.
+     Eskaluj gdy pole kluczowe do filtrowania/grupowania i wymaga rozkodowania.
+     Zostaw raw (liczby 0/1/2, statusy) + adnotacja w planie gdy pole może być surowe.
 
 4. Zidentyfikuj typ pól datowych:
    ```sql
@@ -410,7 +412,10 @@ Potwierdzić poprawność danych przed przekazaniem do zatwierdzenia.
 
 3. Artefakt wyścigu czasowego: kilka NULLi w Nr_Dok przy eksporcie to normalne (nowe rekordy). Weryfikacja: `WHERE COALESCE(Nr_Dok, '') = ''` → 0 gdy SQL poprawny.
 
-4. Wyślij eksport do Analityka przez agent_bus (ścieżka do pliku Excel + opis co zweryfikowano).
+4. Wyślij eksport do Analityka przez agent_bus:
+   - Ścieżka do pliku Excel
+   - **Pełny output bi_verify:** distinct/null per kolumna, row count, kolumny z problemami
+   - Nie wysyłaj tylko self-check — Analityk potrzebuje pełnych statystyk
 
 ### Forbidden
 
@@ -422,6 +427,7 @@ Potwierdzić poprawność danych przed przekazaniem do zatwierdzenia.
 PASS jeśli:
 - Eksport istnieje i jest aktualny
 - Row count zgadza się z COUNT(*) z bazy
+- bi_verify output dołączony do wiadomości dla Analityka
 - Analityk potwierdził eksport (wiadomość "OK" / "zatwierdzam eksport")
 
 BLOCKED jeśli eksport brakuje lub Analityk zgłosił uwagi.
