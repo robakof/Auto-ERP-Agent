@@ -37,3 +37,12 @@ Prompt.md
 
 # Baza danych (lokalna dla każdej maszyny, synchronizacja w przyszłości)
 mrowisko.db
+
+# Baza danych indeksu dokumentacji (regenerowalna)
+docs.db
+
+# Konfiguracje Obsidian (lokalne per użytkownik)
+**/.obsidian/
+
+# Błędne pliki systemowe
+nul
