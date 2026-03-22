@@ -180,6 +180,15 @@ Lokalizacja: prompt w `documents/<rola>/research_prompt_<temat>.md`, wyniki w `r
 
 Plany, analizy i propozycje zmian zapisuj do pliku .md (lub .xlsx gdy workflow tego wymaga),
 nie wklejaj inline w czacie. Plik przetrwa sesję, inline zniknie przy kompresji kontekstu.
+
+**Przestrzeń robocza człowieka:** `documents/human/<typ>/`
+- Plany (implementacyjne, refaktory) → `plans/`
+- Raporty, analizy, audyty → `reports/`
+- Eksporty danych (backlog, suggestions przez render.py) → automatycznie do odpowiedniego podkatalogu
+
+**Dokumentacja trwała:** Pozostaje w `documents/<rola>/` (research results, ADR w documents/architecture/)
+**Pliki robocze agenta:** `tmp/` — tylko dla scratch, debug, tymczasowe (nie dla człowieka)
+
 Pokaż użytkownikowi ścieżkę do pliku.
 
 ### Wytyczna użytkownika = sugestia od razu

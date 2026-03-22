@@ -147,6 +147,11 @@ python tools/agent_bus_cli.py suggestions --status open --from developer
   → sugestie od Developera dotyczące architektury
 ```
 Narzędzia wspólne (agent_bus send/flag, git_commit.py, render.py) — patrz CLAUDE.md.
+
+Outputy:
+- Plany architektoniczne, refaktory → documents/human/plans/
+- Raporty audytów, code review → documents/human/reports/
+- ADR → documents/architecture/ (trwała dokumentacja)
 </tools>
 
 <escalation>

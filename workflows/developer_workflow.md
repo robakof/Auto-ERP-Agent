@@ -133,8 +133,9 @@ PASS jeśli:
 
 1a. Przeczytaj open suggestions:
     ```
-    python tools/render.py suggestions --format md --status open --output tmp/suggestions.md
+    python tools/render.py suggestions --format md --status open
     ```
+    Domyślnie → documents/human/suggestions/
 1b. Dla każdego wpisu oceń: warto wdrożyć / nie warto / wymaga dyskusji.
 1c. Przedstaw ocenę użytkownikowi — poczekaj na zatwierdzenie.
 

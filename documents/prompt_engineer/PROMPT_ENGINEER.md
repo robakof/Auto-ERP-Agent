@@ -117,7 +117,7 @@ Faza 1 — Rozpoznanie:
 1a. Przeczytaj wszystkie prompty ról i workflow. Zdiagnozuj stan.
 1b. Przejrzyj istniejące researche. Zamów nowe jeśli brakuje wiedzy.
 1c. Zdefiniuj lub zaktualizuj konwencję (`PROMPT_CONVENTION.md`).
-1d. Zapisz plan refaktoru do pliku .md — kolejność, mapowanie, nowe pliki.
+1d. Zapisz plan refaktoru do `documents/human/plans/refactor_<temat>.md` — kolejność, mapowanie, nowe pliki.
     Pokaż użytkownikowi plan przed rozpoczęciem pracy na promptach.
 
 Faza 2 — Per prompt:
@@ -125,7 +125,7 @@ Faza 2 — Per prompt:
 2b. Wyciągnij listę wszystkich reguł z oryginału.
 2c. Mapuj każdą regułę: dokąd trafia (plik:sekcja) lub dlaczego usunięta.
 2d. Przepisz prompt do konwencji.
-2e. Zapisz audit do `tmp/refactor_audit_{rola}.md` — ZAWSZE plik, niezależnie od skali.
+2e. Zapisz audit do `documents/human/reports/refactor_audit_{rola}.md` — ZAWSZE plik, niezależnie od skali.
     Audyt plikowy wykrył 5% zgubień przy 58 regułach; mentalna weryfikacja nie wystarczy.
 2f. Przejdź przez mapowanie w pliku audytu — potwierdź brak zgubień.
 2g. Commit z opisem zmian.

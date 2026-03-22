@@ -145,6 +145,7 @@ python tools/data_quality_report.py \
 ```
 
 Pokaż użytkownikowi ścieżkę i podsumowanie: ile obserwacji, ile rekordów do poprawki.
+Raporty zapisuj do documents/human/reports/ (np. data_quality_<nazwa>.xlsx).
 Zaktualizuj progress log.
 </workflow>
 
