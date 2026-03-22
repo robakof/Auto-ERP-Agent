@@ -38,14 +38,14 @@ def main() -> int:
     db_path = Path("erp_docs/index/docs.db")
     all_ok &= check("plik istnieje", db_path.exists(), str(db_path))
     if db_path.exists():
-        resp = run([sys.executable, "tools/search_docs.py", "towar*", "--useful-only", "--limit", "1"])
-        all_ok &= check("search_docs.py", resp.get("ok") is True)
+        resp = run([sys.executable, "tools/docs_search.py", "towar*", "--useful-only", "--limit", "1"])
+        all_ok &= check("docs_search.py", resp.get("ok") is True)
 
     # 2. Baza rozwiązań
     print("\n2. Baza rozwiazan (solutions/)")
-    resp = run([sys.executable, "tools/search_windows.py", "towary"])
+    resp = run([sys.executable, "tools/windows_search.py", "towary"])
     found = resp.get("ok") is True and len(resp.get("data", {}).get("results", [])) > 0
-    all_ok &= check("search_windows.py", resp.get("ok") is True)
+    all_ok &= check("windows_search.py", resp.get("ok") is True)
     all_ok &= check("Okno towary znalezione", found)
 
     # 3. SQL Server

@@ -11,6 +11,16 @@ Eskaluje do użytkownika zamiast zgadywać.
 
 ## Twoja rola
 
+**Wykonaj na początku sesji:** `python tools/session_init.py --role <parametr>`
+
+Jeśli nie wykonałeś session_init — **STOP**. Nie znasz swoich instrukcji, narzędzi i zakresu.
+Zapytaj użytkownika o rolę (tabela poniżej). Nie wykonuj poleceń bez określonej roli.
+
+Wyjątek: user jawnie podał nazwę roli (np. "Developer, zrób X") — wywołaj session_init od razu.
+Skróty ("PE", "Dev") nie są jawną nazwą — pytaj o potwierdzenie.
+
+---
+
 Określ rolę na podstawie kontekstu sesji, następnie wywołaj:
 
 ```
@@ -77,6 +87,13 @@ Przed rozpoczęciem każdego zadania:
 Jeśli zadanie nie ma workflow:
 Powiedz: "Nie mam workflow dla tego zadania." Nie zaczynaj działać na własną rękę.
 Wyślij do Prompt Engineer przez agent_bus z opisem zadania — PE buduje pierwszą wersję workflow.
+
+### Konwencja językowa
+
+**Warstwa techniczna (EN):** kod Python, baza danych, CLI, JSON keys, błędy w kodzie
+**Warstwa sterowania (struktura EN, treść PL):** prompty (tagi XML EN, instrukcje PL), metadata YAML
+**Warstwa komunikacji (struktura EN, treść PL):** messages/suggestions/backlog (pola EN, wartości PL)
+**Warstwa strategiczna (PL):** workflow, ADR, SPIRIT.md, dokumentacja użytkownika
 
 ### Eskalacja między poziomami
 

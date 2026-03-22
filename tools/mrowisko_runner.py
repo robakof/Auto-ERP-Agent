@@ -300,10 +300,12 @@ def main(argv: list[str] | None = None) -> None:
             bus.set_instance_busy(instance_id, task["id"])
             try:
                 invoke_agent(role=args.role, task=task, instance_id=instance_id, db_path=args.db)
+                bus.set_instance_idle(instance_id)
             except Exception as exc:
                 print(f"[RUNNER] Błąd invocation: {exc} — cofam claim taska #{task['id']}.\n")
-                bus.unclaim_task(task["id"])
-            bus.set_instance_idle(instance_id)
+                with bus.transaction():
+                    bus.unclaim_task(task["id"])
+                    bus.set_instance_idle(instance_id)
             print()
         else:
             print("[RUNNER] Pominięto.\n")

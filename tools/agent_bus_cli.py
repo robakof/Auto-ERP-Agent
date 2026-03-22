@@ -116,19 +116,20 @@ def cmd_suggest_bulk(args: argparse.Namespace, bus: AgentBus) -> dict:
     blocks = [b.strip() for b in text.split("\n---\n") if b.strip()]
     recipients = json.loads(args.recipients) if args.recipients else None
     ids = []
-    for block in blocks:
-        suggest_type, title, content = _parse_suggest_block(block)
-        if not content:
-            continue
-        sid = bus.add_suggestion(
-            author=args.sender,
-            content=content,
-            title=title,
-            type=suggest_type,
-            recipients=recipients,
-            session_id=args.session_id,
-        )
-        ids.append(sid)
+    with bus.transaction():
+        for block in blocks:
+            suggest_type, title, content = _parse_suggest_block(block)
+            if not content:
+                continue
+            sid = bus.add_suggestion(
+                author=args.sender,
+                content=content,
+                title=title,
+                type=suggest_type,
+                recipients=recipients,
+                session_id=args.session_id,
+            )
+            ids.append(sid)
     return {"ok": True, "ids": ids, "count": len(ids)}
 
 
@@ -149,7 +150,8 @@ def cmd_suggest_status_bulk(args: argparse.Namespace, bus: AgentBus) -> dict:
         bus.update_suggestion_status(item["id"], item["status"], backlog_id=item.get("backlog_id"))
         return item["id"]
 
-    results = _bulk_json_processor(args.file, handler)
+    with bus.transaction():
+        results = _bulk_json_processor(args.file, handler)
     return {"ok": True, "updated": len(results)}
 
 
@@ -185,7 +187,8 @@ def cmd_backlog_add_bulk(args: argparse.Namespace, bus: AgentBus) -> dict:
             source_id=item.get("source_id"),
         )
 
-    ids = _bulk_json_processor(args.file, handler)
+    with bus.transaction():
+        ids = _bulk_json_processor(args.file, handler)
     return {"ok": True, "ids": ids, "count": len(ids)}
 
 
@@ -195,10 +198,11 @@ def cmd_backlog(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 
 def cmd_backlog_update(args: argparse.Namespace, bus: AgentBus) -> dict:
-    if args.status:
-        bus.update_backlog_status(args.id, args.status)
-    if args.content_file or args.content:
-        bus.update_backlog_content(args.id, _read_content(args))
+    with bus.transaction():
+        if args.status:
+            bus.update_backlog_status(args.id, args.status)
+        if args.content_file or args.content:
+            bus.update_backlog_content(args.id, _read_content(args))
     return {"ok": True}
 
 
@@ -210,7 +214,8 @@ def cmd_backlog_update_bulk(args: argparse.Namespace, bus: AgentBus) -> dict:
             bus.update_backlog_content(item["id"], item["content"])
         return item["id"]
 
-    results = _bulk_json_processor(args.file, handler)
+    with bus.transaction():
+        results = _bulk_json_processor(args.file, handler)
     return {"ok": True, "updated": len(results)}
 
 

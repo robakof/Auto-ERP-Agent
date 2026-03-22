@@ -187,7 +187,7 @@ class AgentBus:
     def _auto_commit(self) -> None:
         """Commit only if NOT in explicit transaction context."""
         if not self._in_transaction:
-            self._auto_commit()
+            self._conn.commit()
 
     @contextmanager
     def transaction(self):
@@ -208,7 +208,7 @@ class AgentBus:
         self._in_transaction = True
         try:
             yield
-            self._auto_commit()
+            self._conn.commit()
         except Exception:
             self._conn.rollback()
             raise
