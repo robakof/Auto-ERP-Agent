@@ -58,8 +58,10 @@ def discover(
     table: str,
     pk: str | None = None,
     filter_expr: str | None = None,
-    max_enum: int = 30,
+    max_enum: int = 20,
     no_enum: bool = False,
+    skip_text_columns: bool = False,
+    columns_only: bool = False,
 ) -> dict:
     client = SqlClient()
     where = f" WHERE {filter_expr}" if filter_expr else ""
@@ -79,6 +81,16 @@ def discover(
 
     col_meta = [{"name": r[0], "sql_type": r[1]} for r in meta["rows"]]
     col_names = [c["name"] for c in col_meta]
+
+    # Tryb --columns-only: zwróć tylko metadane kolumn bez analizy
+    if columns_only:
+        columns = [{"name": cm["name"], "sql_type": cm["sql_type"]} for cm in col_meta]
+        return {
+            "ok": True,
+            "data": {"table": table, "columns": columns, "mode": "columns_only"},
+            "error": None,
+            "meta": {"duration_ms": total_ms},
+        }
 
     # 2. Baseline COUNT (+ opcjonalny COUNT DISTINCT pk)
     pk_part = f", COUNT(DISTINCT [{pk}])" if pk else ""
@@ -172,6 +184,10 @@ def discover(
         else:
             col["role"] = "numeric"
 
+        # --skip-text-columns: pomiń kolumny role=text z outputu
+        if skip_text_columns and col["role"] == "text":
+            continue
+
         columns.append(col)
 
     data: dict = {"table": table, "row_count": row_count, "columns": columns}
@@ -193,10 +209,14 @@ def main() -> None:
     parser.add_argument("table", help="Nazwa tabeli, np. CDN.ZamNag")
     parser.add_argument("--pk", default=None, help="Kolumna klucza głównego (COUNT DISTINCT)")
     parser.add_argument("--filter", dest="filter_expr", default=None, help="Warunek WHERE")
-    parser.add_argument("--max-enum", type=int, default=30, help="Próg enumeracji (domyślnie: 30)")
+    parser.add_argument("--max-enum", type=int, default=20, help="Próg enumeracji i limit wartości (domyślnie: 20)")
     parser.add_argument("--no-enum", action="store_true",
                         help="Pomiń GROUP BY dla kolumn enum — tylko role/distinct, bez listy wartości. "
                              "Zalecane dla dużych tabel (>50 kolumn) — redukuje output i czas zapytań.")
+    parser.add_argument("--skip-text-columns", action="store_true",
+                        help="Pomiń kolumny role=text z outputu — zmniejsza rozmiar wyniku dla tabel z długimi tekstami.")
+    parser.add_argument("--columns-only", action="store_true",
+                        help="Tylko nazwy i typy kolumn, bez analizy distinct values — najszybszy tryb.")
     args = parser.parse_args()
 
     result = discover(
@@ -205,6 +225,8 @@ def main() -> None:
         filter_expr=args.filter_expr,
         max_enum=args.max_enum,
         no_enum=args.no_enum,
+        skip_text_columns=args.skip_text_columns,
+        columns_only=args.columns_only,
     )
     print_json(result)
 
