@@ -110,7 +110,8 @@ class PhotoWorkflowApp(tk.Tk):
         self._listbox.delete(0, tk.END)
         d = Path(self._in_var.get())
         if d.is_dir():
-            files = sorted(d.glob("*.png")) + sorted(d.glob("*.PNG"))
+            files = sorted(f for f in d.iterdir()
+                           if f.suffix.lower() == ".png" and f.is_file())
             for f in files:
                 self._listbox.insert(tk.END, f.name)
             self._set_status(f"{len(files)} plików PNG znalezionych.", "gray")

@@ -94,7 +94,8 @@ def batch_process(
     progress_cb(current, total, filename) — opcjonalny callback postępu.
     Zwraca {"ok": True, "processed": N, "skipped": [...], "errors": [...]}.
     """
-    files = sorted(input_dir.glob("*.png")) + sorted(input_dir.glob("*.PNG"))
+    files = sorted({f for f in input_dir.iterdir()
+                    if f.suffix.lower() == ".png" and f.is_file()})
     if not files:
         return {"ok": True, "processed": 0, "skipped": [], "errors": []}
 
