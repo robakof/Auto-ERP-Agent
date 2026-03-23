@@ -323,6 +323,39 @@ class TestSessionLog:
         result = bus.get_session_log("developer")
         assert result[0]["session_id"] == "sess-abc"
 
+    def test_add_session_log_with_title(self, bus):
+        lid = bus.add_session_log("developer", "content", title="Test Title")
+        result = bus.get_session_log("developer")
+        assert result[0]["title"] == "Test Title"
+
+    def test_session_log_title_optional(self, bus):
+        bus.add_session_log("developer", "no title")
+        result = bus.get_session_log("developer")
+        assert result[0]["title"] is None
+
+    def test_get_session_logs_without_role_filter(self, bus):
+        bus.add_session_log("developer", "dev log")
+        bus.add_session_log("erp_specialist", "erp log")
+        result = bus.get_session_logs(limit=10)
+        assert len(result) == 2
+        roles = {r["role"] for r in result}
+        assert "developer" in roles
+        assert "erp_specialist" in roles
+
+    def test_get_session_logs_with_role_filter(self, bus):
+        bus.add_session_log("developer", "dev log")
+        bus.add_session_log("erp_specialist", "erp log")
+        result = bus.get_session_logs(role="developer", limit=10)
+        assert len(result) == 1
+        assert result[0]["role"] == "developer"
+
+    def test_get_session_logs_includes_title(self, bus):
+        bus.add_session_log("developer", "content", title="With Title")
+        bus.add_session_log("developer", "content2")
+        result = bus.get_session_logs(role="developer", limit=10)
+        assert result[0]["title"] is None  # newest first, no title
+        assert result[1]["title"] == "With Title"
+
 
 class TestMarkAllRead:
     def test_marks_all_unread_for_role(self, bus):

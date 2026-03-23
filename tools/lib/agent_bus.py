@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS session_log (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     role        TEXT NOT NULL,
     content     TEXT NOT NULL,
+    title       TEXT,
     session_id  TEXT,
     created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -159,6 +160,7 @@ _MIGRATE_SQL = [
     "ALTER TABLE messages ADD COLUMN claimed_by TEXT",
     "ALTER TABLE suggestions ADD COLUMN type TEXT NOT NULL DEFAULT 'observation'",
     "ALTER TABLE suggestions ADD COLUMN title TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE session_log ADD COLUMN title TEXT",
 ]
 
 
@@ -188,6 +190,23 @@ class AgentBus:
         """Commit only if NOT in explicit transaction context."""
         if not self._in_transaction:
             self._conn.commit()
+
+    def _get_repository(self, repo_class):
+        """Helper: create repository with transaction support.
+
+        Args:
+            repo_class: Repository class to instantiate (e.g., SuggestionRepository)
+
+        Returns:
+            Repository instance with shared connection if in transaction,
+            or standalone connection otherwise.
+
+        Example:
+            repo = self._get_repository(SuggestionRepository)
+            suggestion = repo.save(...)
+        """
+        conn = self._conn if self._in_transaction else None
+        return repo_class(db_path=self._db_path, conn=conn)
 
     @contextmanager
     def transaction(self):
@@ -227,22 +246,17 @@ class AgentBus:
     ) -> int:
         """Send a message from one role to another. Returns message id."""
         from core.repositories.message_repo import MessageRepository
-        from core.entities.messaging import Message, MessageType
+        from core.entities.messaging import Message
+        from core.mappers.legacy_api import LegacyAPIMapper
 
         # Legacy API validation (backward compatible)
         if type not in ALLOWED_MESSAGE_TYPES:
             raise ValueError(f"Invalid message type '{type}'. Allowed: {sorted(ALLOWED_MESSAGE_TYPES)}")
 
-        # Type mapping: legacy API → domain model
-        TYPE_MAP = {
-            "suggestion": MessageType.SUGGESTION,
-            "task": MessageType.TASK,
-            "info": MessageType.DIRECT,
-            "flag_human": MessageType.ESCALATION,
-        }
+        # Type mapping: legacy API → domain model (centralized)
+        type_enum = LegacyAPIMapper.map_message_type_to_domain(type)
 
         # Convert dict → entity
-        type_enum = TYPE_MAP.get(type, MessageType.DIRECT)  # Graceful default
         message = Message(
             sender=sender,
             recipient=recipient,
@@ -252,8 +266,7 @@ class AgentBus:
         )
 
         # Save via repository (CRITICAL: pass connection for transaction support)
-        conn = self._conn if self._in_transaction else None
-        repo = MessageRepository(db_path=self._db_path, conn=conn)
+        repo = self._get_repository(MessageRepository)
         saved = repo.save(message)
 
         # Return ID (backward compatible)
@@ -265,8 +278,7 @@ class AgentBus:
         from core.entities.messaging import MessageStatus
 
         # Query via repository (transaction support)
-        conn = self._conn if self._in_transaction else None
-        repo = MessageRepository(db_path=self._db_path, conn=conn)
+        repo = self._get_repository(MessageRepository)
         messages = repo.find_by_recipient(recipient=role)
 
         # Filter by status (str → enum)
@@ -276,31 +288,9 @@ class AgentBus:
         # Sort by created_at ASC (backward compatible)
         filtered.sort(key=lambda m: m.created_at)
 
-        # Reverse mapping: domain model → legacy API (backward compatible)
-        TYPE_REVERSE_MAP = {
-            "direct": "info",  # MessageType.DIRECT → legacy "info"
-            "escalation": "flag_human",  # MessageType.ESCALATION → legacy "flag_human"
-            # "suggestion", "task" already match
-        }
-
-        # Convert entity → dict (backward compatible)
-        result = []
-        for m in filtered:
-            # Reverse map type dla backward compatibility
-            type_value = m.type.value
-            type_legacy = TYPE_REVERSE_MAP.get(type_value, type_value)
-
-            result.append({
-                "id": m.id,
-                "sender": m.sender,
-                "recipient": m.recipient,
-                "type": type_legacy,  # Reverse mapped to legacy API
-                "content": m.content,
-                "status": m.status.value,  # MessageStatus enum → str
-                "session_id": m.session_id,
-                "created_at": m.created_at.isoformat() if m.created_at else None,
-                "read_at": m.read_at.isoformat() if m.read_at else None,
-            })
+        # Convert entity → dict (backward compatible, centralized)
+        from core.mappers.legacy_api import LegacyAPIMapper
+        result = [LegacyAPIMapper.message_to_dict(m) for m in filtered]
         return result
 
     def mark_read(self, message_id: int) -> None:
@@ -308,8 +298,7 @@ class AgentBus:
         from core.repositories.message_repo import MessageRepository
 
         # Repository query (transaction support)
-        conn = self._conn if self._in_transaction else None
-        repo = MessageRepository(db_path=self._db_path, conn=conn)
+        repo = self._get_repository(MessageRepository)
 
         # Get message
         message = repo.get(message_id)
@@ -371,8 +360,7 @@ class AgentBus:
         )
 
         # Save via repository (transaction-aware)
-        conn = self._conn if self._in_transaction else None
-        repo = SuggestionRepository(db_path=self._db_path, conn=conn)
+        repo = self._get_repository(SuggestionRepository)
         saved = repo.save(suggestion)
 
         return saved.id
@@ -390,8 +378,7 @@ class AgentBus:
         from core.repositories.suggestion_repo import SuggestionRepository
         from core.entities.messaging import SuggestionStatus, SuggestionType
 
-        conn = self._conn if self._in_transaction else None
-        repo = SuggestionRepository(db_path=self._db_path, conn=conn)
+        repo = self._get_repository(SuggestionRepository)
 
         # Query based on filters
         if status and author and type:
@@ -407,31 +394,9 @@ class AgentBus:
         else:
             suggestions = repo.find_all()
 
-        # Convert entities to dicts (backward compatibility)
-        # Reverse status mapping: new → old API names
-        status_reverse_map = {
-            "implemented": "in_backlog",  # Map back to old API name
-        }
-
-        result = []
-        for s in suggestions:
-            # Apply reverse mapping for backward compatibility
-            status_value = s.status.value
-            api_status = status_reverse_map.get(status_value, status_value)
-
-            d = {
-                "id": s.id,
-                "author": s.author,
-                "recipients": s.recipients,
-                "title": s.title,
-                "content": s.content,
-                "type": s.type.value,
-                "status": api_status,  # Use mapped status for old API
-                "backlog_id": s.backlog_id,
-                "session_id": s.session_id,
-                "created_at": s.created_at.isoformat()
-            }
-            result.append(d)
+        # Convert entities to dicts (backward compatibility, centralized)
+        from core.mappers.legacy_api import LegacyAPIMapper
+        result = [LegacyAPIMapper.suggestion_to_dict(s) for s in suggestions]
 
         return result
 
@@ -448,38 +413,27 @@ class AgentBus:
         from core.repositories.suggestion_repo import SuggestionRepository
         from core.entities.messaging import SuggestionStatus
 
-        conn = self._conn if self._in_transaction else None
-        repo = SuggestionRepository(db_path=self._db_path, conn=conn)
+        repo = self._get_repository(SuggestionRepository)
 
         # Load entity
         suggestion = repo.get(suggestion_id)
         if not suggestion:
             return  # Silently ignore if not found (backward compatible behavior)
 
-        # Map old status names to new ones (backward compatibility)
-        status_map = {
-            "in_backlog": "implemented",  # Old name for implemented + linked to backlog
-            "open": "open",
-            "implemented": "implemented",
-            "rejected": "rejected",
-            "deferred": "deferred"
-        }
-        normalized_status = status_map.get(status, status)
+        # Map old status names to new ones (backward compatibility, centralized)
+        from core.mappers.legacy_api import LegacyAPIMapper
+        status_enum = LegacyAPIMapper.map_suggestion_status_to_domain(status)
 
         # Update status using entity methods when possible
-        if normalized_status == "implemented":
+        if status_enum == SuggestionStatus.IMPLEMENTED:
             suggestion.implement(backlog_id=backlog_id)
-        elif normalized_status == "rejected":
+        elif status_enum == SuggestionStatus.REJECTED:
             suggestion.reject()
-        elif normalized_status == "deferred":
+        elif status_enum == SuggestionStatus.DEFERRED:
             suggestion.defer()
         else:
-            # Direct status update for other cases
-            try:
-                suggestion.status = SuggestionStatus(normalized_status)
-            except ValueError:
-                # Unknown status - keep suggestion unchanged
-                pass
+            # Direct status update for other cases (e.g. OPEN)
+            suggestion.status = status_enum
             if backlog_id is not None:
                 suggestion.backlog_id = backlog_id
 
@@ -520,8 +474,7 @@ class AgentBus:
         )
 
         # Save via repository (transaction-aware)
-        conn = self._conn if self._in_transaction else None
-        repo = BacklogRepository(db_path=self._db_path, conn=conn)
+        repo = self._get_repository(BacklogRepository)
         saved = repo.save(item)
 
         return saved.id
@@ -534,8 +487,7 @@ class AgentBus:
         from core.repositories.backlog_repo import BacklogRepository
         from core.entities.messaging import BacklogStatus, BacklogArea
 
-        conn = self._conn if self._in_transaction else None
-        repo = BacklogRepository(db_path=self._db_path, conn=conn)
+        repo = self._get_repository(BacklogRepository)
 
         # Query based on filters
         if status and area:
@@ -549,22 +501,9 @@ class AgentBus:
         else:
             items = repo.find_all()
 
-        # Convert entities to dicts (backward compatibility)
-        result = []
-        for item in items:
-            d = {
-                "id": item.id,
-                "title": item.title,
-                "content": item.content,
-                "area": item.area.value if item.area else None,
-                "value": item.value.value if item.value else None,
-                "effort": item.effort.value if item.effort else None,
-                "status": item.status.value,
-                "source_id": item.source_id,
-                "created_at": item.created_at.isoformat(),
-                "updated_at": item.updated_at.isoformat() if item.updated_at else None
-            }
-            result.append(d)
+        # Convert entities to dicts (backward compatibility, centralized)
+        from core.mappers.legacy_api import LegacyAPIMapper
+        result = [LegacyAPIMapper.backlog_to_dict(item) for item in items]
 
         return result
 
@@ -576,8 +515,7 @@ class AgentBus:
         from core.repositories.backlog_repo import BacklogRepository
         from core.entities.messaging import BacklogStatus
 
-        conn = self._conn if self._in_transaction else None
-        repo = BacklogRepository(db_path=self._db_path, conn=conn)
+        repo = self._get_repository(BacklogRepository)
 
         # Load entity
         item = repo.get(backlog_id)
@@ -601,8 +539,7 @@ class AgentBus:
         """
         from core.repositories.backlog_repo import BacklogRepository
 
-        conn = self._conn if self._in_transaction else None
-        repo = BacklogRepository(db_path=self._db_path, conn=conn)
+        repo = self._get_repository(BacklogRepository)
 
         # Load entity
         item = repo.get(backlog_id)
@@ -621,13 +558,14 @@ class AgentBus:
         self,
         role: str,
         content: str,
+        title: str = None,
         session_id: str = None,
     ) -> int:
         """Add a session log entry. Returns log id."""
         cursor = self._conn.execute(
-            """INSERT INTO session_log (role, content, session_id)
-               VALUES (?, ?, ?)""",
-            (role, content, session_id),
+            """INSERT INTO session_log (role, content, title, session_id)
+               VALUES (?, ?, ?, ?)""",
+            (role, content, title, session_id),
         )
         self._auto_commit()
         return cursor.lastrowid
@@ -635,12 +573,32 @@ class AgentBus:
     def get_session_log(self, role: str, limit: int = 20) -> list[dict]:
         """Get session log entries for a role. Newest first."""
         rows = self._conn.execute(
-            """SELECT id, role, content, session_id, created_at
+            """SELECT id, role, content, title, session_id, created_at
                FROM session_log WHERE role = ?
                ORDER BY created_at DESC, id DESC
                LIMIT ?""",
             (role, limit),
         ).fetchall()
+        return [dict(row) for row in rows]
+
+    def get_session_logs(self, role: str = None, limit: int = 10) -> list[dict]:
+        """Get session log entries. Optionally filter by role. Newest first."""
+        if role:
+            rows = self._conn.execute(
+                """SELECT id, role, content, title, session_id, created_at
+                   FROM session_log WHERE role = ?
+                   ORDER BY created_at DESC, id DESC
+                   LIMIT ?""",
+                (role, limit),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                """SELECT id, role, content, title, session_id, created_at
+                   FROM session_log
+                   ORDER BY created_at DESC, id DESC
+                   LIMIT ?""",
+                (limit,),
+            ).fetchall()
         return [dict(row) for row in rows]
 
     def get_messages(

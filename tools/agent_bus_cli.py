@@ -223,9 +223,15 @@ def cmd_log(args: argparse.Namespace, bus: AgentBus) -> dict:
     lid = bus.add_session_log(
         role=args.role,
         content=_read_content(args),
+        title=args.title,
         session_id=args.session_id,
     )
     return {"ok": True, "id": lid}
+
+
+def cmd_session_logs(args: argparse.Namespace, bus: AgentBus) -> dict:
+    logs = bus.get_session_logs(role=args.role, limit=args.limit)
+    return {"ok": True, "data": logs, "count": len(logs)}
 
 
 def cmd_delete(args: argparse.Namespace, bus: AgentBus) -> dict:
@@ -354,10 +360,16 @@ def build_parser() -> argparse.ArgumentParser:
     # log
     p_log = subparsers.add_parser("log", help="Add a session log entry")
     p_log.add_argument("--role", required=True)
+    p_log.add_argument("--title", default=None)
     g_log = p_log.add_mutually_exclusive_group(required=True)
     g_log.add_argument("--content")
     g_log.add_argument("--content-file", dest="content_file")
     p_log.add_argument("--session-id", dest="session_id", default=None)
+
+    # session-logs
+    p_session_logs = subparsers.add_parser("session-logs", help="Get session log entries")
+    p_session_logs.add_argument("--role", default=None, help="Filter by role (optional)")
+    p_session_logs.add_argument("--limit", type=int, default=10, help="Max number of entries (default: 10)")
 
     # delete
     p_delete = subparsers.add_parser("delete", help="Archive (soft-delete) messages by id")
@@ -395,6 +407,7 @@ def main():
         "backlog-update": cmd_backlog_update,
         "backlog-update-bulk": cmd_backlog_update_bulk,
         "log": cmd_log,
+        "session-logs": cmd_session_logs,
         "delete": cmd_delete,
         "flag": cmd_flag,
     }

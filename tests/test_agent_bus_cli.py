@@ -438,3 +438,69 @@ class TestBacklogUpdateBulk:
         result = run_cli(["backlog-update-bulk", "--file", str(bulk_file)], db)
         assert result["ok"] is True
         assert result["updated"] == 0
+
+
+class TestCliSessionLog:
+    def test_log_with_title(self, db):
+        result = run_cli(
+            ["log", "--role", "developer", "--title", "Test Title",
+             "--content", "Test content"],
+            db,
+        )
+        assert result["ok"] is True
+        assert isinstance(result["id"], int)
+
+        logs = run_cli(["session-logs", "--role", "developer", "--limit", "1"], db)
+        assert logs["count"] == 1
+        assert logs["data"][0]["title"] == "Test Title"
+        assert logs["data"][0]["content"] == "Test content"
+
+    def test_log_without_title_backward_compatible(self, db):
+        result = run_cli(
+            ["log", "--role", "developer", "--content", "No title"],
+            db,
+        )
+        assert result["ok"] is True
+
+        logs = run_cli(["session-logs", "--role", "developer", "--limit", "1"], db)
+        assert logs["data"][0]["title"] is None
+
+    def test_session_logs_without_role_filter(self, db):
+        run_cli(["log", "--role", "developer", "--content", "Dev log"], db)
+        run_cli(["log", "--role", "erp_specialist", "--content", "ERP log"], db)
+
+        logs = run_cli(["session-logs", "--limit", "10"], db)
+        assert logs["count"] == 2
+        roles = {log["role"] for log in logs["data"]}
+        assert "developer" in roles
+        assert "erp_specialist" in roles
+
+    def test_session_logs_with_role_filter(self, db):
+        run_cli(["log", "--role", "developer", "--content", "Dev log"], db)
+        run_cli(["log", "--role", "erp_specialist", "--content", "ERP log"], db)
+
+        logs = run_cli(["session-logs", "--role", "developer", "--limit", "10"], db)
+        assert logs["count"] == 1
+        assert logs["data"][0]["role"] == "developer"
+
+    def test_session_logs_limit(self, db):
+        for i in range(5):
+            run_cli(["log", "--role", "developer", "--content", f"Log {i}"], db)
+
+        logs = run_cli(["session-logs", "--role", "developer", "--limit", "3"], db)
+        assert logs["count"] == 3
+
+    def test_log_with_content_file(self, db, tmp_path):
+        content_file = tmp_path / "log.txt"
+        content_file.write_text("Content from file", encoding="utf-8")
+
+        result = run_cli(
+            ["log", "--role", "developer", "--title", "File Test",
+             "--content-file", str(content_file)],
+            db,
+        )
+        assert result["ok"] is True
+
+        logs = run_cli(["session-logs", "--role", "developer", "--limit", "1"], db)
+        assert logs["data"][0]["content"] == "Content from file"
+        assert logs["data"][0]["title"] == "File Test"
