@@ -41,7 +41,7 @@ class LegacyAPIMapper:
     }
 
     SUGGESTION_STATUS_FROM_DOMAIN = {
-        SuggestionStatus.IMPLEMENTED: "in_backlog",  # Reverse mapping
+        SuggestionStatus.IMPLEMENTED: "implemented",
         SuggestionStatus.OPEN: "open",
         SuggestionStatus.REJECTED: "rejected",
         SuggestionStatus.DEFERRED: "deferred",

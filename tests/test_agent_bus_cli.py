@@ -104,9 +104,9 @@ class TestCliSuggestAndBacklog:
         bid = run_cli(
             ["backlog-add", "--title", "Task", "--content", "Opis"], db
         )["id"]
-        run_cli(["suggest-status", "--id", str(sid), "--status", "in_backlog",
+        run_cli(["suggest-status", "--id", str(sid), "--status", "implemented",
                  "--backlog-id", str(bid)], db)
-        suggestions = run_cli(["suggestions", "--status", "in_backlog"], db)
+        suggestions = run_cli(["suggestions", "--status", "implemented"], db)
         assert suggestions["count"] == 1
         assert suggestions["data"][0]["backlog_id"] == bid
 
@@ -119,7 +119,7 @@ class TestCliSuggestAndBacklog:
         updates = [
             {"id": s1, "status": "implemented"},
             {"id": s2, "status": "rejected"},
-            {"id": s3, "status": "in_backlog", "backlog_id": b1},
+            {"id": s3, "status": "implemented", "backlog_id": b1},
         ]
         bulk_file = tmp_path / "sug_updates.json"
         bulk_file.write_text(json.dumps(updates), encoding="utf-8")
@@ -132,7 +132,7 @@ class TestCliSuggestAndBacklog:
         by_id = {s["id"]: s for s in all_sugg["data"]}
         assert by_id[s1]["status"] == "implemented"
         assert by_id[s2]["status"] == "rejected"
-        assert by_id[s3]["status"] == "in_backlog"
+        assert by_id[s3]["status"] == "implemented"
         assert by_id[s3]["backlog_id"] == b1
 
     def test_backlog_add_and_list(self, db):
