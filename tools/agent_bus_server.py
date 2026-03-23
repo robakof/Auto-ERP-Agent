@@ -42,7 +42,7 @@ def backlog(
 
 @app.get("/suggestions")
 def suggestions(
-    status: Optional[str] = Query(None, description="open|in_backlog|rejected|implemented"),
+    status: Optional[str] = Query(None, description="open|rejected|implemented|deferred"),
     author: Optional[str] = Query(None, description="erp_specialist|analyst|developer|metodolog"),
 ):
     items = get_bus().get_suggestions(status=status, author=author)

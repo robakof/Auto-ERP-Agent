@@ -1,43 +1,55 @@
 # Suggestions — 2026-03-22
 
-*42 sugestii*
+*69 sugestii*
 
 ---
 
 ## Zasady (rule)
 
-| id | autor | tytuł | status | data |
-|----|-------|-------|--------|------|
-| 161 | developer | Onboarding gap — gdzie pracować jako non-developer współpracownik? | open | 2026-03-22 |
-| 158 | developer | Narzędzia pomocnicze: maintain actively or delete | open | 2026-03-22 |
-| 156 | prompt_engineer | Research-driven design — używaj częściej | open | 2026-03-22 |
-| 154 | prompt_engineer | Few-shot examples > długi opis persony | open | 2026-03-22 |
-| 145 | prompt_engineer | Agent bez roli = STOP, wymaga mocnego gate | open | 2026-03-22 |
-| 141 | architect | Nowy kod w core/, stary w tools/ przez adaptery | open | 2026-03-22 |
-| 134 | prompt_engineer | Research przed promptem nowej roli — standardowy krok PE | open | 2026-03-22 |
-| 132 | architect | Audyt Fazy 1-4: findings do wdrożenia | open | 2026-03-22 |
-| 125 | prompt_engineer | Funkcje krótkie (≤15 linii) — standard dla Developer, nie tylko Architect | open | 2026-03-21 |
-| 124 | prompt_engineer | Nowy prompt roli: minimal viable prompt zamiast pełnych workflow | open | 2026-03-21 |
-| 120 | architect | Workflow Architecture Discovery — kroki | open | 2026-03-21 |
-| 119 | prompt_engineer | Research przed promptem nowej roli — standardowy krok PE | open | 2026-03-21 |
-| 95 | erp_specialist | Nr_Dokumentu_Zrodlowego — złożony JOIN gdy ZrdTyp ma wiele typów | open | 2026-03-20 |
-| 83 | prompt_engineer | PE: suggestion z self-reported violation = analiza compliance, nie tool request | open | 2026-03-18 |
-| 69 | prompt_engineer | Konwencja numeracji kroków w workflow i listach | open | 2026-03-18 |
-| 64 | developer | Jeden błąd tego samego typu = diagnoza zasięgu przed naprawą | open | 2026-03-17 |
-| 63 | developer | Przed migracją danych — przedstaw plan człowiekowi | open | 2026-03-17 |
-| 52 | developer | session_init załadował doc roli — przy edycji używaj tej treści, nie Read | open | 2026-03-17 |
-| 51 | developer | Runner: busy = ochrona budżetu tokenowego, nie "subprocess działa" | open | 2026-03-17 |
+| id  | autor           | tytuł                                                                                    | status | data       |
+| --- | --------------- | ---------------------------------------------------------------------------------------- | ------ | ---------- |
+| 195 | developer       | Adapter layer importuje core/ - to jest OK ale dokumentuj dependency                     | open   | 2026-03-22 |
+| 193 | developer       | Status mapping backward compatibility - centralna dokumentacja                           | open   | 2026-03-22 |
+| 189 | architect       | CLI fallback to architectural requirement, nie "nice to have" — headless = core use case | open   | 2026-03-22 |
+| 187 | architect       | Hybryda (wtyczka + CLI) to optimal solution — nie wybieraj "albo-albo" gdy możesz "oba"  | open   | 2026-03-22 |
+| 184 | developer       | Wszystkie analizy/plany/raporty do pliku md nie inline w czacie                          | open   | 2026-03-22 |
+| 183 | developer       | Handoff między rolami musi być explicite z pełnym briefem                                | open   | 2026-03-22 |
+| 177 | architect       | Code review feedback loop działa — Developer responds well to structured critique        | open   | 2026-03-22 |
+| 172 | developer       | TDD dla Repository implementations — testy przed kodem                                   | open   | 2026-03-22 |
+| 169 | architect       | Nowy kod w core/, stary w tools/ przez adaptery                                          | open   | 2026-03-22 |
+| 161 | developer       | Onboarding gap — gdzie pracować jako non-developer współpracownik?                       | open   | 2026-03-22 |
+| 158 | developer       | Narzędzia pomocnicze: maintain actively or delete                                        | open   | 2026-03-22 |
+| 141 | architect       | Nowy kod w core/, stary w tools/ przez adaptery                                          | open   | 2026-03-22 |
+| 132 | architect       | Audyt Fazy 1-4: findings do wdrożenia                                                    | open   | 2026-03-22 |
+| 120 | architect       | Workflow Architecture Discovery — kroki                                                  | open   | 2026-03-21 |
+| 95  | erp_specialist  | Nr_Dokumentu_Zrodlowego — złożony JOIN gdy ZrdTyp ma wiele typów                         | open   | 2026-03-20 |
+| 83  | prompt_engineer | PE: suggestion z self-reported violation = analiza compliance, nie tool request          | open   | 2026-03-18 |
+| 69  | prompt_engineer | Konwencja numeracji kroków w workflow i listach                                          | open   | 2026-03-18 |
+| 64  | developer       | Jeden błąd tego samego typu = diagnoza zasięgu przed naprawą                             | open   | 2026-03-17 |
+| 63  | developer       | Przed migracją danych — przedstaw plan człowiekowi                                       | open   | 2026-03-17 |
+| 51  | developer       | Runner: busy = ochrona budżetu tokenowego, nie "subprocess działa"                       | open   | 2026-03-17 |
 
 ## Narzędzia (tool)
 
-| id | autor | tytuł | status | data |
-|----|-------|-------|--------|------|
-| 123 | architect | Narzędzie do generowania diagramu architektury | open | 2026-03-21 |
+| id  | autor           | tytuł                                                   | status | data       |
+| --- | --------------- | ------------------------------------------------------- | ------ | ---------- |
+| 192 | developer       | Quick inbox check - czy są nowe wiadomości              | open   | 2026-03-22 |
+| 170 | developer       | Pre-commit hook sprawdzający branch przed dużą zmianą   | open   | 2026-03-22 |
+| 163 | prompt_engineer | render.py suggestions — brakuje filtra po roli/obszarze | open   | 2026-03-22 |
+| 123 | architect       | Narzędzie do generowania diagramu architektury          | open   | 2026-03-21 |
 
 ## Odkrycia (discovery)
 
 | id | autor | tytuł | status | data |
 |----|-------|-------|--------|------|
+| 196 | developer | recipients w Suggestion było missing field | open | 2026-03-22 |
+| 191 | developer | Inbox realtime - wiadomość przyszła podczas sesji | open | 2026-03-22 |
+| 190 | architect | Interim solution OK jeśli clear path do final solution — wtyczka (interim) + CLI (final) validated | open | 2026-03-22 |
+| 181 | developer | VS Code Terminal API daje interaktywność za darmo | open | 2026-03-22 |
+| 178 | architect | Repository pattern eliminuje 90% copy-paste — _find_by() jako proof | open | 2026-03-22 |
+| 173 | developer | pyproject.toml konieczne dla pytest imports w modułach | open | 2026-03-22 |
+| 167 | architect | invocation_log śledzi wywołania agent→agent | open | 2026-03-22 |
+| 165 | architect | Tabele trace i state są martwe/legacy | open | 2026-03-22 |
 | 137 | architect | Tabele trace i state są martwe/legacy | open | 2026-03-22 |
 | 133 | architect | 75k rekordów tool_calls/token_usage — gotowe do analizy | open | 2026-03-22 |
 | 122 | architect | _loom jako seed replikacji | open | 2026-03-21 |
@@ -46,6 +58,21 @@
 
 | id | autor | tytuł | status | data |
 |----|-------|-------|--------|------|
+| 197 | developer | Context manager pattern drastycznie redukuje boilerplate | open | 2026-03-22 |
+| 194 | developer | 19 failed testów test_agent_bus.py - do naprawienia w Phase 2-4 | open | 2026-03-22 |
+| 188 | architect | STRATEGIC_PLAN Wariant C delivered — równoległe ścieżki works at scale | open | 2026-03-22 |
+| 186 | architect | Developer wykonał Senior-level research (E1-E4) — systematyczny i z trade-offami | open | 2026-03-22 |
+| 185 | developer | Minor issues nie powinny blokować decyzji architektonicznej | open | 2026-03-22 |
+| 182 | developer | Interaktywność human-agent to core feature nie nice-to-have | open | 2026-03-22 |
+| 180 | developer | Eksperymentowanie przed decyzją architektoniczną = ROI | open | 2026-03-22 |
+| 179 | architect | Context manager eliminuje 160 linii boilerplate — concrete cost/benefit | open | 2026-03-22 |
+| 176 | architect | Developer osiągnął Senior-level w M2 — świetna inicjatywa i commitment | open | 2026-03-22 |
+| 175 | developer | Typ wiadomości review w agent_bus | open | 2026-03-22 |
+| 174 | developer | Repository pattern — separacja działa zgodnie z ADR-001 | open | 2026-03-22 |
+| 171 | developer | Context management przy długich sesjach (5h, 88% kontekstu) | open | 2026-03-22 |
+| 168 | architect | Moment strategiczny na refaktor | open | 2026-03-22 |
+| 166 | architect | Bot wymaga hardeningu przed skalowaniem | open | 2026-03-22 |
+| 164 | architect | Dict-based architecture nie skaluje się | open | 2026-03-22 |
 | 162 | developer | Verification gates nie działają bez enforcement — backlog #104 był już done | open | 2026-03-22 |
 | 155 | prompt_engineer | Inbox rośnie szybciej niż przetwarzamy | open | 2026-03-22 |
 | 153 | prompt_engineer | Persona Architekta — 2 iteracje, wciąż nie działa | open | 2026-03-22 |
@@ -71,6 +98,148 @@
 ## Treści
 
 ### Zasady (rule)
+
+#### [195] Adapter layer importuje core/ - to jest OK ale dokumentuj dependency
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+AgentBus (tools/lib/agent_bus.py) teraz importuje:
+```python
+from core.repositories.suggestion_repo import SuggestionRepository
+from core.entities.messaging import Suggestion, SuggestionType
+```
+
+To tworzy dependency: tools/ → core/. Jest to zgodne z adapter pattern (adapter layer zależy od domain layer). Ale warto dokumentować w ARCHITECTURE.md żeby było jasne że to celowa decyzja, nie circular dependency.
+
+#### [193] Status mapping backward compatibility - centralna dokumentacja
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+Adapter M3 Phase 1 mapuje "in_backlog" → "implemented" dla backward compatibility. To powinno być dokumentowane w jednym miejscu (np. agent_bus.py header comment lub osobny plik mappings.py), nie zagrzebane w kodzie. Mogą być inne legacy mappings w Backlog/Message które trzeba będzie obsłużyć w Phase 2-3.
+
+#### [189] CLI fallback to architectural requirement, nie "nice to have" — headless = core use case
+**autor:** architect  **status:** open  **data:** 2026-03-22
+
+**Context:**
+Wtyczka VS Code ma fundamentalny blocker: **nie działa headless** (wymaga VS Code running).
+
+**Headless environments to core use case dla Horyzont 3:**
+- **CI/CD pipelines:** automatyczne testy agentów (np. pytest na repo przed merge)
+- **Cron jobs:** scheduled agent tasks (np. "co tydzień audit backlogu przez Analityka")
+- **Remote servers:** bez GUI (np. cloud VM running agents 24/7)
+- **Replikacja mrowiska:** nowe projekty bez VS Code (użytkownik preferuje Vim/Emacs/CLI-only)
+
+**Impact analysis:**
+Jeśli CLI fallback = optional:
+- Horyzont 3 (produktyzacja) **zablokowany** — nie można wdrożyć bez headless support
+- Replikacja mrowiska **niemożliwa** dla CLI-only users
+- Multi-machine sync **ograniczona** (wymaga VS Code na obu maszynach)
+
+Jeśli CLI fallback = obowiązkowy:
+- Horyzont 3 możliwy ✓
+- Replikacja uniwersalna ✓
+- Hybryda (wtyczka dla dev, CLI dla prod) = optymalne rozwiązanie ✓
+
+**Verdict:**
+CLI fallback to **architectural requirement**, nie "nice to have".
+Must be on roadmap Fazy 4 z **HIGH priority** (równy z multi-agent orchestration).
+
+**Rekomendacja:**
+Traktuj CLI fallback jako blocker dla Horyzont 3. Nie ship Faza 4 bez CLI fallback.
+
+#### [187] Hybryda (wtyczka + CLI) to optimal solution — nie wybieraj "albo-albo" gdy możesz "oba"
+**autor:** architect  **status:** open  **data:** 2026-03-22
+
+**Realization:**
+Wtyczka VS Code **nie zastąpi** CLI subprocess — to komplementarne tools dla różnych use cases:
+- **Dev use case:** human-in-the-loop, debugging, multi-agent view → wtyczka wygrywa (interaktywność, widoczność)
+- **Production use case:** headless, CI/CD, cron, remote → CLI wygrywa (standalone, no IDE dependency)
+
+Nie trzeba wybierać "albo wtyczka albo CLI" — **oba** w hybrydzie:
+- Wtyczka dla Horyzont 1-2 (dev, interim solution)
+- CLI fallback dla Horyzont 3 (production, headless, final solution)
+
+**Pattern:**
+Często najlepszym rozwiązaniem nie jest "wybierz A lub B", ale "A dla use case X, B dla use case Y".
+Pytanie nie "która opcja?", ale "który use case dominuje teraz, który później?".
+
+**Przykłady w projekcie:**
+- CLAUDE.md: struktura EN + treść PL (hybryda, nie "albo EN albo PL")
+- Prompty: XML tags EN + instrukcje PL (hybryda)
+- Runner: wtyczka (dev) + CLI (production) (hybryda)
+
+**Rekomendacja:**
+Podejście hybrydowe to wzorzec do rozważenia w innych decyzjach architektonicznych. Nie szukaj "one size fits all" — buduj "right tool for the job".
+
+#### [184] Wszystkie analizy/plany/raporty do pliku md nie inline w czacie
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+Obserwacja: Wszystkie raporty (E1-E4, summary) w plikach .md, nie inline w czacie.
+
+Powód:
+- Plik przetrwa kompresję kontekstu
+- Można linkować (ścieżka w wiadomości)
+- Można wersjonować (git)
+- Można czytać poza sesją (markdown reader, IDE)
+
+Inline w czacie:
+- Zniknie przy kompresji
+- Ciężko zlinkować
+- Nie ma poza sesją
+
+Reguła: Wszystkie analizy/plany/raporty → plik .md w documents/human. Inline w czacie = tylko TL;DR + link do pliku.
+
+#### [183] Handoff między rolami musi być explicite z pełnym briefem
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+Good example (ta sesja):
+- Developer → PE: message id=188 z pełnym kontekstem (problem, rozwiązanie, output contract)
+- Developer → Architect: message id=194 z lokalizacjami raportów, pytaniami, oczekiwaniami
+
+Bad example (ryzyko):
+- "PE, zobacz suggestions" ← implicit (nie wiadomo co zrobić, brak kontekstu)
+
+Reguła: Handoff = pełny brief. Nie zakładaj że druga rola "wie co zrobić". Explicite:
+1. Problem/kontekst
+2. Co zrobiłem
+3. Co potrzebuję od Ciebie
+4. Gdzie szukać dokumentów
+
+#### [177] Code review feedback loop działa — Developer responds well to structured critique
+**autor:** architect  **status:** open  **data:** 2026-03-22
+
+**Obserwacja:**
+Code review #191 miał 4 warnings + 3 suggestions.
+Developer zaimplementował wszystkie warnings i 2/3 suggestions przed przejściem do M2 part 2.
+
+**Pattern:**
+- Structured critique (severity levels: Critical/Warning/Suggestion) → clear priorities
+- Timing recommendations ("fix now" vs "fix after M3") → Developer wie co robić kiedy
+- Trade-off analysis w review → Developer rozumie *dlaczego* coś jest problem
+
+**Contrast z innymi projektami:**
+W wielu projektach code review to "lista rzeczy do poprawy" bez priorytetów → Developer nie wie co jest critical.
+Tutaj: severity levels + timing + trade-offs → Developer wie dokładnie co robić.
+
+**Rekomendacja:**
+Kontynuuj ten format code review. Działa.
+
+#### [172] TDD dla Repository implementations — testy przed kodem
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+**Problem:** Nie zastosowałem TDD mimo planu. Napisałem kod, potem testy.
+
+**Propozycja:** Dla M2 part 2 (BacklogRepository, MessageRepository) spróbować:
+1. Napisać testy najpierw (expected behavior)
+2. Implementować repository żeby testy przeszły
+3. Refactor
+
+**Uzasadnienie:** Repository ma klarowny interface (CRUD), idealny case dla TDD.
+
+**Warto eksperyment:** 1 repo TDD, 1 kod-first, porównać czas i jakość.
+
+#### [169] Nowy kod w core/, stary w tools/ przez adaptery
+**autor:** architect  **status:** open  **data:** 2026-03-22
+
+Strategia migracji: nowe klasy domenowe w core/, stary kod tools/ deleguje przez adaptery. Zachowujemy kompatybilność wsteczną (CLI działa bez zmian). Stopniowa migracja, nie big bang.
 
 #### [161] Onboarding gap — gdzie pracować jako non-developer współpracownik?
 **autor:** developer  **status:** open  **data:** 2026-03-22
@@ -134,187 +303,10 @@ Nie ma statusu "istnieje ale nie działa".
 - verify.py → Active (naprawione, przeniesione do tools/)
 - Przejrzeć inne narzędzia pomocnicze (setup_machine.py, etc.)
 
-#### [156] Research-driven design — używaj częściej
-**autor:** prompt_engineer  **status:** open  **data:** 2026-03-22
-
-## 4. Research-driven design działa — używaj tego wzorca częściej
-
-**Obserwacja:**
-Rola Architect została zaprojektowana przez wzorzec:
-1. Research prompt (pytania badawcze)
-2. Research execution (zewnętrzne narzędzie)
-3. Research results (487 linii, 27 źródeł)
-4. Prompt design na podstawie wyników
-
-Efekt: prompt 171 linii (minimal viable), ale oparty o sprawdzone wzorce z OpenAI, Anthropic, CrewAI, LangChain + akademickie badania.
-
-**Korzyści:**
-- Nie wymyślamy od zera — korzystamy z praktyk produkcyjnych
-- Identyfikujemy anti-patterns przed wdrożeniem
-- Mamy bazę źródłową do uzasadnienia decyzji
-- Research można wielokrotnie wykorzystać (np. dziś character_designer, language_impact)
-
-**Gdzie zastosować dalej:**
-- **Researcher role** — już jest research_prompt, brakuje implementation
-- **Multi-agent orchestration** — supervisor pattern, handoffs, delegation (gdy zaczniemy auto-wywoływanie)
-- **Long-context optimization** — gdy budżet tokenowy zacznie być problemem
-- **Eval & testing** — gdy zaczniemy mierzyć quality agentów
-
-**Wzorzec do sformalizowania:**
-Przy projektowaniu **nowej roli** lub **dużej zmiany architektury**:
-1. Research prompt → documents/<rola>/research_prompt_<temat>.md
-2. External research (WebSearch, papers)
-3. Results → documents/<rola>/research_results_<temat>.md
-4. Design based on results
-
-**Typ:** rule
-
-#### [154] Few-shot examples > długi opis persony
-**autor:** prompt_engineer  **status:** open  **data:** 2026-03-22
-
-## 2. Few-shot examples > długi opis persony
-
-**Obserwacja z researchu:**
-> Few-shot examples są często skuteczniejsze od coraz dłuższego opisu persony. Anthropic zaleca 2-5 przykładów.
-> (character_designer.md:133-135)
-
-**Obecny stan:**
-Żadna rola w Mrowisko nie ma few-shot examples zachowań. Mamy tylko:
-- Opisy cech ("wywrotowy perfekcjonista")
-- Reguły ogólne ("proponuj zanim pytają")
-
-Brak konkretnych scenariuszy:
-```
-Scenariusz: odkryłeś problem podczas audytu
-❌ Czekasz aż user zapyta
-✓ Mówisz od razu: "Widzę dict hell, proponuję Domain Model — oto ADR"
-```
-
-**Dlaczego to ważne:**
-Model lepiej uczy się z przykładów niż z abstrakcji. "Bądź proaktywny" to abstrakcja. "Gdy widzisz problem, mów od razu, nie czekaj" + przykład = konkret.
-
-**Rekomendacja:**
-Przy kolejnej edycji promptu **dowolnej roli** — dodaj 2-3 przykłady zachowań przed dodawaniem kolejnych linii opisu persony.
-
-Format:
-```markdown
-**Przykłady zachowań:**
-
-*Scenariusz 1: [kontekst]*
-❌ [złe zachowanie]
-✓ [dobre zachowanie]
-
-*Scenariusz 2: [kontekst]*
-❌ [złe]
-✓ [dobre]
-```
-
-**Typ:** rule
-
-#### [145] Agent bez roli = STOP, wymaga mocnego gate
-**autor:** prompt_engineer  **status:** open  **data:** 2026-03-22
-
-## Brak inicjalizacji roli - agent działał bez session_init
-
-### Co się stało
-
-Sesja 2026-03-22 ~11:05 - user napisał "Masz wiadomość od Architekta".
-
-Agent:
-1. Przeczytał wiadomość z inbox
-2. Analizował treść
-3. Rozmawiał z userem o problemie
-4. Dopiero gdy user zapytał "A w jakiej roli jesteś?" zainicjował `session_init.py --role prompt_engineer`
-
-### Problem
-
-Agent nie wykonał `session_init.py` na początku sesji. Działał bez określonej roli przez ~10 wiadomości.
-
-**Dlaczego to się stało:**
-- User pisał "PE" w kontekście (skrót od Prompt Engineer)
-- Agent założył rolę po kontekście zamiast wymagać jawnej inicjalizacji
-- Brak mocnego gate'a "STOP jeśli nie masz roli"
-
-### Ryzyko
-
-Gdy agent działa bez roli:
-- Nie ma loaded instrukcji operacyjnych
-- Nie wie jakie ma narzędzia allowed/disallowed
-- Może wykonywać zadania poza swoim scope
-- Nie loguje do właściwej roli
-- Narusza podstawową konwencję systemu
-
-### Rekomendacja
-
-**CLAUDE.md - dodać na początku sekcji "Twoja rola":**
-
-```markdown
-## UWAGA: Agent bez roli = STOP
-
-Jeśli NIE wykonałeś `python tools/session_init.py --role <parametr>` na początku tej sesji:
-
-**WYŚWIETL ALERT:**
-```
-⚠️ UWAGA: NIE MAM OKREŚLONEJ ROLI
-
-Nie wykonałem session_init.py na początku sesji.
-Bez roli nie wiem:
-- Jakie są moje instrukcje operacyjne
-- Jakie narzędzia mogę używać
-- Do kogo eskalowaćć
-
-Którą rolę powinienem przyjąć dla tego zadania?
-(Tabela ról poniżej)
-```
-
-**NIE wykonuj żadnych poleceń (poza odczytem inbox informacyjnym) dopóki user nie potwierdzi roli.**
-
-**Wyjątek:** User napisał jawnie nazwę roli w pierwszej wiadomości (np. "ERP Specialist, zbuduj widok X")
-- wtedy możesz od razu wywołać session_init.
-
-Skróty typu "PE" NIE są jawną nazwą roli - pytaj o potwierdzenie.
-```
-
-### Typ
-
-rule (zasada do wdrożenia w CLAUDE.md)
-
 #### [141] Nowy kod w core/, stary w tools/ przez adaptery
 **autor:** architect  **status:** open  **data:** 2026-03-22
 
 Strategia migracji: nowe klasy domenowe w core/, stary kod tools/ deleguje przez adaptery. Zachowujemy kompatybilność wsteczną (CLI działa bez zmian). Stopniowa migracja, nie big bang.
-
-#### [134] Research przed promptem nowej roli — standardowy krok PE
-**autor:** prompt_engineer  **status:** open  **data:** 2026-03-22
-
-Research przed promptem nowej roli — standardowy krok PE
-
-Pattern użyty przy Architect i Researcher:
-1. Napisz research prompt
-2. Uruchom research (zewnętrzny agent)
-3. Przeczytaj wyniki
-4. Projektuj prompt roli na podstawie wyników
-
-To działa — prompt Architect był minimal viable (171 linii) dzięki researchu (487 linii wyników, 27 źródeł).
-
-Ale:
-- Pattern nie jest sformalizowany w PROMPT_ENGINEER.md workflow
-- Jest jako suggestion #119 (status: open), nie wdrożony
-
-Rekomendacja:
-Dodać do PE workflow jako Faza 0 przed projektowaniem nowej roli:
-```
-Faza 0 — Research (przed projektem promptu)
-1. Napisz research prompt (research_prompt_<rola>.md)
-2. Uruchom research przez zewnętrzne narzędzie
-3. Zapisz wyniki (research_results_<rola>.md)
-4. Przeczytaj wyniki i zidentyfikuj kluczowe wzorce
-5. Dopiero teraz projektuj prompt roli
-```
-
-Wzorzec z Architect pokazał że research (487 linii) + minimal prompt (171 linii) > duży prompt bez researchu (643 linie draftu).
-
-Source: sesja PE 2026-03-22, Architect + Researcher
 
 #### [132] Audyt Fazy 1-4: findings do wdrożenia
 **autor:** architect  **status:** open  **data:** 2026-03-22
@@ -326,52 +318,6 @@ Audyt architektoniczny (Fazy 1-4) — główne findings do wdrożenia:
 3. **MEDIUM:** Usunąć martwą tabelę `trace`, deprecate `state`
 4. **MEDIUM:** Rozbić nlp_pipeline.py (218 linii) na mniejsze komponenty
 5. **LOW:** Rename search_bi.py → bi_search.py dla spójności nazewnictwa
-
-#### [125] Funkcje krótkie (≤15 linii) — standard dla Developer, nie tylko Architect
-**autor:** prompt_engineer  **status:** open  **data:** 2026-03-21
-
-Funkcje krótkie — standard jakości kodu dla całego projektu.
-
-Wymaganie użytkownika (sesja PE 2026-03-21, projektowanie Architect):
-- Optymalna funkcja: ≤15 linii
-- Powyżej 40 linii → wymaga refaktoru (jeśli możliwy)
-- Logika dzielona między funkcjami → wyciągnij do podfunkcji (DRY)
-
-Obecnie:
-- Zasada jest w ARCHITECT.md critical_rules #6 (code review)
-- Brak w DEVELOPER.md (Developer pisze kod, ale nie ma tej zasady w swoich instrukcjach)
-
-Propozycja:
-Dodać do DEVELOPER.md critical_rules lub end_of_turn_checklist:
-"Funkcje krótkie i focused: optymalna ≤15 linii, >40 wymaga refaktoru. Logika dzielona między funkcjami → podfunkcja (DRY)."
-
-Albo:
-Dodać do CLAUDE.md jako zasada wspólna dla wszystkich ról piszących kod (Developer, Architect w PoC).
-
-Uzasadnienie: jeśli to standard projektu, powinien być w instrukcjach tego kto pisze kod, nie tylko kto go ocenia.
-
-#### [124] Nowy prompt roli: minimal viable prompt zamiast pełnych workflow
-**autor:** prompt_engineer  **status:** open  **data:** 2026-03-21
-
-Nowy prompt roli: minimal viable prompt (MVP) zamiast pełnych workflow na starcie.
-
-Obserwacja z sesji Architect:
-- Pierwsza wersja: 643 linie (pełne workflow per typ zadania)
-- Feedback użytkownika: "długi, wolę coś krótkiego na początek"
-- Wersja finalna: 171 linii (minimal, rozszerzalny)
-
-Uzasadnienie:
-1. Pełne workflow na starcie = sztywność, trudne do modyfikacji
-2. Minimal prompt = elastyczność, nabudowa w praktyce na podstawie rzeczywistych sesji
-3. Agent uczy się w praktyce, nie z góry zaprojektowanych wszystkich scenariuszy
-4. Łatwiejsze utrzymanie i iteracja
-
-Zasada dla PE przy projektowaniu nowej roli:
-- Minimum: mission, scope, critical rules (5-8), output contract, minimal workflow routing
-- Nie pisać szczegółowych kroków workflow zanim nie zobaczymy jak rola działa w praktyce
-- Workflow nabudowywać iteracyjnie na podstawie rzeczywistych sesji i failure modes
-
-Wzorzec: ARCHITECT.md (171 linii) vs pierwotny draft (643 linie).
 
 #### [120] Workflow Architecture Discovery — kroki
 **autor:** architect  **status:** open  **data:** 2026-03-21
@@ -403,25 +349,6 @@ Proponowany workflow do badania repozytoriów z lotu ptaka:
 - Sekcje: Wizja, Diagram, Warstwy, Komponenty, Słownik
 
 Obserwacja: równoległe Read (do 5 plików naraz) znacząco przyspiesza discovery.
-
-#### [119] Research przed promptem nowej roli — standardowy krok PE
-**autor:** prompt_engineer  **status:** open  **data:** 2026-03-21
-
-Przy projektowaniu nowej roli agenta — najpierw research, potem prompt.
-
-Research przed promptem pozwala:
-1. Znaleźć sprawdzone wzorce i terminologię z publicznych źródeł
-2. Uniknąć wymyślania konwencji od zera (skorzystać z praktyk OpenAI, Anthropic, LangChain, CrewAI)
-3. Zidentyfikować anti-patterns przed ich wdrożeniem
-4. Mieć bazę źródłową do uzasadnienia decyzji projektowych
-
-Wzorzec użyty w projekcie Architect (2026-03-21):
-1. Research prompt → research_prompt_architect_role.md (pytania badawcze, output contract)
-2. Uruchomienie researchu (WebSearch)
-3. Wyniki → research_results_architect_role.md (487 linii, 27 źródeł)
-4. Projektowanie promptu ARCHITECT.md na podstawie wyników researchu
-
-Konwencja do wdrożenia w workflow PE: research przed promptem nowej roli jako standardowy krok.
 
 #### [95] Nr_Dokumentu_Zrodlowego — złożony JOIN gdy ZrdTyp ma wiele typów
 **autor:** erp_specialist  **status:** open  **data:** 2026-03-20
@@ -475,17 +402,93 @@ Gdy wykryty zostaje błąd (np. niepoprawnie zamknięte sugestie) — zanim zacz
 
 Każda migracja danych (zmiana statusów, przypisywanie typów, aktualizacja historycznych rekordów) wymaga przedstawienia planu człowiekowi PRZED wykonaniem. Dotyczy zwłaszcza operacji bulk na istniejących danych. Błąd w migracji jest trudniejszy do wykrycia niż błąd w kodzie — i może siedzieć w DB tygodniami.
 
-#### [52] session_init załadował doc roli — przy edycji używaj tej treści, nie Read
-**autor:** developer  **status:** open  **data:** 2026-03-17
-
-session_init zwraca pełną treść dokumentu roli w polu doc_content. Gdy w tej samej sesji edytujesz ten plik, masz go już w kontekście — nie czytaj go ponownie przez Read. Podwójne załadowanie = ~300 linii tokenów zmarnowanych.
-
 #### [51] Runner: busy = ochrona budżetu tokenowego, nie "subprocess działa"
 **autor:** developer  **status:** open  **data:** 2026-03-17
 
 busy w modelu instancji runnera oznacza że sesja jest w toku i nie można jej zagłuszyć nowym wywołaniem — chodzi o ochronę budżetu tokenowego workflow, nie o to że subprocess "żyje". Ta różnica musi być explicite w dokumentacji roli przy projektowaniu runnerów — agenci budujący kolejne runnery muszą to rozumieć żeby nie mylić stanu procesu ze stanem sesji LLM.
 
 ### Narzędzia (tool)
+
+#### [192] Quick inbox check - czy są nowe wiadomości
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+Narzędzie CLI do szybkiego sprawdzenia czy inbox ma nowe wiadomości (count only, bez full read):
+```
+python tools/agent_bus_cli.py inbox-count --role developer
+→ {"ok": true, "count": 2}
+```
+Użycie: na początku sesji + okresowo podczas długich tasków. Unika false assumption "inbox jest pusty".
+
+#### [170] Pre-commit hook sprawdzający branch przed dużą zmianą
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+**Problem:** Dwukrotnie w tej sesji przypadkowo zacząłem pracę na złym branchu (main zamiast feature). Strata czasu na recovery.
+
+**Propozycja:** Pre-commit hook lub reminder w workflow:
+- Sprawdza `git branch --show-current` przed utworzeniem nowych plików
+- Jeśli branch = main && tworzysz nowy moduł (core/, nowy folder) → warning
+- Alternatywa: dodać do DEVELOPER.md workflow checkpoint: "Sprawdź branch przed rozpoczęciem implementacji"
+
+**Zysk:** Uniknięcie 15-30 min straconego czasu per sesja na recovery
+
+#### [163] render.py suggestions — brakuje filtra po roli/obszarze
+**autor:** prompt_engineer  **status:** open  **data:** 2026-03-22
+
+type: tool
+title: render.py suggestions — brakuje filtra po roli/obszarze
+
+## Problem
+
+`render.py suggestions` i `agent_bus_cli.py suggestions` nie mają filtra po roli docelowej lub obszarze.
+
+Gdy PE przegląda sugestie, dostaje wszystkie 42 (open), z których tylko ~14 dotyczy jego pracy.
+Musi ręcznie przeskanować całość i wyłowić relevantne.
+
+## Obecne filtry
+
+agent_bus_cli.py suggestions:
+- --status (open/in_backlog/rejected/implemented)
+- --from (author)
+- --type (rule/tool/discovery/observation)
+
+Brakuje:
+- --for-role 
+- --area < (analogicznie do backlog --area)
+
+## Propozycja
+
+**Opcja A:** Dodać pole `relevant_for` do tabeli suggestions
+```sql
+ALTER TABLE suggestions ADD COLUMN relevant_for TEXT; -- JSON array: ["prompt_engineer", "developer"]
+```
+
+CLI:
+```bash
+agent_bus_cli.py suggestions --status open --for-role prompt_engineer
+render.py suggestions --format md --for-role prompt_engineer
+```
+
+**Opcja B:** Mapping sugestii do obszarów (jak backlog)
+```bash
+agent_bus_cli.py suggestions --status open --area Prompt
+```
+
+**Opcja C:** Heurystyka w render.py
+```python
+# Jeśli suggestion.type == "rule" i treść zawiera "workflow", "prompt", "PE" → area=Prompt
+# Jeśli treść zawiera "ERP", "bi_view" → area=ERP
+```
+
+## Rekomendacja
+
+**Opcja A** (explicit field) — najprostsze, deterministyczne.
+
+Author oznacza przy tworzeniu sugestii kogo to dotyczy:
+```bash
+agent_bus_cli.py suggest --from developer --type rule --relevant-for prompt_engineer,developer --content-file tmp/s.md
+```
+
+Jeśli nie podano `--relevant-for` → domyślnie "all" (wyświetla się wszystkim).
 
 #### [123] Narzędzie do generowania diagramu architektury
 **autor:** architect  **status:** open  **data:** 2026-03-21
@@ -495,6 +498,113 @@ Potencjalnie przydatne: narzędzie które skanuje strukturę katalogów
 i generuje szkielet diagramu do uzupełnienia.
 
 ### Odkrycia (discovery)
+
+#### [196] recipients w Suggestion było missing field
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+Stary agent_bus.py serializował recipients do JSON w kolumnie suggestions.recipients, ale nowy Suggestion entity nie miał tego pola. Dodałem recipients: Optional[List[str]] = None + JSON serialization w repository. Gdybyśmy tego nie zrobili teraz, trzeba by migracji danych (wszystkie suggestions z recipients=NULL). Dobrze że złapałem to w Phase 1.
+
+#### [191] Inbox realtime - wiadomość przyszła podczas sesji
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+Na początku sesji inbox był pusty. Architekt wysłał msg #191 o 17:23:47 PODCZAS mojej sesji. Nie sprawdziłem inbox ponownie - zakładałem że jest pusty. Dopiero gdy user powiedział "masz wiadomość od Architekta" zacząłem ręcznie sprawdzać (przez SQLite queries zamiast narzędzia). System działa async/realtime - inbox może się zmienić w trakcie sesji.
+
+#### [190] Interim solution OK jeśli clear path do final solution — wtyczka (interim) + CLI (final) validated
+**autor:** architect  **status:** open  **data:** 2026-03-22
+
+**Pattern observed:**
+Wtyczka VS Code to **interim solution** (działa dla dev use case, nie dla wszystkich use cases).
+Architect zaakceptował to z warunkiem **CLI fallback w Fazie 4**.
+
+**Dlaczego to działa:**
+1. **Clear path do final solution:** CLI fallback na roadmap (Faza 4, obowiązkowy)
+2. **Interim delivers value:** wtyczka rozwiązuje immediate problem (runner wieloagentowy dla dev)
+3. **Incremental delivery:** ship wtyczkę teraz (Faza 2-3), CLI później (Faza 4)
+4. **Risk mitigation:** jeśli wtyczka za złożona / nie działa → fallback do CLI
+
+**Contrast z anti-pattern:**
+- **Bad:** Ship interim solution bez planu na final → technical debt accumulates, blocker later
+- **Good:** Ship interim solution z clear path → incremental value, controlled tech debt
+
+**Przykłady w projekcie:**
+- Wtyczka (interim, dev use case) + CLI fallback (final, universal) ✓
+- Dict-based agent_bus (interim) + Domain Model (final, ADR-001) ✓
+- Prompty w .md (interim) + prompty w DB (final, Faza 3 deferred) ⚠ (brak clear timeline)
+
+**Rekomendacja:**
+Interim solution jest akceptowalna architektonicznie **jeśli:**
+1. Clear path do final solution (roadmap, timeline, commitment)
+2. Interim delivers value (rozwiązuje immediate problem)
+3. Risk mitigation (fallback jeśli interim fails)
+
+Jeśli brakuje któregokolwiek z tych 3 — interim solution = tech debt trap. Refuse.
+
+#### [181] VS Code Terminal API daje interaktywność za darmo
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+`vscode.window.createTerminal()` + `terminal.sendText('claude.cmd ...')` automatycznie obsługuje:
+- User input (pisanie w terminalu)
+- Przekazywanie do procesu
+- Wyświetlanie output
+
+Nie trzeba custom input/output handling, parsowania stdout/stderr, przekierowywania stdin, custom rendering.
+
+Implikacja: Interaktywność "za darmo" — największa korzyść wtyczki vs CLI subprocess. Human może dołączyć do sesji spawned agenta bez dodatkowej implementacji.
+
+Game changer dla user experience.
+
+#### [178] Repository pattern eliminuje 90% copy-paste — _find_by() jako proof
+**autor:** architect  **status:** open  **data:** 2026-03-22
+
+**Przed:** find_by_status, find_by_author, find_by_type — każda ~20 linii, 90% identyczne
+**Łącznie:** ~70 linii copy-paste per repository × 3 repositories = ~210 linii
+
+**Po:** _find_by(field, value) helper — 15 linii
+**find_by_* methods:** po 1 linii każda (delegate do _find_by)
+**Łącznie:** ~30 linii per repository × 3 = ~90 linii
+
+**Redukcja:** 210 → 90 linii (58% mniej kodu)
+
+**Benefits:**
+- Jeśli trzeba dodać nową query method (np. find_by_priority) → 1 linia zamiast 20
+- Jeśli trzeba zmienić ORDER BY → jedno miejsce zamiast 9 (3 methods × 3 repos)
+- Testy pokrywają _find_by() raz, zamiast testować każdą find_by_* osobno
+
+**Pattern:**
+Generic helpers (z f-string dla field name) eliminują copy-paste bez over-engineering.
+To jest sweet spot między "copy-paste everything" a "abstract everything".
+
+**Rekomendacja:**
+Szukaj podobnych patterns w innych częściach kodu (tools/lib/, bot/pipeline/).
+
+#### [173] pyproject.toml konieczne dla pytest imports w modułach
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+**Odkrycie:** pytest nie widzi modułów bez pyproject.toml + pip install -e .
+
+**Problem:** sys.path insert w conftest.py nie wystarczy.
+
+**Rozwiązanie:** Minimalne pyproject.toml:
+```toml
+[project]
+name = "nazwa"
+version = "0.1.0"
+
+[tool.setuptools.packages.find]
+include = ["module*"]
+```
+
+**Implikacja:** Każdy nowy moduł Pythonowy w projekcie wymaga dodania do pyproject.toml.
+
+#### [167] invocation_log śledzi wywołania agent→agent
+**autor:** architect  **status:** open  **data:** 2026-03-22
+
+Tabela do mrowisko_runner — loguje from_role, to_role, depth, turns, cost. 6 rekordów testowych. Będzie kluczowa przy multi-agent.
+
+#### [165] Tabele trace i state są martwe/legacy
+**autor:** architect  **status:** open  **data:** 2026-03-22
+
+trace: 0 rekordów, zastąpiona przez tool_calls. state: 34 rekordy, legacy backlog items — dane zmigrowane do backlog/suggestions. Obie do usunięcia przy cleanup.
 
 #### [137] Tabele trace i state są martwe/legacy
 **autor:** architect  **status:** open  **data:** 2026-03-22
@@ -522,6 +632,406 @@ To potencjalnie osobny produkt / repo. Nie jest udokumentowany w ARCHITECTURE.md
 Warto rozważyć: wydzielenie _loom do osobnego repo lub lepsze udokumentowanie.
 
 ### Obserwacje (observation)
+
+#### [197] Context manager pattern drastycznie redukuje boilerplate
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+Przed context manager: ~16 linii boilerplate per metoda (conn = ..., try, finally, close).
+Po context manager: ~3 linie (with self._connection() as conn).
+
+Redukcja ~70% boilerplate + automatic error handling + transaction safety.
+
+Ten wzorzec warto promować dla innych modułów w projekcie (np. tools/ które używają SQLite - bi_discovery.py, data_quality_*.py, etc.). Może być podstawą do "best practices" dokumentu.
+
+#### [194] 19 failed testów test_agent_bus.py - do naprawienia w Phase 2-4
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+test_agent_bus.py: 47 pass, 19 failed. Failures:
+- TestState (6 testów) - write_state/get_state używa starego kodu
+- TestBacklog.test_backlog_with_source_id (1 test) - prawdopodobnie schema mismatch
+- TestTransactions (2 testy) - transaction context manager + adapter conflict
+
+Te testy trzeba będzie naprawić/zaadaptować gdy będziemy robić Phase 2 (Backlog) i Phase 4 (State). Nie są blokerem dla M3 Phase 1 - Suggestions działają.
+
+#### [188] STRATEGIC_PLAN Wariant C delivered — równoległe ścieżki works at scale
+**autor:** architect  **status:** open  **data:** 2026-03-22
+
+**Evidence:**
+Wariant C (równoległe ścieżki):
+```
+Ścieżka 1: Eksperymenty (E1-E4) → Decyzja → Runner v2
+Ścieżka 2: Porządki (ADR-001 M1-M2) → M3 AgentBus adapter
+```
+
+**Status:**
+- Ścieżka 1: ✓ E1-E4 zakończone (4 eksperymenty, ~3 sesje)
+- Ścieżka 2: ✓ ADR-001 M1-M2 zakończone (61/61 tests pass, ~2 sesje)
+- Równoległe ścieżki **nie zablokowały się nawzajem**
+- Timeline: ~1 tydzień (jak przewidywano)
+
+**Dlaczego to działa:**
+1. **Niezależne interfejsy:** agent_bus_cli.py stable (wtyczka używa CLI, nie bezpośrednio DB)
+2. **Różne developerzy lub sesje:** Developer może pracować na obu równolegle albo sekwencyjnie
+3. **Incremental integration:** nie big bang (wtyczka działa na starym agent_bus, potem na nowym)
+
+**Pattern:**
+Równoległe ścieżki działają jeśli:
+- Interface stability (nie zmieniamy kontraktu w trakcie)
+- Separation of concerns (ścieżki dotykają różnych warstw)
+- Incremental delivery (możliwość integracji krok po kroku)
+
+**Rekomendacja:**
+Kontynuuj równoległe ścieżki w Fazie 3-4:
+- Ścieżka A: Wtyczka Faza 3 (Spawn from Backlog, inbox watcher)
+- Ścieżka B: ADR-001 M3 (AgentBus adapter)
+- Integration point: Faza 4 (`LiveAgent.spawn_child()` + wtyczka)
+
+#### [186] Developer wykonał Senior-level research (E1-E4) — systematyczny i z trade-offami
+**autor:** architect  **status:** open  **data:** 2026-03-22
+
+**Evidence:**
+- E1 (Agent Teams): nie tylko "sprawdź czy działa" — zbadał integrację z agent_bus (kluczowy blocker identified)
+- E4 (wtyczka): 4 testy systematyczne (echo, spawn, interaktywność, złożony task) — comprehensive verification
+- PoC wtyczki działający (`extensions/mrowisko-terminal-control/`) — konkretny deliverable, nie tylko dokumentacja
+- Dokumentacja: runner_experiments_summary.md + per-experiment reports — strukturalna i szczegółowa
+- Trade-offs analysis: wtyczka vs Agent Teams vs CLI subprocess — tabela z kryteriami, nie "gut feeling"
+
+**Pattern:**
+Developer podchodzi do architektury systematycznie:
+1. Zdefiniuj pytania (E1-E4)
+2. Przeprowadź eksperymenty (weryfikuj każde pytanie)
+3. Dokumentuj wyniki (raport + kod)
+4. Zidentyfikuj trade-offs (tabela, nie proza)
+5. Zaproponuj decyzję (z uzasadnieniem)
+
+To jest **Senior-level approach** do architectural decision making.
+
+**Rekomendacja:**
+Developer pokazuje dojrzałość architektoniczną. Może prowadzić więcej decyzji architektonicznych z review (nie mikromanagement). Trust but verify.
+
+#### [185] Minor issues nie powinny blokować decyzji architektonicznej
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+Minor issues zidentyfikowane w E4:
+- PowerShell buffering (output opóźniony)
+- Brak statusu agenta (nie wiadomo czy pracuje)
+- Sesja kończy się za szybko (task "zakończ" → exit)
+
+Reakcja: Nie blokują decyzji architektonicznej. Można naprawić w Fazie 3.
+
+Lekcja: Perfect is the enemy of good. Minor issues nie powinny blokować decyzji jeśli core functionality działa (a działa ✓). Priorytetyzacja: core functionality first, polish later.
+
+#### [182] Interaktywność human-agent to core feature nie nice-to-have
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+Projekt Mrowisko ≠ tylko autonomia agentów. To współpraca human-agent.
+
+Odkrycie z E4: Human klika w terminal spawned agenta → pisze wiadomość → agent odpowiada = naturalny workflow.
+
+Porównanie:
+- CLI subprocess (bez interaktywności): Agent stuck = deadlock, błąd agenta = marnuje czas
+- Wtyczka VS Code (interaktywna): Human może interweniować w trakcie, korygować błąd od razu, odblokowywać stuck agent
+
+Lekcja: Interaktywność to core feature dla production use. Bez tego agent autonomiczny jest ryzykowny (co jeśli zrobi błąd? trzeba czekać do końca).
+
+#### [180] Eksperymentowanie przed decyzją architektoniczną = ROI
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+Zamiast wybierać architekturę "na czuja" → 4 eksperymenty (E1-E4) dały dane empiryczne.
+
+Koszt: ~4h (research + implementacja PoC + testy)
+
+Zysk: Potwierdzono że wtyczka działa, odrzucono Agent Teams na podstawie testów (nie domysłów), zidentyfikowano problemy wcześnie (prompt autonomiczny).
+
+ROI: Gdybyśmy zaczęli implementację bez eksperymentów — ryzyko 2 tygodni pracy na Agent Teams → odkrycie że nie integruje się z DB → przepisywanie. Teraz: 4h eksperymentów → pewność decyzji → oszczędność tygodni.
+
+Best practice: Eksperyment (PoC) przed full implementation dla dużych decyzji architektonicznych.
+
+#### [179] Context manager eliminuje 160 linii boilerplate — concrete cost/benefit
+**autor:** architect  **status:** open  **data:** 2026-03-22
+
+**Przed:** Każda metoda (get, save, delete, find_all, find_by_* × 3) miała:
+```python
+conn = self._get_connection()
+try:
+    # ...
+finally:
+    conn.close()
+```
+16 linii boilerplate per metoda × 10 metod per repository × 3 repositories = **480 linii boilerplate**
+
+**Po:** Context manager _connection() — 35 linii raz per repository
+**Łącznie:** 35 × 3 = 105 linii
+
+**Redukcja:** 480 → 105 linii (78% mniej boilerplate)
+
+**Additional benefits:**
+- Auto-commit/rollback (eliminuje conn.commit() calls w każdej metodzie)
+- Error translation (SQLite → domain exceptions) w jednym miejscu
+- Transaction safety (nie zapomnisz rollback przy error)
+
+**Cost:**
+- +1 concept do nauki (context manager)
+- +10 linii per repository (ale -160 linii boilerplate → net win)
+
+**Rekomendacja:**
+Context managers to powerful pattern dla resource management (DB connections, file handles, locks).
+Rozważ w innych miejscach gdzie widzisz try-finally boilerplate.
+
+#### [176] Developer osiągnął Senior-level w M2 — świetna inicjatywa i commitment
+**autor:** architect  **status:** open  **data:** 2026-03-22
+
+Developer nie tylko zakończył M2 part 2, ale też:
+1. Zaadresował **wszystkie** findings z code review #191 przed przejściem dalej (4 warnings + 2 suggestions)
+2. Dodał PersistenceError do exceptions (nie było w pierwotnym review — własna inicjatywa)
+3. Zastosował patterns konsekwentnie we wszystkich 3 repositories (context manager, _find_by, error handling, enum validation)
+4. 61/61 testy pass
+
+**Code maturity progression:**
+- M2 part 1 (przed review): Mid-level
+- M2 part 1 (po review improvements): Senior-level
+- M2 part 2: Senior-level (consistent implementation)
+
+**Co to mówi o Developer:**
+- Słucha feedbacku i implementuje go natychmiast (nie odkłada na później)
+- Ma eye for quality — naprawił wszystkie findings zamiast robić tylko minimum
+- Rozumie trade-offy — nie zaimplementował Suggestion #3 (paginated queries) bo nie jest urgent
+- Commitment do jakości — "lepiej zrobić dobrze teraz niż refaktorować później"
+
+**Pattern:**
+Gdy Architect daje feedback Senior-level, Developer go realizuje na tym samym poziomie.
+To pokazuje że Developer **umie** pracować na Senior-level — po prostu czasem potrzebuje guidance.
+
+**Rekomendacja:**
+Developer jest gotowy do bardziej autonomicznej pracy. Przy M3 może potrzebować mniej review checkpoints — zaufać że zastosuje te same patterns.
+
+#### [175] Typ wiadomości review w agent_bus
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+# Sugestia: Typ wiadomości "review" w agent_bus
+
+## Obserwacja
+
+Wysyłając wiadomość do Architect (message id=194) z wynikami eksperymentów, zdałem sobie sprawę że to jest **review request** — nie zwykła wiadomość.
+
+**Różnica:**
+
+| Zwykła wiadomość | Review request |
+|------------------|----------------|
+| Task do wykonania | Decyzja/plan do zatwierdzenia |
+| Oczekiwanie: wykonanie | Oczekiwanie: feedback/akceptacja |
+| Odpowiedź: wynik pracy | Odpowiedź: uwagi/korekty/OK |
+
+**Obecnie:** Wszystko to `type: message`. Brak rozróżnienia.
+
+## Problem
+
+Agent odbierający nie wie **jakiego typu odpowiedzi** się oczekuje:
+- Czy ma wykonać task?
+- Czy ma zrobić review i odpowiedzieć z uwagami?
+- Czy ma zaakceptować/odrzucić propozycję?
+
+**Przykłady z projektu:**
+
+1. **Developer → Architect (review request):**
+   - "Przejrzyj decyzję architektoniczną (wtyczka VS Code)"
+   - Oczekiwanie: feedback, akceptacja lub korekty
+
+2. **Developer → PE (task):**
+   - "Refaktoruj prompt autonomiczny"
+   - Oczekiwanie: wykonanie + zgłoszenie ukończenia
+
+3. **ERP Specialist → Analyst (review request):**
+   - "Sprawdź jakość danych w widoku TraNag"
+   - Oczekiwanie: raport data quality, nie wykonanie akcji
+
+Wszystkie 3 to obecnie `type: message` — nie ma rozróżnienia intent.
+
+## Propozycja
+
+Dodać nowy typ wiadomości: **`review`**
+
+### Schema rozszerzony
+
+```sql
+-- Obecne
+CREATE TABLE messages (
+  ...
+  type TEXT CHECK(type IN ('message', 'task', 'response'))
+);
+
+-- Propozycja
+CREATE TABLE messages (
+  ...
+  type TEXT CHECK(type IN ('message', 'task', 'response', 'review'))
+);
+```
+
+### Użycie CLI
+
+```bash
+# Review request
+python tools/agent_bus_cli.py send --from developer --to architect --type review --content-file tmp/review_req.md
+
+# Zwykły task
+python tools/agent_bus_cli.py send --from developer --to erp_specialist --type task --content-file tmp/task.md
+
+# Odpowiedź
+python tools/agent_bus_cli.py send --from architect --to developer --type response --content-file tmp/response.md
+```
+
+### Semantyka
+
+| Type | Intent | Oczekiwana odpowiedź |
+|------|--------|----------------------|
+| `message` | Ogólna komunikacja | Opcjonalna |
+| `task` | Zadanie do wykonania | Wynik pracy |
+| `review` | Prośba o feedback/akceptację | Uwagi/korekty/OK |
+| `response` | Odpowiedź na poprzednią wiadomość | — |
+
+### Korzyści
+
+1. **Clarity of intent:** Agent wie czego się od niego oczekuje
+2. **Priorytetyzacja:** Review może mieć wyższy priorytet niż task
+3. **Workflow tracking:** Łatwiej śledzić co czeka na review vs co jest in progress
+4. **Metrics:** Ile review zostało zaakceptowanych vs odrzuconych
+
+### Rozbudowa (opcjonalnie)
+
+Pole `review_status` dla wiadomości typu `review`:
+
+```sql
+CREATE TABLE messages (
+  ...
+  type TEXT,
+  review_status TEXT CHECK(review_status IN ('pending', 'approved', 'rejected', 'commented'))
+);
+```
+
+**Workflow:**
+1. Developer → Architect (type=review, review_status=pending)
+2. Architect odpowiada:
+   - `agent_bus approve-review --id 194` → review_status=approved
+   - `agent_bus reject-review --id 194 --reason-file ...` → review_status=rejected
+   - `agent_bus comment-review --id 194 --content-file ...` → review_status=commented
+
+## Alternatywy
+
+### A) Status quo (wszystko to message)
+- ✓ Prostsze
+- ✗ Brak rozróżnienia intent
+- ✗ Agent musi zgadywać co zrobić
+
+### B) Pole `intent` zamiast typu
+```sql
+type TEXT DEFAULT 'message',
+intent TEXT CHECK(intent IN ('execute', 'review', 'notify'))
+```
+- ✓ Backward compatible
+- ✗ Duplikacja informacji (type + intent)
+
+### C) Tags/labels (wiele intentów)
+```sql
+tags TEXT  -- JSON array: ["review", "urgent", "blocking"]
+```
+- ✓ Elastyczne
+- ✗ Bardziej złożone query
+- ✗ Trudniejsza walidacja
+
+## Rekomendacja
+
+**Opcja: Dodać typ `review`** (rozszerzenie typu message)
+
+**Uzasadnienie:**
+- Wystarczająco proste (1 kolumna)
+- Jasna semantyka
+- Backward compatible (istniejące message bez zmian)
+- Łatwo rozbudować o review_status jeśli potrzeba
+
+**Priorytet:** Niski — obecny system działa, ale clarity poprawiłby workflow
+
+## Implementacja (jeśli akceptowane)
+
+1. Migration: ALTER TABLE messages — dodać 'review' do CHECK constraint
+2. CLI: agent_bus_cli.py send --type review
+3. Dokumentacja: aktualizacja CLAUDE.md (komendy agent_bus)
+4. Opcjonalnie: agent_bus approve-review / reject-review / comment-review
+
+## Przykład użycia
+
+**Developer (wysyła review):**
+```bash
+python tools/agent_bus_cli.py send \
+  --from developer \
+  --to architect \
+  --type review \
+  --content-file tmp/review_runner_architecture.md
+```
+
+**Architect (czyta inbox):**
+```bash
+python tools/agent_bus_cli.py inbox --role architect
+# [id=194] [REVIEW] developer → architect: Wyniki eksperymentów runner + decyzja architektoniczna
+```
+
+**Architect (odpowiada):**
+```bash
+# Opcja 1: Quick approve
+python tools/agent_bus_cli.py approve-review --id 194 --comment "LGTM, proceed with Faza 3"
+
+# Opcja 2: Detailed response
+python tools/agent_bus_cli.py send \
+  --from architect \
+  --to developer \
+  --type response \
+  --reply-to 194 \
+  --content-file tmp/architecture_feedback.md
+```
+
+---
+
+**Typ sugestii:** observation (spostrzeżenie procesowe)
+
+#### [174] Repository pattern — separacja działa zgodnie z ADR-001
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+**Obserwacja:** Repository pattern (encja ↔ DB) daje czystą separację. Architect miał rację.
+
+**Zyski zaobserwowane:**
+- Łatwe testowanie (mockowanie repozytorium)
+- Enkapsulacja logiki persystencji
+- Zmiana DB schema nie wpływa na encje
+
+**Potwierdzenie:** ADR-001 był słuszną decyzją.
+
+#### [171] Context management przy długich sesjach (5h, 88% kontekstu)
+**autor:** developer  **status:** open  **data:** 2026-03-22
+
+Sesja była długa — 2 milestones (M1 + M2 part 1), 5h pracy, kontekst urósł do 88%.
+
+**Obserwacja:** Lepiej dzielić duże zadania na mniejsze sesje (1 milestone = 1 sesja).
+
+**Zysk:**
+- Mniejsze ryzyko przepełnienia kontekstu
+- Łatwiejszy recovery przy przerwaniu
+- Czytelniejsze logi (jeden milestone = jeden log)
+
+**Trade-off:** Więcej session_init calls, ale to jest tani koszt.
+
+#### [168] Moment strategiczny na refaktor
+**autor:** architect  **status:** open  **data:** 2026-03-22
+
+Projekt po stabilizacji promptów, przed skokiem złożoności (multi-agent). Budżet tokenów wykorzystany w 10%. Lepiej przebudować teraz niż po implementacji kolejnej warstwy. ADR-001 to fundament.
+
+#### [166] Bot wymaga hardeningu przed skalowaniem
+**autor:** architect  **status:** open  **data:** 2026-03-22
+
+Krytyczny brak: error handling dla Anthropic API. Bot crashuje przy rate limit lub API error. Dodatkowo: God Object w nlp_pipeline.py (218 linii, 7 odpowiedzialności), brak rate limiting per user.
+
+#### [164] Dict-based architecture nie skaluje się
+**autor:** architect  **status:** open  **data:** 2026-03-22
+
+Przy rosnącej liczbie agentów i sesji równoległych, podejście proceduralne z dictami staje się nieczytelne i trudne do utrzymania. Logika rozproszona po wielu plikach, brak walidacji typów, brak enkapsulacji. ADR-001 adresuje ten problem.
 
 #### [162] Verification gates nie działają bez enforcement — backlog #104 był już done
 **autor:** developer  **status:** open  **data:** 2026-03-22
@@ -817,7 +1327,7 @@ Inbox konsumuje nadmiernie kontekst przy każdym sprawdzeniu. W sesji 2026-03-20
 
 Trzy kierunki do rozważenia:
 
-1. agent_bus_cli.py inbox — dodaj flagę --unread (tylko nieprzeczytane) lub --since <data>. Agent markuje wiadomości jako przeczytane po starcie sesji.
+1. agent_bus_cli.py inbox — dodaj flagę --unread (tylko nieprzeczytane) lub --since . Agent markuje wiadomości jako przeczytane po starcie sesji.
 
 2. Workflow bi_view_creation_workflow.md mówi "agent dostaje tylko sekcję swojej bieżącej fazy" — w praktyce agenci wczytują cały dokument (~520 linii). Warto albo podzielić plik na osobne pliki per faza, albo dodać anchor do ładowania fragmentu.
 

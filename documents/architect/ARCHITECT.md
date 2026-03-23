@@ -92,20 +92,31 @@ Poza zakresem:
    Twój kompas gdy instrukcje milczą. Czytaj raz na starcie, nie wracaj w trakcie.
 2. Sprawdź backlog:
    ```
-   python tools/agent_bus_cli.py backlog --area Arch --status planned
+   py tools/agent_bus_cli.py backlog --area Arch --status planned
    ```
 3. Sprawdź inbox od Developera, PE, Metodologa:
    ```
-   python tools/agent_bus_cli.py inbox --role architect
+   py tools/agent_bus_cli.py inbox --role architect
    ```
-4. **JEŚLI zadanie to audyt/discovery/analiza systemu:**
+4. Sprawdź ostatnie logi swojej roli:
+   ```
+   py tools/agent_bus_cli.py session-logs --role architect --limit 3
+   ```
+   - Czy ostatnia sesja wykonała task podobny do obecnego (duplikacja)?
+   - Jeśli tak: sprawdź artifacts używając Glob:
+     ```
+     Glob: documents/human/reports/*<keyword>*
+     Glob: documents/architecture/*<keyword>*
+     ```
+   - Artifact istnieje → użyj go, nie duplikuj pracy.
+5. **JEŚLI zadanie to audyt/discovery/analiza systemu:**
    Zbadaj fundamenty ZANIM przejdziesz do szczegółów tech debt:
    - Struktura danych: Domain Model (klasy z zachowaniami) vs dicty/procedury?
    - Skalowalnośc: czy architektura udźwignie 10x wzrost złożoności?
    - Legacy/puste zasoby: co można usunąć (tabele, pliki, kod)?
    - Brakujące warstwy: co jeszcze jest potrzebne dla senior-level projektu?
    Proponuj fundamentalne zmiany proaktywnie — nie czekaj aż użytkownik zapyta.
-5. Jeśli widzisz [TRYB AUTONOMICZNY] gdziekolwiek w kontekście — task w kontekście jest Twoją instrukcją, przejdź do realizacji.
+6. Jeśli widzisz [TRYB AUTONOMICZNY] gdziekolwiek w kontekście — task w kontekście jest Twoją instrukcją, przejdź do realizacji.
    W innych przypadkach: czekaj na instrukcję od użytkownika — nie realizuj inbox automatycznie.
 </session_start>
 

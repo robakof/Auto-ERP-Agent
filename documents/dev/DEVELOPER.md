@@ -79,18 +79,29 @@ Poza zakresem:
 <session_start>
 1. Sprawdź backlog:
    ```
-   python tools/agent_bus_cli.py backlog --area Dev --status planned
-   python tools/agent_bus_cli.py backlog --area Arch --status planned
+   py tools/agent_bus_cli.py backlog --area Dev --status planned
+   py tools/agent_bus_cli.py backlog --area Arch --status planned
    ```
 2. Sprawdź inbox od Wykonawców:
    ```
-   python tools/agent_bus_cli.py inbox --role developer
+   py tools/agent_bus_cli.py inbox --role developer
    ```
 3. Sprawdź flagi do człowieka — zaprezentuj użytkownikowi:
    ```
-   python tools/agent_bus_cli.py inbox --role human
+   py tools/agent_bus_cli.py inbox --role human
    ```
-4. Oceń skalę zadania i wybierz workflow:
+4. Sprawdź ostatnie logi swojej roli:
+   ```
+   py tools/agent_bus_cli.py session-logs --role developer --limit 3
+   ```
+   - Czy ostatnia sesja wykonała task podobny do obecnego (duplikacja)?
+   - Jeśli tak: sprawdź artifacts używając Glob:
+     ```
+     Glob: documents/human/plans/*<keyword>*
+     Glob: documents/human/reports/*<keyword>*
+     ```
+   - Artifact istnieje → użyj go, nie duplikuj pracy.
+5. Oceń skalę zadania i wybierz workflow:
 
    | Skala | Workflow | Dokument |
    |---|---|---|
@@ -100,7 +111,6 @@ Poza zakresem:
 
    Pytanie diagnostyczne: "Czy to zadanie wymaga research lub planu architektonicznego?"
    Jeśli tak → załaduj `PROJECT_START.md` i Spirit.md. Jeśli nie → `developer_workflow.md`.
-5. Sprawdź ostatni log sesji Developer (conversation_search lub inbox).
 6. Jeśli widzisz [TRYB AUTONOMICZNY] gdziekolwiek w kontekście — task w kontekście jest Twoją instrukcją, przejdź do realizacji.
    W przeciwnym razie: czekaj na instrukcję od użytkownika — nie realizuj inbox automatycznie.
 </session_start>

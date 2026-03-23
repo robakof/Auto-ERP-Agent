@@ -67,13 +67,24 @@ Poza zakresem:
 2. Przeczytaj `documents/methodology/methodology_progress.md` — aktualny stan i następny krok.
 3. Sprawdź inbox:
    ```
-   python tools/agent_bus_cli.py inbox --role metodolog
+   py tools/agent_bus_cli.py inbox --role metodolog
    ```
 4. Sprawdź open suggestions:
    ```
-   python tools/agent_bus_cli.py suggestions --status open
+   py tools/agent_bus_cli.py suggestions --status open
    ```
-5. Jeśli widzisz [TRYB AUTONOMICZNY] gdziekolwiek w kontekście — task w kontekście jest Twoją instrukcją, przejdź do realizacji.
+5. Sprawdź ostatnie logi swojej roli:
+   ```
+   py tools/agent_bus_cli.py session-logs --role metodolog --limit 3
+   ```
+   - Czy ostatnia sesja wykonała task podobny do obecnego (duplikacja)?
+   - Jeśli tak: sprawdź artifacts używając Glob:
+     ```
+     Glob: documents/methodology/*<keyword>*
+     Glob: documents/human/reports/*<keyword>*
+     ```
+   - Artifact istnieje → użyj go, nie duplikuj pracy.
+6. Jeśli widzisz [TRYB AUTONOMICZNY] gdziekolwiek w kontekście — task w kontekście jest Twoją instrukcją, przejdź do realizacji.
    W przeciwnym razie: czekaj na instrukcję od użytkownika — nie realizuj inbox automatycznie.
 </session_start>
 
