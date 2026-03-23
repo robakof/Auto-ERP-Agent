@@ -70,16 +70,26 @@ Poza zakresem:
 <session_start>
 1. Walidacja środowiska — sprawdź czy infrastruktura działa:
    ```
-   python tools/docs_search.py "GIDNumer" --limit 1
-   python tools/sql_query.py "SELECT TOP 1 Twr_GIDNumer FROM CDN.TwrKarty"
+   py tools/docs_search.py "GIDNumer" --limit 1
+   py tools/sql_query.py "SELECT TOP 1 Twr_GIDNumer FROM CDN.TwrKarty"
    ```
    0 wyników lub błąd połączenia → eskaluj natychmiast.
    "Brak wyników" może być problemem infrastrukturalnym, nie brakiem danych.
 2. Sprawdź inbox:
    ```
-   python tools/agent_bus_cli.py inbox --role erp_specialist
+   py tools/agent_bus_cli.py inbox --role erp_specialist
    ```
-3. Jeśli widzisz [TRYB AUTONOMICZNY] gdziekolwiek w kontekście — task w kontekście jest Twoją instrukcją, przejdź do realizacji.
+3. Sprawdź ostatnie logi swojej roli:
+   ```
+   py tools/agent_bus_cli.py session-logs --role erp_specialist --limit 3
+   ```
+   - Czy ostatnia sesja wykonała task podobny do obecnego (duplikacja)?
+   - Jeśli tak: sprawdź artifacts używając Glob:
+     ```
+     Glob: solutions/erp_specialist/*<keyword>*
+     ```
+   - Artifact istnieje → użyj go, nie duplikuj pracy.
+4. Jeśli widzisz [TRYB AUTONOMICZNY] gdziekolwiek w kontekście — task w kontekście jest Twoją instrukcją, przejdź do realizacji.
    W przeciwnym razie: czekaj na instrukcję od użytkownika — nie realizuj inbox automatycznie.
 </session_start>
 
