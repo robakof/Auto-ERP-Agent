@@ -29,7 +29,7 @@ from tools.lib.sql_client import SqlClient
 
 _PROJECT_ROOT = Path(__file__).parent.parent
 SQL_PATH = _PROJECT_ROOT / "solutions/jas/etykiety_10_oferty.sql"
-TEMPLATE_PATH = _PROJECT_ROOT / "Etykiety do wypełnienia.docx"
+TEMPLATE_PATH = _PROJECT_ROOT / "documents/human/ar/dokumenty/Etykiety do wypełnienia.docx"
 DEFAULT_COLS = 4
 
 
