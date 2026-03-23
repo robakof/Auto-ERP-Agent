@@ -83,6 +83,8 @@ def _fill_cell(cell, product: dict) -> None:
       [10] Gramatura: {val} g
       [12] COLI: {val} szt.
       [13] PALETA: {val} szt.
+      [15] Uwagi:
+      [16] → wartość EAN (powtórzenie pod Uwagi)
     """
     paras = cell.paragraphs
 
@@ -113,6 +115,9 @@ def _fill_cell(cell, product: dict) -> None:
     # PALETA — para[13]: jeden run "PALETA: "
     val = _v(product.get("paleta_szt"))
     _set_run_text(paras[13], 0, f"PALETA: {val} szt." if val else "PALETA: ")
+
+    # EAN pod "Uwagi:" — para[16]
+    _set_para_value(paras[16], _v(product.get("ean")))
 
 
 def _set_para_value(para, text: str) -> None:
