@@ -181,7 +181,7 @@ def _draw_header(c: canvas.Canvas, lang: str, font_header: str):
     c.drawString(start_x, text_y, text)
 
     if logo_path:
-        logo_y = y + (HEADER_H - logo_h) / 2
+        logo_y = y + (HEADER_H - logo_h) / 2 + 10 * mm
         c.drawImage(logo_path, start_x + tw + gap, logo_y,
                     width=logo_w, height=logo_h,
                     preserveAspectRatio=True, mask="auto")
