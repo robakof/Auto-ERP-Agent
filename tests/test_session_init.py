@@ -143,3 +143,89 @@ class TestSessionInit:
     def test_session_init_doc_content_erp_specialist(self, tmp_path):
         result = self.run_session_init(tmp_path, "erp_specialist")
         assert "ERP" in result["doc_content"]
+
+
+# --- session_init.py: context loading ---
+
+class TestSessionInitContext:
+    """Tests for configurable session_init with full context loading."""
+
+    def run_session_init(self, tmp_path, role):
+        cmd = [
+            sys.executable, str(PROJECT_ROOT / "tools" / "session_init.py"),
+            "--role", role,
+            "--db", str(tmp_path / "test.db"),
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", cwd=str(PROJECT_ROOT))
+        return json.loads(result.stdout)
+
+    def test_session_init_returns_context(self, tmp_path):
+        """Verify that session_init returns 'context' field."""
+        result = self.run_session_init(tmp_path, "developer")
+        assert result["ok"] is True
+        assert "context" in result
+        assert isinstance(result["context"], dict)
+
+    def test_context_inbox_enabled(self, tmp_path):
+        """Verify inbox is returned when enabled in config (developer)."""
+        # Add message to inbox
+        bus = AgentBus(db_path=str(tmp_path / "test.db"))
+        bus.send_message(sender="architect", recipient="developer", content="Test message", type="task")
+
+        result = self.run_session_init(tmp_path, "developer")
+        context = result["context"]
+
+        assert "inbox" in context
+        assert "messages" in context["inbox"]
+        assert "count" in context["inbox"]
+        assert context["inbox"]["count"] == 1
+        assert context["inbox"]["messages"][0]["content"] == "Test message"
+
+    def test_context_backlog_multiple_areas(self, tmp_path):
+        """Verify backlog combines multiple areas (developer has Dev + Arch)."""
+        bus = AgentBus(db_path=str(tmp_path / "test.db"))
+        bus.add_backlog_item(title="Dev task", content="...", area="Dev")
+        bus.add_backlog_item(title="Arch task", content="...", area="Arch")
+        bus.add_backlog_item(title="ERP task", content="...", area="ERP")
+
+        result = self.run_session_init(tmp_path, "developer")
+        context = result["context"]
+
+        assert "backlog" in context
+        assert context["backlog"]["count"] == 2  # Dev + Arch, not ERP
+        titles = [item["title"] for item in context["backlog"]["items"]]
+        assert "Dev task" in titles
+        assert "Arch task" in titles
+        assert "ERP task" not in titles
+
+    def test_context_session_logs_own_full(self, tmp_path):
+        """Verify session_logs returns own_full for role."""
+        bus = AgentBus(db_path=str(tmp_path / "test.db"))
+        bus.add_session_log(role="developer", content="Log 1", title="Task 1")
+        bus.add_session_log(role="developer", content="Log 2", title="Task 2")
+        bus.add_session_log(role="architect", content="Arch log", title="Arch task")
+
+        result = self.run_session_init(tmp_path, "developer")
+        context = result["context"]
+
+        assert "session_logs" in context
+        assert "own_full" in context["session_logs"]
+
+        # Should have 2 developer logs + 1 "session started" log = 3 total
+        own_full = context["session_logs"]["own_full"]
+        assert len(own_full) >= 2
+
+        # Verify content is included (not metadata-only)
+        assert "content" in own_full[0]
+
+    def test_context_flags_human(self, tmp_path):
+        """Verify flags_human returns unread messages to human."""
+        bus = AgentBus(db_path=str(tmp_path / "test.db"))
+        bus.send_message(sender="developer", recipient="human", content="Flag for human", type="flag_human")
+
+        result = self.run_session_init(tmp_path, "developer")
+        context = result["context"]
+
+        assert "flags_human" in context
+        assert context["flags_human"]["count"] == 1
+        assert context["flags_human"]["items"][0]["content"] == "Flag for human"

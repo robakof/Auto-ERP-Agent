@@ -4,7 +4,8 @@ Usage:
     python tools/session_init.py --role erp_specialist
     python tools/session_init.py --role developer
 
-Returns JSON with session_id and role prompt path.
+Returns JSON with session_id, role prompt path, and full context (inbox, backlog, logs).
+Context is controlled by config/session_init_config.json.
 Writes session_id to tmp/session_id.txt.
 """
 
@@ -21,6 +22,7 @@ from tools.lib.output import print_json
 
 DB_PATH = "mrowisko.db"
 SESSION_ID_FILE = Path("tmp/session_id.txt")
+CONFIG_FILE = Path("config/session_init_config.json")
 
 ROLE_DOCUMENTS = {
     "erp_specialist": "documents/erp_specialist/ERP_SPECIALIST.md",
@@ -47,8 +49,121 @@ def read_session_id() -> str | None:
     return None
 
 
+def load_config(role: str) -> dict:
+    """Load session_init config for given role."""
+    if not CONFIG_FILE.exists():
+        raise FileNotFoundError(f"Config file not found: {CONFIG_FILE}")
+
+    with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+        config = json.load(f)
+
+    if role not in config:
+        raise ValueError(f"Role '{role}' not found in {CONFIG_FILE}")
+
+    return config[role]
+
+
+def get_context(role: str, config: dict, bus: AgentBus) -> dict:
+    """Gather all context per config."""
+    context = {}
+
+    # Inbox
+    if config.get("inbox", {}).get("enabled", False):
+        inbox_config = config["inbox"]
+        messages = bus.get_messages(
+            recipient=role,
+            status=inbox_config.get("status", "unread"),
+            limit=inbox_config.get("limit", 10)
+        )
+        context["inbox"] = {
+            "messages": messages,
+            "count": len(messages)
+        }
+
+    # Backlog
+    if config.get("backlog", {}).get("enabled", False):
+        backlog_config = config["backlog"]
+        areas = backlog_config.get("areas", [])
+        statuses = backlog_config.get("statuses", ["planned"])
+        limit = backlog_config.get("limit", 20)
+
+        items = []
+        seen_ids = set()  # Deduplicate if same item matches multiple filters
+
+        # Iterate over all combinations of areas and statuses
+        for area in areas:
+            for status in statuses:
+                area_items = bus.get_backlog(area=area, status=status)
+                for item in area_items:
+                    if item["id"] not in seen_ids:
+                        items.append(item)
+                        seen_ids.add(item["id"])
+                        if len(items) >= limit:
+                            break
+                if len(items) >= limit:
+                    break
+            if len(items) >= limit:
+                break
+
+        # Sort by created_at DESC (newest first) and apply limit
+        items = sorted(items, key=lambda x: x.get("created_at", ""), reverse=True)[:limit]
+
+        context["backlog"] = {
+            "items": items,
+            "count": len(items)
+        }
+
+    # Session logs
+    if config.get("session_logs", {}).get("own_full", {}).get("enabled", False):
+        logs_config = config["session_logs"]
+
+        # Own full
+        own_full_config = logs_config.get("own_full", {})
+        own_full = bus.get_session_logs(
+            role=role,
+            limit=own_full_config.get("limit", 3),
+            metadata_only=False
+        )
+
+        # Own metadata (optional)
+        own_metadata = []
+        if logs_config.get("own_metadata", {}).get("enabled", False):
+            own_meta_config = logs_config["own_metadata"]
+            own_metadata = bus.get_session_logs(
+                role=role,
+                offset=own_meta_config.get("offset", 3),
+                limit=own_meta_config.get("limit", 7),
+                metadata_only=True
+            )
+
+        # Cross-role (optional)
+        cross_role = []
+        if logs_config.get("cross_role", {}).get("enabled", False):
+            cross_config = logs_config["cross_role"]
+            cross_role = bus.get_session_logs(
+                limit=cross_config.get("limit", 20),
+                metadata_only=True
+            )
+
+        context["session_logs"] = {
+            "own_full": own_full,
+            "own_metadata": own_metadata,
+            "cross_role": cross_role
+        }
+
+    # Flags human
+    if config.get("flags_human", {}).get("enabled", False):
+        flags = bus.get_messages(recipient="human", status="unread")
+        context["flags_human"] = {
+            "items": flags,
+            "count": len(flags)
+        }
+
+    return context
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Initialize agent session")
+    parser = argparse.ArgumentParser(description="Initialize agent session with full context")
     parser.add_argument("--role", required=True, choices=list(ROLE_DOCUMENTS.keys()))
     parser.add_argument("--db", default=DB_PATH)
     parser.add_argument("--resume", action="store_true", help="Resume existing session if tmp/session_id.txt exists")
@@ -74,6 +189,14 @@ def main():
         session_id=session_id,
     )
 
+    # Load config and gather context
+    try:
+        config = load_config(args.role)
+        context = get_context(args.role, config, bus)
+    except (FileNotFoundError, ValueError) as e:
+        print_json({"ok": False, "error": str(e)})
+        return
+
     print_json({
         "ok": True,
         "session_id": session_id,
@@ -81,6 +204,7 @@ def main():
         "doc_path": str(doc_path),
         "doc_exists": doc_exists,
         "doc_content": doc_content,
+        "context": context,
         "resumed": False,
     })
 
