@@ -47,7 +47,7 @@ def _make_barcode_bytes(ean_str: str) -> BytesIO | None:
         buf = BytesIO()
         EAN13(ean_str.strip(), writer=ImageWriter()).write(buf, options={
             "write_text": False,
-            "module_height": 8.0,
+            "module_height": 6.0,
             "quiet_zone": 1.0,
         })
         buf.seek(0)
@@ -174,6 +174,21 @@ def _set_run_text(para, index: int, text: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Helpers wiersza
+# ---------------------------------------------------------------------------
+
+def _set_row_height_at_least(tr_el) -> None:
+    """Zmienia hRule wiersza z 'exact' na 'atLeast' — wiersz rozszerza się do treści."""
+    from docx.oxml.ns import qn
+    trPr = tr_el.find(qn("w:trPr"))
+    if trPr is None:
+        return
+    trH = trPr.find(qn("w:trHeight"))
+    if trH is not None:
+        trH.set(qn("w:hRule"), "atLeast")
+
+
+# ---------------------------------------------------------------------------
 # Generowanie dokumentu
 # ---------------------------------------------------------------------------
 
@@ -215,6 +230,7 @@ def generate(
 
     # Zachowaj wzorzec wiersza z szablonu, następnie usuń wszystkie wiersze
     template_row_xml = copy.deepcopy(table.rows[0]._tr)
+    _set_row_height_at_least(template_row_xml)
     for row in list(table.rows):
         table._tbl.remove(row._tr)
 
