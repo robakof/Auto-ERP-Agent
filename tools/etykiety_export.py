@@ -57,9 +57,11 @@ def _make_barcode_bytes(ean_str: str) -> BytesIO | None:
 
 
 def _set_para_picture(para, image_bytes: BytesIO, width_cm: float) -> None:
-    """Czyści istniejące runy i wstawia obraz."""
+    """Czyści istniejące runy, wstawia obraz wycentrowany."""
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
     for run in para.runs:
         run.text = ""
+    para.alignment = WD_ALIGN_PARAGRAPH.CENTER
     para.add_run().add_picture(image_bytes, width=Cm(width_cm))
 
 
@@ -124,7 +126,7 @@ def _fill_cell(cell, product: dict) -> None:
     if ean_val:
         buf = _make_barcode_bytes(ean_val)
         if buf:
-            _set_para_picture(paras[3], buf, width_cm=4.5)
+            _set_para_picture(paras[3], buf, width_cm=3.6)
         else:
             _set_para_value(paras[3], ean_val)
     else:
