@@ -311,10 +311,11 @@ def _draw_product_card(
         label_w   = c.stringWidth(label_str, font_regular, label_sz)
         c.drawString(param_x, ry, label_str)
 
-        # Wartość — do lewej, za etykietą
+        # Wartość — do prawej krawędzi karty
         c.setFillColor(COLOR_BLACK)
         c.setFont(font_bold, value_sz)
-        c.drawString(param_x + label_w, ry, value)
+        value_w = c.stringWidth(value, font_bold, value_sz)
+        c.drawString(cx + CELL_W - PAD - value_w, ry, value)
 
 
 def _get_line(nazwa: str) -> str:
