@@ -490,6 +490,34 @@ class TestCliSessionLog:
         logs = run_cli(["session-logs", "--role", "developer", "--limit", "3"], db)
         assert logs["count"] == 3
 
+    def test_session_logs_offset(self, db):
+        for i in range(5):
+            run_cli(["log", "--role", "developer", "--content", f"Log {i}", "--title", f"Title {i}"], db)
+
+        # First 3 (offset 0, limit 3)
+        first_three = run_cli(["session-logs", "--role", "developer", "--limit", "3", "--offset", "0"], db)
+        assert first_three["count"] == 3
+        assert first_three["data"][0]["title"] == "Title 4"  # newest first
+
+        # Next 2 (offset 3, limit 2)
+        next_two = run_cli(["session-logs", "--role", "developer", "--limit", "2", "--offset", "3"], db)
+        assert next_two["count"] == 2
+        assert next_two["data"][0]["title"] == "Title 1"
+
+    def test_session_logs_metadata_only(self, db):
+        run_cli(["log", "--role", "developer", "--content", "Full content here", "--title", "Test Title"], db)
+
+        # Full result (no --metadata-only flag)
+        full = run_cli(["session-logs", "--role", "developer", "--limit", "1"], db)
+        assert "content" in full["data"][0]
+        assert full["data"][0]["content"] == "Full content here"
+
+        # Metadata only (--metadata-only flag)
+        metadata = run_cli(["session-logs", "--role", "developer", "--limit", "1", "--metadata-only"], db)
+        assert "content" not in metadata["data"][0]
+        assert "title" in metadata["data"][0]
+        assert metadata["data"][0]["title"] == "Test Title"
+
     def test_log_with_content_file(self, db, tmp_path):
         content_file = tmp_path / "log.txt"
         content_file.write_text("Content from file", encoding="utf-8")

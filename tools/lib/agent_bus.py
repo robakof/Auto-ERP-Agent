@@ -581,24 +581,43 @@ class AgentBus:
         ).fetchall()
         return [dict(row) for row in rows]
 
-    def get_session_logs(self, role: str = None, limit: int = 10) -> list[dict]:
-        """Get session log entries. Optionally filter by role. Newest first."""
-        if role:
-            rows = self._conn.execute(
-                """SELECT id, role, content, title, session_id, created_at
-                   FROM session_log WHERE role = ?
-                   ORDER BY created_at DESC, id DESC
-                   LIMIT ?""",
-                (role, limit),
-            ).fetchall()
+    def get_session_logs(
+        self,
+        role: str = None,
+        limit: int = 10,
+        offset: int = 0,
+        metadata_only: bool = False,
+    ) -> list[dict]:
+        """Get session log entries. Optionally filter by role. Newest first.
+
+        Args:
+            role: Filter by role (optional)
+            limit: Max number of logs to return (default 10)
+            offset: Number of logs to skip (default 0)
+            metadata_only: If True, exclude content field (default False)
+
+        Returns:
+            List of session log dicts
+        """
+        # Select fields based on metadata_only flag
+        if metadata_only:
+            fields = "id, role, title, created_at"
         else:
-            rows = self._conn.execute(
-                """SELECT id, role, content, title, session_id, created_at
-                   FROM session_log
-                   ORDER BY created_at DESC, id DESC
-                   LIMIT ?""",
-                (limit,),
-            ).fetchall()
+            fields = "id, role, content, title, session_id, created_at"
+
+        if role:
+            query = f"""SELECT {fields}
+                        FROM session_log WHERE role = ?
+                        ORDER BY created_at DESC, id DESC
+                        LIMIT ? OFFSET ?"""
+            rows = self._conn.execute(query, (role, limit, offset)).fetchall()
+        else:
+            query = f"""SELECT {fields}
+                        FROM session_log
+                        ORDER BY created_at DESC, id DESC
+                        LIMIT ? OFFSET ?"""
+            rows = self._conn.execute(query, (limit, offset)).fetchall()
+
         return [dict(row) for row in rows]
 
     def get_messages(

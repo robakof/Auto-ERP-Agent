@@ -230,7 +230,12 @@ def cmd_log(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 
 def cmd_session_logs(args: argparse.Namespace, bus: AgentBus) -> dict:
-    logs = bus.get_session_logs(role=args.role, limit=args.limit)
+    logs = bus.get_session_logs(
+        role=args.role,
+        limit=args.limit,
+        offset=args.offset,
+        metadata_only=args.metadata_only,
+    )
     return {"ok": True, "data": logs, "count": len(logs)}
 
 
@@ -370,6 +375,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_session_logs = subparsers.add_parser("session-logs", help="Get session log entries")
     p_session_logs.add_argument("--role", default=None, help="Filter by role (optional)")
     p_session_logs.add_argument("--limit", type=int, default=10, help="Max number of entries (default: 10)")
+    p_session_logs.add_argument("--offset", type=int, default=0, help="Number of entries to skip (default: 0)")
+    p_session_logs.add_argument("--metadata-only", action="store_true", help="Exclude content field (metadata only)")
 
     # delete
     p_delete = subparsers.add_parser("delete", help="Archive (soft-delete) messages by id")

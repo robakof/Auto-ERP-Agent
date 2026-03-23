@@ -324,6 +324,31 @@ class TestSessionLog:
         assert result[0]["title"] is None  # newest first, no title
         assert result[1]["title"] == "With Title"
 
+    def test_session_logs_offset(self, bus):
+        # Add 5 logs
+        for i in range(5):
+            bus.add_session_log("developer", f"log {i}", title=f"Title {i}")
+        # First 3 (offset 0, limit 3)
+        first_three = bus.get_session_logs(role="developer", limit=3, offset=0)
+        assert len(first_three) == 3
+        assert first_three[0]["title"] == "Title 4"  # newest first
+        # Next 2 (offset 3, limit 2)
+        next_two = bus.get_session_logs(role="developer", limit=2, offset=3)
+        assert len(next_two) == 2
+        assert next_two[0]["title"] == "Title 1"
+
+    def test_session_logs_metadata_only(self, bus):
+        bus.add_session_log("developer", "full content here", title="Test Title")
+        # Full result (metadata_only=False)
+        full = bus.get_session_logs(role="developer", limit=1, metadata_only=False)
+        assert "content" in full[0]
+        assert full[0]["content"] == "full content here"
+        # Metadata only (metadata_only=True)
+        metadata = bus.get_session_logs(role="developer", limit=1, metadata_only=True)
+        assert "content" not in metadata[0]
+        assert "title" in metadata[0]
+        assert metadata[0]["title"] == "Test Title"
+
 
 class TestMarkAllRead:
     def test_marks_all_unread_for_role(self, bus):
