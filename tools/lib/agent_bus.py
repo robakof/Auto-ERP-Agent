@@ -620,6 +620,42 @@ class AgentBus:
 
         return [dict(row) for row in rows]
 
+    def get_session_logs_init(self, role: str) -> dict:
+        """Get session logs for session initialization (--init flag).
+
+        Returns structured output for session_start workflow:
+        - own_full: 3 latest logs (full content) for this role
+        - own_metadata: 7 next logs (metadata only) for this role
+        - cross_role: 20 latest logs (metadata only) for all roles (only for non-executor roles)
+
+        Args:
+            role: Role to get logs for
+
+        Returns:
+            Dict with keys: own_full, own_metadata, cross_role (or None)
+        """
+        # Executor roles (focused on their domain, noise from other roles not needed)
+        executor_roles = ["erp_specialist", "analyst"]
+
+        # 3 latest logs (full content)
+        own_full = self.get_session_logs(role=role, limit=3, metadata_only=False)
+
+        # 7 next logs (metadata only)
+        own_metadata = self.get_session_logs(
+            role=role, offset=3, limit=7, metadata_only=True
+        )
+
+        # 20 latest cross-role logs (metadata only) — only for non-executor roles
+        cross_role = None
+        if role not in executor_roles:
+            cross_role = self.get_session_logs(limit=20, metadata_only=True)
+
+        return {
+            "own_full": own_full,
+            "own_metadata": own_metadata,
+            "cross_role": cross_role,
+        }
+
     def get_messages(
         self,
         sender: str = None,

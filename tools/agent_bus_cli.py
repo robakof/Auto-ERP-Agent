@@ -230,6 +230,15 @@ def cmd_log(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 
 def cmd_session_logs(args: argparse.Namespace, bus: AgentBus) -> dict:
+    # --init mode: session initialization (3 full + 7 metadata + 20 cross-role)
+    if args.init:
+        if not args.role:
+            return {"ok": False, "error": "--init requires --role"}
+
+        data = bus.get_session_logs_init(role=args.role)
+        return {"ok": True, "role": args.role, "data": data}
+
+    # Normal mode
     logs = bus.get_session_logs(
         role=args.role,
         limit=args.limit,
@@ -377,6 +386,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_session_logs.add_argument("--limit", type=int, default=10, help="Max number of entries (default: 10)")
     p_session_logs.add_argument("--offset", type=int, default=0, help="Number of entries to skip (default: 0)")
     p_session_logs.add_argument("--metadata-only", action="store_true", help="Exclude content field (metadata only)")
+    p_session_logs.add_argument("--init", action="store_true", help="Session initialization mode (returns own_full + own_metadata + cross_role)")
 
     # delete
     p_delete = subparsers.add_parser("delete", help="Archive (soft-delete) messages by id")
