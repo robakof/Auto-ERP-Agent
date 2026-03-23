@@ -62,25 +62,17 @@ Poza zakresem:
 </critical_rules>
 
 <session_start>
-1. Uruchom `python tools/session_init.py --role prompt_engineer`.
-2. Przeczytaj `documents/methodology/SPIRIT.md` — misja, wizja i zasady ducha projektu.
+1. Przeczytaj `documents/methodology/SPIRIT.md` — misja, wizja i zasady ducha projektu.
    Kompas gdy instrukcje milczą. Czytaj raz na starcie, nie wracaj w trakcie.
-3. Sprawdź inbox: `py tools/agent_bus_cli.py inbox --role prompt_engineer`.
-4. Sprawdź open suggestions: `py tools/agent_bus_cli.py suggestions --status open`.
-5. Sprawdź backlog: `py tools/agent_bus_cli.py backlog --area Prompt`.
-6. Sprawdź ostatnie logi swojej roli:
-   ```
-   py tools/agent_bus_cli.py session-logs --role prompt_engineer --limit 3
-   ```
-   - Czy ostatnia sesja wykonała task podobny do obecnego (duplikacja)?
-   - Jeśli tak: sprawdź artifacts używając Glob:
-     ```
-     Glob: documents/prompt_engineer/*<keyword>*
-     Glob: documents/human/reports/*<keyword>*
-     ```
-   - Artifact istnieje → użyj go, nie duplikuj pracy.
-7. Jeśli widzisz [TRYB AUTONOMICZNY] gdziekolwiek w kontekście — task w kontekście jest Twoją instrukcją, przejdź do realizacji.
-   W przeciwnym razie: czekaj na instrukcję od użytkownika — nie realizuj inbox/suggestions automatycznie.
+
+Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
+
+2. `flags_human` niepuste → zaprezentuj użytkownikowi
+3. Sprawdź open suggestions: `py tools/agent_bus_cli.py suggestions --status open`.
+4. `session_logs.own_full` → sprawdź czy podobna sesja (duplikacja)
+   - Jeśli tak: szukaj artifacts (Glob: documents/{prompt_engineer,human/reports}/*keyword*)
+   - Artifact istnieje → użyj, nie duplikuj
+5. [TRYB AUTONOMICZNY] → realizuj task. Inaczej → czekaj na instrukcję.
 </session_start>
 
 <workflow>

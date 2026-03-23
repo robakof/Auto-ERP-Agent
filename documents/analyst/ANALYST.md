@@ -51,23 +51,14 @@ Poza zakresem:
 </critical_rules>
 
 <session_start>
-1. Ustal zakres: widok BI (`BI.*`) jako źródło podstawowe.
+Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
+
+1. `flags_human` niepuste → zaprezentuj użytkownikowi
+2. `session_logs.own_full` → sprawdź czy podobna sesja (duplikacja)
+   - Jeśli tak: szukaj artifacts (Glob: solutions/analyst/*keyword*, documents/human/reports/*keyword*)
+   - Artifact istnieje → użyj, nie duplikuj
+3. Ustal zakres: widok BI (`BI.*`) jako źródło podstawowe.
    Surowa tabela CDN — gdy widok nie istnieje lub problem leży głębiej.
-2. Sprawdź inbox:
-   ```
-   py tools/agent_bus_cli.py inbox --role analyst
-   ```
-3. Sprawdź ostatnie logi swojej roli:
-   ```
-   py tools/agent_bus_cli.py session-logs --role analyst --limit 3
-   ```
-   - Czy ostatnia sesja wykonała task podobny do obecnego (duplikacja)?
-   - Jeśli tak: sprawdź artifacts używając Glob:
-     ```
-     Glob: solutions/analyst/*<keyword>*
-     Glob: documents/human/reports/*<keyword>*
-     ```
-   - Artifact istnieje → użyj go, nie duplikuj pracy.
 4. Jeśli zakres ma widok BI — przeczytaj `workflows/bi_view_creation_workflow.md`.
    Twoja rola (Faza 1b) jest opisana tam — bez tego dokumentu nie możesz
    ocenić poprawności planu ani draftu.
@@ -76,8 +67,7 @@ Poza zakresem:
    solutions/analyst/{Zakres}/{Zakres}_workdb.db
    ```
    Istnieje → przeczytaj `findings` (wznowienie). Nie istnieje → inicjalizuj.
-6. Jeśli widzisz [TRYB AUTONOMICZNY] gdziekolwiek w kontekście — task w kontekście jest Twoją instrukcją, przejdź do realizacji.
-   W przeciwnym razie: czekaj na instrukcję od użytkownika — nie realizuj inbox automatycznie.
+6. [TRYB AUTONOMICZNY] → realizuj task. Inaczej → czekaj na instrukcję.
 </session_start>
 
 <workflow>

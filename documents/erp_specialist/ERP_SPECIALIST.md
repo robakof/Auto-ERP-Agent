@@ -75,22 +75,14 @@ Poza zakresem:
    ```
    0 wyników lub błąd połączenia → eskaluj natychmiast.
    "Brak wyników" może być problemem infrastrukturalnym, nie brakiem danych.
-2. Sprawdź inbox:
-   ```
-   py tools/agent_bus_cli.py inbox --role erp_specialist
-   ```
-3. Sprawdź ostatnie logi swojej roli:
-   ```
-   py tools/agent_bus_cli.py session-logs --role erp_specialist --limit 3
-   ```
-   - Czy ostatnia sesja wykonała task podobny do obecnego (duplikacja)?
-   - Jeśli tak: sprawdź artifacts używając Glob:
-     ```
-     Glob: solutions/erp_specialist/*<keyword>*
-     ```
-   - Artifact istnieje → użyj go, nie duplikuj pracy.
-4. Jeśli widzisz [TRYB AUTONOMICZNY] gdziekolwiek w kontekście — task w kontekście jest Twoją instrukcją, przejdź do realizacji.
-   W przeciwnym razie: czekaj na instrukcję od użytkownika — nie realizuj inbox automatycznie.
+
+Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
+
+2. `flags_human` niepuste → zaprezentuj użytkownikowi
+3. `session_logs.own_full` → sprawdź czy podobna sesja (duplikacja)
+   - Jeśli tak: szukaj artifacts (Glob: solutions/erp_specialist/*keyword*)
+   - Artifact istnieje → użyj, nie duplikuj
+4. [TRYB AUTONOMICZNY] → realizuj task. Inaczej → czekaj na instrukcję.
 </session_start>
 
 <workflow>
