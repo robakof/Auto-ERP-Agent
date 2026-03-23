@@ -283,7 +283,7 @@ def _draw_product_card(
     c.setFont(font_regular, suf_sz)
     c.drawString(px + nw2, price_y + 1, price_suffix)
 
-    # ---- PARAMETRY (do lewej, przesunięte -5mm od inner_x) ----
+    # ---- PARAMETRY (wyrównane do inner_x) ----
     params = [
         (tr["label_wysokosc"],     product.wysokosc),
         (tr["label_czas_palenia"], product.czas_palenia),
@@ -294,7 +294,7 @@ def _draw_product_card(
     value_sz = 8.5
     row_h    = 5.5 * mm
     param_y  = price_y - 6 * mm
-    param_x  = max(cx + 1 * mm, inner_x - 5 * mm)
+    param_x  = inner_x
 
     for i, (label, value) in enumerate(params):
         ry = param_y - i * row_h
