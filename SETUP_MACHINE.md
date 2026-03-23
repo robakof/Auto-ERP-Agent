@@ -4,6 +4,34 @@ Po sklonowaniu repo na nową maszynę — użyj automatycznego narzędzia albo w
 
 ---
 
+## Szybki start — pełna procedura
+
+```bash
+# 1. Sklonuj repo
+git clone <url-do-repo> ~/OneDrive/Pulpit/Mrowisko
+cd ~/OneDrive/Pulpit/Mrowisko
+
+# 2. Instaluj dependencies
+py -m pip install -r requirements.txt
+
+# 3. (Opcjonalnie) Skopiuj bazę danych jeśli migrujesz z innej maszyny
+# Wklej plik mrowisko.db do katalogu głównego projektu
+
+# 4. Konfiguracja Claude Code (automatyczna)
+py tools/setup_machine.py
+
+# 5. (Opcjonalnie) Git config jeśli będziesz tworzyć commity
+git config user.name "Twoje Imię"
+git config user.email "twoj@email.com"
+
+# 6. Weryfikacja
+py tools/agent_bus_cli.py backlog --area Dev --status planned
+```
+
+Szczegóły każdego kroku poniżej.
+
+---
+
 ## Metoda 1: Automatyczna (REKOMENDOWANE)
 
 Narzędzie `tools/setup_machine.py` automatycznie wykrywa ścieżki i interpreter Python:
@@ -30,13 +58,27 @@ py tools/setup_machine.py --dry-run
 
 Po uruchomieniu możesz od razu zacząć pracę w Claude Code.
 
+**Co zostaje skonfigurowane:**
+- Ścieżki projektu i interpreter Python
+- Permissions dla narzędzi (Read, Write, Edit, Grep, Glob)
+- **Hooki bezpieczeństwa** (automatyczna walidacja komend Bash)
+- Dozwolone komendy CLI (agent_bus, git_commit, session_init, render)
+
+Skrypty hooków (`tools/hooks/*.py`) są w repo — działają automatycznie po setup.
+
 ---
 
 ## Metoda 2: Ręczna
 
 Jeśli wolisz manual setup:
 
-### 1. Konfiguracja Claude Code
+### 1. Instalacja dependencies
+
+```bash
+py -m pip install -r requirements.txt
+```
+
+### 2. Konfiguracja Claude Code
 
 Skopiuj templates i zaktualizuj ścieżki:
 
@@ -63,7 +105,7 @@ Edytuj pliki i zamień placeholdery:
 {{PROJECT_PATH_WINDOWS_ESCAPED}} → C:\\\\Users\\\\cypro\\\\OneDrive\\\\Pulpit\\\\Mrowisko
 ```
 
-### 2. Baza danych
+### 3. Baza danych
 
 `mrowisko.db` jest lokalna dla każdej maszyny (nie synchronizowana przez git).
 
@@ -77,17 +119,48 @@ Po sklonowaniu repo:
 
 ## Weryfikacja setupu (dla obu metod)
 
-Sprawdź czy wszystko działa:
+### 1. Test dependencies
+
+```bash
+py -c "import anthropic, openpyxl, sqlite3; print('Dependencies OK')"
+```
+
+### 2. Test konfiguracji i hooków
 
 ```bash
 py tools/agent_bus_cli.py backlog --area Dev --status planned
 ```
 
-Jeśli polecenie działa bez pytania o zatwierdzenie — setup poprawny.
+**Oczekiwany wynik:**
+- Polecenie działa bez pytania o zatwierdzenie → permissions OK
+- Zwraca listę zadań lub pustą listę → baza danych działa
+- Brak błędów hooków → hooki skonfigurowane poprawnie
+
+### 3. Test hooków bezpieczeństwa
+
+Uruchom Claude Code i spróbuj wykonać zablokowaną komendę:
+
+```bash
+# W sesji Claude Code napisz: "wykonaj ls -la przez Bash"
+# Hook powinien zwrócić błąd: "Użyj narzędzia Glob zamiast ls."
+```
+
+Jeśli hook blokuje komendę — setup bezpieczeństwa działa.
 
 ---
 
 ## Uwagi
+
+### Git config
+
+Jeśli planujesz tworzyć commity, skonfiguruj użytkownika Git:
+
+```bash
+git config user.name "Twoje Imię"
+git config user.email "twoj@email.com"
+```
+
+Bez tego `git_commit.py` zwróci błąd przy próbie commitu.
 
 ### Baza danych
 `mrowisko.db` jest lokalna dla każdej maszyny (nie synchronizowana przez git).
