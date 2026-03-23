@@ -177,14 +177,14 @@ def _draw_header(c: canvas.Canvas, lang: str, font_header: str):
     total_w = logo_w + gap + tw
     start_x = (PAGE_W - total_w) / 2
 
+    c.setFillColor(COLOR_BLACK)
+    c.drawString(start_x, text_y, text)
+
     if logo_path:
         logo_y = y + (HEADER_H - logo_h) / 2
-        c.drawImage(logo_path, start_x, logo_y,
+        c.drawImage(logo_path, start_x + tw + gap, logo_y,
                     width=logo_w, height=logo_h,
                     preserveAspectRatio=True, mask="auto")
-
-    c.setFillColor(COLOR_BLACK)
-    c.drawString(start_x + logo_w + gap, text_y, text)
 
 
 # ---------------------------------------------------------------------------
@@ -296,6 +296,11 @@ def _draw_product_card(
     param_y  = price_y - 6 * mm
     param_x  = inner_x
 
+    # Stała pozycja wartości — po najdłuższej etykiecie
+    c.setFont(font_regular, label_sz)
+    max_label_w = max(c.stringWidth(lbl + ": ", font_regular, label_sz) for lbl, _ in params)
+    value_x = param_x + max_label_w + 2 * mm
+
     for i, (label, value) in enumerate(params):
         ry = param_y - i * row_h
 
@@ -307,15 +312,12 @@ def _draw_product_card(
         # Etykieta — do lewej
         c.setFillColor(COLOR_GRAY)
         c.setFont(font_regular, label_sz)
-        label_str = label + ": "
-        label_w   = c.stringWidth(label_str, font_regular, label_sz)
-        c.drawString(param_x, ry, label_str)
+        c.drawString(param_x, ry, label + ": ")
 
-        # Wartość — do prawej krawędzi karty
+        # Wartość — do lewej od stałej pozycji
         c.setFillColor(COLOR_BLACK)
         c.setFont(font_bold, value_sz)
-        value_w = c.stringWidth(value, font_bold, value_sz)
-        c.drawString(cx + CELL_W - PAD - value_w, ry, value)
+        c.drawString(value_x, ry, value)
 
 
 def _get_line(nazwa: str) -> str:
