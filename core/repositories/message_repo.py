@@ -134,8 +134,16 @@ class MessageRepository(Repository[Message]):
         Raises:
             ValidationError: Jeśli nieprawidłowa wartość enuma w bazie
         """
+        # Graceful degradation: mapowanie legacy wartości type
+        TYPE_ALIASES = {
+            "flag_human": "escalation",
+            "info": "direct",
+        }
+
         try:
-            type_enum = MessageType(row["type"])
+            type_raw = row["type"]
+            type_normalized = TYPE_ALIASES.get(type_raw, type_raw)
+            type_enum = MessageType(type_normalized)
             status_enum = MessageStatus(row["status"])
         except ValueError as e:
             raise ValidationError(f"Invalid enum value in database: {e}")
