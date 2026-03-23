@@ -22,7 +22,8 @@ from io import BytesIO
 from pathlib import Path
 
 from docx import Document
-from docx.shared import Cm
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Cm, Pt
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -58,7 +59,6 @@ def _make_barcode_bytes(ean_str: str) -> BytesIO | None:
 
 def _set_para_picture(para, image_bytes: BytesIO, width_cm: float) -> None:
     """Czyści istniejące runy, wstawia obraz wycentrowany."""
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
     for run in para.runs:
         run.text = ""
     para.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -132,11 +132,12 @@ def _fill_cell(cell, product: dict) -> None:
     else:
         _set_para_value(paras[3], "")
 
-    # EAN cyfry — para[4]
+    # EAN cyfry — para[4]: wycentrowane pod barkodem
     _set_para_value(paras[4], ean_val)
+    paras[4].alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-    # NAZWA — para[6]
-    _set_para_value(paras[6], _v(product.get("nazwa")))
+    # NAZWA — para[6]: zmniejszona czcionka
+    _set_para_value(paras[6], _v(product.get("nazwa")), font_size_pt=8)
 
     # Wysokość — para[8]: jeden run "Wysokość: "
     val = _v(product.get("wysokosc_cm"), " cm")
@@ -161,12 +162,14 @@ def _fill_cell(cell, product: dict) -> None:
     _set_run_text(paras[13], 0, f"PALETA: {val} szt." if val else "PALETA: ")
 
 
-def _set_para_value(para, text: str) -> None:
+def _set_para_value(para, text: str, font_size_pt: int | None = None) -> None:
     """Czyści istniejące runy i dodaje nowy z podanym tekstem."""
     for run in para.runs:
         run.text = ""
     if text:
-        para.add_run(text)
+        run = para.add_run(text)
+        if font_size_pt:
+            run.font.size = Pt(font_size_pt)
 
 
 def _set_run_text(para, index: int, text: str) -> None:
