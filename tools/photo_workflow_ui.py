@@ -7,6 +7,7 @@ Przepływ:
     3. Kliknij "Skaluj" — proporcjonalne skalowanie Pillow wg wysokości z ERP.
 """
 
+import re
 import threading
 import tkinter as tk
 from pathlib import Path
@@ -17,12 +18,25 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.photo_preprocess import batch_process
 
+_PROJECT_ROOT = Path(__file__).parent.parent
+_PROMPT_MD = _PROJECT_ROOT / "documents/prompt_engineer/PROMPT_PHOTO_PROCESSING.md"
+
+
+def _load_prompt_a(md_path: Path) -> str:
+    text = md_path.read_text(encoding="utf-8")
+    m = re.search(r"## Prompt A[^\n]*\n(.*?)(?=\n## |\Z)", text, re.DOTALL)
+    if not m:
+        return ""
+    block = re.search(r"```\n(.*?)```", m.group(1), re.DOTALL)
+    return block.group(1).strip() if block else ""
+
 
 class PhotoWorkflowApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Skalowanie zdjęć katalogowych")
         self.resizable(False, False)
+        self._prompt = _load_prompt_a(_PROMPT_MD)
         self._build_ui()
 
     def _build_ui(self):
@@ -32,7 +46,11 @@ class PhotoWorkflowApp(tk.Tk):
 
         ttk.Label(frame, text="Skalowanie zdjęć katalogowych",
                   font=("Segoe UI", 13, "bold")).grid(
-            row=0, column=0, columnspan=3, pady=(0, 14), sticky="w")
+            row=0, column=0, columnspan=2, pady=(0, 14), sticky="w")
+
+        ttk.Button(frame, text="Kopiuj Prompt do ChatGPT",
+                   command=self._copy_prompt).grid(
+            row=0, column=2, padx=(0, 12), sticky="e")
 
         # Folder wejściowy (przetworzone przez ChatGPT)
         ttk.Label(frame, text="Przetworzone (ChatGPT):").grid(
@@ -75,6 +93,11 @@ class PhotoWorkflowApp(tk.Tk):
         self._progress = ttk.Progressbar(frame, mode="determinate", length=460)
         self._progress.grid(row=8, column=0, columnspan=3, padx=12, pady=(4, 8))
         self._progress.grid_remove()
+
+    def _copy_prompt(self):
+        self.clipboard_clear()
+        self.clipboard_append(self._prompt)
+        self._set_status("Prompt skopiowany — wklej do nowej rozmowy w ChatGPT.", "gray")
 
     def _pick_dir(self, var: tk.StringVar, callback=None):
         path = filedialog.askdirectory()
