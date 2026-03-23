@@ -1,0 +1,36 @@
+
+================================================================================
+ENUM AUDIT REPORT — Production vs Domain Model
+================================================================================
+
+
+messages.type:
+  Production values: ['flag_human', 'info', 'suggestion', 'task']
+  Domain model values: ['direct', 'suggestion', 'task', 'escalation']
+  [!] MISSING in domain model: ['flag_human', 'info']
+      Action: Add to domain model enum
+  [i] UNUSED in production: ['direct', 'escalation']
+      Info: Defined but not used (OK)
+
+suggestions.status:
+  Production values: ['implemented', 'in_backlog', 'open', 'rejected']
+  Domain model values: ['open', 'implemented', 'rejected', 'deferred']
+  [!] MISSING in domain model: ['in_backlog']
+      Action: Add to domain model enum
+  [i] UNUSED in production: ['deferred']
+      Info: Defined but not used (OK)
+
+backlog.value:
+  Production values: ['niska', 'srednia', 'wysoka', 'średnia']
+  Domain model values: ['wysoka', 'srednia', 'niska']
+  [!] MISSING in domain model: ['średnia']
+      Action: Add to domain model enum
+
+backlog.effort:
+  Production values: ['duza', 'mala', 'mała', 'mała (opcja 3) / duża (opcja 1)', 'mała-średnia', 'mała–średnia', 'srednia', 'średnia']
+  Domain model values: ['mala', 'srednia', 'duza']
+  [!] MISSING in domain model: ['mała', 'mała (opcja 3) / duża (opcja 1)', 'mała-średnia', 'mała–średnia', 'średnia']
+      Action: Add to domain model enum
+
+================================================================================
+

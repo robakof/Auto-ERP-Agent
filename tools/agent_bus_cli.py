@@ -306,7 +306,7 @@ def build_parser() -> argparse.ArgumentParser:
     # suggestions
     p_suggestions = subparsers.add_parser("suggestions", help="Get suggestions")
     p_suggestions.add_argument("--status", default=None,
-                               choices=["open", "in_backlog", "rejected", "implemented"])
+                               choices=["open", "rejected", "implemented", "deferred"])
     p_suggestions.add_argument("--from", dest="author", default=None)
     p_suggestions.add_argument("--type", default=None, choices=list(_SUGGEST_TYPES))
 
@@ -314,7 +314,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_ss = subparsers.add_parser("suggest-status", help="Update suggestion status")
     p_ss.add_argument("--id", type=int, required=True)
     p_ss.add_argument("--status", required=True,
-                      choices=["open", "in_backlog", "rejected", "implemented"])
+                      choices=["open", "rejected", "implemented", "deferred"])
     p_ss.add_argument("--backlog-id", dest="backlog_id", type=int, default=None)
 
     # suggest-status-bulk
