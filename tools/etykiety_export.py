@@ -18,9 +18,11 @@ import argparse
 import copy
 import re
 import sys
+from io import BytesIO
 from pathlib import Path
 
 from docx import Document
+from docx.shared import Cm
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -31,6 +33,34 @@ _PROJECT_ROOT = Path(__file__).parent.parent
 SQL_PATH = _PROJECT_ROOT / "solutions/jas/etykiety_10_oferty.sql"
 TEMPLATE_PATH = _PROJECT_ROOT / "documents/human/ar/dokumenty/Etykiety do wypełnienia.docx"
 DEFAULT_COLS = 4
+
+
+# ---------------------------------------------------------------------------
+# Barcode
+# ---------------------------------------------------------------------------
+
+def _make_barcode_bytes(ean_str: str) -> BytesIO | None:
+    """Generuje PNG kodu kreskowego EAN-13. Zwraca None przy błędzie."""
+    try:
+        from barcode import EAN13
+        from barcode.writer import ImageWriter
+        buf = BytesIO()
+        EAN13(ean_str.strip(), writer=ImageWriter()).write(buf, options={
+            "write_text": False,
+            "module_height": 8.0,
+            "quiet_zone": 1.0,
+        })
+        buf.seek(0)
+        return buf
+    except Exception:
+        return None
+
+
+def _set_para_picture(para, image_bytes: BytesIO, width_cm: float) -> None:
+    """Czyści istniejące runy i wstawia obraz."""
+    for run in para.runs:
+        run.text = ""
+    para.add_run().add_picture(image_bytes, width=Cm(width_cm))
 
 
 # ---------------------------------------------------------------------------
@@ -76,7 +106,9 @@ def _fill_cell(cell, product: dict) -> None:
     Wypełnia komórkę szablonu danymi produktu.
 
     Struktura komórki (17 paragrafów, indeksy stałe dla szablonu):
-      [2]  EAN:        [3]  → wartość EAN
+      [2]  EAN:
+      [3]  → kod kreskowy EAN-13 (obraz)
+      [4]  → cyfry EAN (czytelne dla człowieka)
       [5]  NAZWA:      [6]  → wartość nazwy
       [8]  Wysokość: {val} cm
       [9]  Czas palenia: {val} h
@@ -84,12 +116,22 @@ def _fill_cell(cell, product: dict) -> None:
       [12] COLI: {val} szt.
       [13] PALETA: {val} szt.
       [15] Uwagi:
-      [16] → wartość EAN (powtórzenie pod Uwagi)
     """
     paras = cell.paragraphs
 
-    # EAN — para[3]: dodaj run z wartością (para jest pusta w szablonie)
-    _set_para_value(paras[3], _v(product.get("ean")))
+    # EAN barcode — para[3]
+    ean_val = _v(product.get("ean"))
+    if ean_val:
+        buf = _make_barcode_bytes(ean_val)
+        if buf:
+            _set_para_picture(paras[3], buf, width_cm=4.5)
+        else:
+            _set_para_value(paras[3], ean_val)
+    else:
+        _set_para_value(paras[3], "")
+
+    # EAN cyfry — para[4]
+    _set_para_value(paras[4], ean_val)
 
     # NAZWA — para[6]
     _set_para_value(paras[6], _v(product.get("nazwa")))
@@ -115,9 +157,6 @@ def _fill_cell(cell, product: dict) -> None:
     # PALETA — para[13]: jeden run "PALETA: "
     val = _v(product.get("paleta_szt"))
     _set_run_text(paras[13], 0, f"PALETA: {val} szt." if val else "PALETA: ")
-
-    # EAN pod "Uwagi:" — para[16]
-    _set_para_value(paras[16], _v(product.get("ean")))
 
 
 def _set_para_value(para, text: str) -> None:
