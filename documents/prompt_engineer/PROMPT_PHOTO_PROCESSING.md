@@ -31,8 +31,9 @@ Edit the attached photo:
 3. Framing: product centered horizontally and vertically. Equal margins on all sides (approx. 8% of canvas).
 4. Lighting: keep the product's natural appearance. Do not alter colors, do not add artificial highlights.
 5. Output: PNG, 1000×1000 px, white background (#FFFFFF).
+6. Do not add any text, watermarks, labels, captions, or signatures to the image.
 
-Return only the edited image. No text, no explanation.
+Return only the edited image. No text in the response, no explanation.
 ```
 
 ### Wariant: tło przezroczyste
