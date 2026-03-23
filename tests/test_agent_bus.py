@@ -228,6 +228,20 @@ class TestSuggestions:
         result = bus.get_suggestions()
         assert result[0]["content"] == "nowsza"
 
+    def test_update_suggestion_status_rejected(self, bus):
+        sid = bus.add_suggestion("erp_specialist", "test")
+        bus.update_suggestion_status(sid, "rejected")
+        result = bus.get_suggestions(status="rejected")
+        assert len(result) == 1
+        assert result[0]["status"] == "rejected"
+
+    def test_update_suggestion_status_deferred(self, bus):
+        sid = bus.add_suggestion("erp_specialist", "test")
+        bus.update_suggestion_status(sid, "deferred")
+        result = bus.get_suggestions(status="deferred")
+        assert len(result) == 1
+        assert result[0]["status"] == "deferred"
+
 
 class TestBacklog:
     def test_add_backlog_item_returns_id(self, bus):
