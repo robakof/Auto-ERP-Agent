@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mrowisko"
+version = "0.1.0"
+description = "Automatyzacja konfiguracji ERP XL — inkubator wirtualnego życia AI"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[tool.setuptools.packages.find]
+include = ["core*"]
+exclude = ["tests*", "bot*", "tmp*", "output*", "exports*", "erp_docs*", "handoffs*", "documents*", "solutions*", "workflows*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

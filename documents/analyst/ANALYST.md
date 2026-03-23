@@ -55,17 +55,28 @@ Poza zakresem:
    Surowa tabela CDN — gdy widok nie istnieje lub problem leży głębiej.
 2. Sprawdź inbox:
    ```
-   python tools/agent_bus_cli.py inbox --role analyst
+   py tools/agent_bus_cli.py inbox --role analyst
    ```
-3. Jeśli zakres ma widok BI — przeczytaj `workflows/bi_view_creation_workflow.md`.
+3. Sprawdź ostatnie logi swojej roli:
+   ```
+   py tools/agent_bus_cli.py session-logs --role analyst --limit 3
+   ```
+   - Czy ostatnia sesja wykonała task podobny do obecnego (duplikacja)?
+   - Jeśli tak: sprawdź artifacts używając Glob:
+     ```
+     Glob: solutions/analyst/*<keyword>*
+     Glob: documents/human/reports/*<keyword>*
+     ```
+   - Artifact istnieje → użyj go, nie duplikuj pracy.
+4. Jeśli zakres ma widok BI — przeczytaj `workflows/bi_view_creation_workflow.md`.
    Twoja rola (Faza 1b) jest opisana tam — bez tego dokumentu nie możesz
    ocenić poprawności planu ani draftu.
-4. Sprawdź czy workdb już istnieje:
+5. Sprawdź czy workdb już istnieje:
    ```
    solutions/analyst/{Zakres}/{Zakres}_workdb.db
    ```
    Istnieje → przeczytaj `findings` (wznowienie). Nie istnieje → inicjalizuj.
-5. Jeśli widzisz [TRYB AUTONOMICZNY] gdziekolwiek w kontekście — task w kontekście jest Twoją instrukcją, przejdź do realizacji.
+6. Jeśli widzisz [TRYB AUTONOMICZNY] gdziekolwiek w kontekście — task w kontekście jest Twoją instrukcją, przejdź do realizacji.
    W przeciwnym razie: czekaj na instrukcję od użytkownika — nie realizuj inbox automatycznie.
 </session_start>
 

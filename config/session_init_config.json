@@ -1,0 +1,182 @@
+{
+  "architect": {
+    "inbox": {
+      "enabled": true,
+      "limit": 10,
+      "status": "unread"
+    },
+    "backlog": {
+      "enabled": true,
+      "areas": ["Arch"],
+      "statuses": ["planned"],
+      "limit": 20
+    },
+    "session_logs": {
+      "own_full": {
+        "enabled": true,
+        "limit": 3
+      },
+      "own_metadata": {
+        "enabled": true,
+        "offset": 3,
+        "limit": 7
+      },
+      "cross_role": {
+        "enabled": true,
+        "limit": 20
+      }
+    },
+    "flags_human": {
+      "enabled": true
+    }
+  },
+  "developer": {
+    "inbox": {
+      "enabled": true,
+      "limit": 10,
+      "status": "unread"
+    },
+    "backlog": {
+      "enabled": true,
+      "areas": ["Dev", "Arch"],
+      "statuses": ["planned"],
+      "limit": 20
+    },
+    "session_logs": {
+      "own_full": {
+        "enabled": true,
+        "limit": 3
+      },
+      "own_metadata": {
+        "enabled": true,
+        "offset": 3,
+        "limit": 7
+      },
+      "cross_role": {
+        "enabled": true,
+        "limit": 20
+      }
+    },
+    "flags_human": {
+      "enabled": true
+    }
+  },
+  "erp_specialist": {
+    "inbox": {
+      "enabled": true,
+      "limit": 5,
+      "status": "unread"
+    },
+    "backlog": {
+      "enabled": true,
+      "areas": ["ERP"],
+      "statuses": ["planned"],
+      "limit": 10
+    },
+    "session_logs": {
+      "own_full": {
+        "enabled": true,
+        "limit": 3
+      },
+      "own_metadata": {
+        "enabled": false
+      },
+      "cross_role": {
+        "enabled": false
+      }
+    },
+    "flags_human": {
+      "enabled": true
+    }
+  },
+  "analyst": {
+    "inbox": {
+      "enabled": true,
+      "limit": 5,
+      "status": "unread"
+    },
+    "backlog": {
+      "enabled": true,
+      "areas": ["Analyst"],
+      "statuses": ["planned"],
+      "limit": 10
+    },
+    "session_logs": {
+      "own_full": {
+        "enabled": true,
+        "limit": 3
+      },
+      "own_metadata": {
+        "enabled": false
+      },
+      "cross_role": {
+        "enabled": false
+      }
+    },
+    "flags_human": {
+      "enabled": true
+    }
+  },
+  "prompt_engineer": {
+    "inbox": {
+      "enabled": true,
+      "limit": 10,
+      "status": "unread"
+    },
+    "backlog": {
+      "enabled": true,
+      "areas": ["Prompts"],
+      "statuses": ["planned"],
+      "limit": 20
+    },
+    "session_logs": {
+      "own_full": {
+        "enabled": true,
+        "limit": 3
+      },
+      "own_metadata": {
+        "enabled": true,
+        "offset": 3,
+        "limit": 7
+      },
+      "cross_role": {
+        "enabled": true,
+        "limit": 20
+      }
+    },
+    "flags_human": {
+      "enabled": true
+    }
+  },
+  "metodolog": {
+    "inbox": {
+      "enabled": true,
+      "limit": 10,
+      "status": "unread"
+    },
+    "backlog": {
+      "enabled": true,
+      "areas": ["Methodology"],
+      "statuses": ["planned"],
+      "limit": 20
+    },
+    "session_logs": {
+      "own_full": {
+        "enabled": true,
+        "limit": 3
+      },
+      "own_metadata": {
+        "enabled": true,
+        "offset": 3,
+        "limit": 7
+      },
+      "cross_role": {
+        "enabled": true,
+        "limit": 20
+      }
+    },
+    "flags_human": {
+      "enabled": true
+    }
+  }
+}

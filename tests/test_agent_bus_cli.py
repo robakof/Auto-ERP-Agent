@@ -104,9 +104,9 @@ class TestCliSuggestAndBacklog:
         bid = run_cli(
             ["backlog-add", "--title", "Task", "--content", "Opis"], db
         )["id"]
-        run_cli(["suggest-status", "--id", str(sid), "--status", "in_backlog",
+        run_cli(["suggest-status", "--id", str(sid), "--status", "implemented",
                  "--backlog-id", str(bid)], db)
-        suggestions = run_cli(["suggestions", "--status", "in_backlog"], db)
+        suggestions = run_cli(["suggestions", "--status", "implemented"], db)
         assert suggestions["count"] == 1
         assert suggestions["data"][0]["backlog_id"] == bid
 
@@ -119,7 +119,7 @@ class TestCliSuggestAndBacklog:
         updates = [
             {"id": s1, "status": "implemented"},
             {"id": s2, "status": "rejected"},
-            {"id": s3, "status": "in_backlog", "backlog_id": b1},
+            {"id": s3, "status": "implemented", "backlog_id": b1},
         ]
         bulk_file = tmp_path / "sug_updates.json"
         bulk_file.write_text(json.dumps(updates), encoding="utf-8")
@@ -132,7 +132,7 @@ class TestCliSuggestAndBacklog:
         by_id = {s["id"]: s for s in all_sugg["data"]}
         assert by_id[s1]["status"] == "implemented"
         assert by_id[s2]["status"] == "rejected"
-        assert by_id[s3]["status"] == "in_backlog"
+        assert by_id[s3]["status"] == "implemented"
         assert by_id[s3]["backlog_id"] == b1
 
     def test_backlog_add_and_list(self, db):
@@ -438,3 +438,97 @@ class TestBacklogUpdateBulk:
         result = run_cli(["backlog-update-bulk", "--file", str(bulk_file)], db)
         assert result["ok"] is True
         assert result["updated"] == 0
+
+
+class TestCliSessionLog:
+    def test_log_with_title(self, db):
+        result = run_cli(
+            ["log", "--role", "developer", "--title", "Test Title",
+             "--content", "Test content"],
+            db,
+        )
+        assert result["ok"] is True
+        assert isinstance(result["id"], int)
+
+        logs = run_cli(["session-logs", "--role", "developer", "--limit", "1"], db)
+        assert logs["count"] == 1
+        assert logs["data"][0]["title"] == "Test Title"
+        assert logs["data"][0]["content"] == "Test content"
+
+    def test_log_without_title_backward_compatible(self, db):
+        result = run_cli(
+            ["log", "--role", "developer", "--content", "No title"],
+            db,
+        )
+        assert result["ok"] is True
+
+        logs = run_cli(["session-logs", "--role", "developer", "--limit", "1"], db)
+        assert logs["data"][0]["title"] is None
+
+    def test_session_logs_without_role_filter(self, db):
+        run_cli(["log", "--role", "developer", "--content", "Dev log"], db)
+        run_cli(["log", "--role", "erp_specialist", "--content", "ERP log"], db)
+
+        logs = run_cli(["session-logs", "--limit", "10"], db)
+        assert logs["count"] == 2
+        roles = {log["role"] for log in logs["data"]}
+        assert "developer" in roles
+        assert "erp_specialist" in roles
+
+    def test_session_logs_with_role_filter(self, db):
+        run_cli(["log", "--role", "developer", "--content", "Dev log"], db)
+        run_cli(["log", "--role", "erp_specialist", "--content", "ERP log"], db)
+
+        logs = run_cli(["session-logs", "--role", "developer", "--limit", "10"], db)
+        assert logs["count"] == 1
+        assert logs["data"][0]["role"] == "developer"
+
+    def test_session_logs_limit(self, db):
+        for i in range(5):
+            run_cli(["log", "--role", "developer", "--content", f"Log {i}"], db)
+
+        logs = run_cli(["session-logs", "--role", "developer", "--limit", "3"], db)
+        assert logs["count"] == 3
+
+    def test_session_logs_offset(self, db):
+        for i in range(5):
+            run_cli(["log", "--role", "developer", "--content", f"Log {i}", "--title", f"Title {i}"], db)
+
+        # First 3 (offset 0, limit 3)
+        first_three = run_cli(["session-logs", "--role", "developer", "--limit", "3", "--offset", "0"], db)
+        assert first_three["count"] == 3
+        assert first_three["data"][0]["title"] == "Title 4"  # newest first
+
+        # Next 2 (offset 3, limit 2)
+        next_two = run_cli(["session-logs", "--role", "developer", "--limit", "2", "--offset", "3"], db)
+        assert next_two["count"] == 2
+        assert next_two["data"][0]["title"] == "Title 1"
+
+    def test_session_logs_metadata_only(self, db):
+        run_cli(["log", "--role", "developer", "--content", "Full content here", "--title", "Test Title"], db)
+
+        # Full result (no --metadata-only flag)
+        full = run_cli(["session-logs", "--role", "developer", "--limit", "1"], db)
+        assert "content" in full["data"][0]
+        assert full["data"][0]["content"] == "Full content here"
+
+        # Metadata only (--metadata-only flag)
+        metadata = run_cli(["session-logs", "--role", "developer", "--limit", "1", "--metadata-only"], db)
+        assert "content" not in metadata["data"][0]
+        assert "title" in metadata["data"][0]
+        assert metadata["data"][0]["title"] == "Test Title"
+
+    def test_log_with_content_file(self, db, tmp_path):
+        content_file = tmp_path / "log.txt"
+        content_file.write_text("Content from file", encoding="utf-8")
+
+        result = run_cli(
+            ["log", "--role", "developer", "--title", "File Test",
+             "--content-file", str(content_file)],
+            db,
+        )
+        assert result["ok"] is True
+
+        logs = run_cli(["session-logs", "--role", "developer", "--limit", "1"], db)
+        assert logs["data"][0]["content"] == "Content from file"
+        assert logs["data"][0]["title"] == "File Test"

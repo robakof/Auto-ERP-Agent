@@ -122,52 +122,6 @@ class TestMessages:
         assert inbox[1]["content"] == "second"
 
 
-class TestState:
-    def test_write_and_get_state(self, bus):
-        state_id = bus.write_state(
-            role="developer", type="progress", content="KM1 done"
-        )
-        assert isinstance(state_id, int)
-        states = bus.get_state("developer")
-        assert len(states) == 1
-        assert states[0]["content"] == "KM1 done"
-
-    def test_state_filters_by_type(self, bus):
-        bus.write_state("developer", "progress", "step 1")
-        bus.write_state("developer", "reflection", "lesson learned")
-        bus.write_state("developer", "backlog_item", "fix X")
-        progress = bus.get_state("developer", type="progress")
-        reflections = bus.get_state("developer", type="reflection")
-        backlog = bus.get_state("developer", type="backlog_item")
-        assert len(progress) == 1
-        assert len(reflections) == 1
-        assert len(backlog) == 1
-
-    def test_state_metadata_json(self, bus):
-        meta = {"priority": "high", "area": "bot"}
-        bus.write_state("developer", "backlog_item", "fix X", metadata=meta)
-        states = bus.get_state("developer", type="backlog_item")
-        assert states[0]["metadata"] == meta
-
-    def test_get_state_limit(self, bus):
-        for i in range(30):
-            bus.write_state("developer", "progress", f"step {i}")
-        assert len(bus.get_state("developer")) == 20  # default limit
-        assert len(bus.get_state("developer", limit=5)) == 5
-
-    def test_get_state_ordering_newest_first(self, bus):
-        bus.write_state("developer", "progress", "old")
-        bus.write_state("developer", "progress", "new")
-        states = bus.get_state("developer", type="progress")
-        assert states[0]["content"] == "new"
-        assert states[1]["content"] == "old"
-
-    def test_state_with_session_id(self, bus):
-        bus.write_state("dev", "progress", "test", session_id="sess-456")
-        states = bus.get_state("dev")
-        assert states[0]["session_id"] == "sess-456"
-
-
 class TestSuggestions:
     def test_add_suggestion_returns_id(self, bus):
         sid = bus.add_suggestion(author="erp_specialist", content="Dodaj indeks na KntNag")
@@ -182,7 +136,7 @@ class TestSuggestions:
     def test_get_suggestions_filter_status(self, bus):
         bus.add_suggestion("erp_specialist", "otwarta")
         s2 = bus.add_suggestion("analyst", "w backlogu")
-        bus.update_suggestion_status(s2, "in_backlog")
+        bus.update_suggestion_status(s2, "implemented")
         open_s = bus.get_suggestions(status="open")
         assert len(open_s) == 1
         assert open_s[0]["content"] == "otwarta"
@@ -218,7 +172,7 @@ class TestSuggestions:
     def test_update_suggestion_with_backlog_id(self, bus):
         sid = bus.add_suggestion("erp_specialist", "test")
         bid = bus.add_backlog_item(title="task", content="opis")
-        bus.update_suggestion_status(sid, "in_backlog", backlog_id=bid)
+        bus.update_suggestion_status(sid, "implemented", backlog_id=bid)
         result = bus.get_suggestions()
         assert result[0]["backlog_id"] == bid
 
@@ -227,6 +181,20 @@ class TestSuggestions:
         bus.add_suggestion("analyst", "nowsza")
         result = bus.get_suggestions()
         assert result[0]["content"] == "nowsza"
+
+    def test_update_suggestion_status_rejected(self, bus):
+        sid = bus.add_suggestion("erp_specialist", "test")
+        bus.update_suggestion_status(sid, "rejected")
+        result = bus.get_suggestions(status="rejected")
+        assert len(result) == 1
+        assert result[0]["status"] == "rejected"
+
+    def test_update_suggestion_status_deferred(self, bus):
+        sid = bus.add_suggestion("erp_specialist", "test")
+        bus.update_suggestion_status(sid, "deferred")
+        result = bus.get_suggestions(status="deferred")
+        assert len(result) == 1
+        assert result[0]["status"] == "deferred"
 
 
 class TestBacklog:
@@ -322,6 +290,64 @@ class TestSessionLog:
         bus.add_session_log("developer", "wpis", session_id="sess-abc")
         result = bus.get_session_log("developer")
         assert result[0]["session_id"] == "sess-abc"
+
+    def test_add_session_log_with_title(self, bus):
+        lid = bus.add_session_log("developer", "content", title="Test Title")
+        result = bus.get_session_log("developer")
+        assert result[0]["title"] == "Test Title"
+
+    def test_session_log_title_optional(self, bus):
+        bus.add_session_log("developer", "no title")
+        result = bus.get_session_log("developer")
+        assert result[0]["title"] is None
+
+    def test_get_session_logs_without_role_filter(self, bus):
+        bus.add_session_log("developer", "dev log")
+        bus.add_session_log("erp_specialist", "erp log")
+        result = bus.get_session_logs(limit=10)
+        assert len(result) == 2
+        roles = {r["role"] for r in result}
+        assert "developer" in roles
+        assert "erp_specialist" in roles
+
+    def test_get_session_logs_with_role_filter(self, bus):
+        bus.add_session_log("developer", "dev log")
+        bus.add_session_log("erp_specialist", "erp log")
+        result = bus.get_session_logs(role="developer", limit=10)
+        assert len(result) == 1
+        assert result[0]["role"] == "developer"
+
+    def test_get_session_logs_includes_title(self, bus):
+        bus.add_session_log("developer", "content", title="With Title")
+        bus.add_session_log("developer", "content2")
+        result = bus.get_session_logs(role="developer", limit=10)
+        assert result[0]["title"] is None  # newest first, no title
+        assert result[1]["title"] == "With Title"
+
+    def test_session_logs_offset(self, bus):
+        # Add 5 logs
+        for i in range(5):
+            bus.add_session_log("developer", f"log {i}", title=f"Title {i}")
+        # First 3 (offset 0, limit 3)
+        first_three = bus.get_session_logs(role="developer", limit=3, offset=0)
+        assert len(first_three) == 3
+        assert first_three[0]["title"] == "Title 4"  # newest first
+        # Next 2 (offset 3, limit 2)
+        next_two = bus.get_session_logs(role="developer", limit=2, offset=3)
+        assert len(next_two) == 2
+        assert next_two[0]["title"] == "Title 1"
+
+    def test_session_logs_metadata_only(self, bus):
+        bus.add_session_log("developer", "full content here", title="Test Title")
+        # Full result (metadata_only=False)
+        full = bus.get_session_logs(role="developer", limit=1, metadata_only=False)
+        assert "content" in full[0]
+        assert full[0]["content"] == "full content here"
+        # Metadata only (metadata_only=True)
+        metadata = bus.get_session_logs(role="developer", limit=1, metadata_only=True)
+        assert "content" not in metadata[0]
+        assert "title" in metadata[0]
+        assert metadata[0]["title"] == "Test Title"
 
 
 class TestMarkAllRead:
@@ -472,13 +498,13 @@ class TestTransactions:
         with bus.transaction():
             sid = bus.add_suggestion(author="developer", content="Suggestion 1")
             bid = bus.add_backlog_item(title="Task 1", content="From suggestion", source_id=sid)
-            bus.update_suggestion_status(sid, "in_backlog", backlog_id=bid)
+            bus.update_suggestion_status(sid, "implemented", backlog_id=bid)
 
         suggestions = bus.get_suggestions()
         backlog = bus.get_backlog()
         assert len(suggestions) == 1
         assert len(backlog) == 1
-        assert suggestions[0]["status"] == "in_backlog"
+        assert suggestions[0]["status"] == "implemented"
         assert suggestions[0]["backlog_id"] == bid
         assert backlog[0]["source_id"] == sid
 

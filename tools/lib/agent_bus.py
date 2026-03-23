@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS session_log (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     role        TEXT NOT NULL,
     content     TEXT NOT NULL,
+    title       TEXT,
     session_id  TEXT,
     created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -159,6 +160,7 @@ _MIGRATE_SQL = [
     "ALTER TABLE messages ADD COLUMN claimed_by TEXT",
     "ALTER TABLE suggestions ADD COLUMN type TEXT NOT NULL DEFAULT 'observation'",
     "ALTER TABLE suggestions ADD COLUMN title TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE session_log ADD COLUMN title TEXT",
 ]
 
 
@@ -188,6 +190,23 @@ class AgentBus:
         """Commit only if NOT in explicit transaction context."""
         if not self._in_transaction:
             self._conn.commit()
+
+    def _get_repository(self, repo_class):
+        """Helper: create repository with transaction support.
+
+        Args:
+            repo_class: Repository class to instantiate (e.g., SuggestionRepository)
+
+        Returns:
+            Repository instance with shared connection if in transaction,
+            or standalone connection otherwise.
+
+        Example:
+            repo = self._get_repository(SuggestionRepository)
+            suggestion = repo.save(...)
+        """
+        conn = self._conn if self._in_transaction else None
+        return repo_class(db_path=self._db_path, conn=conn)
 
     @contextmanager
     def transaction(self):
@@ -226,37 +245,75 @@ class AgentBus:
         session_id: str = None,
     ) -> int:
         """Send a message from one role to another. Returns message id."""
+        from core.repositories.message_repo import MessageRepository
+        from core.entities.messaging import Message
+        from core.mappers.legacy_api import LegacyAPIMapper
+
+        # Legacy API validation (backward compatible)
         if type not in ALLOWED_MESSAGE_TYPES:
             raise ValueError(f"Invalid message type '{type}'. Allowed: {sorted(ALLOWED_MESSAGE_TYPES)}")
-        cursor = self._conn.execute(
-            """INSERT INTO messages (sender, recipient, type, content, session_id)
-               VALUES (?, ?, ?, ?, ?)""",
-            (sender, recipient, type, content, session_id),
+
+        # Type mapping: legacy API → domain model (centralized)
+        type_enum = LegacyAPIMapper.map_message_type_to_domain(type)
+
+        # Convert dict → entity
+        message = Message(
+            sender=sender,
+            recipient=recipient,
+            content=content,
+            type=type_enum,
+            session_id=session_id
         )
-        self._auto_commit()
-        return cursor.lastrowid
+
+        # Save via repository (CRITICAL: pass connection for transaction support)
+        repo = self._get_repository(MessageRepository)
+        saved = repo.save(message)
+
+        # Return ID (backward compatible)
+        return saved.id
 
     def get_inbox(self, role: str, status: str = "unread") -> list[dict]:
         """Get messages for a role filtered by status. Ordered by created_at ASC."""
-        rows = self._conn.execute(
-            """SELECT id, sender, recipient, type, content, status,
-                      session_id, created_at, read_at
-               FROM messages
-               WHERE recipient = ? AND status = ?
-               ORDER BY created_at ASC""",
-            (role, status),
-        ).fetchall()
-        return [dict(row) for row in rows]
+        from core.repositories.message_repo import MessageRepository
+        from core.entities.messaging import MessageStatus
+
+        # Query via repository (transaction support)
+        repo = self._get_repository(MessageRepository)
+        messages = repo.find_by_recipient(recipient=role)
+
+        # Filter by status (str → enum)
+        status_enum = MessageStatus(status)
+        filtered = [m for m in messages if m.status == status_enum]
+
+        # Sort by created_at ASC (backward compatible)
+        filtered.sort(key=lambda m: m.created_at)
+
+        # Convert entity → dict (backward compatible, centralized)
+        from core.mappers.legacy_api import LegacyAPIMapper
+        result = [LegacyAPIMapper.message_to_dict(m) for m in filtered]
+        return result
 
     def mark_read(self, message_id: int) -> None:
         """Mark a message as read and set read_at timestamp."""
-        self._conn.execute(
-            """UPDATE messages
-               SET status = 'read', read_at = datetime('now')
-               WHERE id = ?""",
-            (message_id,),
-        )
-        self._auto_commit()
+        from core.repositories.message_repo import MessageRepository
+
+        # Repository query (transaction support)
+        repo = self._get_repository(MessageRepository)
+
+        # Get message
+        message = repo.get(message_id)
+        if not message:
+            return  # Silent failure (backward compatible)
+
+        # Call entity method (updates status + read_at)
+        try:
+            message.mark_read()
+        except Exception:
+            # If already read — graceful (backward compatible)
+            return
+
+        # Save updated message
+        repo.save(message)
 
     def archive_message(self, message_id: int) -> None:
         """Archive a message (status='archived')."""
@@ -279,17 +336,34 @@ class AgentBus:
         recipients: list[str] = None,
         session_id: str = None,
     ) -> int:
-        """Add a suggestion from an agent. Returns suggestion id."""
-        recipients_json = json.dumps(recipients, ensure_ascii=False) if recipients else None
-        if not title:
-            title = content[:80].split("\n")[0]
-        cursor = self._conn.execute(
-            """INSERT INTO suggestions (author, recipients, title, content, type, session_id)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (author, recipients_json, title, content, type, session_id),
+        """Add a suggestion from an agent. Returns suggestion id.
+
+        NOTE: Delegates to SuggestionRepository (M3 adapter pattern).
+        """
+        from core.repositories.suggestion_repo import SuggestionRepository
+        from core.entities.messaging import Suggestion, SuggestionType
+
+        # Convert string type to enum (backward compatibility)
+        try:
+            type_enum = SuggestionType(type)
+        except ValueError:
+            type_enum = SuggestionType.OBSERVATION
+
+        # Create entity (title auto-generated in __post_init__ if empty)
+        suggestion = Suggestion(
+            author=author,
+            content=content,
+            title=title,
+            type=type_enum,
+            recipients=recipients,
+            session_id=session_id
         )
-        self._auto_commit()
-        return cursor.lastrowid
+
+        # Save via repository (transaction-aware)
+        repo = self._get_repository(SuggestionRepository)
+        saved = repo.save(suggestion)
+
+        return saved.id
 
     def get_suggestions(
         self,
@@ -297,33 +371,33 @@ class AgentBus:
         author: str = None,
         type: str = None,
     ) -> list[dict]:
-        """Get suggestions. Newest first. Optional status, author, type filters."""
-        conditions = []
-        params = []
-        if status:
-            conditions.append("status = ?")
-            params.append(status)
-        if author:
-            conditions.append("author = ?")
-            params.append(author)
-        if type:
-            conditions.append("type = ?")
-            params.append(type)
-        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-        rows = self._conn.execute(
-            f"""SELECT id, author, recipients, title, content, type, status, backlog_id,
-                       session_id, created_at
-                FROM suggestions
-                {where}
-                ORDER BY created_at DESC, id DESC""",
-            params,
-        ).fetchall()
-        result = []
-        for row in rows:
-            d = dict(row)
-            if d["recipients"]:
-                d["recipients"] = json.loads(d["recipients"])
-            result.append(d)
+        """Get suggestions. Newest first. Optional status, author, type filters.
+
+        NOTE: Delegates to SuggestionRepository (M3 adapter pattern).
+        """
+        from core.repositories.suggestion_repo import SuggestionRepository
+        from core.entities.messaging import SuggestionStatus, SuggestionType
+
+        repo = self._get_repository(SuggestionRepository)
+
+        # Query based on filters
+        if status and author and type:
+            # Multiple filters - use find_all and filter manually (TODO: optimize with composite query)
+            suggestions = repo.find_all()
+            suggestions = [s for s in suggestions if s.status.value == status and s.author == author and s.type.value == type]
+        elif status:
+            suggestions = repo.find_by_status(SuggestionStatus(status))
+        elif author:
+            suggestions = repo.find_by_author(author)
+        elif type:
+            suggestions = repo.find_by_type(SuggestionType(type))
+        else:
+            suggestions = repo.find_all()
+
+        # Convert entities to dicts (backward compatibility, centralized)
+        from core.mappers.legacy_api import LegacyAPIMapper
+        result = [LegacyAPIMapper.suggestion_to_dict(s) for s in suggestions]
+
         return result
 
     def update_suggestion_status(
@@ -332,13 +406,39 @@ class AgentBus:
         status: str,
         backlog_id: int = None,
     ) -> None:
-        """Update suggestion status and optionally link to backlog item."""
-        self._conn.execute(
-            """UPDATE suggestions SET status = ?, backlog_id = ?
-               WHERE id = ?""",
-            (status, backlog_id, suggestion_id),
-        )
-        self._auto_commit()
+        """Update suggestion status and optionally link to backlog item.
+
+        NOTE: Delegates to SuggestionRepository (M3 adapter pattern).
+        """
+        from core.repositories.suggestion_repo import SuggestionRepository
+        from core.entities.messaging import SuggestionStatus
+
+        repo = self._get_repository(SuggestionRepository)
+
+        # Load entity
+        suggestion = repo.get(suggestion_id)
+        if not suggestion:
+            return  # Silently ignore if not found (backward compatible behavior)
+
+        # Map old status names to new ones (backward compatibility, centralized)
+        from core.mappers.legacy_api import LegacyAPIMapper
+        status_enum = LegacyAPIMapper.map_suggestion_status_to_domain(status)
+
+        # Update status using entity methods when possible
+        if status_enum == SuggestionStatus.IMPLEMENTED:
+            suggestion.implement(backlog_id=backlog_id)
+        elif status_enum == SuggestionStatus.REJECTED:
+            suggestion.reject()
+        elif status_enum == SuggestionStatus.DEFERRED:
+            suggestion.defer()
+        else:
+            # Direct status update for other cases (e.g. OPEN)
+            suggestion.status = status_enum
+            if backlog_id is not None:
+                suggestion.backlog_id = backlog_id
+
+        # Save
+        repo.save(suggestion)
 
     # --- Backlog ---
 
@@ -351,52 +451,106 @@ class AgentBus:
         effort: str = None,
         source_id: int = None,
     ) -> int:
-        """Add a backlog item. Returns backlog id."""
-        cursor = self._conn.execute(
-            """INSERT INTO backlog (title, content, area, value, effort, source_id)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (title, content, area, value, effort, source_id),
+        """Add a backlog item. Returns backlog id.
+
+        NOTE: Delegates to BacklogRepository (M3 adapter pattern).
+        """
+        from core.repositories.backlog_repo import BacklogRepository
+        from core.entities.messaging import BacklogItem, BacklogArea, BacklogValue, BacklogEffort
+
+        # Convert string values to enums (optional fields)
+        area_enum = BacklogArea(area) if area else None
+        value_enum = BacklogValue(value) if value else None
+        effort_enum = BacklogEffort(effort) if effort else None
+
+        # Create entity
+        item = BacklogItem(
+            title=title,
+            content=content,
+            area=area_enum,
+            value=value_enum,
+            effort=effort_enum,
+            source_id=source_id
         )
-        self._auto_commit()
-        return cursor.lastrowid
+
+        # Save via repository (transaction-aware)
+        repo = self._get_repository(BacklogRepository)
+        saved = repo.save(item)
+
+        return saved.id
 
     def get_backlog(self, status: str = None, area: str = None) -> list[dict]:
-        """Get backlog items. Newest first. Optional status/area filter."""
-        conditions = []
-        params = []
-        if status:
-            conditions.append("status = ?")
-            params.append(status)
-        if area:
-            conditions.append("area = ?")
-            params.append(area)
-        where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-        rows = self._conn.execute(
-            f"""SELECT id, title, content, area, value, effort, status,
-                      source_id, created_at, updated_at
-               FROM backlog {where}
-               ORDER BY created_at DESC, id DESC""",
-            params,
-        ).fetchall()
-        return [dict(row) for row in rows]
+        """Get backlog items. Newest first. Optional status/area filter.
+
+        NOTE: Delegates to BacklogRepository (M3 adapter pattern).
+        """
+        from core.repositories.backlog_repo import BacklogRepository
+        from core.entities.messaging import BacklogStatus, BacklogArea
+
+        repo = self._get_repository(BacklogRepository)
+
+        # Query based on filters
+        if status and area:
+            # Both filters - manual filter in-memory (TODO: optimize with composite query)
+            items = repo.find_all()
+            items = [item for item in items if item.status.value == status and item.area and item.area.value == area]
+        elif status:
+            items = repo.find_by_status(BacklogStatus(status))
+        elif area:
+            items = repo.find_by_area(BacklogArea(area))
+        else:
+            items = repo.find_all()
+
+        # Convert entities to dicts (backward compatibility, centralized)
+        from core.mappers.legacy_api import LegacyAPIMapper
+        result = [LegacyAPIMapper.backlog_to_dict(item) for item in items]
+
+        return result
 
     def update_backlog_status(self, backlog_id: int, status: str) -> None:
-        """Update backlog item status and set updated_at."""
-        self._conn.execute(
-            """UPDATE backlog SET status = ?, updated_at = datetime('now')
-               WHERE id = ?""",
-            (status, backlog_id),
-        )
-        self._auto_commit()
+        """Update backlog item status and set updated_at.
+
+        NOTE: Delegates to BacklogRepository (M3 adapter pattern).
+        """
+        from core.repositories.backlog_repo import BacklogRepository
+        from core.entities.messaging import BacklogStatus
+
+        repo = self._get_repository(BacklogRepository)
+
+        # Load entity
+        item = repo.get(backlog_id)
+        if not item:
+            return  # Silently ignore if not found (backward compatible)
+
+        # Update status
+        try:
+            item.status = BacklogStatus(status)
+        except ValueError:
+            # Unknown status - keep item unchanged
+            return
+
+        # Save (updated_at auto-updated in repository)
+        repo.save(item)
 
     def update_backlog_content(self, backlog_id: int, content: str) -> None:
-        """Update backlog item content and set updated_at."""
-        self._conn.execute(
-            """UPDATE backlog SET content = ?, updated_at = datetime('now')
-               WHERE id = ?""",
-            (content, backlog_id),
-        )
-        self._auto_commit()
+        """Update backlog item content and set updated_at.
+
+        NOTE: Delegates to BacklogRepository (M3 adapter pattern).
+        """
+        from core.repositories.backlog_repo import BacklogRepository
+
+        repo = self._get_repository(BacklogRepository)
+
+        # Load entity
+        item = repo.get(backlog_id)
+        if not item:
+            return  # Silently ignore if not found (backward compatible)
+
+        # Update content
+        item.content = content
+
+        # Save (updated_at auto-updated in repository)
+        repo.save(item)
 
     # --- Session log ---
 
@@ -404,13 +558,14 @@ class AgentBus:
         self,
         role: str,
         content: str,
+        title: str = None,
         session_id: str = None,
     ) -> int:
         """Add a session log entry. Returns log id."""
         cursor = self._conn.execute(
-            """INSERT INTO session_log (role, content, session_id)
-               VALUES (?, ?, ?)""",
-            (role, content, session_id),
+            """INSERT INTO session_log (role, content, title, session_id)
+               VALUES (?, ?, ?, ?)""",
+            (role, content, title, session_id),
         )
         self._auto_commit()
         return cursor.lastrowid
@@ -418,13 +573,88 @@ class AgentBus:
     def get_session_log(self, role: str, limit: int = 20) -> list[dict]:
         """Get session log entries for a role. Newest first."""
         rows = self._conn.execute(
-            """SELECT id, role, content, session_id, created_at
+            """SELECT id, role, content, title, session_id, created_at
                FROM session_log WHERE role = ?
                ORDER BY created_at DESC, id DESC
                LIMIT ?""",
             (role, limit),
         ).fetchall()
         return [dict(row) for row in rows]
+
+    def get_session_logs(
+        self,
+        role: str = None,
+        limit: int = 10,
+        offset: int = 0,
+        metadata_only: bool = False,
+    ) -> list[dict]:
+        """Get session log entries. Optionally filter by role. Newest first.
+
+        Args:
+            role: Filter by role (optional)
+            limit: Max number of logs to return (default 10)
+            offset: Number of logs to skip (default 0)
+            metadata_only: If True, exclude content field (default False)
+
+        Returns:
+            List of session log dicts
+        """
+        # Select fields based on metadata_only flag
+        if metadata_only:
+            fields = "id, role, title, created_at"
+        else:
+            fields = "id, role, content, title, session_id, created_at"
+
+        if role:
+            query = f"""SELECT {fields}
+                        FROM session_log WHERE role = ?
+                        ORDER BY created_at DESC, id DESC
+                        LIMIT ? OFFSET ?"""
+            rows = self._conn.execute(query, (role, limit, offset)).fetchall()
+        else:
+            query = f"""SELECT {fields}
+                        FROM session_log
+                        ORDER BY created_at DESC, id DESC
+                        LIMIT ? OFFSET ?"""
+            rows = self._conn.execute(query, (limit, offset)).fetchall()
+
+        return [dict(row) for row in rows]
+
+    def get_session_logs_init(self, role: str) -> dict:
+        """Get session logs for session initialization (--init flag).
+
+        Returns structured output for session_start workflow:
+        - own_full: 3 latest logs (full content) for this role
+        - own_metadata: 7 next logs (metadata only) for this role
+        - cross_role: 20 latest logs (metadata only) for all roles (only for non-executor roles)
+
+        Args:
+            role: Role to get logs for
+
+        Returns:
+            Dict with keys: own_full, own_metadata, cross_role (or None)
+        """
+        # Executor roles (focused on their domain, noise from other roles not needed)
+        executor_roles = ["erp_specialist", "analyst"]
+
+        # 3 latest logs (full content)
+        own_full = self.get_session_logs(role=role, limit=3, metadata_only=False)
+
+        # 7 next logs (metadata only)
+        own_metadata = self.get_session_logs(
+            role=role, offset=3, limit=7, metadata_only=True
+        )
+
+        # 20 latest cross-role logs (metadata only) — only for non-executor roles
+        cross_role = None
+        if role not in executor_roles:
+            cross_role = self.get_session_logs(limit=20, metadata_only=True)
+
+        return {
+            "own_full": own_full,
+            "own_metadata": own_metadata,
+            "cross_role": cross_role,
+        }
 
     def get_messages(
         self,
