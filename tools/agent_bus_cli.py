@@ -193,8 +193,13 @@ def cmd_backlog_add_bulk(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 
 def cmd_backlog(args: argparse.Namespace, bus: AgentBus) -> dict:
-    entries = bus.get_backlog(status=args.status, area=args.area)
-    return {"ok": True, "data": entries, "count": len(entries)}
+      if args.id:
+          item = bus.get_backlog_by_id(args.id)
+          if item is None:
+              return {"ok": False, "error": f"Backlog item #{args.id} not found"}
+          return {"ok": True, "data": item}
+      entries = bus.get_backlog(status=args.status, area=args.area)
+      return {"ok": True, "data": entries, "count": len(entries)}
 
 
 def cmd_backlog_update(args: argparse.Namespace, bus: AgentBus) -> dict:
@@ -357,6 +362,8 @@ def build_parser() -> argparse.ArgumentParser:
                            choices=["planned", "in_progress", "done", "cancelled", "deferred"])
     p_backlog.add_argument("--area", default=None,
                            help="Filter by area (ERP, Bot, Arch, Dev, ...)")
+    p_backlog.add_argument("--id", type=int, default=None,
+                           help="Get single item by ID")
 
     # backlog-update
     p_bupd = subparsers.add_parser("backlog-update", help="Update backlog item status and/or content")

@@ -550,6 +550,25 @@ class AgentBus:
 
         return result
 
+    def get_backlog_by_id(self, backlog_id: int) -> dict | None:
+          """Get a single backlog item by ID.
+
+          NOTE: Delegates to BacklogRepository (M3 adapter pattern).
+          """
+          from core.repositories.backlog_repo import BacklogRepository
+          from core.mappers.legacy_api import LegacyAPIMapper
+
+          repo = self._get_repository(BacklogRepository)
+          item = repo.get(backlog_id)
+          if item is None:
+              return None
+          return LegacyAPIMapper.backlog_to_dict(item)
+
+
+
+
+
+
     def update_backlog_status(self, backlog_id: int, status: str) -> None:
         """Update backlog item status and set updated_at.
 

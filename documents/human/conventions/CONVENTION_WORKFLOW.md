@@ -1,13 +1,13 @@
 ---
 convention_id: workflow-convention
-version: "1.1"
-status: review
+version: "1.2"
+status: active
 created: 2026-03-24
 updated: 2026-03-24
 author: prompt_engineer
 owner: prompt_engineer
 approver: dawid
-audience: [prompt_engineer, developer, erp_specialist, architect, metodolog]
+audience: [prompt_engineer, architect, metodolog]
 scope: "Definiuje strukturę i składnię dokumentów workflow dla agentów"
 ---
 
@@ -176,14 +176,29 @@ Każdy workflow MUSI mieć strukturę:
 
 **Owner:** [rola wykonująca]
 
+### Inputs required (opcjonalne)
+[Co musi istnieć PRZED fazą — patrz 12R]
+
 ### Steps
 [Kroki wykonania]
+
+### Required artifacts (opcjonalne)
+[Co faza MUSI wyprodukować — patrz 12R]
 
 ### Forbidden (opcjonalne)
 [Anti-patterns dla tej fazy — tylko jeśli są znane pułapki]
 
 ### Exit gate
 [Warunki przejścia]
+
+### Self-check (opcjonalne)
+[Checklist przed zakończeniem — patrz 12R]
+
+### Output format (opcjonalne, DB-ready)
+[JSON schema outputu — patrz 12R]
+
+### Handoff rule (opcjonalne)
+[Kiedy i do kogo przekazać — patrz 12R]
 
 ---
 
@@ -363,6 +378,97 @@ Convention żyje w: `documents/conventions/CONVENTION_WORKFLOW.md`
 
 ---
 
+### 12R: Extended phase template — opcjonalne sekcje per faza
+
+Fazy mogą zawierać dodatkowe sekcje zwiększające precision i automatyzowalność.
+Wszystkie sekcje w 12R są **opcjonalne** — dodawaj gdy faza tego wymaga.
+Dla workflow DB-ready zalecane jest użycie wszystkich.
+
+**Sekcje:**
+
+#### Inputs required
+Co MUSI istnieć PRZED rozpoczęciem fazy:
+- Artefakty z poprzedniej fazy (pliki, stany)
+- Warunki zewnętrzne (git clean, schema loaded)
+- Dane wejściowe (format, schema)
+
+```markdown
+### Inputs required
+- [ ] `artifact_id`: [opis — co musi istnieć]
+- [ ] `state_condition`: [warunek stanu systemu]
+```
+
+**Reguła:** Jeśli inputs required nie są spełnione → faza nie startuje (status: BLOCKED).
+
+#### Required artifacts
+Co faza MUSI wyprodukować — lista artefaktów z identyfikatorami:
+
+```markdown
+### Required artifacts
+- [ ] `artifact_id`: [opis — co faza produkuje, typ, ścieżka]
+```
+
+**Mapowanie na output types z 01R:** file, state, backlog_item, commit, message, suggestion, log.
+
+#### Self-check
+Checklist dla agenta PRZED oznaczeniem fazy jako PASS:
+
+```markdown
+### Self-check
+- [ ] Czy wszystkie kroki zostały wykonane?
+- [ ] Czy wszystkie required artifacts istnieją?
+- [ ] Czy exit gate jest spełniony?
+- [ ] Jeśli nie → BLOCKED, nie PASS.
+```
+
+**Źródło wzorca:** Anthropic zaleca self-check relative to criteria przed zakończeniem fazy.
+**Cel:** Redukcja "zatwierdzenia z rozpędu" — agent sprawdza siebie zanim zadeklaruje PASS.
+
+#### Output format (DB-ready)
+JSON schema outputu fazy — dla orchestratora:
+
+```markdown
+### Output format
+```json
+{
+  "phase": "<PHASE_NAME>",
+  "status": "PASS|BLOCKED|ESCALATE",
+  "artifacts": ["artifact_id_1", "artifact_id_2"],
+  "missing_items": [],
+  "verification_summary": ""
+}
+```
+```
+
+**Kiedy dodawać:** Tylko dla workflow DB-driven. Dla human-readable workflow — pomiń.
+
+#### Handoff rule
+Kiedy i do kogo można przekazać wynik fazy:
+
+```markdown
+### Handoff rule
+Przekazanie do [rola] tylko przy status=PASS.
+Handoff payload: [co musi zawierać].
+```
+
+**Reguła:** Bez handoff rule orchestrator nie wie kiedy i do kogo przekazać.
+Jeśli workflow jest jednoosobowy (jedna rola, wszystkie fazy) — handoff rule zbędne.
+
+---
+
+**Pełna kolejność sekcji per faza:**
+1. Owner
+2. Inputs required (opcjonalne)
+3. Steps
+4. Required artifacts (opcjonalne)
+5. Forbidden (opcjonalne)
+6. Exit gate
+7. Self-check (opcjonalne)
+8. Output format (opcjonalne, DB-ready)
+9. Handoff rule (opcjonalne)
+
+---
+
 ## Przykłady
 
 ### Przykład 1: Dwa style workflow
@@ -436,9 +542,9 @@ Krótki opis — 1-2 zdania. Dla kogo, kiedy używać.
 
 **Owner:** erp_specialist
 
-### Purpose
-
-Weryfikacja że mamy wszystko do rozpoczęcia pracy.
+### Inputs required
+- [ ] `session_init_done`: session_init wykonany z rolą erp_specialist
+- [ ] `user_request`: Użytkownik podał wymagania (okno, kolumna, cel)
 
 ### Steps
 
@@ -465,7 +571,9 @@ Weryfikacja że mamy wszystko do rozpoczęcia pracy.
 **path_false:** load_schema (załaduj schema)
 **default:** escalate (jeśli błąd odczytu)
 
----
+### Required artifacts
+- [ ] `git_status_clean`: Working tree czysty (type: state)
+- [ ] `schema_available`: Schema załadowana do kontekstu (type: state)
 
 ### Exit Gate
 
@@ -476,6 +584,27 @@ Weryfikacja że mamy wszystko do rozpoczęcia pracy.
 **Status:**
 - PASS if: wszystkie == true
 - BLOCKED if: git_clean == false → escalate
+
+### Self-check
+- [ ] Czy git status sprawdzony?
+- [ ] Czy schema załadowana i dostępna?
+- [ ] Czy user request jest zrozumiały (nie wymaga dopytania)?
+- [ ] Jeśli nie → BLOCKED, nie PASS.
+
+### Output format
+```json
+{
+  "phase": "initialization",
+  "status": "PASS|BLOCKED",
+  "artifacts": ["git_status_clean", "schema_available"],
+  "missing_items": [],
+  "verification_summary": "Git clean, schema loaded, requirements clear"
+}
+```
+
+### Handoff rule
+Przekazanie do Fazy 2 (Discovery) tylko przy status=PASS.
+Wewnętrzne — ta sama rola (erp_specialist).
 
 ---
 
@@ -651,13 +780,21 @@ Przed zatwierdzeniem workflow, sprawdź:
 - [ ] Decision points explicit (decision_id, condition, paths)?
 - [ ] Exit gate strict checklist (item_id per check)?
 
+**Extended phase sections (12R — opcjonalne, zalecane dla DB-ready):**
+- [ ] Inputs required: prerequisites z item_id per faza?
+- [ ] Required artifacts: lista artefaktów z item_id per faza?
+- [ ] Self-check: checklist przed PASS per faza?
+- [ ] Output format: JSON schema per faza?
+- [ ] Handoff rule: kto, kiedy, z czym per faza (jeśli multi-role)?
+
 ---
 
 ## References
 
 - Obecne workflow: `workflows/bi_view_creation_workflow.md`, `workflows/developer_workflow.md`
 - CONVENTION_META: `documents/conventions/CONVENTION_META.md`
-- Research (pending): `documents/researcher/research/research_results_workflow_agents.md`
+- Research (compliance): `documents/researcher/research/workflow_compliance.md`
+- Research (orchestration): `documents/researcher/research/workflow_orchestration.md`
 
 ---
 
@@ -665,5 +802,6 @@ Przed zatwierdzeniem workflow, sprawdź:
 
 | Wersja | Data | Zmiany |
 |---|---|---|
+| 1.2 | 2026-03-24 | 12R: Extended phase template — inputs required, required artifacts, self-check, output format, handoff rule. Rozszerzony template 03R i przykład DB-ready. PE checklist rozszerzony. Research references zaktualizowane. |
 | 1.1 | 2026-03-24 | Dodano: outline, related_docs, participants, 7 output types, numeracja 1.1.1, Forbidden opcjonalny, nazewnictwo workflow_*, język polski |
 | 1.0 | 2026-03-24 | Migracja do struktury CONVENTION_META |
