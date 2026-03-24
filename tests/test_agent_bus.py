@@ -703,3 +703,99 @@ class TestWorkflowExecution:
         # No longer in interrupted list
         interrupted = bus.get_interrupted_executions(role="erp_specialist")
         assert len(interrupted) == 0
+
+
+class TestKnownGaps:
+    """Test known gaps tracking."""
+
+    def test_add_known_gap(self, bus):
+        """add_known_gap returns gap_id."""
+        gap_id = bus.add_known_gap(
+            title="Test gap",
+            description="Gap description",
+            area="Dev",
+            trigger_condition="When X happens",
+            reported_by="developer"
+        )
+        assert gap_id is not None
+        assert isinstance(gap_id, int)
+
+    def test_add_known_gap_with_source(self, bus):
+        """add_known_gap can link to source suggestion."""
+        sid = bus.add_suggestion(author="architect", content="Original suggestion")
+        gap_id = bus.add_known_gap(
+            title="Gap from suggestion",
+            description="Desc",
+            area="Arch",
+            trigger_condition="Trigger",
+            reported_by="architect",
+            source_suggestion_id=sid
+        )
+        gaps = bus.get_known_gaps()
+        assert gaps[0]["source_suggestion_id"] == sid
+
+    def test_get_known_gaps_default_open(self, bus):
+        """get_known_gaps returns only open gaps by default."""
+        bus.add_known_gap("Gap 1", "Desc", "Dev", "Trigger 1", "developer")
+        bus.add_known_gap("Gap 2", "Desc", "Dev", "Trigger 2", "developer")
+
+        gaps = bus.get_known_gaps()
+        assert len(gaps) == 2
+        assert all(g["status"] == "open" for g in gaps)
+
+    def test_get_known_gaps_filter_area(self, bus):
+        """get_known_gaps filters by area."""
+        bus.add_known_gap("Dev gap", "Desc", "Dev", "Trigger", "developer")
+        bus.add_known_gap("Arch gap", "Desc", "Arch", "Trigger", "architect")
+
+        dev_gaps = bus.get_known_gaps(area="Dev")
+        assert len(dev_gaps) == 1
+        assert dev_gaps[0]["area"] == "Dev"
+
+    def test_get_known_gaps_filter_status(self, bus):
+        """get_known_gaps filters by status."""
+        gap_id = bus.add_known_gap("Gap 1", "Desc", "Dev", "Trigger", "developer")
+        bus.add_known_gap("Gap 2", "Desc", "Dev", "Trigger", "developer")
+
+        # Resolve one
+        bid = bus.add_backlog_item(title="Fix", content="Fix gap")
+        bus.resolve_known_gap(gap_id, bid)
+
+        open_gaps = bus.get_known_gaps(status="open")
+        resolved_gaps = bus.get_known_gaps(status="resolved")
+        all_gaps = bus.get_known_gaps(status="all")
+
+        assert len(open_gaps) == 1
+        assert len(resolved_gaps) == 1
+        assert len(all_gaps) == 2
+
+    def test_resolve_known_gap(self, bus):
+        """resolve_known_gap links gap to backlog and sets resolved."""
+        gap_id = bus.add_known_gap("Gap", "Desc", "Dev", "Trigger", "developer")
+        bid = bus.add_backlog_item(title="Fix", content="Fix gap")
+
+        result = bus.resolve_known_gap(gap_id, bid)
+        assert result["ok"] is True
+
+        gaps = bus.get_known_gaps(status="resolved")
+        assert len(gaps) == 1
+        assert gaps[0]["status"] == "resolved"
+        assert gaps[0]["resolved_by_backlog_id"] == bid
+        assert gaps[0]["resolved_at"] is not None
+
+    def test_resolve_known_gap_not_found(self, bus):
+        """resolve_known_gap returns error for non-existent gap."""
+        result = bus.resolve_known_gap(99999, 1)
+        assert result["ok"] is False
+        assert "not found" in result["message"]
+
+    def test_resolve_known_gap_already_resolved(self, bus):
+        """resolve_known_gap rejects already resolved gap."""
+        gap_id = bus.add_known_gap("Gap", "Desc", "Dev", "Trigger", "developer")
+        bid = bus.add_backlog_item(title="Fix", content="Fix gap")
+        bus.resolve_known_gap(gap_id, bid)
+
+        # Try to resolve again
+        result = bus.resolve_known_gap(gap_id, bid)
+        assert result["ok"] is False
+        assert "already resolved" in result["message"]

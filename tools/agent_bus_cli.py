@@ -347,6 +347,29 @@ def cmd_flag(args: argparse.Namespace, bus: AgentBus) -> dict:
     return {"ok": True, "id": flag_id}
 
 
+def cmd_gap_add(args: argparse.Namespace, bus: AgentBus) -> dict:
+    description = Path(args.content_file).read_text(encoding="utf-8") if args.content_file else args.description
+    gap_id = bus.add_known_gap(
+        title=args.title,
+        description=description,
+        area=args.area,
+        trigger_condition=args.trigger,
+        reported_by=args.reported_by,
+        source_suggestion_id=args.source_id,
+    )
+    return {"ok": True, "id": gap_id}
+
+
+def cmd_gaps(args: argparse.Namespace, bus: AgentBus) -> dict:
+    gaps = bus.get_known_gaps(area=args.area, status=args.status)
+    return {"ok": True, "data": gaps, "count": len(gaps)}
+
+
+def cmd_gap_resolve(args: argparse.Namespace, bus: AgentBus) -> dict:
+    result = bus.resolve_known_gap(args.id, args.backlog_id)
+    return result
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="AgentBus CLI — message passing and state for agent swarm"
@@ -529,6 +552,27 @@ def build_parser() -> argparse.ArgumentParser:
                         choices=["normal", "high"])
     p_flag.add_argument("--session-id", dest="session_id", default=None)
 
+    # gap-add
+    p_gap_add = subparsers.add_parser("gap-add", help="Add a known gap")
+    p_gap_add.add_argument("--title", required=True)
+    p_gap_add.add_argument("--area", required=True)
+    p_gap_add.add_argument("--trigger", required=True, help="Trigger condition for revisiting")
+    p_gap_add.add_argument("--reported-by", dest="reported_by", required=True)
+    g_gap_add = p_gap_add.add_mutually_exclusive_group(required=True)
+    g_gap_add.add_argument("--description")
+    g_gap_add.add_argument("--content-file", dest="content_file")
+    p_gap_add.add_argument("--source-id", dest="source_id", type=int, default=None)
+
+    # gaps
+    p_gaps = subparsers.add_parser("gaps", help="List known gaps")
+    p_gaps.add_argument("--area", default=None)
+    p_gaps.add_argument("--status", default="open", choices=["open", "resolved", "all"])
+
+    # gap-resolve
+    p_gap_res = subparsers.add_parser("gap-resolve", help="Resolve a known gap")
+    p_gap_res.add_argument("--id", type=int, required=True)
+    p_gap_res.add_argument("--backlog-id", dest="backlog_id", type=int, required=True)
+
     return parser
 
 
@@ -560,6 +604,9 @@ def main():
         "execution-status": cmd_execution_status,
         "interrupted-workflows": cmd_interrupted_workflows,
         "flag": cmd_flag,
+        "gap-add": cmd_gap_add,
+        "gaps": cmd_gaps,
+        "gap-resolve": cmd_gap_resolve,
     }
     result = commands[args.command](args, bus)
     print_json(result)

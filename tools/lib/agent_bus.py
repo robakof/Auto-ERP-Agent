@@ -185,6 +185,23 @@ CREATE TABLE IF NOT EXISTS step_log (
 );
 
 CREATE INDEX IF NOT EXISTS idx_step_log_execution ON step_log(execution_id);
+
+CREATE TABLE IF NOT EXISTS known_gaps (
+    id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+    title                TEXT NOT NULL,
+    description          TEXT NOT NULL,
+    area                 TEXT NOT NULL,
+    trigger_condition    TEXT NOT NULL,
+    source_suggestion_id INTEGER REFERENCES suggestions(id),
+    reported_by          TEXT NOT NULL,
+    status               TEXT NOT NULL DEFAULT 'open',
+    resolved_by_backlog_id INTEGER REFERENCES backlog(id),
+    created_at           TEXT NOT NULL DEFAULT (datetime('now')),
+    resolved_at          TEXT,
+    CHECK (status IN ('open', 'resolved'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_known_gaps_area_status ON known_gaps(area, status);
 """
 
 _MIGRATE_SQL = [
@@ -1145,3 +1162,67 @@ class AgentBus:
             (role, instance_id),
         ).fetchall()
         return [dict(r) for r in rows]
+
+    # --- Known Gaps ---
+
+    def add_known_gap(
+        self,
+        title: str,
+        description: str,
+        area: str,
+        trigger_condition: str,
+        reported_by: str,
+        source_suggestion_id: int = None,
+    ) -> int:
+        """Add a known gap (documented limitation with trigger condition)."""
+        cursor = self._conn.execute(
+            """INSERT INTO known_gaps
+               (title, description, area, trigger_condition, reported_by, source_suggestion_id)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (title, description, area, trigger_condition, reported_by, source_suggestion_id),
+        )
+        self._conn.commit()
+        return cursor.lastrowid
+
+    def get_known_gaps(self, area: str = None, status: str = "open") -> list[dict]:
+        """Get known gaps, optionally filtered by area and status."""
+        conditions = []
+        params = []
+
+        if status and status != "all":
+            conditions.append("status = ?")
+            params.append(status)
+        if area:
+            conditions.append("area = ?")
+            params.append(area)
+
+        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+        rows = self._conn.execute(
+            f"""SELECT id, title, description, area, trigger_condition,
+                       source_suggestion_id, reported_by, status,
+                       resolved_by_backlog_id, created_at, resolved_at
+                FROM known_gaps {where}
+                ORDER BY created_at DESC""",
+            params,
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def resolve_known_gap(self, gap_id: int, backlog_id: int) -> dict:
+        """Resolve a known gap by linking it to a backlog item."""
+        row = self._conn.execute(
+            "SELECT status FROM known_gaps WHERE id = ?", (gap_id,)
+        ).fetchone()
+
+        if not row:
+            return {"ok": False, "message": f"Gap {gap_id} not found"}
+        if row["status"] == "resolved":
+            return {"ok": False, "message": f"Gap {gap_id} already resolved"}
+
+        self._conn.execute(
+            """UPDATE known_gaps
+               SET status = 'resolved', resolved_by_backlog_id = ?, resolved_at = datetime('now')
+               WHERE id = ?""",
+            (backlog_id, gap_id),
+        )
+        self._conn.commit()
+        return {"ok": True, "message": f"Gap {gap_id} resolved with backlog {backlog_id}"}
