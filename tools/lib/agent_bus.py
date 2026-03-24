@@ -331,8 +331,8 @@ class AgentBus:
         status_enum = MessageStatus(status)
         filtered = [m for m in messages if m.status == status_enum]
 
-        # Sort by created_at ASC (backward compatible)
-        filtered.sort(key=lambda m: m.created_at)
+        # Sort by created_at ASC, id ASC (stable ordering)
+        filtered.sort(key=lambda m: (m.created_at, m.id))
 
         # Convert entity → dict (backward compatible, centralized)
         from core.mappers.legacy_api import LegacyAPIMapper
