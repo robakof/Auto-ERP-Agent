@@ -148,11 +148,17 @@ class MessageRepository(Repository[Message]):
         except ValueError as e:
             raise ValidationError(f"Invalid enum value in database: {e}")
 
+        # Backward compat: title może nie istnieć w starych DB
+        try:
+            title = row["title"]
+        except (KeyError, IndexError):
+            title = ""
+
         return Message(
             sender=row["sender"],
             recipient=row["recipient"],
             content=row["content"],
-            title=row.get("title", ""),
+            title=title,
             type=type_enum,
             status=status_enum,
             session_id=row["session_id"],
@@ -195,7 +201,7 @@ class MessageRepository(Repository[Message]):
         """
         with self._connection() as conn:
             cursor = conn.execute(
-                """SELECT id, sender, recipient, content, type, status, session_id,
+                """SELECT id, sender, recipient, content, title, type, status, session_id,
                           created_at, read_at
                    FROM messages
                    WHERE id = ?""",
@@ -230,19 +236,19 @@ class MessageRepository(Repository[Message]):
                 # UPDATE
                 conn.execute(
                     """UPDATE messages
-                       SET sender = ?, recipient = ?, content = ?, type = ?, status = ?,
+                       SET sender = ?, recipient = ?, content = ?, title = ?, type = ?, status = ?,
                            session_id = ?, read_at = ?
                        WHERE id = ?""",
-                    (row_data["sender"], row_data["recipient"], row_data["content"],
+                    (row_data["sender"], row_data["recipient"], row_data["content"], row_data["title"],
                      row_data["type"], row_data["status"], row_data["session_id"],
                      row_data["read_at"], entity.id)
                 )
             else:
                 # INSERT
                 cursor = conn.execute(
-                    """INSERT INTO messages (sender, recipient, content, type, status, session_id, read_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                    (row_data["sender"], row_data["recipient"], row_data["content"],
+                    """INSERT INTO messages (sender, recipient, content, title, type, status, session_id, read_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (row_data["sender"], row_data["recipient"], row_data["content"], row_data["title"],
                      row_data["type"], row_data["status"], row_data["session_id"],
                      row_data["read_at"])
                 )
@@ -294,7 +300,7 @@ class MessageRepository(Repository[Message]):
         """
         with self._connection() as conn:
             cursor = conn.execute(
-                """SELECT id, sender, recipient, content, type, status, session_id,
+                """SELECT id, sender, recipient, content, title, type, status, session_id,
                           created_at, read_at
                    FROM messages
                    ORDER BY created_at DESC, id DESC"""
@@ -314,7 +320,7 @@ class MessageRepository(Repository[Message]):
         """
         with self._connection() as conn:
             cursor = conn.execute(
-                f"""SELECT id, sender, recipient, content, type, status, session_id,
+                f"""SELECT id, sender, recipient, content, title, type, status, session_id,
                            created_at, read_at
                     FROM messages
                     WHERE {field} = ?

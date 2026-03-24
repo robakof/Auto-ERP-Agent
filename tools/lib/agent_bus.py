@@ -236,6 +236,45 @@ class AgentBus:
 
     # --- Messages ---
 
+    @staticmethod
+    def _extract_title_from_markdown(content: str) -> tuple[str, str]:
+        """
+        Extract title from markdown header (# or ##).
+
+        Args:
+            content: Message content (potentially with markdown header)
+
+        Returns:
+            (title, body): Extracted title and content without header.
+                          If no header found, returns ("", content).
+
+        Example:
+            >>> _extract_title_from_markdown("# Title\\n\\nBody text")
+            ('Title', 'Body text')
+            >>> _extract_title_from_markdown("## Title\\nContent")
+            ('Title', 'Content')
+            >>> _extract_title_from_markdown("No header")
+            ('', 'No header')
+        """
+        if not content:
+            return "", content
+
+        lines = content.split('\n', 1)
+        first_line = lines[0].strip()
+
+        # Check for markdown header (# or ##)
+        if first_line.startswith('#'):
+            title = first_line.lstrip('#').strip()
+            # Content without header (skip first line + potential empty lines)
+            if len(lines) > 1:
+                body = lines[1].lstrip('\n')
+            else:
+                body = ""
+            return title, body
+
+        # No header found
+        return "", content
+
     def send_message(
         self,
         sender: str,
@@ -256,11 +295,15 @@ class AgentBus:
         # Type mapping: legacy API → domain model (centralized)
         type_enum = LegacyAPIMapper.map_message_type_to_domain(type)
 
+        # Extract title from markdown header (transparent for agent)
+        title, body = self._extract_title_from_markdown(content)
+
         # Convert dict → entity
         message = Message(
             sender=sender,
             recipient=recipient,
-            content=content,
+            content=body if title else content,  # Use body if title extracted, otherwise original
+            title=title,
             type=type_enum,
             session_id=session_id
         )
