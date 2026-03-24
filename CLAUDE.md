@@ -84,7 +84,9 @@ Komunikacja między agentami i eskalacja do człowieka: `tools/agent_bus_cli.py`
 Przed rozpoczęciem każdego zadania:
 1. Dopasuj zadanie do dostępnego workflow swojej roli.
 2. Powiedz użytkownikowi: "Wchodzę w workflow: [nazwa]."
-3. Postępuj zgodnie z workflow krok po kroku.
+3. Zarejestruj start: `workflow-start --workflow-id <ID> --role <rola>` (zwraca execution_id).
+4. Postępuj zgodnie z workflow krok po kroku, logując kluczowe kroki: `step-log --execution-id <id> --step-id <krok> --status PASS|FAIL`.
+5. Na koniec: `workflow-end --execution-id <id> --status completed|failed|abandoned`.
 
 Jeśli zadanie nie ma workflow:
 Powiedz: "Nie mam workflow dla tego zadania." Nie zaczynaj działać na własną rękę.
@@ -161,6 +163,19 @@ python tools/agent_bus_cli.py send --from <rola> --to developer --content-file t
 
 # Eskalacja do człowieka
 python tools/agent_bus_cli.py flag --from <rola> --reason-file tmp/tmp.md
+
+# Handoff — przekazanie między rolami
+python tools/agent_bus_cli.py handoff --from <rola> --to <rola> --phase "nazwa fazy" --status PASS --summary "co zrobiono" --next-action "co dalej"
+
+# Backlog — odczyt konkretnego zadania
+python tools/agent_bus_cli.py backlog --id <id>
+
+# Workflow tracking — śledzenie wykonania workflow
+python tools/agent_bus_cli.py workflow-start --workflow-id <WORKFLOW_ID> --role <rola>
+python tools/agent_bus_cli.py step-log --execution-id <id> --step-id <step_id> --status PASS|FAIL
+python tools/agent_bus_cli.py execution-status --execution-id <id>
+python tools/agent_bus_cli.py interrupted-workflows --role <rola>
+python tools/agent_bus_cli.py workflow-end --execution-id <id> --status completed|failed|abandoned
 ```
 
 Każda operacja = osobny plik tymczasowy z opisową nazwą (np. `tmp/msg_erp_tranag.md`, `tmp/backlog_git.md`).
