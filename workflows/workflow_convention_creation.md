@@ -1,153 +1,111 @@
 ---
 workflow_id: convention_creation
-version: "1.0"
+version: "1.1"
 owner_role: architect
-trigger: "Potrzeba nowej konwencji dla aspektu projektu bez istniejącego standardu"
+trigger: "Potrzeba nowej konwencji dla aspektu projektu"
 participants:
-  - architect (owner, draft, review)
-  - prompt_engineer (research prompt, revision support)
-  - dawid (approval — jedyny approver)
+  - architect (owner, draft)
+  - prompt_engineer (research prompt)
+  - dawid (approval)
 related_docs:
   - documents/conventions/CONVENTION_META.md
   - documents/conventions/CONVENTION_WORKFLOW.md
   - documents/methodology/SPIRIT.md
 prerequisites:
   - session_init_done
-  - identified_gap (brak konwencji dla aspektu)
 outputs:
   - type: file
     path: "documents/conventions/CONVENTION_{ZAKRES}.md"
   - type: file
     path: "documents/human/conventions/CONVENTION_{ZAKRES}.md"
   - type: message
-    field: "powiadomienie ról których dotyczy konwencja"
+    field: "powiadomienie ról z audience"
   - type: commit
-    field: "git commit z nową konwencją"
 ---
 
 # Workflow: Tworzenie konwencji
 
-Proces tworzenia nowej konwencji dla projektu Mrowisko. Właściciel procesu: Architect.
-Używaj gdy brakuje standardu dla aspektu projektu (np. format commitów, struktura workflow, nazewnictwo).
+Proces tworzenia nowej konwencji. Owner: Architect.
 
 ## Outline
 
-1. **Identyfikacja** — rozpoznanie braku konwencji
-2. **Research** — badanie best practices przed draftem
-3. **Draft** — minimalna wersja konwencji
-4. **Review** — weryfikacja architektoniczna i jakościowa
-5. **Revision** — poprawki na podstawie feedbacku
+1. **Identyfikacja** — walidacja że konwencja nie istnieje
+2. **Research** — badanie best practices (pętla aż wyczerpane)
+3. **Draft** — minimalna wersja
+4. **Review** — weryfikacja
+5. **Revision** — poprawki
 6. **Approval** — zatwierdzenie przez Dawida
-7. **Publication** — commit, powiadomienia, dokumentacja
+7. **Publication** — commit, powiadomienia
 
 ---
 
 ## Zasady przewodnie
 
-**Z historii projektu (sesje 2026-03-24):**
+> "Wolałbym żeby była napisana minimalnie dając więcej elastyczności."
 
-> "Wolałbym żeby była napisana w miarę minimalnie dając więcej elastyczności i czasem ją nabudowywać."
+> "Każdy aspekt projektu powinniśmy zaczynać od konwencji."
 
-> "Każdy aspekt projektu powinniśmy zaczynać od konwencji żeby mieć czystą architekturę."
-
-**Pattern:** Convention First Architecture — zanim implementujesz, zdefiniuj standard.
-
-**Minimalizm:** Konwencja minimalna, elastyczna. Rozbudowuj iteracyjnie na podstawie praktyki, nie teoretycznie.
+**Convention First Architecture** — zanim implementujesz, zdefiniuj standard.
 
 ---
 
 ## Faza 1: Identyfikacja
 
-**Owner:** architect (lub rola która zauważyła brak)
+**Owner:** architect
 
-**Założenie:** Projekt docelowo ma 100% pokrycia konwencjami. Tworzenie nowej konwencji jest rzadkie i pracochłonne. Częściej aktualizujemy istniejące.
+**Założenie:** Projekt ma 100% pokrycia konwencjami. Tworzenie nowej jest rzadkie.
 
 ### Steps
 
-1. Szukaj istniejącej konwencji (nie zakładaj że nie istnieje).
-   1.1. Sprawdź `documents/conventions/` — główna lokalizacja.
-   1.2. Jeśli nie ma → przeszukaj repo szerzej:
-        - `Glob documents/**/*CONVENTION*.md`
-        - `Grep "convention_id:" --path documents/`
-   1.3. Jeśli znaleziona gdzie indziej → przenieś do `documents/conventions/` lub użyj.
-   1.4. Jeśli nadal nie ma → **zapytaj użytkownika** przed tworzeniem nowej:
-        "Nie znalazłem konwencji dla [aspekt]. Czy na pewno nie istnieje? Czy tworzymy nową?"
+1. Szukaj istniejącej konwencji.
+   1.1. Sprawdź `documents/conventions/`
+   1.2. Jeśli nie ma → przeszukaj repo szerzej (Glob, Grep)
+   1.3. Jeśli znaleziona gdzie indziej → przenieś lub użyj
+   1.4. Jeśli nie ma → waliduj z użytkownikiem (intencja: upewnij się że naprawdę nie istnieje)
 
-2. Jeśli konwencja istnieje → rozważ update zamiast tworzenia nowej.
-   2.1. Czy istniejąca konwencja pokrywa potrzebę?
-   2.2. Jeśli częściowo → zaproponuj rozszerzenie (update, nie nowa).
-   2.3. Jeśli zupełnie nie pasuje → kontynuuj tworzenie nowej.
+2. Jeśli konwencja istnieje → EXIT. Użyj istniejącej.
 
-3. Nazwij gap (tylko jeśli potwierdzono brak konwencji).
-   3.1. Co dokładnie wymaga standaryzacji?
-   3.2. Kogo dotyczy (audience)?
-   3.3. Dlaczego teraz? (trigger)
+3. Sprawdź czy to twoja domena.
+   - Konwencja = Architect
+   - Workflow = PE (przekaż)
+   - Prompt = PE (przekaż)
+   - Metodologia = Metodolog (przekaż)
 
-4. Sprawdź czy to konwencja czy workflow.
-   - **Konwencja** = zestaw reguł JAK coś POWINNO wyglądać (standard)
-   - **Workflow** = procedura JAK coś zrobić (proces)
-   - Jeśli to workflow → użyj `workflow_workflow_creation.md`
-
-### Forbidden
-
-- Nie zakładaj że konwencja nie istnieje bez szerszego przeszukania repo
-- Nie twórz nowej konwencji bez walidacji z użytkownikiem
+4. Nazwij gap: co, dla kogo, dlaczego teraz.
 
 ### Exit gate
 
-PASS jeśli:
-- Przeszukano repo (nie tylko `documents/conventions/`)
-- Użytkownik potwierdził że konwencja nie istnieje
-- Gap zidentyfikowany (nazwa, scope, audience)
-- Potwierdzone że to konwencja (nie workflow)
-
-BLOCKED jeśli:
-- Konwencja istnieje → użyj istniejącej lub zaproponuj update
-- Użytkownik nie potwierdził potrzeby nowej konwencji
+PASS: konwencja nie istnieje, użytkownik potwierdził, to domena Architect.
+EXIT: konwencja istnieje → użyj istniejącej.
 
 ---
 
 ## Faza 2: Research
 
-**Owner:** architect (zleca) + prompt_engineer (tworzy prompt)
+**Owner:** architect (zleca) + PE (prompt)
+
+Research to pętla: research → nowe wątki → kolejny research → aż wyczerpane.
 
 ### Steps
 
-1. Określ pytania badawcze.
-   1.1. Jakie best practices istnieją dla tego aspektu?
-   1.2. Jakie formaty stosują inne projekty?
-   1.3. Jakie są znane anti-patterns?
+1. Określ pytania badawcze (best practices, formaty, anti-patterns).
 
-2. Sprawdź istniejący ecosystem.
-   2.1. Czy Claude Code / Mrowisko ma już working pattern? (np. SKILL.md)
-   2.2. Jeśli tak → użyj jako baseline, research uzupełnia.
+2. Sprawdź ecosystem Mrowisko — czy jest working pattern jako baseline.
 
-3. Utwórz research prompt (lub poproś PE).
-   3.1. Zapisz do `documents/researcher/prompts/research_{temat}.md`
-   3.2. Użyj base prompt (rigorystyczny lub eksploracyjny)
-   3.3. Dodaj constraints Mrowisko-specific (agility, DB-readiness, agent-centric)
+3. Zamów research prompt u PE.
+   - Lokalizacja: `documents/researcher/prompts/research_{temat}.md`
 
-4. Wykonaj research.
-   4.1. Uruchom research przez WebSearch lub zewnętrznego agenta
-   4.2. Zapisz wyniki do `documents/researcher/research/{temat}.md`
+4. Wykonaj research (WebSearch lub zewnętrzny agent).
+   - Wyniki: `documents/researcher/research/{temat}.md`
 
-5. Przeczytaj wyniki researchu.
-   5.1. Zidentyfikuj kluczowe wzorce
-   5.2. Zidentyfikuj anti-patterns do unikania
-
-### Forbidden
-
-- Nie pisz draftu konwencji BEZ researchu — research first!
-- Nie kopiuj ślepo istniejących wzorców bez oceny dopasowania do Mrowiska
+5. Oceń wyniki.
+   - Nowe wątki do eksploracji? → kolejna iteracja researchu.
+   - Wyczerpane? → kontynuuj do Draft.
 
 ### Exit gate
 
-PASS jeśli:
-- Research wykonany i zapisany
-- Kluczowe wzorce zidentyfikowane
-- Anti-patterns znane
-
-ESCALATE jeśli research nie daje jasnych wyników → konsultacja z Metodolog.
+PASS: research wyczerpany, wzorce i anti-patterns znane.
+ESCALATE do PE jeśli research prompt nie daje wyników (źródło promptu).
 
 ---
 
@@ -157,90 +115,35 @@ ESCALATE jeśli research nie daje jasnych wyników → konsultacja z Metodolog.
 
 ### Steps
 
-1. Przeczytaj CONVENTION_META (struktura konwencji).
-   ```
-   Read documents/conventions/CONVENTION_META.md
-   ```
+1. Przeczytaj CONVENTION_META.
 
-2. Utwórz draft konwencji.
-   2.1. Zacznij od YAML header (wymagane pola z CONVENTION_META):
-        ```yaml
-        ---
-        convention_id: string
-        version: "1.0"
-        status: draft
-        created: YYYY-MM-DD
-        updated: YYYY-MM-DD
-        author: architect
-        owner: architect
-        approver: dawid
-        audience: [lista ról]
-        scope: "1 zdanie"
-        ---
-        ```
-   2.2. Dodaj wymagane sekcje:
-        - TL;DR (3-5 punktów, esencja)
-        - Zakres (co pokrywa, co NIE)
-        - Reguły (numerowane: 01R, 02R...)
-        - Przykłady
-        - Antywzorce (Bad → Why → Good)
-        - Changelog
+2. Utwórz draft (YAML header + wymagane sekcje).
+   - Przyszłość: tool `convention_init.py` zautomatyzuje ten krok.
 
-3. Stosuj minimalizm.
-   - Mniej reguł > więcej reguł
-   - Elastyczność > szczegółowość
-   - Opcjonalne sekcje dodawaj tylko gdy potrzebne
-
-4. Zapisz draft.
-   4.1. Zapisz do `documents/conventions/CONVENTION_{ZAKRES}.md`
-   4.2. Status = draft
-
-### Forbidden
-
-- Nie rozbudowuj konwencji "na zapas" — minimalizm!
-- Nie wzoruj się na starych dokumentach bez sprawdzenia czy są zgodne z CONVENTION_META
-- Nie pisz po angielsku (warstwa sterowania = polski)
+3. Status = draft.
 
 ### Exit gate
 
-PASS jeśli:
-- YAML header kompletny
-- Wszystkie wymagane sekcje obecne
-- Status = draft
-- Plik zapisany w `documents/conventions/`
+PASS: YAML header kompletny, wymagane sekcje obecne, plik zapisany.
 
 ---
 
 ## Faza 4: Review
 
-**Owner:** architect (self-review) + opcjonalnie inni
+**Owner:** architect + reviewer (z YAML header konwencji)
 
 ### Steps
 
-1. Self-review: sprawdź zgodność z CONVENTION_META.
-   - [ ] YAML header kompletny?
-   - [ ] Wszystkie wymagane sekcje?
-   - [ ] Reguły numerowane (01R, 02R)?
-   - [ ] Antywzorce w formacie Bad → Why → Good?
-   - [ ] Język polski?
+1. Self-review zgodność z CONVENTION_META.
 
-2. Architektoniczny review.
-   - [ ] Konwencja jest DB-ready? (YAML parseable)
-   - [ ] Zgodna z SPIRIT.md? (filozofia projektu)
-   - [ ] Nie blokuje emergencji? (agility > stability)
-   - [ ] Audience poprawne?
+2. Architektoniczny review (DB-ready, zgodność z SPIRIT.md).
 
-3. Jeśli konwencja dotyczy workflow/promptów → poproś PE o review.
-
-4. Zapisz uwagi.
+3. Zapisz uwagi.
 
 ### Exit gate
 
-PASS jeśli:
-- Self-review checklist kompletny
-- Brak critical issues
-
-BLOCKED jeśli critical issues → wróć do Faza 3.
+PASS: review kompletny, brak critical issues.
+BLOCKED: critical issues → Faza 3.
 
 ---
 
@@ -250,63 +153,35 @@ BLOCKED jeśli critical issues → wróć do Faza 3.
 
 ### Steps
 
-1. Zbierz feedback.
-   1.1. Od reviewerów (PE, Metodolog jeśli zaangażowani)
-   1.2. Od użytkownika (Dawid) — wstępne uwagi
+1. Zbierz feedback od reviewerów.
 
 2. Wprowadź poprawki.
-   2.1. Adresuj każdą uwagę
-   2.2. Zachowaj minimalizm (nie dodawaj rzeczy "bo może się przydadzą")
 
-3. Zaktualizuj draft.
-   3.1. Bump `updated` date
-   3.2. Zapisz zmiany
+3. Zaktualizuj draft (bump `updated` date).
 
 4. Zmień status na `review`.
-   ```yaml
-   status: review
-   ```
-
-### Iteracja
-
-Jeśli feedback wymaga dużych zmian → wróć do Faza 3.
-Jeśli drobne poprawki → kontynuuj do Faza 6.
 
 ### Exit gate
 
-PASS jeśli:
-- Wszystkie uwagi zaadresowane
-- Status = review
-- Draft gotowy do zatwierdzenia
+PASS: uwagi zaadresowane, status = review.
 
 ---
 
 ## Faza 6: Approval
 
-**Owner:** dawid (jedyny approver)
+**Owner:** dawid
 
 ### Steps
 
-1. Przedstaw konwencję do zatwierdzenia.
-   1.1. Skopiuj do `documents/human/conventions/CONVENTION_{ZAKRES}.md` (kopia robocza dla Dawida)
-   1.2. Powiadom Dawida że konwencja czeka na approval
+1. Skopiuj do `documents/human/conventions/` (dla Dawida).
 
-2. Dawid przegląda i zatwierdza.
-   2.1. Jeśli uwagi → wróć do Faza 5
-   2.2. Jeśli OK → kontynuuj
-
-3. Zmień status na `active`.
-   ```yaml
-   status: active
-   ```
+2. Dawid zatwierdza.
+   - Uwagi → Faza 5.
+   - OK → status = active.
 
 ### Exit gate
 
-PASS jeśli:
-- Dawid zatwierdził
-- Status = active
-
-BLOCKED jeśli Dawid ma uwagi → wróć do Faza 5.
+PASS: Dawid zatwierdził, status = active.
 
 ---
 
@@ -317,84 +192,50 @@ BLOCKED jeśli Dawid ma uwagi → wróć do Faza 5.
 ### Steps
 
 1. Git commit.
-   ```
-   py tools/git_commit.py --message "feat(conventions): CONVENTION_{ZAKRES} v1.0 approved — [krótki opis]" --all
-   ```
 
-2. Powiadom role których dotyczy.
-   2.1. Wyślij wiadomość przez agent_bus do każdej roli z audience
-   2.2. Treść: nowa konwencja, lokalizacja, co zmienia
+2. Powiadom role z audience.
 
-3. Zaktualizuj powiązane dokumenty (jeśli potrzebne).
-   3.1. Czy role documents wymagają update? (session_start, checklist)
-   3.2. Jeśli tak → utwórz backlog item dla PE
-
-4. Zaloguj sesję.
-   ```
-   py tools/agent_bus_cli.py log --role architect --content-file tmp/log_convention.md
-   ```
+3. Zaloguj sesję.
 
 ### Exit gate
 
-PASS jeśli:
-- Commit wykonany
-- Role powiadomione
-- Powiązane dokumenty zaktualizowane (lub backlog items utworzone)
+PASS: commit, powiadomienia, log.
 
 ---
 
 ## Decision Points
 
-### Decision Point 1: Konwencja vs Workflow
+### Decision Point 1: Domena
 
-**decision_id:** check_convention_or_workflow
-**condition:** Dokument definiuje standard (jak coś POWINNO wyglądać) vs procedurę (jak coś zrobić)
-**path_true:** Kontynuuj ten workflow (to konwencja)
-**path_false:** Użyj `workflow_workflow_creation.md` (to workflow)
-**default:** Zapytaj Metodologa
-
-### Decision Point 2: Research potrzebny?
-
-**decision_id:** check_research_needed
-**condition:** Aspekt jest nowy LUB nie ma internal baseline (istniejący pattern w ecosystem)
-**path_true:** Faza 2 (research)
-**path_false:** Faza 3 (draft) — użyj internal baseline
-**default:** Faza 2 (research bezpieczniejszy)
+**decision_id:** check_domain
+**condition:** Czy to konwencja (Architect) czy inna domena?
+**path_convention:** Kontynuuj
+**path_workflow:** Przekaż do PE
+**path_other:** Przekaż do właściwej roli
+**default:** Zapytaj PE (źródło workflow/promptów)
 
 ---
 
-## Forbidden (pułapki z praktyki)
+## Forbidden
 
-1. **Nie wzoruj się na starych dokumentach bez weryfikacji.**
-   - PE wzorował się na `bi_view_creation_workflow.md` (nie DB-ready) → konwencja też nie DB-ready
-   - Zawsze sprawdź czy wzorzec jest zgodny z aktualnymi standardami
+1. **Brak przywiązania do legacy.**
+   Jest nowsze, lepsze (potwierdzone researchem) → zastępujemy stare bez sentymentów.
 
-2. **Nie rozbudowuj konwencji "na zapas".**
-   - "Optional fields" które nigdy nie będą używane = szum
-   - Minimalna konwencja + iteracyjne rozbudowywanie
+2. **Nie approver = author.**
+   Dawid jedyny approver.
 
-3. **Nie pisz konwencji bez researchu.**
-   - Research first, draft second
-   - Research ujawnia anti-patterns i proven patterns
-
-4. **Nie approver = author.**
-   - Dawid jest jedynym approverem dla wszystkich konwencji
-   - Autor nie zatwierdza własnej pracy
-
-5. **Nie cicha edycja aktywnej konwencji.**
-   - Każda zmiana = bump version + changelog entry
-   - Agenci z cached knowledge muszą wiedzieć że coś się zmieniło
+3. **Nie cicha edycja aktywnej konwencji.**
+   Zmiana = bump version + changelog.
 
 ---
 
-## Self-check przed zakończeniem
+## Self-check
 
-- [ ] Konwencja ma YAML header z wszystkimi wymaganymi polami?
-- [ ] Wszystkie wymagane sekcje obecne (TL;DR, Zakres, Reguły, Przykłady, Antywzorce, Changelog)?
-- [ ] Status = active (zatwierdzone przez Dawida)?
-- [ ] Git commit wykonany?
-- [ ] Role z audience powiadomione?
-- [ ] Jeśli nie → workflow nie jest zakończony!
+- [ ] Konwencja nie istniała (zwalidowane)?
+- [ ] Research wyczerpany?
+- [ ] YAML header kompletny?
+- [ ] Status = active?
+- [ ] Commit + powiadomienia?
 
 ---
 
@@ -402,4 +243,5 @@ PASS jeśli:
 
 | Wersja | Data | Zmiany |
 |---|---|---|
-| 1.0 | 2026-03-24 | Początkowa wersja — na podstawie historii tworzenia CONVENTION_META i CONVENTION_WORKFLOW |
+| 1.1 | 2026-03-24 | Review: minimalizm, usunięcie defensywnych reguł, research jako pętla, domain check, agent rewolucjonista |
+| 1.0 | 2026-03-24 | Początkowa wersja |
