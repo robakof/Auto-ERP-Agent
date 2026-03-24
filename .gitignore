@@ -37,6 +37,7 @@ Prompt.md
 
 # Baza danych (lokalna dla każdej maszyny, synchronizacja w przyszłości)
 mrowisko.db
+jas.db
 
 # Baza danych indeksu dokumentacji (regenerowalna)
 docs.db
