@@ -563,3 +563,34 @@ def test_message_validation(message_repo):
 
     with pytest.raises(ValidationError, match="sender"):
         message_repo.save(msg)
+
+
+def test_message_created_at_uses_db_default(message_repo):
+    """save() używa DB DEFAULT datetime('now') dla created_at (UTC)."""
+    msg = Message(sender="developer", recipient="analyst", content="Test")
+
+    saved = message_repo.save(msg)
+
+    # created_at should be set from DB (not from Python Entity default)
+    assert saved.created_at is not None
+    # Re-load from DB to verify it's persisted correctly
+    loaded = message_repo.get(saved.id)
+    assert loaded.created_at is not None
+
+
+def test_message_read_at_after_created_at_invariant(message_repo):
+    """Invariant: read_at >= created_at (timezone spójność UTC)."""
+    # Create message
+    msg = Message(sender="architect", recipient="developer", content="Review request")
+    saved = message_repo.save(msg)
+
+    # Mark as read
+    saved.mark_read()
+    updated = message_repo.save(saved)
+
+    # CRITICAL INVARIANT: read_at must be >= created_at
+    # Bug #118: read_at < created_at gdy timezone mismatch (local vs UTC)
+    assert updated.read_at is not None
+    assert updated.created_at is not None
+    assert updated.read_at >= updated.created_at, \
+        f"read_at ({updated.read_at}) < created_at ({updated.created_at}) — timezone mismatch!"

@@ -238,13 +238,17 @@ class MessageRepository(Repository[Message]):
             else:
                 # INSERT
                 cursor = conn.execute(
-                    """INSERT INTO messages (sender, recipient, content, type, status, session_id, created_at, read_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    """INSERT INTO messages (sender, recipient, content, type, status, session_id, read_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
                     (row_data["sender"], row_data["recipient"], row_data["content"],
                      row_data["type"], row_data["status"], row_data["session_id"],
-                     row_data["created_at"], row_data["read_at"])
+                     row_data["read_at"])
                 )
                 entity.id = cursor.lastrowid
+
+                # Read created_at from DB (uses DEFAULT datetime('now') = UTC)
+                row = conn.execute("SELECT created_at FROM messages WHERE id = ?", (entity.id,)).fetchone()
+                entity.created_at = datetime.fromisoformat(row["created_at"])
 
             return entity
 
