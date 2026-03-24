@@ -1,13 +1,17 @@
 """
 jas_export.py — Wysyła WZ z ERP do JAS API jako zlecenia spedycyjne.
 
-CLI:
+CLI — wysyłanie:
     python tools/jas_export.py --today                  # WZ na dzisiaj (główny tryb)
     python tools/jas_export.py --all                    # wszystkie WZ z widoku
     python tools/jas_export.py --wz-id 12345            # jedna WZ po ID
     python tools/jas_export.py --numer WZ/2026/00123    # jedna WZ po numerze
     python tools/jas_export.py --today --dry-run        # podgląd bez wysyłania
     python tools/jas_export.py --all --date 2026-03-25  # WZ na konkretny dzień
+
+CLI — dokumenty:
+    python tools/jas_export.py --docs --jas-id 77309           # etykiety + list przewozowy
+    python tools/jas_export.py --docs --jas-id 77309 --outdir output/jas  # do katalogu
 """
 
 import argparse
@@ -113,28 +117,52 @@ def run(wz_id: int | None, numer: str | None, dry_run: bool, date: str | None = 
     return {"ok": not errors, "sent": sent, "skipped": skipped, "errors": errors}
 
 
+def _run_docs(jas_id: int, outdir: str) -> None:
+    """Pobiera etykiety i list przewozowy dla zlecenia JAS."""
+    client = JasClient()
+    out = Path(outdir)
+    out.mkdir(parents=True, exist_ok=True)
+
+    for name, fetch in [("label", client.get_label), ("waybills", client.get_waybills)]:
+        pdf = fetch(jas_id)
+        path = out / f"jas_{name}_{jas_id}.pdf"
+        path.write_bytes(pdf)
+        print(f"OK: {path} ({len(pdf)} bytes)")
+
+
 def main() -> None:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-    parser = argparse.ArgumentParser(description="Wyślij WZ do JAS API.")
+    parser = argparse.ArgumentParser(description="Wyślij WZ do JAS API / pobierz dokumenty.")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--all",    action="store_true", help="Wszystkie WZ z widoku")
     group.add_argument("--wz-id",  type=int,            help="WZ po ID")
     group.add_argument("--numer",  type=str,            help="WZ po numerze")
+    group.add_argument("--docs",   action="store_true", help="Pobierz dokumenty PDF (wymaga --jas-id)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Pokaż payload bez wysyłania do JAS")
     parser.add_argument("--date", type=str, default=None,
-                        help="Filtr po data_realizacji_zs (YYYY-MM-DD). Domyślnie: brak filtru.")
+                        help="Filtr po data_realizacji_zs (YYYY-MM-DD).")
     parser.add_argument("--today", action="store_true",
                         help="Skrót: --all --date <dzisiaj>")
+    parser.add_argument("--jas-id", type=int, default=None,
+                        help="ID zlecenia JAS (do --docs)")
+    parser.add_argument("--outdir", type=str, default="output/jas",
+                        help="Katalog wyjściowy dla dokumentów (domyślnie: output/jas)")
     args = parser.parse_args()
+
+    if args.docs:
+        if args.jas_id is None:
+            parser.error("--docs wymaga --jas-id.")
+        _run_docs(args.jas_id, args.outdir)
+        return
 
     if args.today:
         args.all = True
         args.date = datetime.date.today().isoformat()
 
     if not args.all and args.wz_id is None and args.numer is None:
-        parser.error("Podaj --today, --all, --wz-id lub --numer.")
+        parser.error("Podaj --today, --all, --wz-id, --numer lub --docs.")
 
     result = run(
         wz_id=args.wz_id,

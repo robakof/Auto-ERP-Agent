@@ -94,3 +94,19 @@ class JasClient:
         if not resp.ok:
             raise JasApiError(resp.status_code, resp.text)
         return resp.json()
+
+    def get_label(self, shipment_id: int) -> bytes:
+        """GET /domestic-groupage-shipment/{id}/label. Zwraca PDF z etykietami."""
+        url = f"{self._api_url}/domestic-groupage-shipment/{shipment_id}/label"
+        resp = requests.get(url, headers=self._token_header(), timeout=30)
+        if not resp.ok:
+            raise JasApiError(resp.status_code, resp.text)
+        return resp.content
+
+    def get_waybills(self, shipment_id: int) -> bytes:
+        """GET /domestic-groupage-shipment/{id}/label/waybills. Zwraca PDF listu przewozowego."""
+        url = f"{self._api_url}/domestic-groupage-shipment/{shipment_id}/label/waybills"
+        resp = requests.get(url, headers=self._token_header(), timeout=30)
+        if not resp.ok:
+            raise JasApiError(resp.status_code, resp.text)
+        return resp.content
