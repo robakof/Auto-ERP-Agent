@@ -121,6 +121,31 @@ class TestMessages:
         assert inbox[0]["content"] == "first"
         assert inbox[1]["content"] == "second"
 
+    def test_handoff_round_trip(self, bus):
+        """W4: Test handoff type message round-trip."""
+        handoff_content = """**Status:** PASS
+
+**Verification summary:**
+Task completed successfully.
+
+**Next expected action:**
+Review and merge"""
+        msg_id = bus.send_message(
+            sender="developer",
+            recipient="architect",
+            content=handoff_content,
+            type="handoff"
+        )
+        assert msg_id is not None
+
+        inbox = bus.get_inbox("architect")
+        assert len(inbox) == 1
+        msg = inbox[0]
+        assert msg["type"] == "handoff"
+        assert msg["sender"] == "developer"
+        assert "**Status:** PASS" in msg["content"]
+        assert "**Next expected action:**" in msg["content"]
+
 
 class TestSuggestions:
     def test_add_suggestion_returns_id(self, bus):
@@ -522,3 +547,159 @@ class TestTransactions:
         assert len(bus.get_suggestions()) == 0
         assert len(bus.get_backlog()) == 0
         assert len(bus.get_inbox("analyst")) == 0
+
+
+class TestWorkflowExecution:
+    """Test workflow execution tracking (W3 from code review)."""
+
+    def test_start_workflow_execution(self, bus):
+        """start_workflow_execution returns execution_id."""
+        exec_id = bus.start_workflow_execution(
+            workflow_id="test_workflow",
+            role="developer",
+            session_id="sess_123"
+        )
+        assert exec_id is not None
+        assert isinstance(exec_id, int)
+        assert exec_id > 0
+
+    def test_log_step(self, bus):
+        """log_step records a workflow step."""
+        exec_id = bus.start_workflow_execution("wf_1", "developer")
+        step_id = bus.log_step(
+            execution_id=exec_id,
+            step_id="step_1",
+            status="PASS",
+            step_index=1,
+            output_summary="Step completed"
+        )
+        assert step_id is not None
+        assert isinstance(step_id, int)
+
+    def test_log_step_with_json(self, bus):
+        """log_step can store output_json."""
+        exec_id = bus.start_workflow_execution("wf_1", "developer")
+        step_id = bus.log_step(
+            execution_id=exec_id,
+            step_id="step_1",
+            status="PASS",
+            output_json={"files_created": 3, "tests_passed": True}
+        )
+        assert step_id is not None
+
+    def test_end_workflow_execution(self, bus):
+        """end_workflow_execution sets status and ended_at."""
+        exec_id = bus.start_workflow_execution("wf_1", "developer")
+        result = bus.end_workflow_execution(exec_id, status="completed")
+
+        assert result["ok"] is True
+        status = bus.get_execution_status(exec_id)
+        assert status["status"] == "completed"
+        assert status["ended_at"] is not None
+
+    def test_end_workflow_execution_failed(self, bus):
+        """end_workflow_execution can mark as failed."""
+        exec_id = bus.start_workflow_execution("wf_1", "developer")
+        result = bus.end_workflow_execution(exec_id, status="failed")
+
+        assert result["ok"] is True
+        status = bus.get_execution_status(exec_id)
+        assert status["status"] == "failed"
+
+    def test_end_workflow_idempotency_guard(self, bus):
+        """W1: end_workflow_execution rejects already-ended workflow."""
+        exec_id = bus.start_workflow_execution("wf_1", "developer")
+
+        # First end — should succeed
+        result1 = bus.end_workflow_execution(exec_id, status="completed")
+        assert result1["ok"] is True
+
+        # Second end — should fail (idempotency guard)
+        result2 = bus.end_workflow_execution(exec_id, status="failed")
+        assert result2["ok"] is False
+        assert "already ended" in result2["message"]
+        assert "'completed'" in result2["message"]
+
+        # Status should remain "completed" (not overwritten to "failed")
+        status = bus.get_execution_status(exec_id)
+        assert status["status"] == "completed"
+
+    def test_end_workflow_not_found(self, bus):
+        """end_workflow_execution returns error for non-existent execution."""
+        result = bus.end_workflow_execution(99999, status="completed")
+        assert result["ok"] is False
+        assert "not found" in result["message"]
+
+    def test_get_execution_status(self, bus):
+        """get_execution_status returns execution with steps."""
+        exec_id = bus.start_workflow_execution("wf_test", "developer", "sess_abc")
+        bus.log_step(exec_id, "step_1", "PASS", step_index=1)
+        bus.log_step(exec_id, "step_2", "PASS", step_index=2)
+        bus.log_step(exec_id, "step_3", "FAIL", step_index=3)
+
+        status = bus.get_execution_status(exec_id)
+        assert status["workflow_id"] == "wf_test"
+        assert status["role"] == "developer"
+        assert status["session_id"] == "sess_abc"
+        assert len(status["steps"]) == 3
+        assert status["last_step"] == "step_3"
+        assert status["last_status"] == "FAIL"
+
+    def test_get_execution_status_not_found(self, bus):
+        """get_execution_status returns None for invalid id."""
+        status = bus.get_execution_status(99999)
+        assert status is None
+
+    def test_get_interrupted_executions(self, bus):
+        """get_interrupted_executions returns running workflows."""
+        exec_id_1 = bus.start_workflow_execution("wf_1", "developer")
+        exec_id_2 = bus.start_workflow_execution("wf_2", "developer")
+        exec_id_3 = bus.start_workflow_execution("wf_3", "analyst")
+
+        # End one of them
+        bus.end_workflow_execution(exec_id_1, "completed")
+
+        # All interrupted (no role filter)
+        interrupted = bus.get_interrupted_executions()
+        assert len(interrupted) == 2
+        ids = [e["id"] for e in interrupted]
+        assert exec_id_2 in ids
+        assert exec_id_3 in ids
+        assert exec_id_1 not in ids
+
+    def test_get_interrupted_executions_by_role(self, bus):
+        """get_interrupted_executions filters by role."""
+        bus.start_workflow_execution("wf_1", "developer")
+        bus.start_workflow_execution("wf_2", "analyst")
+
+        dev_interrupted = bus.get_interrupted_executions(role="developer")
+        assert len(dev_interrupted) == 1
+        assert dev_interrupted[0]["role"] == "developer"
+
+    def test_workflow_full_lifecycle(self, bus):
+        """Test full workflow lifecycle: start -> steps -> end."""
+        # Start
+        exec_id = bus.start_workflow_execution("bi_view_creation", "erp_specialist", "sess_xyz")
+
+        # Log steps
+        bus.log_step(exec_id, "validate_request", "PASS", 1, "Request validated")
+        bus.log_step(exec_id, "generate_sql", "PASS", 2, "SQL generated")
+        bus.log_step(exec_id, "test_sql", "PASS", 3, "Tests passed")
+
+        # Check status mid-workflow
+        status = bus.get_execution_status(exec_id)
+        assert status["status"] == "running"
+        assert status["ended_at"] is None
+        assert len(status["steps"]) == 3
+
+        # End workflow
+        bus.end_workflow_execution(exec_id, "completed")
+
+        # Final status
+        final = bus.get_execution_status(exec_id)
+        assert final["status"] == "completed"
+        assert final["ended_at"] is not None
+
+        # No longer in interrupted list
+        interrupted = bus.get_interrupted_executions(role="erp_specialist")
+        assert len(interrupted) == 0

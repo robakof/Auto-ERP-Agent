@@ -811,8 +811,27 @@ class AgentBus:
         self._conn.commit()
         return cursor.lastrowid
 
-    def end_workflow_execution(self, execution_id: int, status: str = "completed") -> None:
-        """End a workflow execution (set ended_at and status)."""
+    def end_workflow_execution(self, execution_id: int, status: str = "completed") -> dict:
+        """End a workflow execution (set ended_at and status).
+
+        Returns dict with 'ok' and 'message' keys. If workflow is already ended,
+        returns ok=False with info about current status (idempotency guard).
+        """
+        # Check current state first (idempotency guard)
+        row = self._conn.execute(
+            "SELECT status, ended_at FROM workflow_execution WHERE id = ?",
+            (execution_id,),
+        ).fetchone()
+
+        if not row:
+            return {"ok": False, "message": f"Execution {execution_id} not found"}
+
+        if row["ended_at"] is not None:
+            return {
+                "ok": False,
+                "message": f"Execution {execution_id} already ended with status '{row['status']}'"
+            }
+
         self._conn.execute(
             """UPDATE workflow_execution
                SET status = ?, ended_at = datetime('now')
@@ -820,6 +839,7 @@ class AgentBus:
             (status, execution_id),
         )
         self._conn.commit()
+        return {"ok": True, "message": f"Execution {execution_id} ended with status '{status}'"}
 
     def get_execution_status(self, execution_id: int) -> dict | None:
         """Get execution status with steps."""

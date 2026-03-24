@@ -320,8 +320,8 @@ def cmd_step_log(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 
 def cmd_workflow_end(args: argparse.Namespace, bus: AgentBus) -> dict:
-    bus.end_workflow_execution(args.execution_id, args.status)
-    return {"ok": True}
+    result = bus.end_workflow_execution(args.execution_id, args.status)
+    return result
 
 
 def cmd_execution_status(args: argparse.Namespace, bus: AgentBus) -> dict:
