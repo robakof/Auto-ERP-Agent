@@ -72,10 +72,7 @@ Używaj gdy brakuje standardu dla aspektu projektu (np. format commitów, strukt
    1.3. Jeśli znaleziona gdzie indziej → przenieś do `documents/conventions/` lub użyj.
    1.4. Jeśli nadal nie ma → **zapytaj użytkownika** przed tworzeniem nowej.
 
-2. Jeśli konwencja istnieje → rozważ update zamiast tworzenia nowej.
-   2.1. Czy istniejąca konwencja pokrywa potrzebę?
-   2.2. Jeśli częściowo → zaproponuj rozszerzenie (update, nie nowa).
-   2.3. Jeśli zupełnie nie pasuje → kontynuuj tworzenie nowej.
+cie
 
 3. Nazwij gap (tylko jeśli potwierdzono brak konwencji).
    3.1. Co dokładnie wymaga standaryzacji?

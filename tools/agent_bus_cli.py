@@ -63,6 +63,38 @@ def cmd_send(args: argparse.Namespace, bus: AgentBus) -> dict:
     return {"ok": True, "id": msg_id}
 
 
+def cmd_handoff(args: argparse.Namespace, bus: AgentBus) -> dict:
+    """Send a structured handoff message between roles."""
+    # Build structured content
+    parts = [f"## Handoff: {args.phase}"]
+    parts.append(f"**Status:** {args.status}")
+
+    if args.artifacts_file:
+        artifacts = Path(args.artifacts_file).read_text(encoding="utf-8")
+        parts.append(f"\n**Artifacts:**\n{artifacts}")
+
+    if args.summary:
+        parts.append(f"\n**Verification summary:**\n{args.summary}")
+
+    if args.next_action:
+        parts.append(f"\n**Next expected action:**\n{args.next_action}")
+
+    if args.content_file:
+        extra = Path(args.content_file).read_text(encoding="utf-8")
+        parts.append(f"\n**Details:**\n{extra}")
+
+    content = "\n".join(parts)
+
+    msg_id = bus.send_message(
+        sender=args.sender,
+        recipient=args.to,
+        content=content,
+        type="handoff",
+        session_id=args.session_id,
+    )
+    return {"ok": True, "id": msg_id}
+
+
 def cmd_inbox(args: argparse.Namespace, bus: AgentBus) -> dict:
     messages = bus.get_inbox(role=args.role, status=args.status)
     return {"ok": True, "data": messages, "count": len(messages)}
@@ -288,6 +320,21 @@ def build_parser() -> argparse.ArgumentParser:
                         choices=["suggestion", "task", "info", "flag_human"])
     p_send.add_argument("--session-id", dest="session_id", default=None)
 
+    # handoff
+    p_handoff = subparsers.add_parser("handoff", help="Send structured handoff between roles")
+    p_handoff.add_argument("--from", dest="sender", required=True)
+    p_handoff.add_argument("--to", required=True)
+    p_handoff.add_argument("--phase", required=True, help="Workflow phase completed")
+    p_handoff.add_argument("--status", required=True, choices=["PASS", "BLOCKED", "ESCALATE"])
+    p_handoff.add_argument("--artifacts-file", dest="artifacts_file", default=None,
+                           help="Path to artifacts list (JSON or markdown)")
+    p_handoff.add_argument("--summary", default=None, help="Verification summary")
+    p_handoff.add_argument("--next-action", dest="next_action", default=None,
+                           help="Next expected action for recipient")
+    p_handoff.add_argument("--content-file", dest="content_file", default=None,
+                           help="Additional details")
+    p_handoff.add_argument("--session-id", dest="session_id", default=None)
+
     # inbox
     p_inbox = subparsers.add_parser("inbox", help="Get messages for a role")
     p_inbox.add_argument("--role", required=True)
@@ -418,6 +465,7 @@ def main():
     bus = AgentBus(db_path=args.db)
     commands = {
         "send": cmd_send,
+        "handoff": cmd_handoff,
         "inbox": cmd_inbox,
         "suggest": cmd_suggest,
         "suggest-bulk": cmd_suggest_bulk,

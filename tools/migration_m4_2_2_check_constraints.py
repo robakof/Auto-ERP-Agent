@@ -22,7 +22,7 @@ CHECK_CONSTRAINTS = [
     {
         "table": "messages",
         "column": "type",
-        "values": ["direct", "suggestion", "task", "escalation", "flag_human", "info"],
+        "values": ["direct", "suggestion", "task", "escalation", "flag_human", "info", "handoff"],
         "comment": "Legacy aliases (flag_human, info) included for backward compatibility"
     },
     {

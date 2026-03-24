@@ -33,6 +33,7 @@ class MessageType(Enum):
     SUGGESTION = "suggestion"
     TASK = "task"
     ESCALATION = "escalation"
+    HANDOFF = "handoff"
 
 
 @dataclass

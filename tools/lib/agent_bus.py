@@ -10,7 +10,7 @@ import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 
-ALLOWED_MESSAGE_TYPES = {"suggestion", "task", "info", "flag_human"}
+ALLOWED_MESSAGE_TYPES = {"suggestion", "task", "info", "flag_human", "handoff"}
 
 HEARTBEAT_TTL_SECONDS = 60
 
@@ -66,7 +66,10 @@ CREATE TABLE IF NOT EXISTS messages (
     status      TEXT NOT NULL DEFAULT 'unread',
     session_id  TEXT,
     created_at  TEXT NOT NULL DEFAULT (datetime('now')),
-    read_at     TEXT
+    read_at     TEXT,
+    claimed_by  TEXT,
+    title       TEXT NOT NULL DEFAULT '',
+    CHECK (type IN ('direct', 'suggestion', 'task', 'escalation', 'flag_human', 'info', 'handoff'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_recipient_status
