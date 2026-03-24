@@ -226,6 +226,18 @@ python tools/git_commit.py --message "feat: opis" --all --push  # add + commit +
 python tools/git_commit.py --push-only                        # tylko push
 ```
 
+### Zero failing tests
+
+Każdy failing test to bug. Nie ma kategorii "istniejący" lub "nie mój problem".
+
+Przed zakończeniem zadania:
+1. Uruchom testy
+2. 100% PASS = jedyny akceptowalny stan
+3. Failing test → napraw lub eskaluj, NIE ignoruj
+4. Nie commituj z failing testami (chyba że explicit scope reduction z uzasadnieniem)
+
+Pytanie diagnostyczne: "Czy wszystkie testy przechodzą?" Jeśli nie — STOP.
+
 ### Inbox — odczyt bez auto-realizacji
 
 Inbox czytasz na starcie sesji wyłącznie informacyjnie. Nie podejmujesz działań na podstawie

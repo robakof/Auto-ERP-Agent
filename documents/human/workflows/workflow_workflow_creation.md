@@ -174,7 +174,7 @@ PASS: uwagi zebrane, zakres potwierdzony.
    Wszystko pochodzi z konwersacji źródłowej. Jeśli agent tego nie robił — nie dodawaj.
 
 2. **Nie komplikuj.**
-   LLMy mają skłonność do over-engineering. Minimum z praktyki.
+    Minimum z praktyki > over-engineering.
 
 3. **Nie formalizuj jednorazówek.**
    Workflow tylko dla powtarzalnych procesów.
