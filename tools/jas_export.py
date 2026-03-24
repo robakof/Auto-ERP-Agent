@@ -99,7 +99,7 @@ def run(wz_id: int | None, numer: str | None, dry_run: bool, date: str | None = 
 
         try:
             response = client.create_shipment(payload)
-            jas_id = response.get("id")
+            jas_id = response.get("shipment", {}).get("id")
             print(f"OK: {numer_wz} id={jas_id}")
             _record_result(wid, numer_wz, jas_id=jas_id)
             sent += 1
