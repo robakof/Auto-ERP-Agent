@@ -78,6 +78,47 @@ Twr_DataUtworzenia/86400+69035 >= ??DataOd
 
 ---
 
+## Wzorce tłumaczeń wartości (widoki BI)
+
+### Konwencje nazewnictwa kolumn
+
+- Kolumny: PascalCase z underscore, polskie, opisowe (`Data_Wystawienia`, `Kod_Towaru`)
+- Klucz główny widoku: `ID_[encja]` (np. `ID_Rezerwacji`, `ID_Zamowienia`)
+- Para lookup: zawsze `Kod_X` + `Nazwa_X`
+- WHERE: tylko wykluczenie rekordów technicznych (np. `Rez_TwrNumer > 0`). Nigdy logika biznesowa.
+
+### Flagi 0/1
+
+```sql
+CASE pole
+    WHEN 1 THEN 'Tak'
+    WHEN 0 THEN 'Nie'
+    ELSE 'Nieznane (' + CAST(pole AS VARCHAR) + ')'
+END AS Flaga_Nazwa
+```
+
+### Enumeracje — ELSE obowiązkowy
+
+```sql
+CASE pole
+    WHEN 960 THEN 'Zamówienie sprzedaży'
+    WHEN 1152 THEN 'Zamówienie zakupu'
+    ELSE 'Nieznane (' + CAST(pole AS VARCHAR) + ')'
+END AS Typ_Dokumentu
+```
+
+**UWAGA:** ELSE z surową wartością jest obowiązkowy — nowe wartości mogą pojawić się w przyszłości.
+
+### Pole numeryczne = brak (0 → NULL)
+
+```sql
+CASE WHEN col = 0 THEN NULL ELSE col END AS ID_Powiazania
+```
+
+Stosuj gdy 0 oznacza "brak powiązania" (np. klucze obce, numery dokumentów).
+
+---
+
 ## Odkrywanie nazw nieznanych tabel
 
 Nazwy tabel CDN są nieintuicyjne — **nigdy nie zgaduj**. Zawsze weryfikuj przez:
@@ -452,6 +493,33 @@ LEFT JOIN Sciezka_Grup sg ON sg.KGD_GIDNumer = kgd.KGD_GrONumer
 
 `KGD_GIDNumer` (type=32) = `Knt_GIDNumer` kontrahenta (nie `Knt_KnGNumer`!).
 `KGD_GrONumer` = GIDNumer grupy nadrzędnej w hierarchii type=-32.
+
+### Grupy towarów — CDN.TwrGrupyDom
+
+Analogiczny wzorzec dla hierarchii grup towarowych.
+
+| Tabela | Typ rekordów | Zastosowanie |
+|---|---|---|
+| `CDN.TwrGrupyDom` type=-16 | definicje grup (hierarchia) | budowanie ścieżki CTE |
+| `CDN.TwrGrupyDom` type=16 | przynależność towaru do grupy | link towar → grupa |
+
+**Wzorzec dla grupy towarowej (ścieżka rekurencyjna):**
+```sql
+WITH Sciezka_Grup AS (
+    SELECT GIDNumer, GrONumer, CAST(Kod AS NVARCHAR(500)) AS Sciezka
+    FROM CDN.TwrGrupyDom WHERE GIDTyp = -16 AND GrONumer = 0
+    UNION ALL
+    SELECT d.GIDNumer, d.GrONumer, CAST(sg.Sciezka + '\' + d.Kod AS NVARCHAR(500))
+    FROM CDN.TwrGrupyDom d JOIN Sciezka_Grup sg ON sg.GIDNumer = d.GrONumer
+    WHERE d.GIDTyp = -16
+)
+-- W zapytaniu głównym:
+LEFT JOIN CDN.TwrGrupyDom tgd
+    ON tgd.GIDNumer = t.Twr_GIDNumer AND tgd.GIDTyp = 16
+LEFT JOIN Sciezka_Grup sg ON sg.GIDNumer = tgd.GrONumer
+```
+
+Format ścieżki: `Poziom1\Poziom2\Poziom3`. Kolumny: `ID_Grupy` + `Sciezka_Grupy`.
 
 ---
 

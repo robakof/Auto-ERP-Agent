@@ -1,6 +1,6 @@
 ---
 workflow_id: bi_view_creation
-version: "2.0"
+version: "3.0"
 owner_role: erp_specialist
 trigger: "Użytkownik prosi o utworzenie widoku BI"
 participants:
@@ -10,6 +10,8 @@ participants:
 related_docs:
   - documents/erp_specialist/ERP_SQL_SYNTAX.md
   - documents/erp_specialist/ERP_SCHEMA_PATTERNS.md
+  - solutions/reference/obiekty.tsv
+  - solutions/reference/numeracja_wzorce.tsv
 prerequisites:
   - session_init_done
 outputs:
@@ -22,13 +24,9 @@ outputs:
 
 # Workflow: Tworzenie widoku BI
 
-Kanoniczny dokument procesowy. Obowiązuje wszystkie role uczestniczące w tworzeniu widoku BI.
-
-W runtime agent dostaje tylko sekcję swojej bieżącej fazy + `handoffs/bi_view_handoff_schema.md`.
-Nie wczytuj całego dokumentu do promptu sesji.
+Proces tworzenia widoku BI dla systemu ERP Comarch XL.
 
 **Statusy faz:** `PASS` | `BLOCKED` | `ESCALATE`
-Faza kończy się wyłącznie jednym z tych statusów — nigdy "luźnym podsumowaniem".
 
 ## Outline
 
@@ -48,22 +46,23 @@ Faza kończy się wyłącznie jednym z tych statusów — nigdy "luźnym podsumo
 ### Steps
 
 1. Ustal `{NazwaWidoku}` = nazwa tabeli źródłowej bez prefixu `CDN.*`
-   (np. `ZamNag` z CDN.ZamNag, `KntKarty` z CDN.KntKarty)
-   Nigdy nie używaj polskich nazw opisowych (`Zamowienia`, `Kontrahenci`).
-2. Utwórz plik roboczy jeśli nie istnieje:
+   (np. `ZamNag`, `KntKarty`). Nie używaj polskich nazw opisowych.
+
+2. Utwórz plik roboczy:
    ```
-   solutions/bi/{NazwaWidoku}/{NazwaWidoku}_draft.sql    ← brudnopis SELECT (nie CREATE VIEW)
+   solutions/bi/{NazwaWidoku}/{NazwaWidoku}_draft.sql
    ```
-3. Przy wznawianiu po przerwie — przeczytaj oba pliki zanim wykonasz jakiekolwiek zapytanie.
+
+3. Przy wznawianiu — przeczytaj pliki zanim wykonasz zapytanie.
 
 ### Forbidden
 
-- Nie zaczynaj pisać SQL przed zakończeniem Inicjalizacji.
-- Nie twórz `CREATE VIEW` w brudnopisie — wyłącznie `SELECT`.
+- Nie zaczynaj SQL przed zakończeniem Inicjalizacji.
+- Nie używaj `CREATE VIEW` w brudnopisie — tylko `SELECT`.
 
 ### Exit gate
 
-PASS jeśli oba pliki robocze istnieją.
+PASS jeśli plik roboczy istnieje.
 
 ---
 
@@ -77,72 +76,41 @@ Zrozumieć dane przed napisaniem kodu. Nie zgadywać.
 
 ### Steps
 
-1. Poznaj strukturę tabeli:
-   ```sql
-   SELECT TOP 1 * FROM CDN.MainTable
-   ```
-   Dla każdego klucza obcego — sprawdź etykietę tabeli docelowej przez `docs_search.py "" --table CDN.PotencjalnaTabela` zanim napiszesz JOIN.
+1. Poznaj strukturę tabeli (`SELECT TOP 1 *`).
+   Dla każdego klucza obcego — sprawdź etykietę przez `docs_search.py`.
 
-2. Ustal baseline row count:
-   ```sql
-   SELECT COUNT(*), COUNT(DISTINCT GIDNumer) FROM CDN.MainTable WHERE <filtr techniczny>
-   ```
-   Ten count musi zgadzać się z wynikiem końcowego SELECT. Więcej po JOINach = JOIN mnoży wiersze.
+2. Ustal baseline row count (`COUNT(*), COUNT(DISTINCT GIDNumer)`).
 
-3. Zbadaj enumeracje — baza i dokumentacja razem:
-   - Pobierz wszystkie unikalne wartości: `SELECT pole, COUNT(*) FROM CDN.MainTable GROUP BY pole`
-   - Sprawdź `solutions/reference/obiekty.tsv` — pełna lista 280+ typów GID (symbol, nazwa, opis). Szybsze niż zapytanie do CDN.Obiekty.
-   - Jeśli brak w obiekty.tsv: `SELECT OB_GIDTyp, OB_Nazwa FROM CDN.Obiekty WHERE OB_GIDTyp IN (...)`
-   - Sprawdź dokumentację: `python tools/docs_search.py "nazwa_pola" --table CDN.MainTable`
-   - CASE musi pokrywać wartości z bazy ORAZ z dokumentacji (mogą pojawić się jutro).
-   - **Brak opisu wartości:** Oceń czy rozkodowanie jest niezbędne.
-     Eskaluj gdy pole kluczowe do filtrowania/grupowania i wymaga rozkodowania.
-     Zostaw raw (liczby 0/1/2, statusy) + adnotacja w planie gdy pole może być surowe.
+3. Zbadaj enumeracje:
+   - `GROUP BY pole` w bazie
+   - `solutions/reference/obiekty.tsv` (280+ typów GID)
+   - `docs_search.py` w dokumentacji
+   - CASE musi pokrywać wartości z bazy ORAZ dokumentacji.
 
-4. Zidentyfikuj typ pól datowych:
-   ```sql
-   SELECT MIN(col), MAX(col) FROM CDN.MainTable WHERE col > 0
-   ```
-   - ~70 000–109 211 → Clarion DATE → `DATEADD(d, col, '18001228')` → alias `Data_XXX`
-   - ~10^9 → Clarion TIMESTAMP → `DATEADD(ss, col, '1990-01-01')` → alias `DataCzas_XXX`
-   - Format daty → SQL DATE (bez konwersji) → alias `Data_XXX`
+4. Zidentyfikuj typy pól datowych.
+   → Zobacz `ERP_SCHEMA_PATTERNS.md` sekcja "Konwersja dat Clarion".
 
 5. Weryfikacja numerów dokumentów:
-   - Krok 1: zbierz wszystkie podtypy z tabeli źródłowej (`GROUP BY TypPole`)
-   - Krok 2: sprawdź `solutions/reference/numeracja_wzorce.tsv` — wzorce formatów dla TraNag (25 typów), ZamNag, ZP, NM, NO, UP, KB, RK. Jeśli wszystkie podtypy są tam — nie eskaluj do usera.
-   - Krok 2b (jeśli podtyp brak w TSV): sprawdź `solutions/reference/obiekty.tsv` (kolumna `Ob_Skrot` dla danego GIDTypu) — jeśli skrót znany, użyj formatu `SKRÓT-Nr/MM/YY[/Seria]` przez analogię do istniejących wzorców. Nie eskaluj jeśli skrót wystarczy.
-   - Krok 3 (tylko gdy skrót nieznany lub format niestandardowy): zapytanie z `CDN.NazwaObiektu(TypPole, NumerPole, 0, 2)` — po jednym przykładzie na każdy nieznany podtyp. Zapisz do `solutions/bi/{NazwaWidoku}/{NazwaWidoku}_objects.sql`, przekaż ścieżkę userowi.
-   - Nie pisz numeracji dokumentów dopóki nie masz zweryfikowanego formatu (z TSV lub od usera)
+   - Sprawdź `solutions/reference/numeracja_wzorce.tsv`
+   - Nieznany format → eskaluj do usera
+   → Zobacz `ERP_SCHEMA_PATTERNS.md` sekcja "Numeracja dokumentów".
 
-6. Zbadaj klucze obce bez oczywistej tabeli docelowej:
-   - `INFORMATION_SCHEMA.COLUMNS WHERE COLUMN_NAME LIKE 'POK_%'`
+6. Zbadaj klucze obce bez oczywistej tabeli:
+   - `INFORMATION_SCHEMA.COLUMNS`
    - Zakres wartości w `CDN.Obiekty`
-   - JOIN testowy — 100% dopasowań = silny dowód
-   - Nie deklaruj "brak tabeli" bez przejścia przez wszystkie trzy kroki.
+   - JOIN testowy (100% dopasowań = silny dowód)
 
-7. Sprawdź JOINy przez COUNT:
-   ```sql
-   SELECT COUNT(*), COUNT(DISTINCT GIDNumer) FROM ... LEFT JOIN CDN.XXX ON ...
-   ```
-   COUNT(*) > COUNT(DISTINCT) → JOIN mnoży wiersze → dodaj warunek zawężający.
+7. Sprawdź JOINy przez COUNT (czy mnożą wiersze).
 
 ### Forbidden
 
-- Nie zakładaj typów kolumn bez weryfikacji MIN/MAX.
-- Nie wpisuj wartości enumeracji bez potwierdzenia w CDN.Obiekty lub dokumentacji.
-- Nie deklaruj braku tabeli referencyjnej bez przejścia przez 3 kroki.
-- Nie pisz numeracji dokumentów bez wyniku od usera.
+- Nie zakładaj typów bez weryfikacji MIN/MAX.
+- Nie wpisuj enumeracji bez potwierdzenia.
+- Nie pisz numeracji bez formatu od usera.
 
 ### Exit gate
 
-PASS jeśli:
-- Baseline row count ustalony.
-- Typy wszystkich pól datowych zidentyfikowane.
-- Enumeracje zbadane (baza + dokumentacja).
-- Numery dokumentów: wynik od usera otrzymany LUB zapytanie przekazane i sesja czeka.
-- Progress log zapisany do bazy.
-
-BLOCKED jeśli którykolwiek warunek niespełniony — opisz brak w `missing_items`.
+PASS jeśli: baseline ustalony, typy dat zidentyfikowane, enumeracje zbadane.
 
 ### Po fazie
 
@@ -160,125 +128,44 @@ python tools/agent_bus_cli.py log --role erp_specialist --content-file tmp/log_f
 
 Zatwierdzony plan kolumn przed napisaniem SQL.
 
----
-
 ### Faza 1a — Tworzenie planu (ERP Specialist)
 
-#### Steps
+1. Dla każdej kolumny pobierz opis z dokumentacji (`docs_search.py`).
 
-1. Dla każdej kolumny CDN.MainTable pobierz opis z dokumentacji:
-   ```
-   python tools/docs_search.py "" --table CDN.MainTable
-   ```
-   Z wyniku: `col_label` → `Opis_w_dokumentacji`, `sample_values` → `Przykladowe_wartosci`.
-   Gdy brak → zostaw puste. Nigdy nie wpisuj `col_name` jako opisu.
+2. Dla każdej kolumny zadaj pytania:
+   - Klucz obcy? → sprowadź kod + nazwa
+   - Enumeracja/flaga? → CASE z dokumentacji i bazy
+   - Data? → konwersja Clarion (patrz `ERP_SCHEMA_PATTERNS.md`)
+   - GIDFirma/GIDLp? → pomijamy
+   - GIDNumer? → zachowaj jako `ID_[encja]`
 
-2. Dla każdej kolumny zadaj kolejno:
-   - **Klucz obcy?** → sprawdź CDN.Obiekty lub tabelę docelową, sprowadź kod + nazwa. Zachowaj ID.
-   - **Enumeracja/flaga?** → pełny CASE z dokumentacji i bazy.
-   - **Data?** → zidentyfikuj typ Clarion, zastosuj konwersję, użyj właściwego aliasu.
-   - **Pole opisowe?** → bez zmian, uwzględnij.
-   - **GIDFirma / GIDLp?** → pomijamy zawsze.
-   - **GIDTyp?** → tłumaczymy CASE gdy rozróżnia typy. Pomijamy gdy stały dla całej tabeli.
-   - **GIDNumer?** → zachowujemy jako `ID_[encja]`.
-   - **Typ_Dok?** → zawsze pełna nazwa PL. `'Faktura sprzedaży'` nie `'FS'`.
-   - **Inne techniczne?** → domyślnie uwzględniaj. Pomiń tylko przy COUNT DISTINCT = 1.
+3. Zasada pominięcia — TYLKO:
+   - `COUNT(DISTINCT) = 1`
+   - Dokumentacja: "nieużywane"
+   - Dane wrażliwe (PESEL, rachunek bankowy)
+   - GIDFirma, GIDLp
 
-3. Zasada pominięcia — TYLKO jeden z warunków:
-   1. `COUNT(DISTINCT col) = 1` — udowodnione zapytaniem
-   2. Dokumentacja wprost: "pole nie jest obsługiwane" / "nieużywane"
-   3. Dane wrażliwe (PESEL, rachunek bankowy, dokument tożsamości)
-   4. Czyste komponenty GID: GIDFirma, GIDLp
+4. Generuj plan Excel (`excel_export.py`).
+   Kolumny: `CDN_Pole`, `Opis`, `Alias_w_widoku`, `Transformacja`, `Uwzglednic`, `Komentarz_Analityka`.
 
-4. Generuj plan Excel jako SQL z hardkodowanymi wartościami (UNION ALL):
-   ```bash
-   python tools/excel_export.py "SELECT ..." --output "solutions/bi/{NazwaWidoku}/{NazwaWidoku}_plan.xlsx"
-   ```
-   Kolumny planu: `Kolejnosc`, `CDN_Pole`, `Opis_w_dokumentacji`, `Przykladowe_wartosci`,
-   `Alias_w_widoku`, `Transformacja`, `Uwzglednic`, `Uzasadnienie`, `Komentarz_Analityka`.
-
-5. **Checklist przed wysłaniem do Analityka:**
-   - [ ] Każde ID_XXX (FK) ma wiersz z kolumną opisową w planie (Uwzglednic=Tak)
-   - [ ] Komentarz_Analityka używany tylko do pytań/wątpliwości — NIE jako lista TODO
-
-6. Wyślij plan do Analityka:
-   ```bash
-   python tools/agent_bus_cli.py send --from erp_specialist --to analyst --content-file tmp/tmp.md
-   ```
-   Wiadomość: ścieżka do planu Excel, baseline row count, krótki opis zakresu i kluczowych decyzji.
-
-   **Wyjątek — widok według ugruntowanego wzorca:**
-   Jeśli widok jest mechanicznym zastosowaniem istniejącego wzorca (np. kolejny GrupyDom),
-   możesz dostarczyć plan + draft + export jednocześnie. Wskaż jawnie: "widok według wzorca X".
-   Analityk i tak recenzuje plan niezależnie od draftu.
-
-#### Forbidden
-
-- Nie pisz SQL przed wysłaniem planu do Analityka (z wyjątkiem wzorca powyżej).
-- Nie wpisuj `col_name` jako `Opis_w_dokumentacji`.
-- Nie pomijaj pola bez jednego z 4 uzasadnień.
-
----
+5. Wyślij plan do Analityka (`agent_bus send`).
 
 ### Faza 1b — Recenzja planu (Analityk)
 
-#### Steps
+1. Odczytaj plan (`excel_read_rows.py`).
 
-1. Odczytaj plan:
-   ```bash
-   python tools/excel_read_rows.py \
-     --file "solutions/bi/{NazwaWidoku}/{NazwaWidoku}_plan.xlsx" \
-     --columns CDN_Pole,Uwzglednic,Transformacja,Alias_w_widoku,Komentarz_Analityka
-   ```
+2. Weryfikacja konwencji:
+   - Dane wrażliwe wykluczene
+   - GID: Firma pominięta, Numer zachowany
+   - Flagi/enumeracje: CASE z ELSE
+   - Klucze obce: ID + nazwa/kod
+   - Pominięcia uzasadnione
 
-2. Weryfikacja konwencji — sprawdź każdy punkt:
-   - Dane wrażliwe: żadna kolumna z listy (PESEL, rachunek bankowy, dokument tożsamości) nie jest w planie z `Uwzglednic=Tak`
-   - GID: Firma pominięta, Lp pominięty, Numer zachowany jako `ID_[encja]`
-   - Flagi 0/1: plan przewiduje CASE z etykietami kontekstowymi
-   - Enumeracje: plan przewiduje CASE z ELSE zawierającym surową wartość
-   - Daty: konwersja Clarion zaplanowana, alias `Data_XXX` vs `DataCzas_XXX` poprawny
-   - Klucze obce: dla każdego pola ID_XXX zadaj pytanie: "czy ta encja ma czytelną nazwę lub kod?"
-     Jeśli tak — plan MUSI zawierać te kolumny. Dotyczy bez wyjątku:
-     adresów kontrahenta, numerów dokumentów powiązanych (korekta, zamówienie),
-     cenników, słowników, operatorów, pracowników, magazynów i wszystkich innych encji.
-     Samo ID w widoku BI jest dopuszczalne tylko gdy encja nie ma żadnego pola opisowego
-     (udowodnione przez INFORMATION_SCHEMA).
-   - Pominięcia: każde uzasadnione jednym z 4 powodów
-   - Typy dokumentów: pełne nazwy PL, nie skróty
+3. Feedback do ERP Specialist. Iteruj aż zatwierdzenie.
 
-3. Weryfikacja danych — jeśli workdb istnieje:
-   Skrzyżuj decyzje planu z faktycznymi danymi. Szukaj rozbieżności.
+### Exit gate
 
-4. Odeślij feedback do ERP Specialist:
-   ```bash
-   python tools/agent_bus_cli.py send --from analyst --to erp_specialist --content-file tmp/tmp.md
-   ```
-   Feedback konkretny: co zmienić i dlaczego. Jeśli OK → "zatwierdzam plan".
-
-#### Pętla feedback
-
-ERP Specialist nanosi poprawki i wraca. Iteruj aż Analityk zatwierdzi.
-
-Eskalacja do usera po 5 rundach bez porozumienia:
-```bash
-python tools/agent_bus_cli.py flag --from analyst --reason-file tmp/tmp.md
-```
-
-#### Forbidden
-
-- Nie zatwierdzaj planu bez przejścia przez checklistę konwencji.
-- Nie zatwierdzaj bez weryfikacji każdego pominięcia.
-
----
-
-### Exit gate Fazy 1
-
-PASS jeśli:
-- Plan Excel istnieje w `solutions/bi/{NazwaWidoku}/`
-- Analityk odesłał wiadomość "zatwierdzam plan"
-- Progress log zapisany do bazy
-
-BLOCKED jeśli plan nie zatwierdzony lub Analityk odesłał uwagi do poprawki.
+PASS jeśli: plan istnieje, Analityk zatwierdził.
 
 ---
 
@@ -288,129 +175,42 @@ BLOCKED jeśli plan nie zatwierdzony lub Analityk odesłał uwagi do poprawki.
 
 ### Purpose
 
-Iteracyjne budowanie SELECT w pliku roboczym. SQL powstaje i żyje wyłącznie w brudnopisie.
+Iteracyjne budowanie SELECT w pliku roboczym.
 
 ### Steps
 
-1. Po odczycie zatwierdzonego planu — przeskanuj pod kątem niespójności PRZED generowaniem SQL:
-   - `Komentarz_Analityka` wypełniony
-   - `Uwzglednic=Nie` przy niepustym `Komentarz_Analityka`
-   - `Transformacja` wygląda na niekompletną
-   Niespójności zamknij z Analitykiem — nie angażuj usera.
+1. Przeskanuj plan pod kątem niespójności PRZED SQL.
 
-2. Generuj SQL w brudnopisie `{NazwaWidoku}_draft.sql`:
+2. Generuj SQL w brudnopisie:
    - Nie wrzucaj długich SELECT do czatu
-   - Edytuj plik → eksportuj → weryfikuj → powtarzaj
+   - Edytuj plik → eksportuj → weryfikuj
 
-3. Po każdej zmianie — obowiązkowy eksport:
-   ```bash
-   python tools/sql_query.py --file "solutions/bi/{NazwaWidoku}/{NazwaWidoku}_draft.sql" \
-     --export "solutions/bi/{NazwaWidoku}/{NazwaWidoku}_export.xlsx"
+3. Po każdej zmianie — eksport:
    ```
-   Plik eksportu nadpisywany in-place (stała ścieżka bez timestampu).
-
-   **Eksport próbkowy dla dużych widoków (>100k wierszy):** dodaj `TOP 100000` do SELECT.
-   Weryfikacja statystyk przez `excel_read_stats.py` jest wystarczająca — pełny eksport niepotrzebny.
+   python tools/sql_query.py --file "...draft.sql" --export "...export.xlsx"
+   ```
 
 4. Zasady SQL:
-   - Kolumny: PascalCase z underscore, polskie, opisowe (`Data_Wystawienia`, `Kod_Towaru`)
-   - Klucz główny widoku: `ID_[encja]`
-   - Para lookup: zawsze `Kod_X` + `Nazwa_X`
-   - WHERE: tylko wykluczenie rekordów technicznych (np. `Rez_TwrNumer > 0`). Nigdy logika biznesowa.
-   - Kolejność kolumn: odwzorowuj kolejność z `SELECT TOP 1 *`. JOINy bezpośrednio po kluczu.
+   - Kolumny: PascalCase, polskie (`Data_Wystawienia`)
+   - Klucz główny: `ID_[encja]`
+   - WHERE: tylko warunki techniczne
+   → Zobacz `ERP_SCHEMA_PATTERNS.md` dla wzorców konwersji.
 
-5. Tłumaczenia wartości:
-   ```sql
-   -- Flagi 0/1:
-   CASE pole WHEN 1 THEN 'Tak' WHEN 0 THEN 'Nie'
-   ELSE 'Nieznane (' + CAST(pole AS VARCHAR) + ')' END
+5. Ograniczenia konta CEiM_BI:
+   → Zobacz `ERP_SQL_SYNTAX.md` sekcja "Wbudowane funkcje".
 
-   -- Enumeracje — ELSE obowiązkowy:
-   CASE pole
-       WHEN 960 THEN 'Zamówienie'
-       ELSE 'Nieznane (' + CAST(pole AS VARCHAR) + ')'
-   END
+### Self-check
 
-   -- Data Clarion DATE:
-   CASE WHEN col = 0 THEN NULL
-        ELSE CAST(DATEADD(d, col, '18001228') AS DATE) END AS Data_XXX
-
-   -- Data Clarion TIMESTAMP:
-   CASE WHEN col = 0 THEN NULL
-        ELSE CAST(DATEADD(ss, col, '1990-01-01') AS DATETIME) END AS DataCzas_XXX
-
-   -- Pole numeryczne = brak:
-   CASE WHEN col = 0 THEN NULL ELSE col END AS ID_X
-
-   -- JOIN kontrahenta (dwuczęściowy klucz):
-   LEFT JOIN CDN.KntKarty k ON k.Knt_GIDNumer = r.Rez_KntNumer
-                            AND k.Knt_GIDTyp   = r.Rez_KntTyp
-                            AND r.Rez_KntNumer > 0
-
-   -- TraNag prefiks (obowiązkowa kolejność CASE):
-   CASE
-       WHEN n.TrN_GIDTyp IN (2041, 2045, 1529)
-            AND EXISTS (SELECT 1 FROM CDN.TraNag s
-                        WHERE s.TrN_SpiTyp = n.TrN_GIDTyp AND s.TrN_SpiNumer = n.TrN_GIDNumer
-                          AND ((n.TrN_GIDTyp=2041 AND s.TrN_GIDTyp=2009) OR
-                               (n.TrN_GIDTyp=2045 AND s.TrN_GIDTyp=2013) OR
-                               (n.TrN_GIDTyp=1529 AND s.TrN_GIDTyp=1497)))  THEN '(Z)'
-       WHEN n.TrN_Stan & 2 = 2 AND n.TrN_GIDTyp IN (2041, 2045, 1529)      THEN '(Z)'
-       WHEN n.TrN_GenDokMag = -1 AND n.TrN_GIDTyp IN (1521, 1529, 1489)    THEN '(A)'
-       WHEN n.TrN_GenDokMag = -1                                            THEN '(s)'
-       ELSE ''
-   END + RTRIM(n.TrN_Seria) + '/' + CAST(n.TrN_NumerTrN AS VARCHAR(10))
-       + '/' + RIGHT(CAST(n.TrN_Rok AS VARCHAR(4)), 2)
-   ```
-
-6. Ograniczenia konta CEiM_BI:
-   - Brak EXECUTE na funkcje CDN (error 229) — wszystkie konwersje i numery dokumentów inline
-   - SELECT tylko na `AIBI.*` — CDN przez widok
-   - `sql_query.py` blokuje `CREATE` — brudnopis to wyłącznie SELECT
-
-7. Grupy hierarchiczne — buduj pełną ścieżkę CTE gdy FK wskazuje na tabelę z hierarchią:
-   ```sql
-   WITH Sciezka_Grup AS (
-       SELECT GIDNumer, GrONumer, CAST(Kod AS NVARCHAR(500)) AS Sciezka
-       FROM CDN.TwrGrupyDom WHERE GIDTyp = -16 AND GrONumer = 0
-       UNION ALL
-       SELECT d.GIDNumer, d.GrONumer, CAST(sg.Sciezka + '\' + d.Kod AS NVARCHAR(500))
-       FROM CDN.TwrGrupyDom d JOIN Sciezka_Grup sg ON sg.GIDNumer = d.GrONumer
-       WHERE d.GIDTyp = -16
-   )
-   ```
-   Format ścieżki: `Poziom1\Poziom2\Poziom3`. Kolumny: `ID_Grupy` + `Sciezka_Grupy`.
-
-### Forbidden
-
-- Nie wrzucaj długich SELECT do czatu — tylko do pliku brudnopisu.
-- Nie używaj `CREATE VIEW` w brudnopisie.
-- Nie zostawiaj ELSE bez gałęzi w CASE.
-- Nie używaj aliasu `Data_XXX` gdy kolumna zawiera godzinę — to błąd semantyczny.
-- Nie używaj `TrN_TypNumeracji` — kolumna nie istnieje. Używaj `TrN_GIDTyp IN (...)`.
-
-### Self-check przed zamknięciem fazy
-
-- [ ] Dane wrażliwe: żadna kolumna PESEL / rachunek bankowy / dokument tożsamości w SELECT
-- [ ] GID: Firma pominięta, Lp pominięty, Numer zachowany, Typ przetłumaczony lub pominięty
-- [ ] Flagi: wszystkie 0/1 mają CASE z etykietami
-- [ ] Enumeracje: wszystkie CASE mają ELSE z surową wartością
-- [ ] Daty: konwersja Clarion zastosowana, 0 → NULL, sentinel → NULL, alias `Data_` vs `DataCzas_` poprawny
-- [ ] Numery dokumentów: prefiks TraNag w prawidłowej kolejności (EXISTS → Stan&2 → GenDokMag)
-- [ ] JOINy: COUNT(*) = COUNT(DISTINCT klucz) po każdym JOIN
-- [ ] WHERE: tylko warunki techniczne
-- [ ] Pominięcia: każde uzasadnione jednym z 4 powodów
-- [ ] Eksport istnieje w `solutions/bi/{NazwaWidoku}/`
+- [ ] Dane wrażliwe wykluczone
+- [ ] GID: Firma pominięta, Numer zachowany
+- [ ] Flagi/enumeracje: CASE z ELSE
+- [ ] Daty: konwersja Clarion, 0 → NULL
+- [ ] JOINy: nie mnożą wierszy
+- [ ] Eksport istnieje
 
 ### Exit gate
 
-PASS jeśli:
-- Brudnopis SELECT istnieje i przeszedł przez `sql_query.py` bez błędu
-- Eksport `{NazwaWidoku}_export.xlsx` istnieje i jest aktualny
-- Self-check zaliczony (wszystkie pozycje odhaczone)
-- Row count z eksportu = COUNT(*) z bazy (lub eksport próbkowy TOP 100000 dla widoków >100k wierszy)
-
-BLOCKED jeśli którykolwiek warunek niespełniony.
+PASS jeśli: brudnopis bez błędów, eksport aktualny, self-check zaliczony.
 
 ---
 
@@ -418,165 +218,73 @@ BLOCKED jeśli którykolwiek warunek niespełniony.
 
 **Owner:** ERP Specialist
 
-### Purpose
-
-Potwierdzić poprawność danych przed przekazaniem do zatwierdzenia.
-
 ### Steps
 
-1. Uruchom weryfikację:
-   - `bi_verify`: na końcu etapu lub gdy zmiana dotyka wielu kolumn/JOINów
-   - `sql_query --export`: przy drobnej poprawce (1 kolumna, literówka)
+1. Uruchom `bi_verify.py` (na końcu etapu lub przy dużych zmianach).
 
-   ```bash
-   python tools/bi_verify.py --draft "solutions/bi/{NazwaWidoku}/{NazwaWidoku}_draft.sql" \
-     --view-name "{NazwaWidoku}" \
-     --plan "solutions/bi/{NazwaWidoku}/{NazwaWidoku}_plan.xlsx" \
-     --export "solutions/bi/{NazwaWidoku}/{NazwaWidoku}_export.xlsx"
-   ```
+2. Sprawdź: row count, daty, enumeracje, metryki.
 
-2. Sprawdź wyniki:
-   - Row count: musi równać się COUNT(*) z bazy. Różnica → zbadaj JOINy.
-   - Daty: wyglądają jak daty (nie surowe liczby Clarion)
-   - Enumeracje: distinct ≤ oczekiwana liczba typów, etykiety sensowne
-   - Metryki: wartości w rozsądnym zakresie
-
-3. Artefakt wyścigu czasowego: kilka NULLi w Nr_Dok przy eksporcie to normalne (nowe rekordy). Weryfikacja: `WHERE COALESCE(Nr_Dok, '') = ''` → 0 gdy SQL poprawny.
-
-4. Wyślij eksport do Analityka przez agent_bus:
-   - Ścieżka do pliku Excel
-   - **Pełny output bi_verify:** distinct/null per kolumna, row count, kolumny z problemami
-   - Nie wysyłaj tylko self-check — Analityk potrzebuje pełnych statystyk
-
-### Forbidden
-
-- Nie przekazuj do Fazy 4 bez eksportu.
-- Nie zakładaj "dane się zmieniły" gdy row count nie zgadza — zbadaj JOINy.
+3. Wyślij eksport + bi_verify output do Analityka.
 
 ### Exit gate
 
-PASS jeśli:
-- Eksport istnieje i jest aktualny
-- Row count zgadza się z COUNT(*) z bazy
-- bi_verify output dołączony do wiadomości dla Analityka
-- Analityk potwierdził eksport (wiadomość "OK" / "zatwierdzam eksport")
-
-BLOCKED jeśli eksport brakuje lub Analityk zgłosił uwagi.
+PASS jeśli: eksport aktualny, row count zgadza się, Analityk potwierdził.
 
 ---
 
 ## Faza 4 — Zapis i wdrożenie
 
-**Owner:** ERP Specialist (zapis) → DBA (wdrożenie w bazie) → ERP Specialist (katalog)
-
-### Purpose
-
-Zapisać zatwierdzony widok, wdrożyć przez DBA, zaktualizować katalog.
+**Owner:** ERP Specialist → DBA → ERP Specialist
 
 ### Steps
 
-1. Zapisz widok (CREATE OR ALTER):
-   ```bash
-   python tools/solutions_save_view.py --draft "solutions/bi/{NazwaWidoku}/{NazwaWidoku}_draft.sql"
-   ```
-   Weryfikuje że eksport istnieje przed zapisem. Zapisuje do `solutions/bi/views/{NazwaWidoku}.sql`.
+1. Zapisz widok (`solutions_save_view.py`).
 
-2. Zgłoś do DBA przez agent_bus:
-   ```
-   # Zapisz treść do pliku tymczasowego, np. tmp/flag_dba_{NazwaWidoku}.md
-   python tools/agent_bus_cli.py flag --from erp_specialist --reason-file tmp/flag_dba_{NazwaWidoku}.md
-   ```
-   Plik do wdrożenia: `solutions/bi/views/{NazwaWidoku}.sql`.
+2. Zgłoś do DBA (`agent_bus flag`).
 
-3. Po potwierdzeniu wdrożenia przez DBA — zaktualizuj katalog:
-   ```bash
-   python tools/bi_catalog_add.py --view AIBI.{NazwaWidoku} --add
-   ```
-   **Narzędzie odpytuje bazę — widok musi być wdrożony zanim je uruchomisz.**
-   Nie wpisuj kolumn ręcznie do catalog.json.
+3. Po wdrożeniu — zaktualizuj katalog (`bi_catalog_add.py`).
 
-4. Uzupełnij ręcznie w `catalog.json`: `description`, `example_questions`, `notes`.
+4. Uzupełnij ręcznie: `description`, `example_questions`.
 
-5. Commit i push:
-   ```bash
-   python tools/git_commit.py --message "feat: widok BI.{NazwaWidoku} — opis" --all --push
-   ```
+5. Commit + push (`git_commit.py`).
 
-6. Zamknij zadanie w backlogu:
-   ```bash
-   python tools/agent_bus_cli.py backlog-update --id <id> --status done
-   ```
-
-7. Oznacz flagę DBA jako przeczytaną po potwierdzeniu wdrożenia:
-   ```bash
-   python tools/agent_bus_cli.py mark-read --id <id_flagi>
-   ```
-
-8. Log sesji:
-   ```bash
-   python tools/agent_bus_cli.py log --role erp_specialist --content-file tmp/log_faza4_{NazwaWidoku}.md
-   ```
+6. Zamknij backlog, oznacz flagę DBA, log sesji.
 
 ### Forbidden
 
-- Nie uruchamiaj `bi_catalog_add.py` przed potwierdzeniem wdrożenia przez DBA.
-- Nie wpisuj kolumn ręcznie do catalog.json — narzędzie odpytuje bazę.
-- Nie commituj bez uprzedniego wdrożenia przez DBA.
+- Nie uruchamiaj `bi_catalog_add.py` przed wdrożeniem DBA.
+- Nie commituj bez wdrożenia.
 
 ### Exit gate
 
-PASS jeśli:
-- `solutions/bi/views/{NazwaWidoku}.sql` istnieje
-- DBA potwierdził wdrożenie
-- `bi_catalog_add.py` uruchomiony po wdrożeniu
-- Commit wykonany
-- Backlog zaktualizowany (--status done)
-- Flaga DBA oznaczona jako przeczytana
-- Log sesji zapisany
-
-BLOCKED jeśli DBA nie wdrożył lub katalog nie zaktualizowany.
+PASS jeśli: widok wdrożony, katalog zaktualizowany, commit wykonany.
 
 ---
 
-## Zarządzanie kontekstem — progress log
+## Progress log
 
-Progress log jest kołem ratunkowym przy kompresji kontekstu.
-Zapisuj obligatoryjnie na końcu każdej fazy do bazy:
-
+Na końcu każdej fazy:
 ```
 python tools/agent_bus_cli.py log --role erp_specialist --content-file tmp/log_faza_X.md
 ```
 
-Minimalny zakres pliku `tmp/log_faza_X.md`:
-
-```markdown
-## Status: [Faza X — nazwa] — {NazwaWidoku}
-
-**Tabela główna:** CDN.XXX, N rekordów, filtr: `warunek`
-**Baseline:** COUNT(*) = N, COUNT(DISTINCT) = N
-
-**JOINy ustalone:**
-- CDN.YYY — LEFT JOIN na kluczu ZZZ — uzasadnienie
-
-**Enumeracje rozkodowane:**
-- Pole_A: 1='Etykieta1', 0='Etykieta2' (źródło: dokumentacja/CDN.Obiekty)
-
-**Numery dokumentów:** [CZEKA NA USERA] | [ZWERYFIKOWANE: format]
-
-**Pliki:**
-- Brudnopis: solutions/bi/{NazwaWidoku}/{NazwaWidoku}_draft.sql
-- Plan: solutions/bi/{NazwaWidoku}/{NazwaWidoku}_plan.xlsx
-
-**Następny krok:** [konkretna czynność]
-```
+Zakres: tabela główna, baseline, JOINy, enumeracje, następny krok.
 
 ---
 
-## Kiedy eskalować do użytkownika
+## Kiedy eskalować
 
-- Wartość enumeracji nieznana (brak w CDN.Obiekty i dokumentacji) — podaj surówkę
-- Numery dokumentów — zawsze jednorazowe zapytanie zbiorcze przed pisaniem SQL
-- Row count z eksportu ≠ COUNT z bazy — zbadaj i wyjaśnij przed pokazaniem wyników
-- Wynik pusty lub dane wyglądają na błędne
+- Enumeracja nieznana (brak w CDN.Obiekty i dokumentacji)
+- Numery dokumentów — format nieznany
+- Row count nie zgadza się
 - 5 wymian z Analitykiem bez porozumienia
-- Potencjalna nieścisłość w dokumentacji — zgłoś, nie poprawiaj samodzielnie
+
+---
+
+## Changelog
+
+| Wersja | Data | Zmiany |
+|---|---|---|
+| 3.0 | 2026-03-24 | Refaktor: wyciągnięcie domeny do related_docs, usunięcie duplikacji snippetów SQL, nowy styl (proces-focused) |
+| 2.0 | 2026-03-24 | Dodanie YAML header, Outline |
+| 1.0 | legacy | Oryginalna wersja |
