@@ -46,7 +46,7 @@ Formalizacja workflow na podstawie REALNEJ praktyki. Owner: PE.
 
 **Emergencja > planowanie** — workflow wyłania się z tego co agent ZROBIŁ, nie z tego co sobie wyobrazimy.
 
-**Minimum z praktyki** — LLMy mają skłonność do over-engineering. Formalizujemy minimum, rozbudowujemy iteracyjnie.
+**Minimum z praktyki** — formalizujemy minimum, rozbudowujemy iteracyjnie.
 
 ---
 
@@ -174,7 +174,7 @@ PASS: uwagi zebrane, zakres potwierdzony.
    Wszystko pochodzi z konwersacji źródłowej. Jeśli agent tego nie robił — nie dodawaj.
 
 2. **Nie komplikuj.**
-   LLMy mają skłonność do over-engineering. Minimum z praktyki.
+   Minimum z praktyki.
 
 3. **Nie formalizuj jednorazówek.**
    Workflow tylko dla powtarzalnych procesów.
