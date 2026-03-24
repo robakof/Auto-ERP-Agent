@@ -2,10 +2,12 @@
 jas_export.py — Wysyła WZ z ERP do JAS API jako zlecenia spedycyjne.
 
 CLI:
+    python tools/jas_export.py --today                  # WZ na dzisiaj (główny tryb)
     python tools/jas_export.py --all                    # wszystkie WZ z widoku
     python tools/jas_export.py --wz-id 12345            # jedna WZ po ID
     python tools/jas_export.py --numer WZ/2026/00123    # jedna WZ po numerze
-    python tools/jas_export.py --all --dry-run          # tylko pokaż payloady
+    python tools/jas_export.py --today --dry-run        # podgląd bez wysyłania
+    python tools/jas_export.py --all --date 2026-03-25  # WZ na konkretny dzień
 """
 
 import argparse
@@ -123,10 +125,16 @@ def main() -> None:
                         help="Pokaż payload bez wysyłania do JAS")
     parser.add_argument("--date", type=str, default=None,
                         help="Filtr po data_realizacji_zs (YYYY-MM-DD). Domyślnie: brak filtru.")
+    parser.add_argument("--today", action="store_true",
+                        help="Skrót: --all --date <dzisiaj>")
     args = parser.parse_args()
 
+    if args.today:
+        args.all = True
+        args.date = datetime.date.today().isoformat()
+
     if not args.all and args.wz_id is None and args.numer is None:
-        parser.error("Podaj --all, --wz-id lub --numer.")
+        parser.error("Podaj --today, --all, --wz-id lub --numer.")
 
     result = run(
         wz_id=args.wz_id,
