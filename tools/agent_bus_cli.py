@@ -291,6 +291,51 @@ def cmd_delete(args: argparse.Namespace, bus: AgentBus) -> dict:
     return {"ok": True, "archived": args.ids}
 
 
+# --- Workflow execution tracking ---
+
+def cmd_workflow_start(args: argparse.Namespace, bus: AgentBus) -> dict:
+    execution_id = bus.start_workflow_execution(
+        workflow_id=args.workflow_id,
+        role=args.role,
+        session_id=args.session_id,
+    )
+    return {"ok": True, "execution_id": execution_id}
+
+
+def cmd_step_log(args: argparse.Namespace, bus: AgentBus) -> dict:
+    output_json = None
+    if args.output_file:
+        import json as json_mod
+        output_json = json_mod.loads(Path(args.output_file).read_text(encoding="utf-8"))
+
+    step_id = bus.log_step(
+        execution_id=args.execution_id,
+        step_id=args.step_id,
+        status=args.status,
+        step_index=args.step_index,
+        output_summary=args.summary,
+        output_json=output_json,
+    )
+    return {"ok": True, "step_log_id": step_id}
+
+
+def cmd_workflow_end(args: argparse.Namespace, bus: AgentBus) -> dict:
+    bus.end_workflow_execution(args.execution_id, args.status)
+    return {"ok": True}
+
+
+def cmd_execution_status(args: argparse.Namespace, bus: AgentBus) -> dict:
+    status = bus.get_execution_status(args.execution_id)
+    if status is None:
+        return {"ok": False, "error": f"Execution #{args.execution_id} not found"}
+    return {"ok": True, "data": status}
+
+
+def cmd_interrupted_workflows(args: argparse.Namespace, bus: AgentBus) -> dict:
+    executions = bus.get_interrupted_executions(role=args.role)
+    return {"ok": True, "data": executions, "count": len(executions)}
+
+
 def cmd_flag(args: argparse.Namespace, bus: AgentBus) -> dict:
     reason = Path(args.reason_file).read_text(encoding="utf-8") if args.reason_file else args.reason
     flag_id = bus.flag_for_human(
@@ -446,6 +491,34 @@ def build_parser() -> argparse.ArgumentParser:
     p_delete = subparsers.add_parser("delete", help="Archive (soft-delete) messages by id")
     p_delete.add_argument("--id", dest="ids", type=int, nargs="+", required=True)
 
+    # workflow-start
+    p_wstart = subparsers.add_parser("workflow-start", help="Start workflow execution")
+    p_wstart.add_argument("--workflow-id", dest="workflow_id", required=True)
+    p_wstart.add_argument("--role", required=True)
+    p_wstart.add_argument("--session-id", dest="session_id", default=None)
+
+    # step-log
+    p_step = subparsers.add_parser("step-log", help="Log a workflow step")
+    p_step.add_argument("--execution-id", dest="execution_id", type=int, required=True)
+    p_step.add_argument("--step-id", dest="step_id", required=True)
+    p_step.add_argument("--status", required=True, choices=["PASS", "FAIL", "BLOCKED", "SKIPPED", "IN_PROGRESS"])
+    p_step.add_argument("--step-index", dest="step_index", type=int, default=None)
+    p_step.add_argument("--summary", default=None)
+    p_step.add_argument("--output-file", dest="output_file", default=None)
+
+    # workflow-end
+    p_wend = subparsers.add_parser("workflow-end", help="End workflow execution")
+    p_wend.add_argument("--execution-id", dest="execution_id", type=int, required=True)
+    p_wend.add_argument("--status", default="completed", choices=["completed", "interrupted", "failed"])
+
+    # execution-status
+    p_estatus = subparsers.add_parser("execution-status", help="Get workflow execution status")
+    p_estatus.add_argument("--execution-id", dest="execution_id", type=int, required=True)
+
+    # interrupted-workflows
+    p_inter = subparsers.add_parser("interrupted-workflows", help="List interrupted/running workflows")
+    p_inter.add_argument("--role", default=None)
+
     # flag
     p_flag = subparsers.add_parser("flag", help="Flag something for human review")
     p_flag.add_argument("--from", dest="sender", required=True)
@@ -481,6 +554,11 @@ def main():
         "log": cmd_log,
         "session-logs": cmd_session_logs,
         "delete": cmd_delete,
+        "workflow-start": cmd_workflow_start,
+        "step-log": cmd_step_log,
+        "workflow-end": cmd_workflow_end,
+        "execution-status": cmd_execution_status,
+        "interrupted-workflows": cmd_interrupted_workflows,
         "flag": cmd_flag,
     }
     result = commands[args.command](args, bus)

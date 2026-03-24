@@ -1,112 +1,119 @@
 ---
 workflow_id: workflow_creation
-version: "1.0"
+version: "1.1"
 owner_role: prompt_engineer
-trigger: "Potrzeba nowego workflow dla powtarzalnego procesu"
+trigger: "Agent wykonał proces bez workflow i wysłał konwersację do formalizacji"
 participants:
-  - prompt_engineer (owner, draft)
-  - architect (review architektoniczny)
+  - prompt_engineer (owner, formalizacja)
+  - agent_źródłowy (praktyka, konwersacja)
   - dawid (approval)
 related_docs:
   - documents/conventions/CONVENTION_WORKFLOW.md
-  - documents/conventions/CONVENTION_META.md
   - documents/methodology/SPIRIT.md
 prerequisites:
   - session_init_done
+  - conversation_reference (adresacja konwersacji źródłowej)
 outputs:
   - type: file
     path: "workflows/workflow_{nazwa}.md"
   - type: file
     path: "documents/human/workflows/workflow_{nazwa}.md"
   - type: message
-    field: "powiadomienie ról z participants"
+    field: "powiadomienie agenta źródłowego"
   - type: commit
 ---
 
 # Workflow: Tworzenie workflow
 
-Proces tworzenia nowego workflow. Owner: Prompt Engineer.
+Formalizacja workflow na podstawie REALNEJ praktyki. Owner: PE.
+
+**Zasada:** Workflow nie wymyślamy — wyłania się z praktyki.
 
 ## Outline
 
-1. **Identyfikacja** — walidacja że workflow nie istnieje i jest potrzebny
-2. **Research** — wzorce orchestracji, istniejące praktyki (pętla)
-3. **Draft** — minimalna wersja zgodna z CONVENTION_WORKFLOW
-4. **Review** — weryfikacja z userem (notuję → edycje osobno)
-5. **Revision** — poprawki
-6. **Approval** — zatwierdzenie przez Dawida
-7. **Publication** — commit, powiadomienia
+1. **Odbiór** — agent przysłał konwersację do formalizacji
+2. **Ekstrakcja** — wyciągnięcie kroków, pułapek, learnings z konwersacji
+3. **Draft** — minimalna formalizacja
+4. **Review** — z userem (notuję → edycje osobno)
+5. **Approval** — Dawid
+6. **Publication** — commit, powiadomienia
 
 ---
 
 ## Zasady przewodnie
 
-> "Wolałbym żeby była napisana minimalnie dając więcej elastyczności."
+> "Nie ma wymyślania workflow — jest tylko praktyka."
 
-**Minimalizm** — mniej kroków > więcej kroków. Workflow rośnie z praktyki, nie z wyobraźni.
+**Emergencja > planowanie** — workflow wyłania się z tego co agent ZROBIŁ, nie z tego co sobie wyobrazimy.
 
-**Agent rewolucjonista** — jest lepszy workflow (potwierdzony) → zastępujemy stary.
-
----
-
-## Faza 1: Identyfikacja
-
-**Owner:** prompt_engineer
-
-**Założenie:** Workflow tworzymy gdy proces się powtarza (≥2 razy) i ma >3 kroki.
-
-### Steps
-
-1. Szukaj istniejącego workflow.
-   1.1. Sprawdź `workflows/`
-   1.2. Jeśli nie ma → przeszukaj repo (Glob, Grep)
-   1.3. Jeśli istnieje → EXIT, użyj istniejącego
-
-2. Waliduj potrzebę z userem.
-   - Czy proces się powtarza?
-   - Czy ma >3 kroki?
-   - Czy ma pułapki (znane anti-patterns)?
-
-3. Sprawdź domenę.
-   - Workflow dla agentów = PE
-   - Konwencja = Architect (przekaż)
-   - Metodologia = Metodolog (przekaż)
-
-4. Nazwij workflow: co, dla kogo, kiedy triggerowany.
-
-### Exit gate
-
-PASS: workflow nie istnieje, potrzeba zwalidowana, to domena PE.
-EXIT: workflow istnieje.
+**Minimum z praktyki** — LLMy mają skłonność do over-engineering. Formalizujemy minimum, rozbudowujemy iteracyjnie.
 
 ---
 
-## Faza 2: Research
+## Jak to działa (perspektywa agenta bez workflow)
+
+Agent który nie ma workflow dla zadania:
+
+1. **ROBI zadanie** (praktyka, nie czeka na workflow)
+2. Na koniec sesji wysyła do PE:
+   - "Wykonałem [opis zadania]"
+   - Adresacja konwersacji (session_id lub link)
+   - Opcjonalnie: własne obserwacje (pułapki, co poszło dobrze)
+
+PE formalizuje na podstawie tej konwersacji.
+
+---
+
+## Faza 1: Odbiór
 
 **Owner:** PE
 
-Research to pętla: szukaj → nowe wątki → szukaj dalej → aż wyczerpane.
-
 ### Steps
 
-1. Sprawdź historię konwersacji — czy proces był już wykonywany?
-   - `search_conversation.py` — szukaj podobnych zadań
-   - Wyciągnij kroki, pułapki, learnings
+1. Odbierz wiadomość od agenta z:
+   - Opisem wykonanego procesu
+   - Adresacją konwersacji (session_id)
+   - Opcjonalnie: obserwacjami agenta
 
-2. Sprawdź ecosystem.
-   - Czy podobny workflow istnieje w projekcie?
-   - Czy CONVENTION_WORKFLOW ma odpowiedni wzorzec (liniowy vs multi-scenario)?
+2. Jeśli brak adresacji → poproś o uzupełnienie (intencja: potrzebuję konwersacji źródłowej).
 
-3. Opcjonalnie: research zewnętrzny (orchestracja, wzorce workflow dla agentów).
-
-4. Oceń wyniki.
-   - Nowe wątki? → kolejna iteracja.
-   - Wyczerpane? → Draft.
+3. Sprawdź czy workflow już istnieje.
+   - Jeśli tak → EXIT, użyj istniejącego lub zaproponuj update.
 
 ### Exit gate
 
-PASS: wzorce i pułapki znane.
-ESCALATE do Architect jeśli potrzebna decyzja architektoniczna.
+PASS: mam konwersację źródłową, workflow nie istnieje.
+
+---
+
+## Faza 2: Ekstrakcja
+
+**Owner:** PE
+
+### Steps
+
+1. Przeczytaj konwersację źródłową.
+   ```
+   py tools/search_conversation.py --session {session_id}
+   ```
+
+2. Wyciągnij:
+   - Kroki które agent wykonał
+   - Pułapki na które wpadł
+   - Decyzje które podjął
+   - Co poszło dobrze
+   - Co wymagało eskalacji
+
+3. Zidentyfikuj wzorzec (liniowy vs multi-scenario).
+
+4. Oceń czy to powtarzalny proces.
+   - Jeśli jednorazowy → EXIT, nie formalizuj.
+   - Jeśli powtarzalny → kontynuuj.
+
+### Exit gate
+
+PASS: kroki, pułapki, wzorzec wyekstrahowane.
+EXIT: proces jednorazowy — nie wymaga workflow.
 
 ---
 
@@ -118,21 +125,17 @@ ESCALATE do Architect jeśli potrzebna decyzja architektoniczna.
 
 1. Przeczytaj CONVENTION_WORKFLOW.
 
-2. Wybierz styl.
-   - Liniowy (fazy sekwencyjne) — proces techniczny
-   - Multi-scenario (routing) — różne typy zadań
-
-3. Utwórz draft.
-   - YAML header (workflow_id, version, owner_role, trigger, participants, outputs)
+2. Utwórz minimalny draft.
+   - YAML header
    - Outline
    - Fazy z exit gates
-   - Forbidden (tylko znane pułapki z praktyki)
+   - Forbidden — TYLKO pułapki z praktyki (z konwersacji źródłowej)
 
-4. Przyszłość: tool `workflow_init.py` zautomatyzuje template.
+3. Nie dodawaj nic czego nie było w konwersacji.
 
 ### Exit gate
 
-PASS: YAML header, outline, fazy z exit gates, plik zapisany.
+PASS: draft minimalny, oparty na praktyce.
 
 ---
 
@@ -140,113 +143,54 @@ PASS: YAML header, outline, fazy z exit gates, plik zapisany.
 
 **Owner:** PE + user
 
-**Proces:** Notuję uwagi → edycje w osobnej fazie (kontrola usera).
-
 ### Steps
 
 1. Przedstaw draft userowi.
 
-2. Zbieraj uwagi — NOTUJ, nie edytuj od razu.
+2. Notuję uwagi — NIE edytuję od razu.
 
-3. Po zebraniu uwag → potwierdź zakres edycji.
-
-4. Opcjonalnie: review architektoniczny od Architect (jeśli workflow cross-domain).
+3. Po zebraniu → potwierdź zakres edycji.
 
 ### Exit gate
 
-PASS: uwagi zebrane, zakres edycji potwierdzony.
+PASS: uwagi zebrane, zakres potwierdzony.
 
 ---
 
-## Faza 5: Revision
+## Faza 5: Revision + Approval + Publication
 
-**Owner:** PE
+(Analogicznie do workflow_convention_creation)
 
-### Steps
-
-1. Wdróż uwagi (wszystkie naraz, nie po jednej).
-
-2. Zaktualizuj version w YAML.
-
-3. Skopiuj do `documents/human/workflows/` (dla Dawida).
-
-### Exit gate
-
-PASS: uwagi wdrożone, kopia dla Dawida.
-
----
-
-## Faza 6: Approval
-
-**Owner:** dawid
-
-### Steps
-
-1. Dawid zatwierdza.
-   - Uwagi → Faza 4 (nowy cykl review).
-   - OK → kontynuuj.
-
-### Exit gate
-
-PASS: Dawid zatwierdził.
-
----
-
-## Faza 7: Publication
-
-**Owner:** PE
-
-### Steps
-
-1. Git commit.
-
-2. Powiadom role z participants.
-
-3. Zaloguj sesję.
-
-### Exit gate
-
-PASS: commit, powiadomienia, log.
-
----
-
-## Decision Points
-
-### Decision Point 1: Domena
-
-**decision_id:** check_domain
-**condition:** Workflow dla agentów (PE) czy inna domena?
-**path_workflow:** Kontynuuj
-**path_convention:** Przekaż do Architect
-**path_other:** Przekaż do właściwej roli
-**default:** Zapytaj Architect
+1. Wdróż uwagi.
+2. Skopiuj do `documents/human/workflows/`.
+3. Dawid zatwierdza.
+4. Commit + powiadomienia.
 
 ---
 
 ## Forbidden
 
-1. **Brak przywiązania do legacy.**
-   Jest lepszy workflow → zastępujemy stary.
+1. **Nie wymyślaj kroków.**
+   Wszystko pochodzi z konwersacji źródłowej. Jeśli agent tego nie robił — nie dodawaj.
 
-2. **Nie edytuj w trakcie review.**
-   Notuję → edycje w osobnej fazie. User ma kontrolę.
+2. **Nie komplikuj.**
+   LLMy mają skłonność do over-engineering. Minimum z praktyki.
 
-3. **Nie gotowe formułki.**
-   Wskaż intencję, agent sformułuje naturalnie.
+3. **Nie formalizuj jednorazówek.**
+   Workflow tylko dla powtarzalnych procesów.
 
-4. **Nie defensywne reguły.**
-   Zakładamy porządek. Nie pisz "sprawdź czy X aktualne".
+4. **Nie edytuj w trakcie review.**
+   Notuję → edycje osobno.
 
 ---
 
 ## Self-check
 
-- [ ] Workflow nie istniał?
-- [ ] Potrzeba zwalidowana z userem?
-- [ ] CONVENTION_WORKFLOW przestrzegana?
-- [ ] Uwagi zebrane i wdrożone?
+- [ ] Mam konwersację źródłową?
+- [ ] Kroki wyekstrahowane z praktyki (nie wymyślone)?
+- [ ] Draft minimalny?
+- [ ] Forbidden = pułapki z konwersacji?
 - [ ] Dawid zatwierdził?
-- [ ] Commit + powiadomienia?
 
 ---
 
@@ -254,4 +198,5 @@ PASS: commit, powiadomienia, log.
 
 | Wersja | Data | Zmiany |
 |---|---|---|
-| 1.0 | 2026-03-24 | Początkowa wersja — learnings z workflow_convention_creation |
+| 1.1 | 2026-03-24 | Fundamentalna zmiana: Practice-First Workflow — trigger to konwersacja od agenta, nie "potrzeba workflow" |
+| 1.0 | 2026-03-24 | Początkowa wersja |

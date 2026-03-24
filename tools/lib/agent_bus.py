@@ -778,6 +778,92 @@ class AgentBus:
         ).fetchall()
         return [dict(row) for row in rows]
 
+    # --- Workflow execution tracking ---
+
+    def start_workflow_execution(
+        self, workflow_id: str, role: str, session_id: str = None
+    ) -> int:
+        """Start a new workflow execution, returns execution_id."""
+        cursor = self._conn.execute(
+            """INSERT INTO workflow_execution (workflow_id, role, session_id)
+               VALUES (?, ?, ?)""",
+            (workflow_id, role, session_id),
+        )
+        self._conn.commit()
+        return cursor.lastrowid
+
+    def log_step(
+        self,
+        execution_id: int,
+        step_id: str,
+        status: str,
+        step_index: int = None,
+        output_summary: str = None,
+        output_json: dict = None,
+    ) -> int:
+        """Log a workflow step, returns step_log.id."""
+        json_str = json.dumps(output_json) if output_json else None
+        cursor = self._conn.execute(
+            """INSERT INTO step_log (execution_id, step_id, step_index, status, output_summary, output_json)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (execution_id, step_id, step_index, status, output_summary, json_str),
+        )
+        self._conn.commit()
+        return cursor.lastrowid
+
+    def end_workflow_execution(self, execution_id: int, status: str = "completed") -> None:
+        """End a workflow execution (set ended_at and status)."""
+        self._conn.execute(
+            """UPDATE workflow_execution
+               SET status = ?, ended_at = datetime('now')
+               WHERE id = ?""",
+            (status, execution_id),
+        )
+        self._conn.commit()
+
+    def get_execution_status(self, execution_id: int) -> dict | None:
+        """Get execution status with steps."""
+        row = self._conn.execute(
+            """SELECT id, workflow_id, role, session_id, status, started_at, ended_at
+               FROM workflow_execution WHERE id = ?""",
+            (execution_id,),
+        ).fetchone()
+        if not row:
+            return None
+
+        steps = self._conn.execute(
+            """SELECT step_id, status, output_summary, timestamp
+               FROM step_log WHERE execution_id = ?
+               ORDER BY timestamp ASC, id ASC""",
+            (execution_id,),
+        ).fetchall()
+
+        result = dict(row)
+        result["steps"] = [dict(s) for s in steps]
+        if steps:
+            result["last_step"] = steps[-1]["step_id"]
+            result["last_status"] = steps[-1]["status"]
+        return result
+
+    def get_interrupted_executions(self, role: str = None) -> list[dict]:
+        """Get interrupted/running executions (no ended_at)."""
+        if role:
+            rows = self._conn.execute(
+                """SELECT id, workflow_id, role, session_id, status, started_at
+                   FROM workflow_execution
+                   WHERE role = ? AND ended_at IS NULL
+                   ORDER BY started_at DESC""",
+                (role,),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                """SELECT id, workflow_id, role, session_id, status, started_at
+                   FROM workflow_execution
+                   WHERE ended_at IS NULL
+                   ORDER BY started_at DESC""",
+            ).fetchall()
+        return [dict(r) for r in rows]
+
     # --- Human escalation ---
 
     def flag_for_human(
