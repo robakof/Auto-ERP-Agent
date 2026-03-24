@@ -1,6 +1,6 @@
 ---
 workflow_id: developer_operations
-version: "2.0"
+version: "2.1"
 owner_role: developer
 trigger: "Developer otrzymuje zadanie operacyjne lub taktyczne"
 related_docs:
@@ -49,24 +49,21 @@ Workflow multi-scenario — wybierz sekcję według typu zadania:
 
 ### Steps
 
-0a. Sprawdź czysty working tree (`git status`). Jeśli brudny → zapytaj czy commitować.
-0b. Dla średnich zadań: plan per feature do pliku .md (uwzględnij otwarte wątki
-    z poprzednich sesji). Zatwierdź z użytkownikiem przed kodem.
-
-1a. Zaproponuj pisanie testów najpierw (TDD preferowane).
-1b. Napisz testy: integration tests (całe flow) + unit tests (funkcje czyste).
-    Happy path + edge cases. Mockuj zależności zewnętrzne (DB, API, sieć).
-1c. Zaimplementuj kod spełniający testy. Test nie przechodzi → napraw kod, nie test.
-1d. Commit per działająca zmiana.
-
-2a. Przy nieomawianych kwestiach w trakcie implementacji — pytaj użytkownika na bieżąco.
-2b. Po implementacji: przetestuj, pokaż co zrobione, zapytaj o feedback.
-2c. Poprawki na feedback użytkownika — iteruj aż do zatwierdzenia.
-
-3a. Checklist publikacji nowego narzędzia:
-    - Czy narzędzie dotyczy >1 roli? Tak → dokumentuj w CLAUDE.md. Nie → w dokumencie roli.
-    - Wyślij `agent_bus send` do aktywnych ról (nazwa, składnia, kiedy używać).
-    - Zapisz log sesji.
+1. Sprawdź czysty working tree (`git status`). Jeśli brudny → zapytaj czy commitować.
+2. Dla średnich zadań: plan per feature do pliku .md (uwzględnij otwarte wątki
+   z poprzednich sesji). Zatwierdź z użytkownikiem przed kodem.
+3. Zaproponuj pisanie testów najpierw (TDD preferowane).
+   3.1. Napisz testy: integration tests (całe flow) + unit tests (funkcje czyste).
+        Happy path + edge cases. Mockuj zależności zewnętrzne (DB, API, sieć).
+   3.2. Zaimplementuj kod spełniający testy. Test nie przechodzi → napraw kod, nie test.
+   3.3. Commit per działająca zmiana.
+4. Przy nieomawianych kwestiach w trakcie implementacji — pytaj użytkownika na bieżąco.
+   4.1. Po implementacji: przetestuj, pokaż co zrobione, zapytaj o feedback.
+   4.2. Poprawki na feedback użytkownika — iteruj aż do zatwierdzenia.
+5. Checklist publikacji nowego narzędzia:
+   5.1. Czy narzędzie dotyczy >1 roli? Tak → dokumentuj w CLAUDE.md. Nie → w dokumencie roli.
+   5.2. Wyślij `agent_bus send` do aktywnych ról (nazwa, składnia, kiedy używać).
+   5.3. Zapisz log sesji.
 
 ### Forbidden
 
@@ -89,14 +86,13 @@ PASS jeśli:
 
 ### Steps
 
-1a. Zdiagnozuj problem — zrozum przyczynę, nie tylko objaw.
-1b. Blind spot query: czy ten sam błąd nie występuje szerzej?
-    Jeden przypadek może być symptomem wzorca.
-1c. Oceń skalę: ile miejsc dotkniętych? Naprawa ręczna vs narzędzie?
-1d. Przedstaw diagnozę użytkownikowi — zakres, przyczyna, propozycja naprawy.
-
-2a. Napraw. Test. Verify.
-2b. Commit z opisem przyczyny (nie tylko objawu).
+1. Zdiagnozuj problem — zrozum przyczynę, nie tylko objaw.
+   1.1. Blind spot query: czy ten sam błąd nie występuje szerzej?
+        Jeden przypadek może być symptomem wzorca.
+   1.2. Oceń skalę: ile miejsc dotkniętych? Naprawa ręczna vs narzędzie?
+   1.3. Przedstaw diagnozę użytkownikowi — zakres, przyczyna, propozycja naprawy.
+2. Napraw. Test. Verify.
+   2.1. Commit z opisem przyczyny (nie tylko objawu).
 
 ### Forbidden
 
@@ -157,24 +153,23 @@ PASS jeśli:
 
 ### Steps
 
-1a. Przeczytaj open suggestions:
-    ```
-    python tools/render.py suggestions --format md --status open
-    ```
-    Domyślnie → documents/human/suggestions/
-1b. Dla każdego wpisu oceń: warto wdrożyć / nie warto / wymaga dyskusji.
-1c. Przedstaw ocenę użytkownikowi — poczekaj na zatwierdzenie.
-
-2a. **Przed dodaniem do backlogu:** sprawdź czy funkcjonalność już nie istnieje.
-    Sugestie mogą być przestarzałe — zweryfikuj stan kodu (grep, glob, git log).
-2b. Zatwierdzone i zweryfikowane → dodaj do backlogu:
-    ```
-    python tools/agent_bus_cli.py backlog-add --title "..." --area <obszar> --content-file tmp/tmp.md
-    ```
-2c. Oznacz suggestion jako implemented:
-    ```
-    python tools/agent_bus_cli.py suggest-status --id <id> --status implemented
-    ```
+1. Przeczytaj open suggestions:
+   ```
+   python tools/render.py suggestions --format md --status open
+   ```
+   Domyślnie → documents/human/suggestions/
+   1.1. Dla każdego wpisu oceń: warto wdrożyć / nie warto / wymaga dyskusji.
+   1.2. Przedstaw ocenę użytkownikowi — poczekaj na zatwierdzenie.
+2. **Przed dodaniem do backlogu:** sprawdź czy funkcjonalność już nie istnieje.
+   Sugestie mogą być przestarzałe — zweryfikuj stan kodu (grep, glob, git log).
+   2.1. Zatwierdzone i zweryfikowane → dodaj do backlogu:
+        ```
+        python tools/agent_bus_cli.py backlog-add --title "..." --area <obszar> --content-file tmp/tmp.md
+        ```
+   2.2. Oznacz suggestion jako implemented:
+        ```
+        python tools/agent_bus_cli.py suggest-status --id <id> --status implemented
+        ```
 
 ### Exit gate
 
