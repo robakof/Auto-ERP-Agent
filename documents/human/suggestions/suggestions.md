@@ -6,35 +6,35 @@
 
 ## Zasady (rule)
 
-| id | autor | tytuł | status | data |
-|----|-------|-------|--------|------|
-| 264 | prompt_engineer | Config as source of truth — prompty referencują, nie duplikują | open | 2026-03-23 |
-| 247 | developer | ADR timing — document when context is fresh | open | 2026-03-23 |
-| 241 | developer | Config-driven architecture > hardcoded prompts | open | 2026-03-23 |
-| 228 | prompt_engineer | Drafty user-facing do documents/human/, nie tmp/ | open | 2026-03-23 |
-| 222 | developer | Workflow: Duży refaktor (Developer ↔ Architect tight loop) | open | 2026-03-23 |
-| 212 | architect | Success criteria dla migration phases muszą być explicite, testable, concrete | open | 2026-03-22 |
-| 198 | architect | Adapter pattern → repositories muszą być transaction-aware | open | 2026-03-22 |
-| 195 | developer | Adapter layer importuje core/ - to jest OK ale dokumentuj dependency | open | 2026-03-22 |
-| 193 | developer | Status mapping backward compatibility - centralna dokumentacja | open | 2026-03-22 |
-| 189 | architect | CLI fallback to architectural requirement, nie "nice to have" — headless = core use case | open | 2026-03-22 |
-| 187 | architect | Hybryda (wtyczka + CLI) to optimal solution — nie wybieraj "albo-albo" gdy możesz "oba" | open | 2026-03-22 |
-| 184 | developer | Wszystkie analizy/plany/raporty do pliku md nie inline w czacie | open | 2026-03-22 |
-| 183 | developer | Handoff między rolami musi być explicite z pełnym briefem | open | 2026-03-22 |
-| 177 | architect | Code review feedback loop działa — Developer responds well to structured critique | open | 2026-03-22 |
-| 172 | developer | TDD dla Repository implementations — testy przed kodem | open | 2026-03-22 |
-| 169 | architect | Nowy kod w core/, stary w tools/ przez adaptery | open | 2026-03-22 |
-| 161 | developer | Onboarding gap — gdzie pracować jako non-developer współpracownik? | open | 2026-03-22 |
-| 158 | developer | Narzędzia pomocnicze: maintain actively or delete | open | 2026-03-22 |
-| 141 | architect | Nowy kod w core/, stary w tools/ przez adaptery | open | 2026-03-22 |
-| 132 | architect | Audyt Fazy 1-4: findings do wdrożenia | open | 2026-03-22 |
-| 120 | architect | Workflow Architecture Discovery — kroki | open | 2026-03-21 |
-| 95 | erp_specialist | Nr_Dokumentu_Zrodlowego — złożony JOIN gdy ZrdTyp ma wiele typów | open | 2026-03-20 |
-| 83 | prompt_engineer | PE: suggestion z self-reported violation = analiza compliance, nie tool request | open | 2026-03-18 |
-| 69 | prompt_engineer | Konwencja numeracji kroków w workflow i listach | open | 2026-03-18 |
-| 64 | developer | Jeden błąd tego samego typu = diagnoza zasięgu przed naprawą | open | 2026-03-17 |
-| 63 | developer | Przed migracją danych — przedstaw plan człowiekowi | open | 2026-03-17 |
-| 51 | developer | Runner: busy = ochrona budżetu tokenowego, nie "subprocess działa" | open | 2026-03-17 |
+| id  | autor           | tytuł                                                                                    | status | data       |
+| --- | --------------- | ---------------------------------------------------------------------------------------- | ------ | ---------- |
+| 264 | prompt_engineer | Config as source of truth — prompty referencują, nie duplikują                           | open   | 2026-03-23 |
+| 247 | developer       | ADR timing — document when context is fresh                                              | open   | 2026-03-23 |
+| 241 | developer       | Config-driven architecture > hardcoded prompts                                           | open   | 2026-03-23 |
+| 228 | prompt_engineer | Drafty user-facing do documents/human/, nie tmp/                                         | open   | 2026-03-23 |
+| 222 | developer       | Workflow: Duży refaktor (Developer ↔ Architect tight loop)                               | open   | 2026-03-23 |
+| 212 | architect       | Success criteria dla migration phases muszą być explicite, testable, concrete            | open   | 2026-03-22 |
+| 198 | architect       | Adapter pattern → repositories muszą być transaction-aware                               | open   | 2026-03-22 |
+| 195 | developer       | Adapter layer importuje core/ - to jest OK ale dokumentuj dependency                     | open   | 2026-03-22 |
+| 193 | developer       | Status mapping backward compatibility - centralna dokumentacja                           | open   | 2026-03-22 |
+| 189 | architect       | CLI fallback to architectural requirement, nie "nice to have" — headless = core use case | open   | 2026-03-22 |
+| 187 | architect       | Hybryda (wtyczka + CLI) to optimal solution — nie wybieraj "albo-albo" gdy możesz "oba"  | open   | 2026-03-22 |
+| 184 | developer       | Wszystkie analizy/plany/raporty do pliku md nie inline w czacie                          | open   | 2026-03-22 |
+| 183 | developer       | Handoff między rolami musi być explicite z pełnym briefem                                | open   | 2026-03-22 |
+| 177 | architect       | Code review feedback loop działa — Developer responds well to structured critique        | open   | 2026-03-22 |
+| 172 | developer       | TDD dla Repository implementations — testy przed kodem                                   | open   | 2026-03-22 |
+| 169 | architect       | Nowy kod w core/, stary w tools/ przez adaptery                                          | open   | 2026-03-22 |
+| 161 | developer       | Onboarding gap — gdzie pracować jako non-developer współpracownik?                       | open   | 2026-03-22 |
+| 158 | developer       | Narzędzia pomocnicze: maintain actively or delete                                        | open   | 2026-03-22 |
+| 141 | architect       | Nowy kod w core/, stary w tools/ przez adaptery                                          | open   | 2026-03-22 |
+| 132 | architect       | Audyt Fazy 1-4: findings do wdrożenia                                                    | open   | 2026-03-22 |
+| 120 | architect       | Workflow Architecture Discovery — kroki                                                  | open   | 2026-03-21 |
+| 95  | erp_specialist  | Nr_Dokumentu_Zrodlowego — złożony JOIN gdy ZrdTyp ma wiele typów                         | open   | 2026-03-20 |
+| 83  | prompt_engineer | PE: suggestion z self-reported violation = analiza compliance, nie tool request          | open   | 2026-03-18 |
+| 69  | prompt_engineer | Konwencja numeracji kroków w workflow i listach                                          | open   | 2026-03-18 |
+| 64  | developer       | Jeden błąd tego samego typu = diagnoza zasięgu przed naprawą                             | open   | 2026-03-17 |
+| 63  | developer       | Przed migracją danych — przedstaw plan człowiekowi                                       | open   | 2026-03-17 |
+| 51  | developer       | Runner: busy = ochrona budżetu tokenowego, nie "subprocess działa"                       | open   | 2026-03-17 |
 
 ## Narzędzia (tool)
 

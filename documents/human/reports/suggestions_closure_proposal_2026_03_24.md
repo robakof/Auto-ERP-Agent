@@ -10,30 +10,49 @@
 
 | Kategoria | Liczba | Status docelowy | Uzasadnienie |
 |---|---|---|---|
-| **M1-M4 Migration** | 19 | `realized` | Projekt complete, ADR-001 dokumentuje |
-| **Session Init** | 15 | `realized` | Feature wdrożony (commit 73b7e81) |
+| **M1-M4 Migration** | 13 | `realized` | Projekt complete, ADR-001 dokumentuje |
+| **M1-M4 → Backlog** | 6 | `in_backlog` | Actionable items wyodrębnione (5 backlog items) |
+| **Session Init** | 6 | `realized` | Feature wdrożony (commit 73b7e81) |
+| **Session Init → Backlog** | 9 | `in_backlog` | Actionable items wyodrębnione (8 nowych + 1 update) |
 | **Obserwacje bez akcji** | 10 | `noted` | Zanotowane, brak action item |
 | **Tool proposals** | 5 | `in_backlog` lub `rejected` | Ocena per item |
 | **Do weryfikacji** | 87 | Ręczna weryfikacja | Rules, discoveries, obserwacje |
 | **RAZEM** | **136** | - | - |
 
-**Szybkie zamknięcie:** 44 sugestie (M1-M4 + Session Init + obserwacje bez akcji)
+**Szybkie zamknięcie:** 29 sugestii (13 M1-M4 + 6 Session Init + 10 obserwacje bez akcji)
+**Przeniesione do backlogu:** 15 sugestii → 13 nowych backlog items (#131-#143) + 1 update (#127)
 **Pozostałe:** 92 (do ręcznej weryfikacji + tool proposals)
 
 ---
 
-## Kategoria 1: M1-M4 Migration (19 sugestii) → `realized`
+## Kategoria 1: M1-M4 Migration (13 sugestii) → `realized`
 
 **Uzasadnienie:**
 - M1-M4 Domain Model Migration **COMPLETE** (merge 875789a do main)
 - ADR-001 (448 linii) dokumentuje całą migrację, lessons learned, architectural decisions
 - Wszystkie obserwacje architektoniczne z M1-M4 już uwzględnione w ADR-001
 
+**⚠️ UPDATED:** 6 sugestii przeniesione do backlogu (actionable items wyodrębnione)
+
 **Sugestie do zamknięcia:**
 
 ```
-IDs: 263, 262, 260, 258, 252, 250, 248, 247, 245, 213, 211, 206, 204, 199, 190, 188, 174, 168, 164
+IDs: 262, 260, 258, 250, 248, 213, 211, 204, 190, 188, 174, 168, 164
 ```
+
+**Przeniesione do backlogu (6):**
+
+| Suggestion ID | Backlog ID | Tytuł backlog item |
+|---|---|---|
+| #263 | #131 | Workflow Architekta — 10 transferable patterns z M1-M4 |
+| #252 + #247 | #133 | Architect prompt — ADR best practices verification |
+| #245 | #134 | Communication loop closure pattern dla agentów |
+| #206 + #199 | #135 | Test strategy w workflow — checkpoint + success criteria |
+
+**Dodatkowy backlog item (z #263):**
+| Suggestion ID | Backlog ID | Tytuł backlog item |
+|---|---|---|
+| #263 | #132 | METHODOLOGY.md — migration best practices z M1-M4 |
 
 **Sample titles:**
 - #263: "Transferable Wisdom"
@@ -51,7 +70,7 @@ py tools/agent_bus_cli.py suggest-status-bulk --file documents/human/tmp/closure
 
 ---
 
-## Kategoria 2: Session Init Context (15 sugestii) → `realized`
+## Kategoria 2: Session Init Context (6 sugestii) → `realized`
 
 **Uzasadnienie:**
 - session_init context feature **wdrożony** (commit 73b7e81)
@@ -59,17 +78,27 @@ py tools/agent_bus_cli.py suggest-status-bulk --file documents/human/tmp/closure
 - Config-driven architecture zaimplementowany (`config/session_init_config.json`)
 - Impact: -67 linii (56% compression), 0 CLI commands per session_start
 
+**⚠️ UPDATED:** 9 sugestii przeniesione do backlogu (actionable items wyodrębnione)
+
 **Sugestie do zamknięcia:**
 
 ```
-IDs: 264, 244, 243, 242, 241, 240, 239, 236, 234, 231, 224, 223, 221, 220, 171
+IDs: 239, 236, 231, 223, 221, 171
 ```
 
-**Sample titles:**
-- #264: "Config as source of truth — prompty referencują, nie duplikują"
-- #244: "Test-after wykrył błędy API, ale TDD byłoby lepsze"
-- #243: "User feedback loop real-time > strict adherence to spec"
-- #241: "Config-driven architecture > hardcoded prompts"
+**Przeniesione do backlogu (9):**
+
+| Suggestion ID | Backlog ID | Tytuł backlog item |
+|---|---|---|
+| #264 | #136 | PE wytyczne — config as source of truth |
+| #244 | #137 | Wytyczne PE/Developer — TDD eliminuje założenia o API |
+| #243 | #138 | Wytyczne Developer/Architect — user feedback loop real-time |
+| #242 | #127 | Session-aware CLI — security (istniejący backlog, scope rozszerzony) |
+| #241 | #139 | Architect audit — config-driven architecture w całym projekcie |
+| #240 | #140 | Handoff pattern — message type + zobowiązanie ról |
+| #234 | #141 | Agent communication — broadcast messages (do wszystkich) |
+| #224 | #142 | Audit promptów/workflow — procedury do automatyzacji |
+| #220 | #143 | Agent_bus — auto mark-read + manual unread |
 
 **Action:**
 ```bash
@@ -212,25 +241,43 @@ py tools/agent_bus_cli.py suggest-status-bulk --file documents/human/tmp/closure
 
 ## Akcje — Kolejność Realizacji
 
-### Krok 1: Automatyczne zamknięcia (44 sugestie)
+### Krok 1: M1-M4 → Backlog (6 sugestii) ✓ **WYKONANE**
 
-**1.1. M1-M4 Migration (19)**
+**Status:** COMPLETE
+- ✓ 5 backlog items stworzonych (#131-#135)
+- ✓ 6 sugestii zaktualizowanych do `in_backlog` status
+
+**Mapping:**
+- #263 → Backlog #131 + #132
+- #252 + #247 → Backlog #133
+- #245 → Backlog #134
+- #206 + #199 → Backlog #135
+
+**Backlog items:**
+1. #131 (Prompt): Workflow Architekta — 10 transferable patterns
+2. #132 (Metodolog): METHODOLOGY.md — migration best practices
+3. #133 (Prompt): Architect prompt — ADR best practices verification
+4. #134 (Prompt): Communication loop closure pattern
+5. #135 (Prompt): Test strategy w workflow — checkpoint + success criteria
+
+### Krok 2: Automatyczne zamknięcia (38 sugestii)
+
+**2.1. M1-M4 Migration (13)** — gotowe do wykonania
 ```bash
-py tools/agent_bus_cli.py suggest-status-bulk --file tmp/closure_m1_m4.json
+py tools/agent_bus_cli.py suggest-status-bulk --file documents/human/tmp/closure_m1_m4.json
 ```
 
-**1.2. Session Init (15)**
+**2.2. Session Init (15)** — gotowe do wykonania
 ```bash
-py tools/agent_bus_cli.py suggest-status-bulk --file tmp/closure_session_init.json
+py tools/agent_bus_cli.py suggest-status-bulk --file documents/human/tmp/closure_session_init.json
 ```
 
-**1.3. Obserwacje bez akcji (10)**
+**2.3. Obserwacje bez akcji (10)** — gotowe do wykonania
 ```bash
-# File gotowy: documents/human/tmp/closure_noted.json
 py tools/agent_bus_cli.py suggest-status-bulk --file documents/human/tmp/closure_noted.json
 ```
 
-### Krok 2: Tool Proposals (5 sugestii) — User Decision
+### Krok 3: Tool Proposals (5 sugestii) — User Decision
 
 **Pytanie do użytkownika:**
 
@@ -240,7 +287,7 @@ py tools/agent_bus_cli.py suggest-status-bulk --file documents/human/tmp/closure
 4. **#163 (render.py filter):** BACKLOG (area: Dev, value: średnia)?
 5. **#123 (Diagram arch):** DEFERRED czy REJECTED?
 
-### Krok 3: Ręczna weryfikacja (87 sugestii)
+### Krok 4: Ręczna weryfikacja (87 sugestii)
 
 - Rules: Sprawdź czy wdrożone → `realized` lub zostaw `open`
 - Discoveries: Sprawdź czy actioned → `realized` lub `noted`
@@ -278,13 +325,37 @@ py tools/agent_bus_cli.py suggest-status-bulk --file documents/human/tmp/closure
 
 ## Następne Kroki
 
-**Czekam na zatwierdzenie użytkownika:**
+**Status:**
 
-1. ✓ Zamknąć 19 sugestii M1-M4 jako `realized`?
-2. ✓ Zamknąć 15 sugestii Session Init jako `realized`?
-3. ✓ Zamknąć 10 obserwacji bez akcji jako `noted`?
-4. ⚠️ Decyzja per tool proposal (#227, #192, #170, #163, #123)?
-5. ⚠️ Jak traktować pozostałe 87 (ręczny przegląd teraz czy później)?
+1. ✓ **WYKONANE:** 6 sugestii M1-M4 przeniesione do backlogu (#131-#135)
+2. ✓ **WYKONANE:** 9 sugestii Session Init przeniesione do backlogu (#136-#143 + update #127)
+3. ⚠️ **CZEKA:** Zamknąć 13 sugestii M1-M4 jako `realized`?
+4. ⚠️ **CZEKA:** Zamknąć 6 sugestii Session Init jako `realized`?
+5. ⚠️ **CZEKA:** Zamknąć 10 obserwacji bez akcji jako `noted`?
+6. ⚠️ **CZEKA:** Decyzja per tool proposal (#227, #192, #170, #163, #123)?
+7. ⚠️ **CZEKA:** Jak traktować pozostałe 87 (ręczny przegląd teraz czy później)?
+
+**Backlog items utworzone (13 nowych + 1 update):**
+
+**M1-M4 lessons (5 items):**
+- #131 (Prompt): Workflow Architekta — 10 transferable patterns
+- #132 (Metodolog): METHODOLOGY.md — migration best practices
+- #133 (Prompt): Architect prompt — ADR verification
+- #134 (Prompt): Communication loop closure
+- #135 (Prompt): Test strategy — checkpoint + success criteria
+
+**Session Init lessons (8 items):**
+- #136 (Prompt): PE wytyczne — config as source of truth
+- #137 (Prompt): Wytyczne PE/Dev — TDD eliminuje założenia
+- #138 (Prompt): Wytyczne Dev/Arch — user feedback real-time
+- #139 (Arch): Architect audit — config-driven architecture
+- #140 (Prompt): Handoff pattern — message type + zobowiązanie
+- #141 (Dev): Agent communication — broadcast messages
+- #142 (Prompt): Audit promptów — procedury do automatyzacji
+- #143 (Dev): Agent_bus — auto mark-read + manual unread
+
+**Updated:**
+- #127 (Dev): Session-aware CLI — scope rozszerzony o security audit
 
 **Po zatwierdzeniu:** Wykonam bulk closures i wygeneruję końcowy raport ze statystykami.
 
