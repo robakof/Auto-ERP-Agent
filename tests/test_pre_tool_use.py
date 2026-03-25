@@ -1,28 +1,6 @@
 """Testy pre_tool_use.py hook."""
 
-import json
-import subprocess
-import sys
-from pathlib import Path
-
-HOOK = Path("tools/hooks/pre_tool_use.py")
-
-
-def run_hook(payload: dict) -> tuple[int, dict | None]:
-    result = subprocess.run(
-        [sys.executable, str(HOOK)],
-        input=json.dumps(payload),
-        capture_output=True,
-        text=True,
-    )
-    output = None
-    if result.stdout.strip():
-        output = json.loads(result.stdout.strip())
-    return result.returncode, output
-
-
-def make_bash(command: str) -> dict:
-    return {"tool_name": "Bash", "tool_input": {"command": command}}
+from conftest import run_hook, make_bash
 
 
 class TestSafeCommands:

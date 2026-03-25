@@ -111,7 +111,11 @@ class MessageService:
         repo.save(message)
 
     def archive(self, message_id: int) -> None:
-        """Archive a message (status='archived')."""
+        """Archive a message (status='archived').
+
+        Note: Direct SQL (not via repo) — trade-off: 1 UPDATE vs repo.get+entity+repo.save (3 ops).
+        Acceptable per Architect review #326.
+        """
         self._conn.execute(
             "UPDATE messages SET status = 'archived' WHERE id = ?",
             (message_id,),

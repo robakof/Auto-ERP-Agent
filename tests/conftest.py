@@ -1,5 +1,7 @@
 # Wspólne fixtures i dane testowe używane przez wiele plików testowych.
 
+import json
+import subprocess
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -18,6 +20,30 @@ def make_mock_conn(columns: list[str], rows: list[list]) -> tuple[MagicMock, Mag
     mock_conn = MagicMock()
     mock_conn.cursor.return_value = mock_cursor
     return mock_conn, mock_cursor
+
+
+# --- Safety hook helpers (shared by test_pre_tool_use.py, test_boundary.py) ---
+
+HOOK_PATH = Path(__file__).parent.parent / "tools" / "hooks" / "pre_tool_use.py"
+
+
+def run_hook(payload: dict) -> tuple:
+    """Run pre_tool_use hook with given payload. Returns (returncode, parsed_output)."""
+    result = subprocess.run(
+        [sys.executable, str(HOOK_PATH)],
+        input=json.dumps(payload),
+        capture_output=True,
+        text=True,
+    )
+    output = None
+    if result.stdout.strip():
+        output = json.loads(result.stdout.strip())
+    return result.returncode, output
+
+
+def make_bash(command: str) -> dict:
+    """Create Bash tool payload for hook testing."""
+    return {"tool_name": "Bash", "tool_input": {"command": command}}
 
 
 def make_ws(rows: list[tuple]) -> MagicMock:

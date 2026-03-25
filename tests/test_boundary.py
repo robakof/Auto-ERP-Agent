@@ -8,10 +8,7 @@ Backlog #145. Testują interakcje MIĘDZY modułami:
 - Legacy API ↔ Domain model (type mapping)
 """
 
-import json
 import sqlite3
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -171,24 +168,7 @@ class TestTelemetryDedupBoundary:
 # Suite 3: Safety gate precision
 # ============================================================================
 
-HOOK = Path("tools/hooks/pre_tool_use.py")
-
-
-def run_hook(payload: dict) -> tuple:
-    result = subprocess.run(
-        [sys.executable, str(HOOK)],
-        input=json.dumps(payload),
-        capture_output=True,
-        text=True,
-    )
-    output = None
-    if result.stdout.strip():
-        output = json.loads(result.stdout.strip())
-    return result.returncode, output
-
-
-def make_bash(command: str) -> dict:
-    return {"tool_name": "Bash", "tool_input": {"command": command}}
+from conftest import run_hook, make_bash
 
 
 def get_decision(output: dict) -> str:
