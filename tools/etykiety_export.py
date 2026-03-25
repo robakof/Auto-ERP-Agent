@@ -31,9 +31,10 @@ from tools.lib.output import print_json
 from tools.lib.sql_client import SqlClient
 
 _PROJECT_ROOT = Path(__file__).parent.parent
-SQL_PATH = _PROJECT_ROOT / "solutions/jas/etykiety_10_oferty.sql"
-TEMPLATE_PATH = _PROJECT_ROOT / "documents/human/ar/dokumenty/Etykiety do wypełnienia.docx"
-DEFAULT_COLS = 4
+SQL_PATH       = _PROJECT_ROOT / "solutions/jas/etykiety_10_oferty.sql"
+SQL_EXCEL_PATH = _PROJECT_ROOT / "solutions/jas/etykiety_excel.sql"
+TEMPLATE_PATH  = _PROJECT_ROOT / "documents/human/ar/dokumenty/Etykiety do wypełnienia.docx"
+DEFAULT_COLS   = 4
 
 
 # ---------------------------------------------------------------------------
@@ -84,6 +85,38 @@ def _prepare_sql(klient_gid: int) -> str:
 
 def _query_products(klient_gid: int) -> list[dict]:
     sql = _prepare_sql(klient_gid)
+    result = SqlClient().execute(sql, inject_top=None)
+    if not result["ok"]:
+        raise RuntimeError(result["error"]["message"])
+    cols = result["columns"]
+    return [dict(zip(cols, row)) for row in result["rows"]]
+
+
+def load_codes_from_excel(excel_path: str) -> list[str]:
+    """Czyta kolumnę 'Kod' z Excela. Zwraca listę niepustych kodów."""
+    import openpyxl
+    wb = openpyxl.load_workbook(excel_path, read_only=True, data_only=True)
+    ws = wb.active
+    headers = [str(c.value).strip() if c.value else "" for c in next(ws.iter_rows(min_row=1, max_row=1))]
+    try:
+        col_idx = headers.index("Kod")
+    except ValueError:
+        raise ValueError(f"Brak kolumny 'Kod' w pliku. Znalezione nagłówki: {headers}")
+    kody = []
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        val = row[col_idx]
+        if val:
+            kody.append(str(val).strip())
+    wb.close()
+    return kody
+
+
+def _query_products_from_codes(kody: list[str]) -> list[dict]:
+    """Pobiera dane etykiet z ERP dla podanej listy kodów Twr_Kod."""
+    if not kody:
+        return []
+    kody_in = ", ".join(f"'{k.replace(chr(39), chr(39)*2)}'" for k in kody)
+    sql = SQL_EXCEL_PATH.read_text(encoding="utf-8").replace("{kody_in}", kody_in)
     result = SqlClient().execute(sql, inject_top=None)
     if not result["ok"]:
         raise RuntimeError(result["error"]["message"])
