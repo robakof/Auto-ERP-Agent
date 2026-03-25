@@ -1,7 +1,7 @@
 ---
 convention_id: communication-convention
 version: "1.1"
-status: draft
+status: draft  # BLOCKED: czeka na Agent Bus v2 (backlog #187)
 created: 2026-03-25
 updated: 2026-03-25
 author: architect

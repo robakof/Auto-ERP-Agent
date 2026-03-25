@@ -1,7 +1,7 @@
 ---
 convention_id: prompt-convention
 version: "1.2"
-status: draft
+status: active
 created: 2026-03-25
 updated: 2026-03-25
 author: architect
