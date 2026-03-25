@@ -238,10 +238,12 @@ class AgentBus:
         from core.services.workflow_service import WorkflowService
         from core.services.telemetry_service import TelemetryService
         from core.services.suggestion_service import SuggestionService
+        from core.services.backlog_service import BacklogService
         self._known_gaps = KnownGapsService(self._conn)
         self._workflows = WorkflowService(self._conn)
         self._telemetry = TelemetryService(self._conn)
         self._suggestions = SuggestionService(self._conn, db_path)
+        self._backlog = BacklogService(self._conn, db_path)
 
     def _run_migrations(self) -> None:
         for stmt in _MIGRATE_SQL:
@@ -503,125 +505,31 @@ class AgentBus:
         effort: str = None,
         source_id: int = None,
     ) -> int:
-        """Add a backlog item. Returns backlog id.
-
-        NOTE: Delegates to BacklogRepository (M3 adapter pattern).
-        """
-        from core.entities.messaging import BacklogArea, BacklogEffort, BacklogItem, BacklogValue
-        from core.repositories.backlog_repo import BacklogRepository
-
-        # Convert string values to enums (optional fields)
-        area_enum = BacklogArea(area) if area else None
-        value_enum = BacklogValue(value) if value else None
-        effort_enum = BacklogEffort(effort) if effort else None
-
-        # Create entity
-        item = BacklogItem(
-            title=title,
-            content=content,
-            area=area_enum,
-            value=value_enum,
-            effort=effort_enum,
-            source_id=source_id
-        )
-
-        # Save via repository (transaction-aware)
-        repo = self._get_repository(BacklogRepository)
-        saved = repo.save(item)
-
-        return saved.id
+        """Delegates to BacklogService."""
+        txn_conn = self._conn if self._in_transaction else None
+        return self._backlog.add(title, content, area, value, effort, source_id, txn_conn)
 
     def get_backlog(self, status: str = None, area: str = None) -> list[dict]:
-        """Get backlog items. Newest first. Optional status/area filter.
-
-        NOTE: Delegates to BacklogRepository (M3 adapter pattern).
-        """
-        from core.entities.messaging import BacklogArea, BacklogStatus
-        from core.repositories.backlog_repo import BacklogRepository
-
-        repo = self._get_repository(BacklogRepository)
-
-        # Query based on filters
-        if status and area:
-            # Both filters - manual filter in-memory (TODO: optimize with composite query)
-            items = repo.find_all()
-            items = [item for item in items if item.status.value == status and item.area and item.area.value == area]
-        elif status:
-            items = repo.find_by_status(BacklogStatus(status))
-        elif area:
-            items = repo.find_by_area(BacklogArea(area))
-        else:
-            items = repo.find_all()
-
-        # Convert entities to dicts (backward compatibility, centralized)
-        from core.mappers.legacy_api import LegacyAPIMapper
-        result = [LegacyAPIMapper.backlog_to_dict(item) for item in items]
-
-        return result
+        """Delegates to BacklogService."""
+        txn_conn = self._conn if self._in_transaction else None
+        return self._backlog.get(status, area, txn_conn)
 
     def get_backlog_by_id(self, backlog_id: int) -> dict | None:
-          """Get a single backlog item by ID.
-
-          NOTE: Delegates to BacklogRepository (M3 adapter pattern).
-          """
-          from core.mappers.legacy_api import LegacyAPIMapper
-          from core.repositories.backlog_repo import BacklogRepository
-
-          repo = self._get_repository(BacklogRepository)
-          item = repo.get(backlog_id)
-          if item is None:
-              return None
-          return LegacyAPIMapper.backlog_to_dict(item)
-
-
-
+        """Delegates to BacklogService."""
+        txn_conn = self._conn if self._in_transaction else None
+        return self._backlog.get_by_id(backlog_id, txn_conn)
 
 
 
     def update_backlog_status(self, backlog_id: int, status: str) -> None:
-        """Update backlog item status and set updated_at.
-
-        NOTE: Delegates to BacklogRepository (M3 adapter pattern).
-        """
-        from core.entities.messaging import BacklogStatus
-        from core.repositories.backlog_repo import BacklogRepository
-
-        repo = self._get_repository(BacklogRepository)
-
-        # Load entity
-        item = repo.get(backlog_id)
-        if not item:
-            return  # Silently ignore if not found (backward compatible)
-
-        # Update status
-        try:
-            item.status = BacklogStatus(status)
-        except ValueError:
-            # Unknown status - keep item unchanged
-            return
-
-        # Save (updated_at auto-updated in repository)
-        repo.save(item)
+        """Delegates to BacklogService."""
+        txn_conn = self._conn if self._in_transaction else None
+        self._backlog.update_status(backlog_id, status, txn_conn)
 
     def update_backlog_content(self, backlog_id: int, content: str) -> None:
-        """Update backlog item content and set updated_at.
-
-        NOTE: Delegates to BacklogRepository (M3 adapter pattern).
-        """
-        from core.repositories.backlog_repo import BacklogRepository
-
-        repo = self._get_repository(BacklogRepository)
-
-        # Load entity
-        item = repo.get(backlog_id)
-        if not item:
-            return  # Silently ignore if not found (backward compatible)
-
-        # Update content
-        item.content = content
-
-        # Save (updated_at auto-updated in repository)
-        repo.save(item)
+        """Delegates to BacklogService."""
+        txn_conn = self._conn if self._in_transaction else None
+        self._backlog.update_content(backlog_id, content, txn_conn)
 
     # --- Session log ---
 
