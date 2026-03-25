@@ -207,6 +207,24 @@ Każda operacja = osobny plik tymczasowy z opisową nazwą (np. `tmp/msg_erp_tra
 Memory (`.claude/memory/`) służy do trwałych preferencji użytkownika między sesjami.
 Obserwacje, wnioski z pracy → wyłącznie `agent_bus suggest`.
 
+### Self-handoff — kontynuacja między sesjami
+
+Gdy sesja kończy się przy niedokończonym zadaniu, wyślij handoff do siebie:
+```
+py tools/agent_bus_cli.py handoff --from <rola> --to <rola> --phase "nazwa fazy" --status PASS --summary "co zrobiono" --next-action "co dalej"
+```
+
+Następna sesja tej roli dostaje handoff w inbox przez session_init — kontekst nie ginie.
+
+Kiedy używać:
+- Zadanie wieloetapowe, nie zmieściło się w jednej sesji
+- Ważny kontekst decyzyjny który nie wynika z kodu ani git log
+- Konkretne instrukcje dla następnej sesji (pliki do przeczytania, kroki do wykonania)
+
+Czego NIE wstawiać do self-handoff:
+- Informacji które można odczytać z git log lub kodu
+- Pełnych treści plików — podaj ścieżkę, nie kopiuj
+
 ### Prompty badawcze — output contract
 
 Każdy prompt zlecający research zewnętrznemu agentowi musi zawierać:
