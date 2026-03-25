@@ -112,7 +112,7 @@ PHOTO_H_MAX = CELL_H * PHOTO_RATIO
 # ---------------------------------------------------------------------------
 
 COLOR_ORANGE         = colors.HexColor("#c96a2b")
-COLOR_KERTI          = colors.HexColor("#0000FF")
+COLOR_KERTI          = colors.HexColor("#1A1A1A")
 COLOR_BLACK          = colors.HexColor("#1A1A1A")
 COLOR_GRAY           = colors.HexColor("#6B6B6B")
 COLOR_SHADOW         = colors.HexColor("#DDDDDD")
