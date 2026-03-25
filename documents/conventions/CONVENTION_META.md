@@ -71,6 +71,7 @@ updated: date             # YYYY-MM-DD (ostatnia modyfikacja)
 author: string            # kto napisał
 owner: string             # kto utrzymuje
 approver: string          # kto zatwierdza przejścia statusów
+reviewer: list[string]    # [opcjonalne] kto robi review przed zatwierdzeniem
 audience: list[string]    # kogo dotyczy (relacje DB)
 scope: string             # co konwencja pokrywa (1 zdanie)
 ---

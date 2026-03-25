@@ -1,6 +1,6 @@
 ---
-convention_id: code-convention
-version: "1.2"
+convention_id: python-convention
+version: "1.3"
 status: draft
 created: 2026-03-25
 updated: 2026-03-25
@@ -11,28 +11,29 @@ audience: [developer, architect, prompt_engineer]
 scope: "Standardy kodu Python w projekcie Mrowisko"
 ---
 
-# CONVENTION_CODE — Standardy kodu Python
+# CONVENTION_PYTHON — Standardy kodu Python
 
 ## TL;DR
 
 - Każde narzędzie CLI w `tools/` MUSI mieć wzorzec: `argparse → main() → JSON output → sys.exit`
-- Funkcja publiczna MUSI mieć type hints dla argumentów i wartości zwracanej
+- Wszystkie funkcje MUSZĄ mieć type hints (publiczne i prywatne)
 - JSON output = zawsze `{"ok": bool, "data": ..., "error": ..., "meta": ...}` — bez wyjątków
 - Importy: stdlib → third-party → local, tylko importy absolutne
-- `print()` jest zakazany w narzędziach — używaj `print_json()` z `tools/lib/output.py`
+- `print()` na stdout zakazany — używaj `print_json()` z `tools/lib/output.py`
 - Nazwy plików: `snake_case`, opisowe, bez temporal suffixów (`_new`, `_v2`, `_final`)
 - Exit codes: 0 (OK), 1 (runtime error), 2 (usage error) — wspólny enum
 - stdout wyłącznie dla JSON, stderr dla diagnostyki — nie mieszaj kanałów
 - Każde narzędzie ma minimum 4 testy kontraktowe (help, success, bad args, runtime error)
+- Docstrings w języku angielskim (warstwa techniczna = EN)
 
 ---
 
 ## Zakres
 
 **Pokrywa:**
-- Kod Python w `tools/`, `tools/lib/`, `tests/`
+- Kod Python w `tools/`, `tools/lib/`, `core/`, `tests/`
 - Pattern CLI narzędzi (argparse, output, exit codes)
-- Pattern bibliotek (`tools/lib/`)
+- Pattern bibliotek (`tools/lib/`, `core/`)
 - Type hints, docstrings, importy, error handling
 - Konwencje testów
 
@@ -51,11 +52,11 @@ Każdy skrypt CLI w `tools/` MUSI mieć strukturę:
 
 ```python
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Opis narzędzia.", allow_abbrev=False)
-    # argumenty...
+    parser = argparse.ArgumentParser(description="Tool description.", allow_abbrev=False)
+    # arguments...
     args = parser.parse_args()
 
-    result = funkcja_biznesowa(args.parametr)
+    result = business_function(args.parameter)
     print_json(result)
 
 
@@ -81,7 +82,7 @@ Każda funkcja zwracająca wynik do CLI MUSI używać struktury:
 {
     "ok": True | False,
     "data": <wynik> | None,
-    "error": None | {"type": "ERROR_TYPE", "message": "opis"},
+    "error": None | {"type": "ERROR_TYPE", "message": "description"},
     "meta": {"duration_ms": int, "truncated": bool}
 }
 ```
@@ -96,41 +97,46 @@ Każda funkcja zwracająca wynik do CLI MUSI używać struktury:
 
 ---
 
-### 03R: Type hints dla funkcji publicznych
+### 03R: Type hints dla wszystkich funkcji
 
-Każda funkcja publiczna (bez prefiksu `_`) MUSI mieć type hints dla wszystkich argumentów i wartości zwracanej.
+Wszystkie funkcje MUSZĄ mieć type hints dla argumentów i wartości zwracanej.
 
 ```python
-# Dobrze
+# Public function
 def git_commit(
     message: str = "",
     files: list[str] | None = None,
     add_all: bool = False,
 ) -> dict:
 
-# Dobrze — funkcja pomocnicza (prywatna), hints opcjonalne
+# Private function — type hints also required
 def _parse_status_files(status_output: str) -> list[str]:
 ```
 
-**Zakaz:** Funkcja publiczna bez type hints.
+**Dlaczego wszystkie (nie tylko publiczne):**
+- Agent czytający kod widzi sygnaturę → wie jak wywołać
+- mypy łapie błędy typów w prywatnych funkcjach też
+- Debugging: widzisz co funkcja przyjmuje/zwraca bez czytania ciała
+
+**Zakaz:** Funkcja bez type hints.
 
 ---
 
-### 04R: Docstrings dla funkcji publicznych
+### 04R: Docstrings w języku angielskim
 
-Każda funkcja publiczna, która nie jest oczywista z sygnatury, MUSI mieć docstring w formacie Google.
+Docstrings w formacie Google, język angielski (warstwa techniczna = EN).
 
 ```python
 def get_context(role: str, config: dict, bus: AgentBus) -> dict:
-    """Zbiera kontekst sesji per konfigurację.
+    """Collect session context per configuration.
 
     Args:
-        role: Nazwa roli agenta (np. "developer").
-        config: Słownik konfiguracji z session_init_config.json.
-        bus: Instancja AgentBus z otwartym połączeniem DB.
+        role: Agent role name (e.g. "developer").
+        config: Configuration dict from session_init_config.json.
+        bus: AgentBus instance with open DB connection.
 
     Returns:
-        Słownik z kluczami: inbox, backlog, logs (zależnie od config).
+        Dict with keys: inbox, backlog, logs (depending on config).
     """
 ```
 
@@ -140,8 +146,7 @@ def get_context(role: str, config: dict, bus: AgentBus) -> dict:
 - Funkcja jest punktem integracyjnym (wywoływana przez inne moduły)
 
 **Kiedy można pominąć:**
-- Funkcja prywatna (`_`) z prostą logiką
-- Funkcja pomocnicza z self-dokumentującą się sygnaturą
+- Funkcja z self-dokumentującą się sygnaturą i prostą logiką
 
 ---
 
@@ -159,7 +164,7 @@ from pathlib import Path
 # third-party
 import pytest
 
-# local (absolutne)
+# local (absolute)
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from tools.lib.agent_bus import AgentBus
 from tools.lib.output import print_json
@@ -167,7 +172,7 @@ from tools.lib.output import print_json
 
 **Zakaz:** Importy względne (`from . import`, `from .. import`) — używaj absolutnych.
 
-**Uwaga `sys.path.insert`:** Dozwolone wyłącznie w plikach CLI (`tools/*.py`) i testach — wymagane ze względu na brak instalacji pakietu. W `tools/lib/` niedozwolone.
+**`sys.path.insert`:** Workaround wymagany ponieważ projekt nie jest zainstalowany jako pakiet Python. Dozwolone w plikach CLI (`tools/*.py`) i testach. W `tools/lib/` i `core/` niedozwolone. Docelowo: `pyproject.toml` z `pip install -e .` wyeliminuje ten hack.
 
 ---
 
@@ -218,9 +223,9 @@ def error_result(msg: str) -> dict:
 
 ---
 
-### 08R: Logging vs print
+### 08R: stdout vs stderr
 
-**`print()` na stdout jest zakazany** w kodzie produkcyjnym (`tools/`, `tools/lib/`).
+**`print()` na stdout jest zakazany** w kodzie produkcyjnym (`tools/`, `tools/lib/`, `core/`).
 `print(..., file=sys.stderr)` jest dozwolony dla diagnostyki (patrz 14R).
 
 Jedyne dozwolone wyjście na stdout: `print_json()` z `tools/lib/output.py`.
@@ -258,14 +263,6 @@ Jedyne dozwolone wyjście na stdout: `print_json()` z `tools/lib/output.py`.
 
 **Lokalizacja:** `tests/test_<modul>.py` — jeden plik testów per moduł.
 
-**Import modułu testowanego:**
-```python
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from tools.git_commit import git_commit
-```
-
 **Klasy testowe** — grupuj powiązane testy:
 ```python
 class TestCliSendAndInbox:
@@ -280,17 +277,6 @@ class TestCliSendAndInbox:
 - Nie mockuj logiki biznesowej którą testujesz
 - `unittest.mock.patch` — preferowany nad własnym instrumentowaniem
 
-**Testy integracyjne CLI** — używaj `subprocess.run` z `--db tmp_path`:
-```python
-def run_cli(args: list[str], db_path: str) -> dict:
-    result = subprocess.run(
-        [PYTHON, CLI, "--db", db_path] + args,
-        capture_output=True, text=True, encoding="utf-8",
-    )
-    assert result.returncode == 0, f"CLI failed: {result.stderr}"
-    return json.loads(result.stdout)
-```
-
 **Minimum:** Każda funkcja publiczna ma ≥1 test happy path i ≥1 test failure path.
 
 ---
@@ -301,9 +287,9 @@ Moduły w `tools/lib/` są bibliotekami — nie mają `if __name__ == "__main__"
 
 ```python
 # tools/lib/output.py
-"""output.py — Opis modułu.
+"""Output helpers for CLI tools.
 
-Uzasadnienie istnienia modułu (1-2 zdania kontekstu, np. dlaczego nie standardowy print).
+Forces UTF-8 on stdout to avoid cp1250 issues on Windows.
 """
 
 import json
@@ -311,7 +297,7 @@ import sys
 
 
 def print_json(result: dict) -> None:
-    """Drukuje słownik jako JSON na stdout z wymuszonym UTF-8."""
+    """Print dict as JSON to stdout with forced UTF-8."""
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     print(json.dumps(result, ensure_ascii=False, default=str))
@@ -320,7 +306,75 @@ def print_json(result: dict) -> None:
 **Obowiązki `tools/lib/`:**
 - Klasy enkapsulujące logikę domenową (np. `AgentBus`)
 - Funkcje użytkowe współdzielone przez wiele CLI
-- Brak `argparse`, brak `sys.exit()`, brak `print()`
+- Brak `argparse`, brak `sys.exit()`, brak `print()` na stdout
+
+---
+
+### 13R: Exit codes — wspólny enum
+
+Każde narzędzie CLI MUSI używać wspólnego zestawu kodów wyjścia:
+
+| Kod | Stała | Znaczenie |
+|-----|-------|-----------|
+| 0 | `EXIT_OK` | Sukces |
+| 1 | `EXIT_ERROR` | Błąd runtime (DB, I/O, logika) |
+| 2 | `EXIT_USAGE` | Błąd argumentów (domyślne `argparse`) |
+
+**Reguły:**
+- Dodatkowe kody domenowe wymagają jawnej dokumentacji w docstringu `main()`.
+- Narzędzie NIE zwraca kodu wyjścia innego niż 0/1/2 bez uzasadnienia.
+- `argparse` sam zwraca `2` przy błędnych argumentach — nie nadpisuj.
+
+**Zakaz:** `sys.exit(42)` bez udokumentowania co 42 znaczy.
+
+---
+
+### 14R: Kanały IO — stdout dla danych, stderr dla diagnostyki
+
+```python
+# stdout: ONLY machine-readable JSON (print_json)
+print_json({"ok": True, "data": result})
+
+# stderr: errors, warnings, debug info
+import sys
+print("WARNING: config file missing", file=sys.stderr)
+```
+
+**Reguły:**
+- Na `stdout` trafia wyłącznie output machine-readable (JSON).
+- Na `stderr` trafiają: ostrzeżenia, komunikaty debug, progress info.
+- Agent parsujący wynik narzędzia czyta tylko `stdout`.
+- `print()` bez `file=sys.stderr` jest zakazany (patrz 08R).
+
+**Uzasadnienie:** Dojrzałe CLI (gcloud, AWS CLI, gh) konsekwentnie separują kanały.
+Mieszanie danych z diagnostyką łamie potokowanie i parsowanie JSON.
+
+---
+
+### 15R: Centralna konfiguracja lint i type-check
+
+Projekt ma konfigurację lint/type-check w `pyproject.toml` (wdrożona, backlog #189 done).
+
+**Reguły:**
+- Jedna konfiguracja dla całego repo — nie per-narzędzie.
+- Kod MUSI przechodzić `ruff check` bez błędów przed commitem.
+- `mypy` na `tools/` i `core/` — wymusza 03R (docelowo `disallow_untyped_defs = true`).
+- Konfiguracja w `pyproject.toml`, nie w osobnych plikach `.ruff.toml` / `mypy.ini`.
+
+---
+
+### 16R: Testy kontraktowe — minimum per narzędzie CLI
+
+> Uwaga: Gdy powstanie CONVENTION_TESTING (backlog #173), ta reguła zostanie przeniesiona tam.
+
+Każde narzędzie CLI w `tools/` MUSI mieć minimum 4 testy kontraktowe:
+
+1. `test_help_exits_zero` — `--help` zwraca exit code 0
+2. `test_success_returns_json` — sukces zwraca valid JSON z `ok=True`
+3. `test_bad_args_exits_two` — błędne argumenty → exit code 2
+4. `test_runtime_error_returns_json_error` — błąd runtime → JSON z `ok=False`
+
+Te 4 testy gwarantują stabilność kontraktu interfejsu narzędzia.
 
 ---
 
@@ -330,13 +384,13 @@ def print_json(result: dict) -> None:
 
 ```python
 """
-nazwa_narzedzia.py — Krótki opis.
+tool_name.py — Short description.
 
 CLI:
-    python tools/nazwa_narzedzia.py --parametr wartosc
-    python tools/nazwa_narzedzia.py --flaga
+    python tools/tool_name.py --parameter value
+    python tools/tool_name.py --flag
 
-Output: JSON na stdout.
+Output: JSON on stdout.
 """
 
 import argparse
@@ -351,22 +405,21 @@ from tools.lib.output import print_json
 DB_PATH = "mrowisko.db"
 
 
-def operacja_biznesowa(parametr: str) -> dict:
-    """Wykonuje operację i zwraca wynik w standardowym formacie.
+def business_operation(parameter: str) -> dict:
+    """Execute operation and return result in standard format.
 
     Args:
-        parametr: Opis argumentu.
+        parameter: Description of argument.
 
     Returns:
-        Dict z kluczami ok, data, error, meta.
+        Dict with keys ok, data, error, meta.
     """
     start = time.monotonic()
     try:
-        # logika...
-        wynik = {"pole": "wartość"}
+        result = {"field": "value"}
         return {
             "ok": True,
-            "data": wynik,
+            "data": result,
             "error": None,
             "meta": {"duration_ms": round((time.monotonic() - start) * 1000), "truncated": False},
         }
@@ -380,11 +433,11 @@ def operacja_biznesowa(parametr: str) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Krótki opis narzędzia.")
-    parser.add_argument("--parametr", required=True, help="Opis parametru")
+    parser = argparse.ArgumentParser(description="Short tool description.", allow_abbrev=False)
+    parser.add_argument("--parameter", required=True, help="Parameter description")
     args = parser.parse_args()
 
-    result = operacja_biznesowa(args.parametr)
+    result = business_operation(args.parameter)
     print_json(result)
 
 
@@ -394,42 +447,14 @@ if __name__ == "__main__":
 
 ---
 
-### Przykład 2: Test jednostkowy z mockiem
-
-```python
-"""Testy dla tools/nazwa_narzedzia.py."""
-
-import sys
-from pathlib import Path
-from unittest.mock import patch
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from tools.nazwa_narzedzia import operacja_biznesowa
-
-
-class TestOperacjaBiznesowa:
-    def test_happy_path(self):
-        result = operacja_biznesowa("poprawna_wartość")
-        assert result["ok"] is True
-        assert result["data"] is not None
-        assert result["error"] is None
-
-    def test_failure_path_validation_error(self):
-        result = operacja_biznesowa("")
-        assert result["ok"] is False
-        assert result["error"]["type"] == "VALIDATION_ERROR"
-```
-
----
-
-### Przykład 3: Klasa biblioteczna z docstringiem
+### Przykład 2: Klasa biblioteczna
 
 ```python
 class AgentBus:
-    """Komunikacja między agentami i zarządzanie stanem przez SQLite.
+    """Agent communication and state management via SQLite.
 
-    Zapewnia wysyłanie wiadomości, odczyt inbox, zarządzanie backlogiem
-    i logowanie sesji. Wszystkie operacje są transakcyjne.
+    Provides message sending, inbox reading, backlog management
+    and session logging. All operations are transactional.
     """
 
     def __init__(self, db_path: str = "mrowisko.db") -> None:
@@ -444,10 +469,10 @@ class AgentBus:
         type: str = "info",
         session_id: str | None = None,
     ) -> int:
-        """Wysyła wiadomość do odbiorcy.
+        """Send a message to recipient.
 
         Returns:
-            ID nowo utworzonej wiadomości.
+            ID of the newly created message.
         """
 ```
 
@@ -461,8 +486,8 @@ class AgentBus:
 ```python
 def main() -> None:
     result = get_backlog()
-    print(result)          # łamie UTF-8 na Windows, nie jest JSON
-    print("Done")          # nie parseable przez CLI callera
+    print(result)          # breaks UTF-8 on Windows, not JSON
+    print("Done")          # not parseable by CLI caller
 ```
 
 **Dlaczego:** Na Windows `print()` używa cp1250 — polskie znaki giną. Caller oczekuje JSON.
@@ -495,7 +520,7 @@ return {"ok": True, "data": {"items": [...], "count": 3}, "error": None, "meta":
 
 ---
 
-### 03AP: Funkcja publiczna bez type hints
+### 03AP: Funkcja bez type hints
 
 **Źle:**
 ```python
@@ -543,12 +568,12 @@ def process_backlog(items: list[dict]) -> dict:
 try:
     result = subprocess.run(cmd)
 except:
-    pass  # cichy failure — caller nie wie co poszło nie tak
+    pass  # silent failure — caller doesn't know what went wrong
 
 try:
     data = json.loads(content)
 except Exception:
-    data = {}  # maskuje błąd parsowania
+    data = {}  # masks parse error
 ```
 
 **Dlaczego:** Silent failure = niewidoczny bug. Caller otrzymuje "sukces" przy faktycznym błędzie.
@@ -568,26 +593,7 @@ except json.JSONDecodeError as e:
 
 ---
 
-### 06AP: Importy względne
-
-**Źle:**
-```python
-from . import output
-from ..lib.agent_bus import AgentBus
-```
-
-**Dlaczego:** Projekt nie jest zainstalowany jako pakiet. Importy względne nie działają przy uruchomieniu `python tools/skrypt.py`.
-
-**Dobrze:**
-```python
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from tools.lib.output import print_json
-from tools.lib.agent_bus import AgentBus
-```
-
----
-
-### 07AP: Logika biznesowa bezpośrednio w `main()`
+### 06AP: Logika biznesowa bezpośrednio w `main()`
 
 **Źle:**
 ```python
@@ -596,11 +602,11 @@ def main() -> None:
     parser.add_argument("--role")
     args = parser.parse_args()
 
-    # 50 linii logiki bezpośrednio tutaj...
+    # 50 lines of logic directly here...
     bus = AgentBus()
     messages = bus.get_messages(args.role)
     for msg in messages:
-        # przetwarzanie...
+        # processing...
     print_json({"ok": True, "data": messages})
 ```
 
@@ -621,102 +627,11 @@ def main() -> None:
 
 ---
 
-### 13R: Exit codes — wspólny enum
+## References
 
-Każde narzędzie CLI MUSI używać wspólnego zestawu kodów wyjścia:
-
-| Kod | Stała | Znaczenie |
-|-----|-------|-----------|
-| 0 | `EXIT_OK` | Sukces |
-| 1 | `EXIT_ERROR` | Błąd runtime (DB, I/O, logika) |
-| 2 | `EXIT_USAGE` | Błąd argumentów (domyślne `argparse`) |
-
-**Reguły:**
-- Dodatkowe kody domenowe wymagają jawnej dokumentacji w docstringu `main()`.
-- Narzędzie NIE zwraca kodu wyjścia innego niż 0/1/2 bez uzasadnienia.
-- `argparse` sam zwraca `2` przy błędnych argumentach — nie nadpisuj.
-
-**Zakaz:** `sys.exit(42)` bez udokumentowania co 42 znaczy.
-
----
-
-### 14R: Kanały IO — stdout dla danych, stderr dla diagnostyki
-
-```python
-# stdout: WYŁĄCZNIE JSON wynikowy (print_json)
-print_json({"ok": True, "data": result})
-
-# stderr: błędy, ostrzeżenia, debug info
-import sys
-print("WARNING: brak pliku config", file=sys.stderr)
-```
-
-**Reguły:**
-- Na `stdout` trafia wyłącznie output machine-readable (JSON).
-- Na `stderr` trafiają: ostrzeżenia, komunikaty debug, progress info.
-- Agent parsujący wynik narzędzia czyta tylko `stdout`.
-- `print()` bez `file=sys.stderr` jest zakazany (patrz 08R).
-
-**Uzasadnienie:** Dojrzałe CLI (gcloud, AWS CLI, gh) konsekwentnie separują kanały.
-Mieszanie danych z diagnostyką łamie potokowanie i parsowanie JSON.
-
----
-
-### 15R: Centralna konfiguracja lint i type-check
-
-Projekt MUSI mieć jedną konfigurację lint/type-check w `pyproject.toml`:
-
-```toml
-[tool.ruff]
-line-length = 120
-target-version = "py312"
-
-[tool.ruff.lint]
-select = ["E", "F", "W", "I"]  # minimum: errors, warnings, imports
-
-[tool.mypy]
-python_version = "3.12"
-disallow_untyped_defs = true    # wymusza type hints na publicznych funkcjach
-```
-
-**Reguły:**
-- Jedna konfiguracja dla całego repo — nie per-narzędzie.
-- Kod MUSI przechodzić `ruff check` bez błędów przed commitem.
-- `mypy --disallow-untyped-defs` na `tools/` i `tools/lib/` — wymusza 03R.
-- Konfiguracja w `pyproject.toml`, nie w osobnych plikach `.ruff.toml` / `mypy.ini`.
-
----
-
-### 16R: Testy kontraktowe — minimum per narzędzie CLI
-
-Każde narzędzie CLI w `tools/` MUSI mieć minimum 4 testy kontraktowe:
-
-```python
-class TestNazwaNarzedzia:
-    def test_help_exits_zero(self):
-        """--help zwraca exit code 0."""
-        result = subprocess.run([sys.executable, TOOL, "--help"], capture_output=True)
-        assert result.returncode == 0
-
-    def test_success_returns_json(self):
-        """Sukces zwraca valid JSON z ok=True."""
-        result = run_tool(["--valid-args"])
-        assert result["ok"] is True
-
-    def test_bad_args_exits_two(self):
-        """Błędne argumenty → exit code 2."""
-        result = subprocess.run([sys.executable, TOOL, "--nonexistent"], capture_output=True)
-        assert result.returncode == 2
-
-    def test_runtime_error_returns_json_error(self):
-        """Błąd runtime zwraca JSON z ok=False i error."""
-        result = run_tool(["--trigger-error"])
-        assert result["ok"] is False
-        assert result["error"]["type"] is not None
-```
-
-Te 4 testy gwarantują stabilność kontraktu interfejsu narzędzia.
-Dodatkowe testy (happy path, edge cases, integracyjne) — per moduł wg potrzeb.
+- Research: `documents/researcher/research/research_results_convention_code.md`
+- pyproject.toml (wdrożony, #189): konfiguracja ruff + mypy + pytest
+- Przyszła CONVENTION_TESTING (backlog #173): reguły 11R i 16R zostaną przeniesione
 
 ---
 
@@ -724,6 +639,7 @@ Dodatkowe testy (happy path, edge cases, integracyjne) — per moduł wg potrzeb
 
 | Wersja | Data | Zmiany |
 |---|---|---|
+| 1.3 | 2026-03-25 | Review usera: rename CODE→PYTHON (C1), type hints dla wszystkich funkcji (C2), docstrings EN (C3), wyjaśnienie sys.path.insert (C4), usunięto AP importy względne (obsolete po pyproject). Przykłady w EN. |
 | 1.2 | 2026-03-25 | Review: widełki → twarde limity w 10R, notatka o przyszłym CONV_TESTING przy 11R/16R |
 | 1.1 | 2026-03-25 | Enrichment z researchu: 13R (exit codes), 14R (stdout/stderr), 15R (lint config), 16R (testy kontraktowe), allow_abbrev=False w 01R |
 | 1.0 | 2026-03-25 | Wersja początkowa — na bazie CODE_STANDARDS.md + inspekcja tools/ i tests/ |

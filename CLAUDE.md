@@ -344,6 +344,9 @@ Jedna obserwacja — można użyć `suggest --from <rola> --type <type> --title 
 
 ### Komunikacja agent-agent
 
+Domykaj pętlę komunikacyjną: po realizacji zadania zleconego przez inną rolę wyślij potwierdzenie
+z wynikiem (co zrobiono, jaki commit, gdzie artefakt). Brak potwierdzenia = zlecający nie wie czy zrobione.
+
 Odpowiedź proporcjonalna do zadania:
 - Krótki task → kilka zdań
 - Złożona analiza → wyniki do pliku (`solutions/` lub `tmp/`), wiadomość ze wskazaniem lokalizacji

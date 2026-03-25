@@ -276,6 +276,17 @@ Lokalizacja wyników: `documents/researcher/research/research_results_{temat}.md
 
 ---
 
+### 12R: Config as source of truth
+
+Gdy mechanizm ma zewnętrzny config (plik, DB, env), prompt referencuje config — nie definiuje jego struktury.
+
+- Dobrze: "Dostępne role zdefiniowane w `session_init` context."
+- Źle: "Dostępne role: erp_specialist, analyst, developer, architect, metodolog, prompt_engineer."
+
+Powód: duplikacja config → desynchronizacja. Prompt się nie aktualizuje gdy config się zmienia.
+
+---
+
 ## Przykłady
 
 ### Przykład 1: Minimalny prompt roli (nowa rola)
