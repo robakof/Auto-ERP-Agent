@@ -48,3 +48,7 @@ claude-clean --model claude-opus-4-6
   claude login
 
   Jeśli po tych krokach nadal nie widzisz Opus 4.6 / opcji [1m], to problem po stronie konta — skontaktuj się z support@claude.com.
+
+
+claude logout
+  claude login

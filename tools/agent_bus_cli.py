@@ -96,9 +96,25 @@ def cmd_handoff(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 
 def cmd_inbox(args: argparse.Namespace, bus: AgentBus) -> dict:
-    messages = bus.get_inbox(role=args.role, status=args.status)
+    # Single message by ID (full content)
+    if args.id:
+        msg = bus.get_message_by_id(args.id)
+        if msg is None:
+            return {"ok": False, "error": f"Message #{args.id} not found"}
+        return {"ok": True, "data": msg}
+
+    # Full content or summary mode
+    summary_only = not getattr(args, "full", False)
+    messages = bus.get_inbox(role=args.role, status=args.status, summary_only=summary_only)
     return {"ok": True, "data": messages, "count": len(messages)}
 
+
+def cmd_message(args: argparse.Namespace, bus: AgentBus) -> dict:
+    """Get single message by ID (alias for inbox --id)."""
+    msg = bus.get_message_by_id(args.id)
+    if msg is None:
+        return {"ok": False, "error": f"Message #{args.id} not found"}
+    return {"ok": True, "data": msg}
 
 
 _SUGGEST_TYPES = ("rule", "tool", "discovery", "observation")
@@ -408,6 +424,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_inbox.add_argument("--role", required=True)
     p_inbox.add_argument("--status", default="unread",
                          choices=["unread", "read", "archived"])
+    p_inbox.add_argument("--id", type=int, help="Get single message by ID (full content)")
+    p_inbox.add_argument("--full", action="store_true", help="Include full content for all messages")
+
+    # message (alias for inbox --id)
+    p_message = subparsers.add_parser("message", help="Get single message by ID")
+    p_message.add_argument("--id", type=int, required=True, help="Message ID")
 
     # suggest
     p_suggest = subparsers.add_parser("suggest", help="Add a suggestion from an agent")
@@ -584,6 +606,7 @@ def main():
         "send": cmd_send,
         "handoff": cmd_handoff,
         "inbox": cmd_inbox,
+        "message": cmd_message,
         "suggest": cmd_suggest,
         "suggest-bulk": cmd_suggest_bulk,
         "suggestions": cmd_suggestions,

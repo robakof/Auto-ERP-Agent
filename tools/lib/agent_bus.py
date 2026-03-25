@@ -363,8 +363,16 @@ class AgentBus:
         # Return ID (backward compatible)
         return saved.id
 
-    def get_inbox(self, role: str, status: str = "unread") -> list[dict]:
-        """Get messages for a role filtered by status. Ordered by created_at ASC."""
+    def get_inbox(
+        self, role: str, status: str = "unread", summary_only: bool = False
+    ) -> list[dict]:
+        """Get messages for a role filtered by status. Ordered by created_at ASC.
+        
+        Args:
+            role: Recipient role to filter by.
+            status: Message status filter (unread/read/archived).
+            summary_only: If True, returns only metadata without content.
+        """
         from core.repositories.message_repo import MessageRepository
         from core.entities.messaging import MessageStatus
 
@@ -382,7 +390,24 @@ class AgentBus:
         # Convert entity → dict (backward compatible, centralized)
         from core.mappers.legacy_api import LegacyAPIMapper
         result = [LegacyAPIMapper.message_to_dict(m) for m in filtered]
+
+        # Strip content for summary mode (saves context window)
+        if summary_only:
+            for msg in result:
+                msg.pop("content", None)
+
         return result
+
+    def get_message_by_id(self, message_id: int) -> dict | None:
+        """Get single message by ID with full content."""
+        from core.repositories.message_repo import MessageRepository
+        from core.mappers.legacy_api import LegacyAPIMapper
+
+        repo = self._get_repository(MessageRepository)
+        message = repo.get(message_id)
+        if message is None:
+            return None
+        return LegacyAPIMapper.message_to_dict(message)
 
     def mark_read(self, message_id: int) -> None:
         """Mark a message as read and set read_at timestamp."""
