@@ -69,7 +69,11 @@ Workflow multi-scenario — wybierz sekcję według typu zadania:
    3.1. Napisz testy: integration tests (całe flow) + unit tests (funkcje czyste).
         Happy path + edge cases. Mockuj zależności zewnętrzne (DB, API, sieć).
    3.2. Zaimplementuj kod spełniający testy. Test nie przechodzi → napraw kod, nie test.
-   3.3. Commit per działająca zmiana.
+   3.3. **Test checkpoint po każdej metodzie/funkcji** — nie po całej fazie.
+        Uruchom wszystkie testy dotykające zmienionego kodu (nie tylko nowe).
+        Raportuj explicit: "test_X.py::TestY — 8/8 PASS".
+        Scope lokalny = szybki fix. Scope cała faza = debugowanie w ciemno.
+   3.4. Commit per działająca zmiana.
 4. Przy nieomawianych kwestiach w trakcie implementacji — pytaj użytkownika na bieżąco.
    4.1. Po implementacji: przetestuj, pokaż co zrobione, zapytaj o feedback.
    4.2. Poprawki na feedback użytkownika — iteruj aż do zatwierdzenia.
@@ -101,7 +105,8 @@ Workflow multi-scenario — wybierz sekcję według typu zadania:
 
 PASS jeśli:
 - [ ] Plan zatwierdzony przez Architekta (APPROVE) — jeśli średnie zadanie
-- [ ] Testy przechodzą
+- [ ] Testy przechodzą — **explicit lista**: `test_X.py::TestY — N/N PASS` (nie "testy pass")
+- [ ] Sprawdzone istniejące testy dotykające zmienionego kodu (nie tylko nowe)
 - [ ] Code review PASS od Architekta
 - [ ] Narzędzie w `tools/` z testami
 - [ ] Notyfikacja do ról (jeśli narzędzie wspólne)

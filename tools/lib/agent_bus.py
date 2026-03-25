@@ -9,7 +9,6 @@ import json
 import sqlite3
 from contextlib import contextmanager
 
-ALLOWED_MESSAGE_TYPES = {"suggestion", "task", "info", "flag_human", "handoff"}
 
 HEARTBEAT_TTL_SECONDS = 60
 
@@ -263,23 +262,6 @@ class AgentBus:
         if not self._in_transaction:
             self._conn.commit()
 
-    def _get_repository(self, repo_class):
-        """Helper: create repository with transaction support.
-
-        Args:
-            repo_class: Repository class to instantiate (e.g., SuggestionRepository)
-
-        Returns:
-            Repository instance with shared connection if in transaction,
-            or standalone connection otherwise.
-
-        Example:
-            repo = self._get_repository(SuggestionRepository)
-            suggestion = repo.save(...)
-        """
-        conn = self._conn if self._in_transaction else None
-        return repo_class(db_path=self._db_path, conn=conn)
-
     @contextmanager
     def transaction(self):
         """Explicit transaction context manager for atomic operations.
@@ -308,12 +290,6 @@ class AgentBus:
 
     # --- Messages ---
 
-    @staticmethod
-    def _extract_title_from_markdown(content: str) -> tuple[str, str]:
-        """Delegates to MessageService."""
-        from core.services.message_service import MessageService
-        return MessageService.extract_title_from_markdown(content)
-
     def send_message(self, sender: str, recipient: str, content: str, type: str = "suggestion", session_id: str = None) -> int:
         """Delegates to MessageService."""
         txn_conn = self._conn if self._in_transaction else None
@@ -338,8 +314,6 @@ class AgentBus:
         """Delegates to MessageService."""
         self._messages.archive(message_id)
         self._auto_commit()
-
-    # --- State ---
 
     # --- Suggestions ---
 
@@ -400,8 +374,6 @@ class AgentBus:
         """Delegates to BacklogService."""
         txn_conn = self._conn if self._in_transaction else None
         return self._backlog.get_by_id(backlog_id, txn_conn)
-
-
 
     def update_backlog_status(self, backlog_id: int, status: str) -> None:
         """Delegates to BacklogService."""
@@ -505,9 +477,7 @@ class AgentBus:
         self._auto_commit()
         return result
 
-    # --- Trace ---
-
-    # --- Sessions module ---
+    # --- Sessions ---
 
     def upsert_session(self, session_id: str, role: str = None, claude_session_id: str = None, transcript_path: str = None, ended_at: str = None) -> None:
         """Delegates to SessionService."""
