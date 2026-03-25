@@ -140,11 +140,18 @@ class MessageRepository(Repository[Message]):
             "info": "direct",
         }
 
+        # Graceful degradation: 'claimed' → 'unread' (legacy status leak)
+        STATUS_ALIASES = {
+            "claimed": "unread",
+        }
+
         try:
             type_raw = row["type"]
             type_normalized = TYPE_ALIASES.get(type_raw, type_raw)
             type_enum = MessageType(type_normalized)
-            status_enum = MessageStatus(row["status"])
+            status_raw = row["status"]
+            status_normalized = STATUS_ALIASES.get(status_raw, status_raw)
+            status_enum = MessageStatus(status_normalized)
         except ValueError as e:
             raise ValidationError(f"Invalid enum value in database: {e}")
 
@@ -153,6 +160,12 @@ class MessageRepository(Repository[Message]):
             title = row["title"]
         except (KeyError, IndexError):
             title = ""
+
+        # Backward compat: claimed_by może nie istnieć w starych DB
+        try:
+            claimed_by = row["claimed_by"]
+        except (KeyError, IndexError):
+            claimed_by = None
 
         return Message(
             sender=row["sender"],
@@ -164,7 +177,8 @@ class MessageRepository(Repository[Message]):
             session_id=row["session_id"],
             id=row["id"],
             created_at=datetime.fromisoformat(row["created_at"]) if row["created_at"] else datetime.now(),
-            read_at=datetime.fromisoformat(row["read_at"]) if row["read_at"] else None
+            read_at=datetime.fromisoformat(row["read_at"]) if row["read_at"] else None,
+            claimed_by=claimed_by
         )
 
     def _entity_to_row(self, entity: Message) -> dict:
@@ -186,7 +200,8 @@ class MessageRepository(Repository[Message]):
             "status": entity.status.value,
             "session_id": entity.session_id,
             "created_at": entity.created_at.isoformat(),
-            "read_at": entity.read_at.isoformat() if entity.read_at else None
+            "read_at": entity.read_at.isoformat() if entity.read_at else None,
+            "claimed_by": entity.claimed_by
         }
 
     def get(self, id: int) -> Optional[Message]:

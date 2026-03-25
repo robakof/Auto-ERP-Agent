@@ -65,6 +65,7 @@ class Message(Entity):
     status: MessageStatus = MessageStatus.UNREAD
     session_id: Optional[str] = None
     read_at: Optional[datetime] = None
+    claimed_by: Optional[str] = None
 
     def mark_read(self) -> None:
         """

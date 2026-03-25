@@ -1,8 +1,9 @@
 ---
 convention_id: communication-convention
-version: "1.0"
+version: "1.1"
 status: draft
 created: 2026-03-25
+updated: 2026-03-25
 author: architect
 owner: architect
 approver: dawid
@@ -19,6 +20,8 @@ scope: "Format i zasady komunikacji agent-agent w systemie Mrowisko"
 - Sugestia = zwięzła obserwacja (max 300 znaków treści), nie esej — jeśli wymaga kontekstu, linkuj plik
 - Wiadomość send z długą treścią = wskaźnik do pliku, nie inline
 - Inbox MUSI być zamknięty (mark-read) po przetworzeniu — to krok workflow, nie opcja
+- Korelacja: każda odpowiedź referuje `Re: msg #<id>` — bez tego wątki sierocą
+- Sugestie open >14 dni → cykliczny triage (stale review), nie ignorowanie
 
 ---
 
@@ -196,6 +199,11 @@ py tools/agent_bus_cli.py suggestions --status open
 - Podobna obserwacja z innej perspektywy → możesz wysłać, ale w treści wskaż: "Patrz też #[id]"
 - Brak podobnych → wysyłaj
 
+**Merge semantics:** Duplikat to nie śmieć — może nieść dodatkowy kontekst.
+- Identyczna → nie wysyłaj nowej. Jeśli masz nowy kontekst → dodaj komentarz do istniejącej przez `send` do ownera.
+- Upgrade (observation → rule) → wyślij nową, oznacz starą jako `merged` z referencją: "Merged into #<new_id>".
+- Nie kasuj duplikatów bez sprawdzenia czy niosą dodatkową informację.
+
 **Wyjątek:** `rule` nadpisujące wcześniejszą `observation` to nie duplikat — to upgrade. Oznacz starą jako `rejected` lub `merged`.
 
 ---
@@ -342,6 +350,45 @@ Kanał dobieraj do pilności:
 | Informacyjne | `suggest` | Obserwacja do triage, nie wymaga akcji od razu |
 
 **Zakaz:** Wysyłanie `flag` dla spraw które mogą poczekać do następnej sesji. Flag = blokada, nie "mam pytanie".
+
+---
+
+### 12R: Korelacja wiadomości — referencje do kontekstu
+
+Każda wiadomość `send` lub `handoff` nawiązująca do wcześniejszej komunikacji MUSI
+zawierać referencję:
+
+```
+Re: msg #292 — ...
+Re: backlog #148 — ...
+Patrz też: #324 (suggest o tym samym)
+```
+
+**Reguły:**
+- Odpowiedź na wiadomość → `Re: msg #<id>`
+- Nawiązanie do backlog item → `Re: backlog #<id>`
+- Powiązana sugestia → `Patrz też: #<id>`
+- Handoff po implementacji planu → wskaż ID planu/review: `Plan: #296, Review: #300`
+
+**Dlaczego:** Bez korelacji każda wiadomość jest oderwana od kontekstu. Adresat musi
+sam szukać powiązań. FIPA ACL i systemy operacyjne (PagerDuty) traktują korelację
+jako pole pierwszej klasy — bo bez niej odpowiedzi sierocą, wątki giną.
+
+---
+
+### 13R: Stale suggestions — TTL i auto-review
+
+Sugestie open dłużej niż 14 dni bez akcji POWINNY być przejrzane:
+
+1. **Triage cykliczny:** Architekt/Metodolog przegląda sugestie starsze niż 14 dni.
+2. **Decyzja per sugestia:**
+   - Nadal aktualna → oznacz (komentarz: "potwierdzone <data>")
+   - Zdezaktualizowana → `suggest-status --id <id> --status rejected --reason "stale"`
+   - Zrealizowana ale niezamknięta → `suggest-status --id <id> --status merged`
+3. **Wyjątki od auto-review:** sugestie z tagiem `rule` lub `tool` z value `wysoka` — nie wygaszaj bez jawnej decyzji.
+
+**Dlaczego:** GitHub, PagerDuty, Sentry — dojrzałe systemy stosują stale/TTL z wyjątkami.
+Bez tego backlog rośnie w nieskończoność (176+ open suggestions to symptom braku tego mechanizmu).
 
 ---
 
@@ -568,8 +615,50 @@ backlog-add --title "[ERP] Dylemat JOIN vs subquery — potrzebuję decyzji arch
 
 ---
 
+### 07AP: Delegation loops i hotspoty komunikacyjne
+
+**Źle (delegation loop):**
+```
+Architect → send do Developer: "Zrób X"
+Developer → send do Architect: "Nie jestem pewien, co myślisz?"
+Architect → send do Developer: "Sprawdź Y i zdecyduj"
+Developer → send do Architect: "Y mówi Z, ale nie wiem czy..."
+# Pętla bez konkluzji — 4 wiadomości, 0 akcji
+```
+
+**Źle (hotspot):**
+```
+ERP Specialist → send do Developer (pytanie)
+Analyst → send do Developer (pytanie)
+Architect → send do Developer (review)
+PE → send do Developer (zmiana workflow)
+# Developer = bottleneck, 4 role czekają na jedną
+```
+
+**Dlaczego:** Badania MAS (Detection of Undesirable Communication Patterns) pokazują że
+niezbalansowana komunikacja degraduje QoS. CrewAI dokumentuje delegation loops jako realny
+problem operacyjny. Każdy back-and-forth bez decyzji to zmarnowany kontekst obu stron.
+
+**Dobrze (unikanie pętli):**
+```
+# Zamiast pytać "co myślisz?" — podaj propozycję z trade-offami:
+send --from developer --to architect \
+  --content "Dylemat: JOIN vs subquery. Trade-off: JOIN szybszy o 30%, subquery czytelniejszy. Proponuję JOIN. APPROVE/REJECT?"
+```
+
+**Dobrze (unikanie hotspotów):**
+```
+# Spread load — eskaluj do właściwej roli, nie domyślnie do Developera
+# Pytanie architektoniczne → Architect (nie Developer)
+# Pytanie o prompt → PE (nie Developer)
+# Pytanie o ERP → ERP Specialist (nie Developer)
+```
+
+---
+
 ## Changelog
 
 | Wersja | Data | Zmiany |
 |---|---|---|
+| 1.1 | 2026-03-25 | Enrichment z researchu: 12R (korelacja wiadomości), 13R (stale/TTL sugestii), 07AP (delegation loops/hotspoty), merge semantics w 05R |
 | 1.0 | 2026-03-25 | Wersja początkowa — decision tree, formaty, anty-duplikacja, lifecycle inbox |

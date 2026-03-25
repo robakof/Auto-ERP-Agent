@@ -1,6 +1,6 @@
 ---
 convention_id: code-convention
-version: "1.0"
+version: "1.1"
 status: draft
 created: 2026-03-25
 updated: 2026-03-25
@@ -21,6 +21,9 @@ scope: "Standardy kodu Python w projekcie Mrowisko"
 - Importy: stdlib → third-party → local, tylko importy absolutne
 - `print()` jest zakazany w narzędziach — używaj `print_json()` z `tools/lib/output.py`
 - Nazwy plików: `snake_case`, opisowe, bez temporal suffixów (`_new`, `_v2`, `_final`)
+- Exit codes: 0 (OK), 1 (runtime error), 2 (usage error) — wspólny enum
+- stdout wyłącznie dla JSON, stderr dla diagnostyki — nie mieszaj kanałów
+- Każde narzędzie ma minimum 4 testy kontraktowe (help, success, bad args, runtime error)
 
 ---
 
@@ -48,7 +51,7 @@ Każdy skrypt CLI w `tools/` MUSI mieć strukturę:
 
 ```python
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Opis narzędzia.")
+    parser = argparse.ArgumentParser(description="Opis narzędzia.", allow_abbrev=False)
     # argumenty...
     args = parser.parse_args()
 
@@ -61,7 +64,7 @@ if __name__ == "__main__":
 ```
 
 **Obowiązki:**
-- `argparse` — parsowanie argumentów (nie ręczne `sys.argv`)
+- `argparse` — parsowanie argumentów (nie ręczne `sys.argv`), z `allow_abbrev=False` (stabilność interfejsu)
 - `main()` — jedyny punkt wejścia CLI
 - `print_json(result)` — jedyny sposób zapisu do stdout
 - `if __name__ == "__main__": main()` — wymagany guard
@@ -217,7 +220,8 @@ def error_result(msg: str) -> dict:
 
 ### 08R: Logging vs print
 
-**`print()` jest zakazany** w kodzie produkcyjnym (`tools/`, `tools/lib/`).
+**`print()` na stdout jest zakazany** w kodzie produkcyjnym (`tools/`, `tools/lib/`).
+`print(..., file=sys.stderr)` jest dozwolony dla diagnostyki (patrz 14R).
 
 Jedyne dozwolone wyjście na stdout: `print_json()` z `tools/lib/output.py`.
 
@@ -615,8 +619,108 @@ def main() -> None:
 
 ---
 
+### 13R: Exit codes — wspólny enum
+
+Każde narzędzie CLI MUSI używać wspólnego zestawu kodów wyjścia:
+
+| Kod | Stała | Znaczenie |
+|-----|-------|-----------|
+| 0 | `EXIT_OK` | Sukces |
+| 1 | `EXIT_ERROR` | Błąd runtime (DB, I/O, logika) |
+| 2 | `EXIT_USAGE` | Błąd argumentów (domyślne `argparse`) |
+
+**Reguły:**
+- Dodatkowe kody domenowe wymagają jawnej dokumentacji w docstringu `main()`.
+- Narzędzie NIE zwraca kodu wyjścia innego niż 0/1/2 bez uzasadnienia.
+- `argparse` sam zwraca `2` przy błędnych argumentach — nie nadpisuj.
+
+**Zakaz:** `sys.exit(42)` bez udokumentowania co 42 znaczy.
+
+---
+
+### 14R: Kanały IO — stdout dla danych, stderr dla diagnostyki
+
+```python
+# stdout: WYŁĄCZNIE JSON wynikowy (print_json)
+print_json({"ok": True, "data": result})
+
+# stderr: błędy, ostrzeżenia, debug info
+import sys
+print("WARNING: brak pliku config", file=sys.stderr)
+```
+
+**Reguły:**
+- Na `stdout` trafia wyłącznie output machine-readable (JSON).
+- Na `stderr` trafiają: ostrzeżenia, komunikaty debug, progress info.
+- Agent parsujący wynik narzędzia czyta tylko `stdout`.
+- `print()` bez `file=sys.stderr` jest zakazany (patrz 08R).
+
+**Uzasadnienie:** Dojrzałe CLI (gcloud, AWS CLI, gh) konsekwentnie separują kanały.
+Mieszanie danych z diagnostyką łamie potokowanie i parsowanie JSON.
+
+---
+
+### 15R: Centralna konfiguracja lint i type-check
+
+Projekt MUSI mieć jedną konfigurację lint/type-check w `pyproject.toml`:
+
+```toml
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]  # minimum: errors, warnings, imports
+
+[tool.mypy]
+python_version = "3.12"
+disallow_untyped_defs = true    # wymusza type hints na publicznych funkcjach
+```
+
+**Reguły:**
+- Jedna konfiguracja dla całego repo — nie per-narzędzie.
+- Kod MUSI przechodzić `ruff check` bez błędów przed commitem.
+- `mypy --disallow-untyped-defs` na `tools/` i `tools/lib/` — wymusza 03R.
+- Konfiguracja w `pyproject.toml`, nie w osobnych plikach `.ruff.toml` / `mypy.ini`.
+
+---
+
+### 16R: Testy kontraktowe — minimum per narzędzie CLI
+
+Każde narzędzie CLI w `tools/` MUSI mieć minimum 4 testy kontraktowe:
+
+```python
+class TestNazwaNarzedzia:
+    def test_help_exits_zero(self):
+        """--help zwraca exit code 0."""
+        result = subprocess.run([sys.executable, TOOL, "--help"], capture_output=True)
+        assert result.returncode == 0
+
+    def test_success_returns_json(self):
+        """Sukces zwraca valid JSON z ok=True."""
+        result = run_tool(["--valid-args"])
+        assert result["ok"] is True
+
+    def test_bad_args_exits_two(self):
+        """Błędne argumenty → exit code 2."""
+        result = subprocess.run([sys.executable, TOOL, "--nonexistent"], capture_output=True)
+        assert result.returncode == 2
+
+    def test_runtime_error_returns_json_error(self):
+        """Błąd runtime zwraca JSON z ok=False i error."""
+        result = run_tool(["--trigger-error"])
+        assert result["ok"] is False
+        assert result["error"]["type"] is not None
+```
+
+Te 4 testy gwarantują stabilność kontraktu interfejsu narzędzia.
+Dodatkowe testy (happy path, edge cases, integracyjne) — per moduł wg potrzeb.
+
+---
+
 ## Changelog
 
 | Wersja | Data | Zmiany |
 |---|---|---|
+| 1.1 | 2026-03-25 | Enrichment z researchu: 13R (exit codes), 14R (stdout/stderr), 15R (lint config), 16R (testy kontraktowe), allow_abbrev=False w 01R |
 | 1.0 | 2026-03-25 | Wersja początkowa — na bazie CODE_STANDARDS.md + inspekcja tools/ i tests/ |

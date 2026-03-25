@@ -1,16 +1,53 @@
-# Konwencja pisania promptów agentów
+---
+convention_id: prompt-convention
+version: "1.0"
+status: active
+created: 2026-03-24
+updated: 2026-03-25
+author: prompt_engineer
+owner: prompt_engineer
+approver: dawid
+audience: [prompt_engineer]
+scope: "Definiuje strukturę, formatowanie i składnię promptów ról agentów"
+---
 
-Dokument referencyjny dla Prompt Engineera. Każdy prompt roli w systemie
-musi być zgodny z tą konwencją.
+# CONVENTION_PROMPT — Struktura i składnia promptów ról
+
+## TL;DR
+
+- Prompt roli = YAML metadata + XML tags (granice sekcji) + Markdown (treść wewnątrz)
+- Warstwy: shared_base > role > workflow > domain_pack > runtime
+- Hierarchia ważności: identity + critical rules na górze, checklista na dole
+- Reguła żyje na najwyższym węźle gdzie obowiązuje
+- Zmiana promptu wymaga failure mode + diff + uzasadnienie + plan testów
+- Workflow mają osobną konwencję: `CONVENTION_WORKFLOW.md`
 
 ---
 
-## 1. Warstwy systemu promptowego
+## Zakres
+
+**Pokrywa:**
+- Struktura promptów ról agentów (układ sekcji, szablon)
+- Formatowanie (XML/Markdown hybrid, numeracja, styl pisania)
+- Przynależność reguły do warstwy (co gdzie trafia)
+- Zasady zmian i ocena jakości promptów
+- Format promptów badawczych (research prompts)
+
+**NIE pokrywa:**
+- Struktura workflow → `documents/conventions/CONVENTION_WORKFLOW.md`
+- Konwencje kodu → `documents/dev/CODE_STANDARDS.md`
+- Treść domenowa (SQL, ERP, BI) → domain packs per rola
+
+---
+
+## Reguły
+
+### 01R: Warstwy systemu promptowego
 
 ```
 CLAUDE.md (shared_base)        ← zawsze ładowany, wspólne reguły
   └─ Role prompt (.md)         ← ładowany per rola (ERP_SPECIALIST.md, ANALYST.md...)
-       └─ Workflow (.md)       ← ładowany per typ zadania (bi_view_creation_workflow.md...)
+       └─ Workflow (.md)       ← ładowany per typ zadania (workflow_developer.md...)
             └─ Domain pack     ← ładowany per kontekst (ERP_SCHEMA_PATTERNS.md...)
                  └─ Runtime    ← inbox, backlog, stan zadania
 ```
@@ -22,17 +59,15 @@ Zasady warstw:
 
 ---
 
-## 2. Formatowanie — decyzje i uzasadnienia
+### 02R: Hybrid XML/Markdown format
 
-### Znaczniki sekcji: XML tags + Markdown wewnątrz
-
-Stosujemy **hybrid XML/Markdown**:
-- **XML tags** dla granic logicznych sekcji (`<role>`, `<scope>`, `<critical_rules>`...)
+Prompt roli stosuje **hybrid XML/Markdown**:
+- **XML tags** dla granic logicznych sekcji (`<mission>`, `<scope>`, `<critical_rules>`...)
 - **Markdown** wewnątrz sekcji (listy, tabele, numeracja, nagłówki `###`)
 - **YAML frontmatter** (`---` blok) dla metadanych routingu
 
 Dlaczego XML na granicach:
-- Anthropic wprost rekomenduje XML tags do oddzielania sekcji w złożonych promptach.
+- Anthropic rekomenduje XML tags do oddzielania sekcji w złożonych promptach.
 - Pomagają Claude rozpoznawać strukturę i odróżniać typy informacji.
 - „Lost in the Middle" — jasne granice sekcji zmniejszają ryzyko utraty salience.
 - Lepsze niż `##` headers gdy model musi odróżnić wiele podobnych sekcji.
@@ -42,7 +77,11 @@ Dlaczego Markdown wewnątrz:
 - Numerowane listy, tabele, checkboxy — naturalne w Markdown.
 - XML wewnątrz sekcji nie dodaje wartości, tylko szum.
 
-### Hierarchia ważności w dokumencie
+**Workflow nie używają XML tags** — są dokumentami procesowymi, nie promptami ról.
+
+---
+
+### 03R: Hierarchia ważności w dokumencie
 
 Pozycja w pliku = ważność. Od góry:
 1. Kim jesteś + co dostarczasz (opening statement)
@@ -51,28 +90,32 @@ Pozycja w pliku = ważność. Od góry:
 4. Narzędzia i referencje (nisko = rzadko potrzebne in extenso)
 5. Checklista końcowa (na dole = ostatnia rzecz przed odpowiedzią)
 
-Uzasadnienie: badania „Lost in the Middle" pokazują że model najlepiej
-wykorzystuje informację na początku i na końcu kontekstu. Krytyczne reguły
-wysoko, checklista na dole — dwie krawędzie.
+Uzasadnienie: badania „Lost in the Middle" — model najlepiej wykorzystuje informację na początku i na końcu kontekstu. Krytyczne reguły wysoko, checklista na dole — dwie krawędzie.
 
-### Numeracja
+---
 
-- **Kroki workflow z fazami:** numer fazy + litera kroku: `1a, 1b, 2a, 2b...`
+### 04R: Numeracja
+
+- **Kroki workflow z fazami:** hierarchia dziesiętna: `1.1, 1.2, 1.1.1`
 - **Listy niezależne od faz:** numeracja prosta: `1, 2, 3...`
-- Wzorzec: `bi_view_creation_workflow.md` (Faza 0, Faza 1a, Faza 1b...)
+- **Reguły w konwencjach:** format `01R, 02R...`
+- **Antywzorce:** format `01AP, 02AP...`
 
-### Styl pisania
+---
+
+### 05R: Styl pisania
 
 - **Afirmatywne reguły**: „Przed zmianą sprawdź gate" zamiast „Nie zmieniaj bez gate'a".
-- **Jedna reguła = jeden punkt**. Dwa zdania w punkcie → rozbij na dwa punkty.
+- **Jedna reguła = jeden punkt.** Dwa zdania w punkcie → rozbij na dwa punkty.
 - **Bez uzasadnień inline** w regułach krytycznych. Jeśli potrzebne — komentarz
   HTML `<!-- dlaczego -->` lub sekcja „Kontekst decyzji" na dole dokumentu.
 - **Bez emoji** (dozwolone: ✓, ✗).
+- **Bez narracji przyspieszającej:** żadnego "natychmiast", "od razu", "szybko", "bez czekania".
 - Przykłady: maks 1-3, tylko edge case'y.
 
 ---
 
-## 3. Szablon promptu roli
+### 06R: Szablon promptu roli
 
 Każdy prompt roli ma następujący układ sekcji (w tej kolejności):
 
@@ -134,18 +177,19 @@ Poza zakresem:
 </end_of_turn_checklist>
 ```
 
-### Sekcje opcjonalne
+---
+
+### 07R: Sekcje opcjonalne
 
 Dodawaj tylko gdy rola ich wymaga:
 
-- `<persona>` — profil psychologiczny roli (charakter, styl myślenia, podejście do pracy).
-  Umieść po `<mission>`, przed `<scope>`. Dla ról gdzie charakter wpływa na zachowanie
-  (np. Architekt: wywrotowy perfekcjonista). Persona opisuje JAK rola działa, nie CO robi.
-  **UWAGA:** Few-shot examples (poniżej) często skuteczniejsze od długiego opisu persony.
+- `<persona>` — profil psychologiczny roli (charakter, styl myślenia).
+  Umieść po `<mission>`, przed `<scope>`. Dla ról gdzie charakter wpływa na zachowanie.
+  **UWAGA:** Few-shot examples (08R) często skuteczniejsze od długiego opisu persony.
 - `<behavior_examples>` — 2-5 scenariuszy konkretnych zachowań. Format:
   ```
   *Scenariusz: [kontekst]*
-  ❌ [złe zachowanie]
+  ✗ [złe zachowanie]
   ✓ [dobre zachowanie]
   ```
   Anthropic research: few-shot examples skuteczniejsze od długiego opisu persony.
@@ -155,10 +199,11 @@ Dodawaj tylko gdy rola ich wymaga:
 - `<examples>` — 1-3 kanoniczne edge case'y (gdy zero-shot nie wystarcza)
 - `<decision_policy>` — reguły rozstrzygania konfliktów (orkiestrator)
 - `<context_management>` — zasady zarządzania kontekstem (role z dużymi outputami)
+- `<code_maturity_levels>` — skala oceny kodu (reviewer roles)
 
 ---
 
-## 4. Co gdzie trafia
+### 08R: Przynależność reguły do warstwy
 
 | Treść | Warstwa | Plik |
 |---|---|---|
@@ -168,9 +213,7 @@ Dodawaj tylko gdy rola ich wymaga:
 | Wzorce SQL, konwersje, enumy, schematy | domain pack | `documents/erp_specialist/ERP_*.md` |
 | Inbox, backlog items, stan zadania | runtime | Ładowane dynamicznie na starcie sesji |
 
-### Test przynależności
-
-Przed dodaniem reguły do pliku:
+**Test przynależności** — przed dodaniem reguły do pliku:
 1. Dotyczy wszystkich ról? → `CLAUDE.md`
 2. Dotyczy jednej roli, zawsze? → prompt roli
 3. Dotyczy jednego typu zadania? → workflow
@@ -179,41 +222,7 @@ Przed dodaniem reguły do pliku:
 
 ---
 
-## 5. Szablon workflow
-
-Workflow (ładowane per typ zadania) mają własny układ:
-
-```md
-# Workflow: {Nazwa}
-
-{1 zdanie: czemu służy ten workflow.}
-Statusy faz: `PASS` | `BLOCKED` | `ESCALATE`
-
----
-
-## Faza N — {Nazwa}
-
-**Owner:** {rola}
-
-### Steps
-1. ...
-
-### Forbidden
-- ...
-
-### Exit gate
-PASS jeśli:
-- [ ] ...
-BLOCKED jeśli:
-- [ ] ...
-```
-
-Workflow nie używa XML tags — jest dokumentem procesowym, nie promptem roli.
-XML tags rezerwujemy dla promptów ról gdzie model musi odróżniać typy instrukcji.
-
----
-
-## 6. Zasady zmian (dla Prompt Engineera)
+### 09R: Zasady zmian promptów
 
 1. Zmiana wymaga identyfikacji failure mode lub celu jakościowego.
 2. Dobierz skalę: patch (1 blok) vs refaktor (cała struktura).
@@ -222,29 +231,29 @@ XML tags rezerwujemy dla promptów ról gdzie model musi odróżniać typy instr
 5. Gdy problem nie leży w prompcie → ESCALATE_ARCHITECTURE.
 6. **Minimal viable prompt przy nowej roli:**
    - Minimum: mission, scope, critical rules (5-8), output contract, minimal workflow routing
-   - NIE pisz szczegółowych kroków workflow zanim nie zobaczysz jak rola działa w praktyce
    - Workflow nabudowuj iteracyjnie na podstawie rzeczywistych sesji i failure modes
-   - Elastyczność > sztywność. Agent uczy się w praktyce, nie z góry zaprojektowanych scenariuszy.
-
-### Wymiary oceny promptu
-
-1. Clarity — jedna sekcja = jedna odpowiedzialność?
-2. Salience — reguły krytyczne wysoko i osobno?
-3. Scope — nie miesza odpowiedzialności ról?
-4. Gate reliability — warunki wejścia/wyjścia testowalne?
-5. Output determinism — format wyniku jednoznaczny?
-6. Modularity — domain knowledge odłączalne?
 
 ---
 
-## 7. Prompty badawcze (research prompts)
+### 10R: Wymiary oceny promptu
+
+1. **Clarity** — jedna sekcja = jedna odpowiedzialność?
+2. **Salience** — reguły krytyczne wysoko i osobno?
+3. **Scope** — nie miesza odpowiedzialności ról?
+4. **Gate reliability** — warunki wejścia/wyjścia testowalne?
+5. **Output determinism** — format wyniku jednoznaczny?
+6. **Modularity** — domain knowledge odłączalne?
+
+---
+
+### 11R: Prompty badawcze (research prompts)
 
 Każdy prompt do zewnętrznego researchera musi zawierać sekcję **Output contract**:
 
 ```markdown
 ## Output contract
 
-Zapisz wyniki do pliku: `documents/<rola>/research_results_<temat>.md`
+Zapisz wyniki do pliku: `documents/researcher/research/research_results_{temat}.md`
 
 Struktura pliku wynikowego:
 # Research: [tytuł]
@@ -262,16 +271,176 @@ Czego NIE rób:
 - Nie skracaj gdy brakuje danych — zaznacz lukę
 ```
 
-Lokalizacja promptów: `documents/<rola>/research_prompt_<temat>.md`
-Lokalizacja wyników: `documents/<rola>/research_results_<temat>.md`
+Lokalizacja promptów: `documents/researcher/prompts/research_{temat}.md`
+Lokalizacja wyników: `documents/researcher/research/research_results_{temat}.md`
 
 ---
 
-## 8. Czego unikać
+## Przykłady
 
-- Duplikacji reguł między warstwami.
-- Prose zamiast numerowanych kroków.
-- Uzasadnień historycznych w regułach krytycznych (agent nie ma pamięci — daj działanie).
-- Sekcji „na zapas" opisujących narzędzia które nie istnieją.
-- Mieszania instrukcji dla agenta z esejem dla człowieka w jednym dokumencie.
-- Markdown `##` headers jako granic sekcji w promptach ról — używaj XML tags.
+### Przykład 1: Minimalny prompt roli (nowa rola)
+
+```md
+# Rola X — instrukcje operacyjne
+
+Robisz Y. Twój output to Z.
+
+---
+agent_id: rola_x
+role_type: executor
+escalates_to: developer
+allowed_tools: [Read, Edit, Write, Grep, Glob]
+disallowed_tools: []
+---
+
+<mission>
+1. Kryterium sukcesu A.
+2. Kryterium sukcesu B.
+</mission>
+
+<scope>
+W zakresie:
+1. Zadanie A
+2. Zadanie B
+
+Poza zakresem:
+1. Nie robię C — eskaluj do D.
+</scope>
+
+<critical_rules>
+1. Reguła 1.
+2. Reguła 2.
+</critical_rules>
+
+<session_start>
+1. Przeczytaj inbox.
+2. Sprawdź backlog.
+</session_start>
+
+<workflow>
+Workflow gate — patrz CLAUDE.md.
+</workflow>
+
+<escalation>
+1. Problem X → eskaluj do Y.
+</escalation>
+
+<end_of_turn_checklist>
+1. Czy output jest kompletny?
+2. Czy obserwacje zapisane?
+</end_of_turn_checklist>
+```
+
+### Przykład 2: Test przynależności (08R)
+
+Reguła: "Przed commitem uruchom testy."
+- Dotyczy wszystkich ról? → Tak → `CLAUDE.md` (sekcja "Zero failing tests")
+- ✗ Nie wstawiaj do ERP_SPECIALIST.md, DEVELOPER.md itp.
+
+Reguła: "Przed SQL sprawdź schema patterns."
+- Dotyczy jednej roli (ERP)? → Tak → domain pack (`ERP_SCHEMA_PATTERNS.md`)
+- ✗ Nie wstawiaj do CLAUDE.md
+
+---
+
+## Antywzorce
+
+### 01AP: Duplikacja reguł między warstwami
+
+**Źle:** Reguła o eskalacji powtórzona w CLAUDE.md i w DEVELOPER.md.
+
+**Dlaczego:** Agent widzi dwie wersje, jedna zdezaktualizowana — konflikt. Aktualizacja wymaga zmian w N plikach.
+
+**Dobrze:** Reguła w CLAUDE.md (shared_base), prompt roli odwołuje się: "Eskalacja — patrz CLAUDE.md."
+
+---
+
+### 02AP: Prose zamiast numerowanych kroków
+
+**Źle:**
+```
+Najpierw sprawdź status, potem jeśli wszystko OK to możesz przejść do generowania SQL,
+ale pamiętaj żeby wcześniej zweryfikować schemę...
+```
+
+**Dlaczego:** Agent gubi kolejność, pomija kroki, nie ma checkpointów.
+
+**Dobrze:**
+```
+1. Sprawdź git status.
+2. Zweryfikuj schema patterns.
+3. Wygeneruj SQL.
+```
+
+---
+
+### 03AP: Uzasadnienia historyczne w regułach krytycznych
+
+**Źle:**
+```
+5. Nie używaj metody X, bo w sesji z 15 marca agent Y popełnił błąd Z i musieliśmy cofać...
+```
+
+**Dlaczego:** Agent nie ma pamięci kontekstu historycznego — potrzebuje działania, nie opowieści.
+
+**Dobrze:**
+```
+5. Używaj metody W zamiast X. <!-- X powoduje błąd Z w kontekście Y -->
+```
+
+---
+
+### 04AP: Sekcje "na zapas"
+
+**Źle:** Prompt opisuje narzędzie `data_quality_check.py` które jeszcze nie istnieje.
+
+**Dlaczego:** Agent próbuje użyć nieistniejącego narzędzia → error → eskalacja → strata czasu.
+
+**Dobrze:** Dodawaj narzędzia do promptu po ich wdrożeniu i przetestowaniu.
+
+---
+
+### 05AP: Mieszanie instrukcji z esejami
+
+**Źle:** Dokument roli zawiera 3 akapity filozofii projektu + instrukcje operacyjne w jednym pliku.
+
+**Dlaczego:** Agent nie odróżnia kontekstu od polecenia. Filozofia rozmywa salience reguł.
+
+**Dobrze:** Filozofia → SPIRIT.md (czytane raz na starcie). Prompt roli → tylko instrukcje.
+
+---
+
+### 06AP: Markdown headers zamiast XML tags w promptach ról
+
+**Źle:**
+```markdown
+## Mission
+## Scope
+## Critical Rules
+```
+
+**Dlaczego:** Model traktuje `##` jako formatting, nie granice logiczne. Przy wielu podobnych sekcjach traci kontekst.
+
+**Dobrze:**
+```xml
+<mission>...</mission>
+<scope>...</scope>
+<critical_rules>...</critical_rules>
+```
+
+---
+
+## References
+
+- CONVENTION_META: `documents/conventions/CONVENTION_META.md`
+- CONVENTION_WORKFLOW: `documents/conventions/CONVENTION_WORKFLOW.md`
+- Anthropic prompt engineering: XML tags best practices
+- Research "Lost in the Middle": positional salience w dużych kontekstach
+
+---
+
+## Changelog
+
+| Wersja | Data | Zmiany |
+|---|---|---|
+| 1.0 | 2026-03-25 | Reformat do CONVENTION_META: YAML frontmatter, TL;DR, Zakres, reguły 01R-11R, Antywzorce 01AP-06AP, Changelog. Treść zachowana z oryginalnego dokumentu, sekcja 5 (szablon workflow) przeniesiona do CONVENTION_WORKFLOW.md. |

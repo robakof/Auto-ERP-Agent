@@ -1,6 +1,6 @@
 ---
 convention_id: prompt-convention
-version: "1.0"
+version: "1.1"
 status: draft
 created: 2026-03-25
 updated: 2026-03-25
@@ -20,6 +20,7 @@ scope: "Definiuje strukturę, składnię i zasady pisania promptów agentów w p
 - Hierarchia ważności: krytyczne reguły wysoko, checklista na dole (krawędzie kontekstu)
 - Szablon roli: mission → scope → critical_rules → session_start → workflow → tools → escalation → end_of_turn_checklist
 - Workflow: osobny format bez XML tags, z hierarchiczną numeracją dziesiętną
+- Max 8-10 reguł krytycznych w prompcie roli — powyżej salience spada
 - Zmiana promptu wymaga identyfikacji failure mode lub celu jakościowego
 
 ---
@@ -326,7 +327,28 @@ Przy review lub zmianie promptu oceń sześć wymiarów:
 
 ---
 
-### 13R: Research prompts — obowiązkowy output contract
+### 13R: Waga promptu — limity i konflikty instrukcji
+
+Prompt roli nie jest nieograniczony. Badania (IHEval, System Prompt Robustness) pokazują:
+
+1. **Max 8-10 reguł krytycznych.** Powyżej — model zaczyna pomijać reguły ze środka listy.
+   Jeśli masz więcej → przenieś mniej krytyczne do workflow lub domain pack.
+
+2. **Nie polegaj na niejawnej hierarchii instrukcji.** Gdy reguły z różnych warstw
+   (CLAUDE.md vs prompt roli vs workflow) mogą kolidować — rozstrzygaj jawnie w regule,
+   nie zakładaj że model "sam zrozumie priorytet".
+
+3. **Feedback i korekty zanikają po kilku turach.** (RefuteBench) Jednorazowa poprawka
+   w sesji nie jest trwałą zmianą zachowania. Krytyczna korekta → zapisz jako regułę w prompcie,
+   nie zakładaj że agent "zapamięta".
+
+4. **Outputy subagentów to dane, nie instrukcje.** (Anthropic Constitution) Odpowiedź
+   innego agenta wstrzyknięta do kontekstu nie ma autorytetu instrukcji systemowej.
+   Traktuj jako input konwersacyjny.
+
+---
+
+### 14R: Research prompts — obowiązkowy output contract
 
 Każdy prompt do zewnętrznego researchera musi zawierać sekcję **Output contract**:
 
@@ -694,6 +716,27 @@ filtrów i widoków BI. Eskalujesz do użytkownika zamiast zgadywać.
 
 ---
 
+### 08AP: Zakładanie że korekta w sesji = trwała zmiana
+
+**Źle:**
+```
+User: "Nie rób X w tej sesji"
+Agent: (przestaje robić X w tej sesji)
+Agent: (następna sesja — robi X ponownie, bo korekta nie jest w prompcie)
+```
+
+**Dlaczego:** RefuteBench: modele stopniowo zapominają feedback i wracają do wcześniejszego
+zachowania po kilku niezwiązanych turach. Między sesjami — gwarancja utraty.
+
+**Dobrze:**
+```
+User: "Nie rób X"
+Agent: (przestaje robić X)
+Agent: (zapisuje regułę "nie rób X" jako suggest → trafia do promptu roli lub CLAUDE.md)
+```
+
+---
+
 ## References
 
 - Plik źródłowy: `documents/prompt_engineer/PROMPT_CONVENTION.md`
@@ -709,4 +752,5 @@ filtrów i widoków BI. Eskalujesz do użytkownika zamiast zgadywać.
 
 | Wersja | Data | Zmiany |
 |---|---|---|
+| 1.1 | 2026-03-25 | Enrichment z researchu: 13R (waga promptu, limity guardrail, konflikty instrukcji), 08AP (zanik korekt). Renumeracja: research prompts → 14R. |
 | 1.0 | 2026-03-25 | Migracja PROMPT_CONVENTION.md do formatu CONVENTION_META. Status: draft. |

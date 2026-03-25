@@ -1163,19 +1163,19 @@ class AgentBus:
         """Atomically claim a task. Returns True if claimed, False if already taken."""
         cursor = self._conn.execute(
             """UPDATE messages
-               SET status = 'claimed', claimed_by = ?
-               WHERE id = ? AND status = 'unread'""",
+               SET claimed_by = ?
+               WHERE id = ? AND status = 'unread' AND claimed_by IS NULL""",
             (instance_id, msg_id),
         )
         self._auto_commit()
         return cursor.rowcount > 0
 
     def unclaim_task(self, msg_id: int) -> None:
-        """Release a claimed task back to unread (e.g. after invocation failure)."""
+        """Release a claimed task (e.g. after invocation failure)."""
         self._conn.execute(
             """UPDATE messages
-               SET status = 'unread', claimed_by = NULL
-               WHERE id = ? AND status = 'claimed'""",
+               SET claimed_by = NULL
+               WHERE id = ? AND claimed_by IS NOT NULL""",
             (msg_id,),
         )
         self._auto_commit()
