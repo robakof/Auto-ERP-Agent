@@ -65,6 +65,7 @@ class Message(Entity):
     session_id: Optional[str] = None
     read_at: Optional[datetime] = None
     claimed_by: Optional[str] = None
+    reply_to_id: Optional[int] = None
 
     def mark_read(self) -> None:
         """

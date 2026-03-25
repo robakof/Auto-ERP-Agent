@@ -94,7 +94,7 @@ class InstanceService:
         """Return unread/unclaimed tasks for role OR specific instance_id."""
         rows = self._conn.execute(
             """SELECT id, sender, recipient, type, content, title, status, session_id,
-                      created_at, read_at, claimed_by
+                      created_at, read_at, claimed_by, reply_to_id
                FROM messages
                WHERE (recipient = ? OR recipient = ?)
                  AND type = 'task'

@@ -26,22 +26,44 @@ DB_PATH = "mrowisko.db"
 SESSION_DATA_FILE = Path("tmp/session_data.json")
 
 
+def _get_session_data() -> dict:
+    """Read session data from tmp/session_data.json."""
+    if not SESSION_DATA_FILE.exists():
+        return {}
+    try:
+        return json.loads(SESSION_DATA_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
 def get_session_role() -> str | None:
     """Read current session role from tmp/session_data.json."""
-    if not SESSION_DATA_FILE.exists():
-        return None
-    try:
-        data = json.loads(SESSION_DATA_FILE.read_text(encoding="utf-8"))
-        return data.get("role")
-    except Exception:
-        return None
+    return _get_session_data().get("role")
+
+
+def get_session_id() -> str | None:
+    """Read current session_id from tmp/session_data.json."""
+    return _get_session_data().get("session_id")
+
+
+INLINE_CONTENT_LIMIT = 500
 
 
 def _read_content(args: argparse.Namespace) -> str:
-    """Read content from --content or --content-file."""
+    """Read content from --content or --content-file.
+
+    If --content exceeds INLINE_CONTENT_LIMIT, auto-saves to tmp/ and logs path.
+    """
     if args.content_file:
         return Path(args.content_file).read_text(encoding="utf-8")
-    return args.content
+    content = args.content or ""
+    if len(content) > INLINE_CONTENT_LIMIT:
+        import hashlib
+        h = hashlib.md5(content.encode()).hexdigest()[:8]
+        path = Path(f"tmp/auto_content_{h}.md")
+        path.parent.mkdir(exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+    return content
 
 
 def _bulk_json_processor(file_path: str, handler) -> list:
@@ -74,6 +96,7 @@ def cmd_send(args: argparse.Namespace, bus: AgentBus) -> dict:
         content=_read_content(args),
         type=args.type,
         session_id=args.session_id,
+        reply_to_id=getattr(args, "reply_to_id", None),
     )
     return {"ok": True, "id": msg_id}
 
@@ -119,8 +142,16 @@ def cmd_inbox(args: argparse.Namespace, bus: AgentBus) -> dict:
         return {"ok": True, "data": msg}
 
     # Full content or summary mode
-    summary_only = not getattr(args, "full", False)
+    full_mode = getattr(args, "full", False)
+    summary_only = not full_mode
     messages = bus.get_inbox(role=args.role, status=args.status, summary_only=summary_only)
+
+    # M3: auto mark-read when reading full content
+    if full_mode and messages:
+        for msg in messages:
+            if msg.get("status") == "unread":
+                bus.mark_read(msg["id"])
+
     return {"ok": True, "data": messages, "count": len(messages)}
 
 
@@ -140,13 +171,14 @@ def cmd_suggest(args: argparse.Namespace, bus: AgentBus) -> dict:
     if not author:
         return {"ok": False, "error": "No --from specified and no session found. Run session_init.py first."}
     recipients = json.loads(args.recipients) if args.recipients else None
+    session_id = args.session_id or get_session_id()
     sid = bus.add_suggestion(
         author=author,
         content=_read_content(args),
         title=args.title or "",
         type=args.type or "observation",
         recipients=recipients,
-        session_id=args.session_id,
+        session_id=session_id,
     )
     return {"ok": True, "id": sid}
 
@@ -181,6 +213,7 @@ def cmd_suggest_bulk(args: argparse.Namespace, bus: AgentBus) -> dict:
     text = Path(args.bulk_file).read_text(encoding="utf-8")
     blocks = [b.strip() for b in text.split("\n---\n") if b.strip()]
     recipients = json.loads(args.recipients) if args.recipients else None
+    session_id = args.session_id or get_session_id()
     ids = []
     with bus.transaction():
         for block in blocks:
@@ -193,7 +226,7 @@ def cmd_suggest_bulk(args: argparse.Namespace, bus: AgentBus) -> dict:
                 title=title,
                 type=suggest_type,
                 recipients=recipients,
-                session_id=args.session_id,
+                session_id=session_id,
             )
             ids.append(sid)
     return {"ok": True, "ids": ids, "count": len(ids)}
@@ -228,6 +261,12 @@ def cmd_mark_read(args: argparse.Namespace, bus: AgentBus) -> dict:
     for msg_id in args.ids:
         bus.mark_message_read(msg_id)
     return {"ok": True, "marked": args.ids}
+
+
+def cmd_mark_unread(args: argparse.Namespace, bus: AgentBus) -> dict:
+    for msg_id in args.ids:
+        bus.mark_unread(msg_id)
+    return {"ok": True, "marked_unread": args.ids}
 
 
 def cmd_backlog_add(args: argparse.Namespace, bus: AgentBus) -> dict:
@@ -424,6 +463,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_send.add_argument("--type", default="suggestion",
                         choices=["suggestion", "task", "info", "flag_human"])
     p_send.add_argument("--session-id", dest="session_id", default=None)
+    p_send.add_argument("--reply-to", dest="reply_to_id", type=int, default=None, help="ID of message being replied to")
 
     # handoff
     p_handoff = subparsers.add_parser("handoff", help="Send structured handoff between roles")
@@ -498,6 +538,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_mr.add_argument("--ids", type=int, nargs="+", default=None)
     p_mr.add_argument("--all", action="store_true", help="Mark all unread for a role")
     p_mr.add_argument("--role", default=None, help="Role (required with --all)")
+
+    # mark-unread
+    p_mu = subparsers.add_parser("mark-unread", help="Revert messages to unread")
+    p_mu.add_argument("--ids", type=int, nargs="+", required=True)
 
     # backlog-add
     p_badd = subparsers.add_parser("backlog-add", help="Add a backlog item")
@@ -634,6 +678,7 @@ def main():
         "suggest-status": cmd_suggest_status,
         "suggest-status-bulk": cmd_suggest_status_bulk,
         "mark-read": cmd_mark_read,
+        "mark-unread": cmd_mark_unread,
         "backlog-add": cmd_backlog_add,
         "backlog-add-bulk": cmd_backlog_add_bulk,
         "backlog": cmd_backlog,

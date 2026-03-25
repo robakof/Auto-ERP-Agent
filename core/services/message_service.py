@@ -44,6 +44,7 @@ class MessageService:
         content: str,
         type: str = "suggestion",
         session_id: Optional[str] = None,
+        reply_to_id: Optional[int] = None,
         conn=None,
     ) -> int:
         """Send a message. Returns message id."""
@@ -60,6 +61,7 @@ class MessageService:
             title=title,
             type=type_enum,
             session_id=session_id,
+            reply_to_id=reply_to_id,
         )
 
         repo = self._get_repo(conn)
@@ -111,6 +113,13 @@ class MessageService:
 
         repo.save(message)
 
+    def mark_unread(self, message_id: int) -> None:
+        """Revert a message to unread status."""
+        self._conn.execute(
+            "UPDATE messages SET status = 'unread', read_at = NULL WHERE id = ?",
+            (message_id,),
+        )
+
     def archive(self, message_id: int) -> None:
         """Archive a message (status='archived').
 
@@ -152,7 +161,7 @@ class MessageService:
         where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
         params.append(limit)
         rows = self._conn.execute(
-            f"""SELECT id, sender, recipient, type, content, title, status, session_id, created_at, read_at, claimed_by
+            f"""SELECT id, sender, recipient, type, content, title, status, session_id, created_at, read_at, claimed_by, reply_to_id
                 FROM messages {where}
                 ORDER BY created_at DESC, id DESC
                 LIMIT ?""",

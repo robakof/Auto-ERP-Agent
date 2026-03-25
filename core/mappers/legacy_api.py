@@ -81,6 +81,7 @@ class LegacyAPIMapper:
             "session_id": message.session_id,
             "created_at": message.created_at.isoformat() if message.created_at else None,
             "read_at": message.read_at.isoformat() if message.read_at else None,
+            "reply_to_id": message.reply_to_id,
         }
 
     @classmethod

@@ -162,8 +162,10 @@ python tools/agent_bus_cli.py backlog-add --title "Tytuł" --area <obszar> --val
 # Backlog — odczyt zadań dla swojej roli (filtruj po obszarze)
 python tools/agent_bus_cli.py backlog --area ERP       # ERP Specialist
 python tools/agent_bus_cli.py backlog --area Bot       # Bot
-python tools/agent_bus_cli.py backlog --area Arch      # Developer (arch)
-python tools/agent_bus_cli.py backlog --area Dev       # Developer (narzędzia)
+python tools/agent_bus_cli.py backlog --area Arch      # Architect (architektura, konwencje, review)
+python tools/agent_bus_cli.py backlog --area Dev       # Developer (narzędzia, kod)
+python tools/agent_bus_cli.py backlog --area Prompt    # Prompt Engineer (prompty, workflow)
+python tools/agent_bus_cli.py backlog --area Metodolog  # Metodolog (procesy, metoda pracy)
 
 # Log sesji
 python tools/agent_bus_cli.py log --role <rola> --content-file tmp/tmp.md

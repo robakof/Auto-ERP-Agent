@@ -118,7 +118,8 @@ class MessageRepository(Repository[Message]):
                     session_id TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     read_at DATETIME,
-                    claimed_by TEXT
+                    claimed_by TEXT,
+                    reply_to_id INTEGER REFERENCES messages(id)
                 )
             """)
 
@@ -162,11 +163,15 @@ class MessageRepository(Repository[Message]):
         except (KeyError, IndexError):
             title = ""
 
-        # Backward compat: claimed_by może nie istnieć w starych DB
+        # Backward compat: claimed_by/reply_to_id may not exist in old DBs
         try:
             claimed_by = row["claimed_by"]
         except (KeyError, IndexError):
             claimed_by = None
+        try:
+            reply_to_id = row["reply_to_id"]
+        except (KeyError, IndexError):
+            reply_to_id = None
 
         return Message(
             sender=row["sender"],
@@ -179,7 +184,8 @@ class MessageRepository(Repository[Message]):
             id=row["id"],
             created_at=datetime.fromisoformat(row["created_at"]) if row["created_at"] else datetime.now(),
             read_at=datetime.fromisoformat(row["read_at"]) if row["read_at"] else None,
-            claimed_by=claimed_by
+            claimed_by=claimed_by,
+            reply_to_id=reply_to_id
         )
 
     def _entity_to_row(self, entity: Message) -> dict:
@@ -202,7 +208,8 @@ class MessageRepository(Repository[Message]):
             "session_id": entity.session_id,
             "created_at": entity.created_at.isoformat(),
             "read_at": entity.read_at.isoformat() if entity.read_at else None,
-            "claimed_by": entity.claimed_by
+            "claimed_by": entity.claimed_by,
+            "reply_to_id": entity.reply_to_id
         }
 
     def get(self, id: int) -> Optional[Message]:
@@ -218,7 +225,7 @@ class MessageRepository(Repository[Message]):
         with self._connection() as conn:
             cursor = conn.execute(
                 """SELECT id, sender, recipient, content, title, type, status, session_id,
-                          created_at, read_at, claimed_by
+                          created_at, read_at, claimed_by, reply_to_id
                    FROM messages
                    WHERE id = ?""",
                 (id,)
@@ -253,20 +260,20 @@ class MessageRepository(Repository[Message]):
                 conn.execute(
                     """UPDATE messages
                        SET sender = ?, recipient = ?, content = ?, title = ?, type = ?, status = ?,
-                           session_id = ?, read_at = ?, claimed_by = ?
+                           session_id = ?, read_at = ?, claimed_by = ?, reply_to_id = ?
                        WHERE id = ?""",
                     (row_data["sender"], row_data["recipient"], row_data["content"], row_data["title"],
                      row_data["type"], row_data["status"], row_data["session_id"],
-                     row_data["read_at"], row_data["claimed_by"], entity.id)
+                     row_data["read_at"], row_data["claimed_by"], row_data["reply_to_id"], entity.id)
                 )
             else:
                 # INSERT
                 cursor = conn.execute(
-                    """INSERT INTO messages (sender, recipient, content, title, type, status, session_id, read_at, claimed_by)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    """INSERT INTO messages (sender, recipient, content, title, type, status, session_id, read_at, claimed_by, reply_to_id)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (row_data["sender"], row_data["recipient"], row_data["content"], row_data["title"],
                      row_data["type"], row_data["status"], row_data["session_id"],
-                     row_data["read_at"], row_data["claimed_by"])
+                     row_data["read_at"], row_data["claimed_by"], row_data["reply_to_id"])
                 )
                 entity.id = cursor.lastrowid
 
@@ -317,7 +324,7 @@ class MessageRepository(Repository[Message]):
         with self._connection() as conn:
             cursor = conn.execute(
                 """SELECT id, sender, recipient, content, title, type, status, session_id,
-                          created_at, read_at, claimed_by
+                          created_at, read_at, claimed_by, reply_to_id
                    FROM messages
                    ORDER BY created_at DESC, id DESC"""
             )
@@ -337,7 +344,7 @@ class MessageRepository(Repository[Message]):
         with self._connection() as conn:
             cursor = conn.execute(
                 f"""SELECT id, sender, recipient, content, title, type, status, session_id,
-                           created_at, read_at, claimed_by
+                           created_at, read_at, claimed_by, reply_to_id
                     FROM messages
                     WHERE {field} = ?
                     ORDER BY created_at DESC, id DESC""",

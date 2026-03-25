@@ -214,6 +214,8 @@ _MIGRATE_SQL = [
     "CREATE UNIQUE INDEX IF NOT EXISTS idx_tool_calls_dedup ON tool_calls(session_id, tool_name, timestamp)",
     # #146: Fix claimed status leak — migrate 'claimed' to proper claimed_by
     "UPDATE messages SET claimed_by = 'legacy-runner', status = 'unread' WHERE status = 'claimed'",
+    # #187 M4: reply_to_id for thread correlation
+    "ALTER TABLE messages ADD COLUMN reply_to_id INTEGER REFERENCES messages(id)",
 ]
 
 
@@ -290,10 +292,10 @@ class AgentBus:
 
     # --- Messages ---
 
-    def send_message(self, sender: str, recipient: str, content: str, type: str = "suggestion", session_id: str = None) -> int:
+    def send_message(self, sender: str, recipient: str, content: str, type: str = "suggestion", session_id: str = None, reply_to_id: int = None) -> int:
         """Delegates to MessageService."""
         txn_conn = self._conn if self._in_transaction else None
-        return self._messages.send(sender, recipient, content, type, session_id, txn_conn)
+        return self._messages.send(sender, recipient, content, type, session_id, reply_to_id, txn_conn)
 
     def get_inbox(self, role: str, status: str = "unread", summary_only: bool = False) -> list[dict]:
         """Delegates to MessageService."""
@@ -313,6 +315,11 @@ class AgentBus:
     def archive_message(self, message_id: int) -> None:
         """Delegates to MessageService."""
         self._messages.archive(message_id)
+        self._auto_commit()
+
+    def mark_unread(self, message_id: int) -> None:
+        """Delegates to MessageService."""
+        self._messages.mark_unread(message_id)
         self._auto_commit()
 
     # --- Suggestions ---
