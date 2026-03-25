@@ -6,6 +6,8 @@ trigger: "Developer otrzymuje zadanie operacyjne lub taktyczne"
 related_docs:
   - documents/dev/DEVELOPER.md
   - documents/dev/PROJECT_START.md
+  - workflows/workflow_plan_review.md
+  - workflows/workflow_code_review.md
 prerequisites:
   - session_init_done
 outputs:
