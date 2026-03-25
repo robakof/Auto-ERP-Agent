@@ -236,8 +236,10 @@ class AgentBus:
         # Services (extracted from AgentBus — separation of concerns #149)
         from core.services.known_gaps_service import KnownGapsService
         from core.services.workflow_service import WorkflowService
+        from core.services.telemetry_service import TelemetryService
         self._known_gaps = KnownGapsService(self._conn)
         self._workflows = WorkflowService(self._conn)
+        self._telemetry = TelemetryService(self._conn)
 
     def _run_migrations(self) -> None:
         for stmt in _MIGRATE_SQL:
@@ -941,14 +943,10 @@ class AgentBus:
         tokens_out: int = None,
         timestamp: str = None,
     ) -> int:
-        """Log a tool call for a session. Returns row id or 0 if duplicate (rowcount=0)."""
-        cursor = self._conn.execute(
-            """INSERT OR IGNORE INTO tool_calls (session_id, tool_name, input_summary, is_error, tokens_out, timestamp)
-               VALUES (?, ?, ?, ?, ?, COALESCE(?, datetime('now')))""",
-            (session_id, tool_name, input_summary, is_error, tokens_out, timestamp),
-        )
+        """Delegates to TelemetryService."""
+        result = self._telemetry.add_tool_call(session_id, tool_name, input_summary, is_error, tokens_out, timestamp)
         self._auto_commit()
-        return cursor.lastrowid
+        return result
 
     def add_token_usage(
         self,
@@ -961,42 +959,17 @@ class AgentBus:
         duration_ms: int = None,
         timestamp: str = None,
     ) -> int:
-        """Log token usage for one assistant turn. Returns row id."""
-        cursor = self._conn.execute(
-            """INSERT INTO token_usage
-               (session_id, turn_index, input_tokens, output_tokens,
-                cache_read_tokens, cache_create_tokens, duration_ms, timestamp)
-               VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))""",
-            (session_id, turn_index, input_tokens, output_tokens,
-             cache_read_tokens, cache_create_tokens, duration_ms, timestamp),
+        """Delegates to TelemetryService."""
+        result = self._telemetry.add_token_usage(
+            session_id, turn_index, input_tokens, output_tokens,
+            cache_read_tokens, cache_create_tokens, duration_ms, timestamp
         )
         self._auto_commit()
-        return cursor.lastrowid
+        return result
 
     def get_session_trace(self, session_id: str) -> dict:
-        """Return session metadata with tool_calls and token_usage."""
-        session_row = self._conn.execute(
-            "SELECT id, claude_session_id, role, transcript_path, started_at, ended_at FROM sessions WHERE id = ?",
-            (session_id,),
-        ).fetchone()
-        if not session_row:
-            return None
-        tool_rows = self._conn.execute(
-            """SELECT id, tool_name, input_summary, is_error, tokens_out, timestamp
-               FROM tool_calls WHERE session_id = ? ORDER BY id""",
-            (session_id,),
-        ).fetchall()
-        token_rows = self._conn.execute(
-            """SELECT turn_index, input_tokens, output_tokens,
-                      cache_read_tokens, cache_create_tokens, duration_ms, timestamp
-               FROM token_usage WHERE session_id = ? ORDER BY turn_index""",
-            (session_id,),
-        ).fetchall()
-        return {
-            "session": dict(session_row),
-            "tool_calls": [dict(r) for r in tool_rows],
-            "token_usage": [dict(r) for r in token_rows],
-        }
+        """Delegates to TelemetryService."""
+        return self._telemetry.get_session_trace(session_id)
 
     # --- Conversation ---
 
