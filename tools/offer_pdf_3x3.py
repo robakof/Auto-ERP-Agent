@@ -112,6 +112,7 @@ PHOTO_H_MAX = CELL_H * PHOTO_RATIO
 # ---------------------------------------------------------------------------
 
 COLOR_ORANGE         = colors.HexColor("#c96a2b")
+COLOR_KERTI          = colors.HexColor("#008080")
 COLOR_BLACK          = colors.HexColor("#1A1A1A")
 COLOR_GRAY           = colors.HexColor("#6B6B6B")
 COLOR_SHADOW         = colors.HexColor("#DDDDDD")
@@ -153,20 +154,21 @@ def _register_fonts():
 # Nagłówek strony
 # ---------------------------------------------------------------------------
 
-def _draw_header(c: canvas.Canvas, lang: str, font_header: str,
+def _draw_header(c: canvas.Canvas, lang: str, font_header: str, font_bold: str,
                  header_text: str | None = None, logo: str = "ceim"):
-    text   = header_text if header_text else TRANSLATIONS[lang]["header_wklady"]
-    y      = PAGE_H - MARGIN_V - HEADER_H
-    text_y = y + HEADER_H * 0.5 - 4
+    text      = header_text if header_text else TRANSLATIONS[lang]["header_wklady"]
+    y         = PAGE_H - MARGIN_V - HEADER_H
+    text_y    = y + HEADER_H * 0.5 - 4
+    line_color = COLOR_KERTI if logo == "kerti" else COLOR_ORANGE
 
-    # Pomarańczowa linia akcentująca (wg brandbook)
-    c.setStrokeColor(COLOR_ORANGE)
+    # Linia akcentująca (kolor per marka)
+    c.setStrokeColor(line_color)
     c.setLineWidth(2.5)
     c.line(MARGIN_H, y + 2 * mm, PAGE_W - MARGIN_H, y + 2 * mm)
 
-    # Logo + tekst wycentrowane jako całość
-    c.setFont(font_header, 22)
-    tw        = c.stringWidth(text, font_header, 22)
+    # Logo + tekst wycentrowane jako całość — czcionka jak nazwa produktu
+    c.setFont(font_bold, 22)
+    tw        = c.stringWidth(text, font_bold, 22)
     logo_path = _get_logo_png(logo)
     logo_h    = HEADER_H - 4 * mm
     logo_w    = 0
@@ -185,6 +187,7 @@ def _draw_header(c: canvas.Canvas, lang: str, font_header: str,
     start_x = (PAGE_W - total_w) / 2
 
     c.setFillColor(COLOR_BLACK)
+    c.setFont(font_bold, 22)
     c.drawString(start_x, text_y, text)
 
     if logo_path:
@@ -389,7 +392,7 @@ def generate_pdf(
         if page_idx > 0:
             c.showPage()
 
-        _draw_header(c, lang, font_header, header_text=header_text, logo=logo)
+        _draw_header(c, lang, font_header, font_bold, header_text=header_text, logo=logo)
 
         for i, product in enumerate(padded[page_idx * per_page: (page_idx + 1) * per_page]):
             if product is None:
