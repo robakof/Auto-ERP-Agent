@@ -1,6 +1,6 @@
 ---
 workflow_id: convention_creation
-version: "1.2"
+version: "1.3"
 owner_role: architect
 trigger: "Potrzeba nowej konwencji dla aspektu projektu"
 participants:
@@ -127,14 +127,17 @@ ESCALATE do PE jeśli research prompt nie daje wyników (problem z promptem, nie
 
 1. Przeczytaj CONVENTION_META.
 
-2. Utwórz draft (YAML header + wymagane sekcje).
-   - Przyszłość: tool `convention_init.py` zautomatyzuje ten krok.
+2. Sprawdź overlap z istniejącymi konwencjami w `documents/conventions/`.
+   - Żadna reguła nie powinna duplikować innej konwencji.
+   - Jeśli temat pokrywa inna konwencja → odwołaj się do niej, nie kopiuj.
 
-3. Status = draft.
+3. Utwórz draft (YAML header + wymagane sekcje).
+
+4. Status = draft.
 
 ### Exit gate
 
-PASS: YAML header kompletny, wymagane sekcje obecne, plik zapisany.
+PASS: YAML header kompletny, wymagane sekcje obecne, brak overlapu z innymi konwencjami, plik zapisany.
 
 ---
 
@@ -146,9 +149,13 @@ PASS: YAML header kompletny, wymagane sekcje obecne, plik zapisany.
 
 1. Self-review zgodność z CONVENTION_META.
 
-2. Architektoniczny review (DB-ready, zgodność z SPIRIT.md).
+2. Walidacja scope: każda reguła musi należeć do TEGO dokumentu.
+   - Reguła pasuje do innej konwencji → wynieś i dodaj referencję.
+   - Limity muszą być jednoznaczne (twarda granica, nie widełki).
 
-3. Zapisz uwagi.
+3. Architektoniczny review (DB-ready, zgodność z SPIRIT.md).
+
+4. Zapisz uwagi.
 
 ### Exit gate
 
@@ -244,6 +251,9 @@ PASS: commit, powiadomienia, log.
 - [ ] Konwencja nie istniała (zwalidowane)?
 - [ ] Research wyczerpany?
 - [ ] YAML header kompletny?
+- [ ] Brak overlapu z innymi konwencjami?
+- [ ] Każda reguła należy do tego dokumentu (nie innej konwencji)?
+- [ ] Limity jednoznaczne (twarde granice, nie widełki)?
 - [ ] Status = active?
 - [ ] Commit + powiadomienia?
 
@@ -253,6 +263,7 @@ PASS: commit, powiadomienia, log.
 
 | Wersja | Data | Zmiany |
 |---|---|---|
+| 1.3 | 2026-03-25 | Lekcje z review CONV_PROMPT: Faza 3 +overlap check, Faza 4 +scope validation +jednoznaczne limity, self-check rozszerzony. |
 | 1.2 | 2026-03-25 | Faza 2: HANDOFF_POINT po kroku 3 (→ PE, STOP) i nowy krok 3.5 (→ Human, STOP). Usunięcie dwuznaczności: research wykonuje user/zewnętrzny agent, nie Architect. |
 | 1.1 | 2026-03-24 | Review: minimalizm, usunięcie defensywnych reguł, research jako pętla, domain check, agent rewolucjonista |
 | 1.0 | 2026-03-24 | Początkowa wersja |

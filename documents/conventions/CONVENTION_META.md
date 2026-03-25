@@ -1,9 +1,9 @@
 ---
 convention_id: meta-convention
-version: "1.0"
+version: "1.1"
 status: active
 created: 2026-03-24
-updated: 2026-03-24
+updated: 2026-03-25
 author: architect
 owner: architect
 approver: dawid
@@ -118,6 +118,16 @@ NIE przepisuj cicho aktywnej konwencji bez śladu.
 Wszystkie konwencje żyją w: `documents/conventions/`
 
 Nazewnictwo: `CONVENTION_{ZAKRES}.md` (UPPER_CASE)
+
+### 06R: Limity jednoznaczne — twarda granica, nie widełki
+
+Gdy reguła definiuje limit, granicę lub próg — musi być jednoznaczna.
+
+**Dobrze:** "max 10 reguł", "max 200 linii", "max 500 znaków"
+**Źle:** "8-10 reguł", "50-200 linii", "około 500 znaków"
+
+Widełki nie są granicą — są sugestią. Agent zinterpretuje je dowolnie.
+Jeśli dolna granica jest ważna — sformułuj jako osobną regułę.
 
 ---
 
@@ -259,4 +269,5 @@ approver: dawid  # Zewnętrzne zatwierdzenie
 
 | Wersja | Data | Zmiany |
 |---|---|---|
+| 1.1 | 2026-03-25 | 06R: Limity jednoznaczne (twarda granica, nie widełki). Lekcja z review CONV_PROMPT/CODE. |
 | 1.0 | 2026-03-24 | Początkowa CONVENTION_META — wersja minimalna, status: active |

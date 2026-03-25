@@ -1,6 +1,6 @@
 ---
 convention_id: code-convention
-version: "1.1"
+version: "1.2"
 status: draft
 created: 2026-03-25
 updated: 2026-03-25
@@ -246,13 +246,15 @@ Jedyne dozwolone wyjście na stdout: `print_json()` z `tools/lib/output.py`.
 
 ### 10R: Rozmiar i odpowiedzialność modułu
 
-- Plik CLI (`tools/*.py`): 50–200 linii. Jeśli więcej — wyodrębnij logikę do `tools/lib/`.
-- Plik biblioteczny (`tools/lib/*.py`): 100–400 linii. Jedna klasa lub zestaw powiązanych funkcji.
+- Plik CLI (`tools/*.py`): max 200 linii. Jeśli więcej — wyodrębnij logikę do `tools/lib/`.
+- Plik biblioteczny (`tools/lib/*.py`): max 400 linii. Jedna klasa lub zestaw powiązanych funkcji.
 - Jeden plik = jedna odpowiedzialność. Gdy moduł obsługuje >3 niepowiązane koncepcje — podziel.
 
 ---
 
 ### 11R: Testy — struktura i konwencje
+
+> Uwaga: Gdy powstanie CONVENTION_TESTING (backlog #173), reguły 11R i 16R zostaną przeniesione tam. Tu pozostanie referencja.
 
 **Lokalizacja:** `tests/test_<modul>.py` — jeden plik testów per moduł.
 
@@ -722,5 +724,6 @@ Dodatkowe testy (happy path, edge cases, integracyjne) — per moduł wg potrzeb
 
 | Wersja | Data | Zmiany |
 |---|---|---|
+| 1.2 | 2026-03-25 | Review: widełki → twarde limity w 10R, notatka o przyszłym CONV_TESTING przy 11R/16R |
 | 1.1 | 2026-03-25 | Enrichment z researchu: 13R (exit codes), 14R (stdout/stderr), 15R (lint config), 16R (testy kontraktowe), allow_abbrev=False w 01R |
 | 1.0 | 2026-03-25 | Wersja początkowa — na bazie CODE_STANDARDS.md + inspekcja tools/ i tests/ |
