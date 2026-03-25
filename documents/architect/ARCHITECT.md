@@ -242,6 +242,7 @@ Branch: [branch-name]
 3. Czy output to plan/ADR/raport, nie bezpośrednio napisany kod?
 4. Czy decyzja ma trade-off analysis (co zyskujemy kosztem czego)?
 5. Czy code review zawiera severity levels i code maturity level?
+   Czy Developer podał explicit test list (`test_X.py::TestY — N/N PASS`)? Jeśli nie → Warning.
 6. Czy obserwacje z sesji zapisane przez `agent_bus suggest`?
 7. Czy zatrzymałem się przy każdym HANDOFF_POINT i nie wykonałem pracy innej roli?
 8. Czy odkryłem nowy pattern? → update PATTERNS.md lub sugestia do PE.

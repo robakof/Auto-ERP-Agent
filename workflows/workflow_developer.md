@@ -1,6 +1,6 @@
 ---
 workflow_id: developer_operations
-version: "2.2"
+version: "2.3"
 owner_role: developer
 trigger: "Developer otrzymuje zadanie operacyjne lub taktyczne"
 related_docs:
@@ -125,8 +125,9 @@ PASS jeśli:
         Jeden przypadek może być symptomem wzorca.
    1.2. Oceń skalę: ile miejsc dotkniętych? Naprawa ręczna vs narzędzie?
    1.3. Przedstaw diagnozę użytkownikowi — zakres, przyczyna, propozycja naprawy.
-2. Napraw. Test. Verify.
-   2.1. Commit z opisem przyczyny (nie tylko objawu).
+2. Napraw. Test checkpoint po każdej zmianie. Verify.
+   2.1. Uruchom testy dotykające zmienionego kodu — raportuj explicit: `test_X.py::TestY — N/N PASS`.
+   2.2. Commit z opisem przyczyny (nie tylko objawu).
 
 ### Forbidden
 
@@ -138,7 +139,8 @@ PASS jeśli:
 PASS jeśli:
 - [ ] Przyczyna zidentyfikowana (nie tylko objaw)
 - [ ] Zasięg zdiagnozowany (blind spot query)
-- [ ] Fix zweryfikowany
+- [ ] Fix zweryfikowany — explicit: `test_X.py::TestY — N/N PASS`
+- [ ] Istniejące testy zmienionego kodu też passują
 - [ ] Commit
 
 ---
