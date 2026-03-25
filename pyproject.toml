@@ -14,6 +14,39 @@ dependencies = []
 include = ["core*"]
 exclude = ["tests*", "bot*", "tmp*", "output*", "exports*", "erp_docs*", "handoffs*", "documents*", "solutions*", "workflows*"]
 
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "T20"]
+# E/F/W = pycodestyle errors, pyflakes, warnings
+# I = isort (import order — CONVENTION_CODE 05R)
+# T20 = flake8-print (zakaz print na stdout — CONVENTION_CODE 08R)
+ignore = [
+    "E402",   # module import not at top — sys.path manipulation pattern
+    "E501",   # line too long — ruff formatter handles this
+    "E741",   # ambiguous variable name (l, O, I) — too noisy
+    "W291",   # trailing whitespace — formatter handles
+    "W292",   # no newline at end — formatter handles
+    "W293",   # whitespace before ':'
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["T20"]       # print OK in tests
+"tools/*.py" = ["T20"]    # CLI scripts use print for output
+"tools/hooks/*" = ["T20"] # hooks use print for JSON output
+"tools/*_ui*.py" = ["F821"]  # Tkinter UI — legacy, separate scope
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+# Start lenient — tighten incrementally
+disallow_untyped_defs = false
+check_untyped_defs = true
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]

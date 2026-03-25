@@ -1,11 +1,6 @@
 """Legacy API mapper — single source of truth for backward compatibility."""
 
-from core.entities.messaging import (
-    Message, Suggestion, BacklogItem,
-    MessageType, MessageStatus,
-    SuggestionType, SuggestionStatus,
-    BacklogStatus, BacklogArea, BacklogValue, BacklogEffort
-)
+from core.entities.messaging import BacklogItem, Message, MessageType, Suggestion, SuggestionStatus
 
 
 class LegacyAPIMapper:

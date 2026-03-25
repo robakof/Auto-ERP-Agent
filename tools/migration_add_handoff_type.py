@@ -7,9 +7,9 @@ Usage:
   python tools/migration_add_handoff_type.py --execute # apply
 """
 
+import json
 import sqlite3
 import sys
-import json
 
 DB_PATH = "mrowisko.db"
 

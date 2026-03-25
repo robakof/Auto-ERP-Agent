@@ -71,14 +71,14 @@ def get_domain_model_enums() -> dict:
     """
     # Import domain model enums
     from core.entities.messaging import (
-        MessageType,
-        MessageStatus,
-        SuggestionType,
-        SuggestionStatus,
         BacklogArea,
-        BacklogValue,
         BacklogEffort,
         BacklogStatus,
+        BacklogValue,
+        MessageStatus,
+        MessageType,
+        SuggestionStatus,
+        SuggestionType,
     )
 
     return {
@@ -224,11 +224,11 @@ def print_report(findings: dict):
 
             if missing:
                 print(f"  [!] MISSING in domain model: {missing}")
-                print(f"      Action: Add to domain model enum")
+                print("      Action: Add to domain model enum")
 
             if unused:
                 print(f"  [i] UNUSED in production: {unused}")
-                print(f"      Info: Defined but not used (OK)")
+                print("      Info: Defined but not used (OK)")
 
     if not issues_found:
         print("\n✓ All production values present in domain model enums")

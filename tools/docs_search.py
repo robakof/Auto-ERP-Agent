@@ -8,7 +8,6 @@ Output: JSON na stdout zgodny z kontraktem narzędzi agenta.
 """
 
 import argparse
-import json
 import sys
 import time
 from pathlib import Path

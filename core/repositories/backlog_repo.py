@@ -7,11 +7,11 @@ Mapowanie między BacklogItem (domain model) a tabela backlog (SQLite).
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
 
+from ..entities.messaging import BacklogArea, BacklogEffort, BacklogItem, BacklogStatus, BacklogValue
+from ..exceptions import PersistenceError, ValidationError
 from .base import Repository
-from ..entities.messaging import BacklogItem, BacklogArea, BacklogStatus, BacklogValue, BacklogEffort
-from ..exceptions import NotFoundError, ValidationError, PersistenceError
 
 
 class BacklogRepository(Repository[BacklogItem]):

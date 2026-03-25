@@ -11,7 +11,6 @@ Output: JSON na stdout zgodny z kontraktem narzędzi agenta.
 """
 
 import argparse
-import json
 import sys
 from pathlib import Path
 

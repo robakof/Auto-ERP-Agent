@@ -126,9 +126,25 @@ W miarę rozwoju roli workflow będą nabudowywane.
 </workflow>
 
 <code_maturity_levels>
-Code review ocenia dojrzałość kodu na trzech poziomach: Junior / Mid / Senior.
+Code review ocenia dojrzałość kodu na skali L1-L7.
 
-| Wymiar | Junior | Mid | Senior |
+### Skala poziomów
+
+| Poziom | Nazwa | Esencja | Granica myślenia |
+|---|---|---|---|
+| L1 | Junior | Działa, kruche | Mój kod działa |
+| L2 | Mid | Poprawne, czytelne | Mój kod jest dobry |
+| L3 | Senior | Myślenie systemowe, trade-offy | Mój kod pasuje do systemu |
+| L4 | Staff | Eliminuje klasy błędów przez design | System nie pozwala na zły kod |
+| L5 | Principal | Tworzy standardy i infrastrukturę | System podnosi poziom wszystkiego |
+| L6 | Autonomous | System sam identyfikuje i rozwiązuje problemy | System się samonaprawia i rozwija |
+| L7 | AGI | Pełna zdolność twórcza na poziomie człowieka | System tworzy z niczego |
+
+**Standard projektu: L3 (Senior).** Nic poniżej nie jest akceptowalne — proponuj refaktor.
+
+### Wymiary oceny L1-L3 (code review)
+
+| Wymiar | L1 Junior | L2 Mid | L3 Senior |
 |---|---|---|---|
 | **Funkcje** | Long functions (>40 linii), mixed concerns | Rozsądny podział, czasem za długie (20-40) | ≤15 linii, single responsibility, DRY |
 | **Naming** | Niespójne, skróty bez wyjaśnienia | Spójne w pliku, czasem verbose | Spójne w projekcie, self-documenting |
@@ -139,7 +155,16 @@ Code review ocenia dojrzałość kodu na trzech poziomach: Junior / Mid / Senior
 | **Dependencies** | Dodaje bez oceny, ciężkie biblioteki | Ocenia alternatywy | Minimalizuje, zna koszty |
 | **Structure** | God classes, tight coupling | Podział logiczny w ramach pliku | SRP, modułowość, low coupling |
 
-W raporcie code review podaj **ogólny poziom** (Junior/Mid/Senior) + **uzasadnienie** (2-3 zdania wskazujące konkretne przykłady z kodu).
+### Wymiary oceny L4-L7 (system impact)
+
+| Wymiar | L4 Staff | L5 Principal | L6 Autonomous | L7 AGI |
+|---|---|---|---|---|
+| **System impact** | Tworzy guardrails eliminujące klasy błędów | Definiuje standardy dla całego projektu | System wykrywa i naprawia anomalie sam | System projektuje nowe rozwiązania |
+| **Autonomy** | Wymaga review, nie wymaga guidance | Definiuje direction, deleguje execution | Self-monitoring, self-correcting | Pełna autonomia twórcza |
+| **Knowledge** | Zna cały system, widzi implikacje zmian | Tworzy wiedzę transferowalną (patterns, conventions) | Odkrywa wiedzę z danych i obserwacji | Generuje nową wiedzę z niczego |
+| **Creativity** | Refaktoruje istniejące rozwiązania | Projektuje nowe abstrakcje i narzędzia | Adaptuje system do zmieniających się warunków | Tworzy fundamentalnie nowe podejścia |
+
+W raporcie code review podaj **poziom L1-L7** + **nazwę** + **uzasadnienie** (2-3 zdania wskazujące konkretne przykłady z kodu).
 </code_maturity_levels>
 
 <tools>
@@ -193,7 +218,7 @@ Branch: [branch-name]
 
 ## Summary
 **Overall assessment:** PASS | NEEDS REVISION | BLOCKED
-**Code maturity level:** Junior | Mid | Senior — [uzasadnienie 2-3 zdania]
+**Code maturity level:** L1-L7 [Nazwa] — [uzasadnienie 2-3 zdania]
 
 ## Findings
 

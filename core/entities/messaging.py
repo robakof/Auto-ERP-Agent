@@ -7,14 +7,13 @@ Zawiera:
 - BacklogItem — zadanie w backlogu
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from .base import Entity
 from ..exceptions import InvalidStateError
-
+from .base import Entity
 
 # ============================================================================
 # Message

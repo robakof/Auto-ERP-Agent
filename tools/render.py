@@ -18,12 +18,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.lib.agent_bus import AgentBus
 from tools.lib.renderers import (
+    render_backlog_md,
     render_json,
     render_md,
-    render_backlog_md,
+    render_session_trace_xlsx,
     render_suggestions_md,
     render_xlsx,
-    render_session_trace_xlsx,
 )
 
 DB_PATH = "mrowisko.db"

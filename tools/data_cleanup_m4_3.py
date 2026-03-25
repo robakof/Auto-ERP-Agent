@@ -10,9 +10,9 @@ Usage:
   python tools/data_cleanup_m4_3.py --execute # apply changes
 """
 
+import json
 import sqlite3
 import sys
-import json
 from pathlib import Path
 
 DB_PATH = "mrowisko.db"

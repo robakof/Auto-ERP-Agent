@@ -11,15 +11,15 @@ Przepływ:
     4. Plik .docx otwiera się automatycznie
 """
 
+import sys
 import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
-import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from tools.etykiety_export import generate, _query_products
+from tools.etykiety_export import _query_products, generate
 from tools.lib.sql_client import SqlClient
 
 _PROJECT_ROOT = Path(__file__).parent.parent
@@ -134,7 +134,7 @@ class EtykietyApp(tk.Tk):
             try:
                 grupy = _fetch_grupy()
                 self.after(0, lambda: self._on_grupy_loaded(grupy))
-            except Exception as e:
+            except Exception:
                 self.after(0, lambda: self._set_status(f"Błąd połączenia: {e}", "red"))
 
         threading.Thread(target=worker, daemon=True).start()
@@ -208,7 +208,7 @@ class EtykietyApp(tk.Tk):
                 generate(products, output_path)
                 self.after(0, lambda: self._finish(output_path,
                     f"OK — {len(products)} etykiet → {output_path.name}"))
-            except Exception as e:
+            except Exception:
                 self.after(0, lambda: self._finish(None, f"Błąd: {e}", error=True))
 
         threading.Thread(target=worker, daemon=True).start()

@@ -11,9 +11,17 @@ Moduły:
 # Milestone 1 exports
 from .base import Entity, Status
 from .messaging import (
-    Message, MessageStatus, MessageType,
-    Suggestion, SuggestionStatus, SuggestionType,
-    BacklogItem, BacklogArea, BacklogStatus, BacklogValue, BacklogEffort
+    BacklogArea,
+    BacklogEffort,
+    BacklogItem,
+    BacklogStatus,
+    BacklogValue,
+    Message,
+    MessageStatus,
+    MessageType,
+    Suggestion,
+    SuggestionStatus,
+    SuggestionType,
 )
 
 __all__ = [

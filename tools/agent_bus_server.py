@@ -10,7 +10,6 @@ from typing import Optional
 
 import uvicorn
 from fastapi import FastAPI, Query
-from fastapi.responses import JSONResponse
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 

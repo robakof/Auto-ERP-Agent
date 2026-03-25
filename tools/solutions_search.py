@@ -8,7 +8,6 @@ Output: JSON na stdout zgodny z kontraktem z ARCHITECTURE.md.
 """
 
 import argparse
-import json
 import os
 import sys
 import time

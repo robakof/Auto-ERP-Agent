@@ -4,9 +4,8 @@ ExcelWriter — współdzielona logika zapisu plików xlsx.
 Używana przez: excel_export.py, excel_export_bi.py
 """
 
-from pathlib import Path
-
 import re
+from pathlib import Path
 
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill

@@ -5,11 +5,11 @@ Uruchomienie:
     python tools/offer_ui.py
 """
 
+import sys
 import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
-import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -169,7 +169,7 @@ class OfferApp(tk.Tk):
                 products = load_products(input_path, lang=lang)
                 generate_pdf(products, output_path, lang=lang)
                 self.after(0, lambda: self._on_done(output_path))
-            except Exception as e:
+            except Exception:
                 self.after(0, lambda: self._on_error(str(e)))
 
         threading.Thread(target=worker, daemon=True).start()
@@ -180,7 +180,7 @@ class OfferApp(tk.Tk):
         self._gen_btn.configure(state="normal")
         self._set_status(f"Gotowe: {output_path}", COLOR_ORANGE)
 
-        if messagebox.askyesno("Gotowe", f"PDF wygenerowany.\n\nCzy otworzyć plik?"):
+        if messagebox.askyesno("Gotowe", "PDF wygenerowany.\n\nCzy otworzyć plik?"):
             import subprocess
             subprocess.Popen(["start", "", output_path], shell=True)
 

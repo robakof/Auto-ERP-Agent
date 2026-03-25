@@ -13,8 +13,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from tools.lib.sql_client import create_erp_sql_client
 from tools.lib.output import print_json
+from tools.lib.sql_client import create_erp_sql_client
 
 CATALOG_PATH = Path(__file__).parent.parent / "solutions" / "bi" / "catalog.json"
 

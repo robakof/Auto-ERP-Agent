@@ -13,10 +13,11 @@ Usage:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import sqlite3
 import argparse
+import sqlite3
 
 
 def extract_title_from_markdown(content: str) -> tuple[str, str]:

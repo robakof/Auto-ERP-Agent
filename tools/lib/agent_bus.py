@@ -8,7 +8,6 @@ backlog items).
 import json
 import sqlite3
 from contextlib import contextmanager
-from pathlib import Path
 
 ALLOWED_MESSAGE_TYPES = {"suggestion", "task", "info", "flag_human", "handoff"}
 
@@ -339,9 +338,9 @@ class AgentBus:
         session_id: str = None,
     ) -> int:
         """Send a message from one role to another. Returns message id."""
-        from core.repositories.message_repo import MessageRepository
         from core.entities.messaging import Message
         from core.mappers.legacy_api import LegacyAPIMapper
+        from core.repositories.message_repo import MessageRepository
 
         # Legacy API validation (backward compatible)
         if type not in ALLOWED_MESSAGE_TYPES:
@@ -380,8 +379,8 @@ class AgentBus:
             status: Message status filter (unread/read/archived).
             summary_only: If True, returns only metadata without content.
         """
-        from core.repositories.message_repo import MessageRepository
         from core.entities.messaging import MessageStatus
+        from core.repositories.message_repo import MessageRepository
 
         # Query via repository (transaction support)
         repo = self._get_repository(MessageRepository)
@@ -407,8 +406,8 @@ class AgentBus:
 
     def get_message_by_id(self, message_id: int) -> dict | None:
         """Get single message by ID with full content."""
-        from core.repositories.message_repo import MessageRepository
         from core.mappers.legacy_api import LegacyAPIMapper
+        from core.repositories.message_repo import MessageRepository
 
         repo = self._get_repository(MessageRepository)
         message = repo.get(message_id)
@@ -463,8 +462,8 @@ class AgentBus:
 
         NOTE: Delegates to SuggestionRepository (M3 adapter pattern).
         """
-        from core.repositories.suggestion_repo import SuggestionRepository
         from core.entities.messaging import Suggestion, SuggestionType
+        from core.repositories.suggestion_repo import SuggestionRepository
 
         # Convert string type to enum (backward compatibility)
         try:
@@ -498,8 +497,8 @@ class AgentBus:
 
         NOTE: Delegates to SuggestionRepository (M3 adapter pattern).
         """
-        from core.repositories.suggestion_repo import SuggestionRepository
         from core.entities.messaging import SuggestionStatus, SuggestionType
+        from core.repositories.suggestion_repo import SuggestionRepository
 
         repo = self._get_repository(SuggestionRepository)
 
@@ -533,8 +532,8 @@ class AgentBus:
 
         NOTE: Delegates to SuggestionRepository (M3 adapter pattern).
         """
-        from core.repositories.suggestion_repo import SuggestionRepository
         from core.entities.messaging import SuggestionStatus
+        from core.repositories.suggestion_repo import SuggestionRepository
 
         repo = self._get_repository(SuggestionRepository)
 
@@ -578,8 +577,8 @@ class AgentBus:
 
         NOTE: Delegates to BacklogRepository (M3 adapter pattern).
         """
+        from core.entities.messaging import BacklogArea, BacklogEffort, BacklogItem, BacklogValue
         from core.repositories.backlog_repo import BacklogRepository
-        from core.entities.messaging import BacklogItem, BacklogArea, BacklogValue, BacklogEffort
 
         # Convert string values to enums (optional fields)
         area_enum = BacklogArea(area) if area else None
@@ -607,8 +606,8 @@ class AgentBus:
 
         NOTE: Delegates to BacklogRepository (M3 adapter pattern).
         """
+        from core.entities.messaging import BacklogArea, BacklogStatus
         from core.repositories.backlog_repo import BacklogRepository
-        from core.entities.messaging import BacklogStatus, BacklogArea
 
         repo = self._get_repository(BacklogRepository)
 
@@ -635,8 +634,8 @@ class AgentBus:
 
           NOTE: Delegates to BacklogRepository (M3 adapter pattern).
           """
-          from core.repositories.backlog_repo import BacklogRepository
           from core.mappers.legacy_api import LegacyAPIMapper
+          from core.repositories.backlog_repo import BacklogRepository
 
           repo = self._get_repository(BacklogRepository)
           item = repo.get(backlog_id)
@@ -654,8 +653,8 @@ class AgentBus:
 
         NOTE: Delegates to BacklogRepository (M3 adapter pattern).
         """
-        from core.repositories.backlog_repo import BacklogRepository
         from core.entities.messaging import BacklogStatus
+        from core.repositories.backlog_repo import BacklogRepository
 
         repo = self._get_repository(BacklogRepository)
 

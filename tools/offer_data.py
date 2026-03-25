@@ -9,14 +9,13 @@ Odpowiedzialność:
 - Zwraca list[ProductData]
 """
 
-import re
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
 import openpyxl
-
 
 PHOTOS_DIR = r"D:\UdzialySieciowe\ZDJĘCIA\ZDJĘCIA PRODUKTÓW\jpg do systemu"
 

@@ -7,11 +7,11 @@ Mapowanie między Message (domain model) a tabela messages (SQLite).
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
 
-from .base import Repository
 from ..entities.messaging import Message, MessageStatus, MessageType
-from ..exceptions import NotFoundError, ValidationError, PersistenceError
+from ..exceptions import PersistenceError, ValidationError
+from .base import Repository
 
 
 class MessageRepository(Repository[Message]):

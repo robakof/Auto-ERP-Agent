@@ -10,9 +10,9 @@ Usage:
   python tools/migration_m4_2_2_check_constraints.py --execute # apply migration
 """
 
+import json
 import sqlite3
 import sys
-import json
 from pathlib import Path
 
 DB_PATH = "mrowisko.db"
@@ -59,11 +59,11 @@ def print_json(obj):
 def check_constraint_exists(conn, table, column):
     """Check if table already has CHECK constraint on column."""
     # SQLite doesn't have easy way to query constraints, so we check schema
-    schema = conn.execute(f"SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone()
+    schema = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone()
     if schema:
         sql = schema[0]
         # Simple heuristic: look for CHECK in column definition
-        return f"CHECK" in sql and f"{column}" in sql
+        return "CHECK" in sql and f"{column}" in sql
     return False
 
 
@@ -74,7 +74,7 @@ def create_temp_table_sql(conn, table, constraint_defs):
         constraint_defs: List of constraint definitions for this table
     """
     # Get current schema
-    schema = conn.execute(f"SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone()
+    schema = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone()
     if not schema:
         raise ValueError(f"Table {table} not found")
 

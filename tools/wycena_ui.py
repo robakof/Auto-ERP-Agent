@@ -12,11 +12,11 @@ Przepływ:
 """
 
 import subprocess
+import sys
 import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
-import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -136,7 +136,7 @@ class WycenaApp(tk.Tk):
             try:
                 oferty = _fetch_oferty()
                 self.after(0, lambda: self._on_oferty_loaded(oferty))
-            except Exception as e:
+            except Exception:
                 self.after(0, lambda: self._set_status(f"Błąd połączenia: {e}", "red"))
 
         threading.Thread(target=worker, daemon=True).start()
@@ -209,7 +209,7 @@ class WycenaApp(tk.Tk):
                     output=output,
                 )
                 self.after(0, lambda: self._finish(result, f"OK — {result.name}"))
-            except Exception as e:
+            except Exception:
                 self.after(0, lambda: self._finish(None, f"Błąd: {e}", error=True))
 
         threading.Thread(target=worker, daemon=True).start()

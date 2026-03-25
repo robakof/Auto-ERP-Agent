@@ -194,7 +194,7 @@ def invoke_agent(role: str, task: dict, instance_id: str, db_path: str) -> tuple
     turns, cost_usd = 0, 0.0
     status = "running"
 
-    print(f"\n-> Uruchamiam agenta... (Ctrl+C aby przerwać)\n", flush=True)
+    print("\n-> Uruchamiam agenta... (Ctrl+C aby przerwać)\n", flush=True)
 
     try:
         proc = subprocess.Popen(

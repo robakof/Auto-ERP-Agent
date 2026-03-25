@@ -4,16 +4,15 @@ Repository dla encji Suggestion.
 Mapowanie między Suggestion (domain model) a tabela suggestions (SQLite).
 """
 
-import sqlite3
 import json
+import sqlite3
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Optional, List
-from pathlib import Path
+from typing import List, Optional
 
-from .base import Repository
 from ..entities.messaging import Suggestion, SuggestionStatus, SuggestionType
-from ..exceptions import NotFoundError, ValidationError, PersistenceError
+from ..exceptions import PersistenceError, ValidationError
+from .base import Repository
 
 
 class SuggestionRepository(Repository[Suggestion]):

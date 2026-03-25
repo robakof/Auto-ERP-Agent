@@ -3,9 +3,9 @@
 from pathlib import Path
 
 import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.styles import Alignment, Font, PatternFill
 
-from .base import VALUE_COLORS, STATUS_COLORS
+from .base import STATUS_COLORS, VALUE_COLORS
 
 # Column definitions for session trace sheets
 SESSION_TRACE_TOOL_COLUMNS = ["id", "tool_name", "input_summary", "is_error", "tokens_out", "timestamp"]

@@ -10,7 +10,6 @@ import json
 import re
 import sqlite3
 import sys
-from pathlib import Path
 
 DB_PATH = "mrowisko.db"
 

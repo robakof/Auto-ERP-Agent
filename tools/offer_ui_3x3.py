@@ -5,11 +5,11 @@ Uruchomienie:
     python tools/offer_ui_3x3.py
 """
 
+import sys
 import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
-import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -130,7 +130,7 @@ class OfferApp3x3(tk.Tk):
                 products = load_products(input_path, lang=lang)
                 generate_pdf(products, output_path, lang=lang)
                 self.after(0, lambda: self._on_done(output_path))
-            except Exception as e:
+            except Exception:
                 self.after(0, lambda: self._on_error(str(e)))
 
         threading.Thread(target=worker, daemon=True).start()

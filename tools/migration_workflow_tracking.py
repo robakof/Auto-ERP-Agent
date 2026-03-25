@@ -8,9 +8,9 @@ Usage:
   python tools/migration_workflow_tracking.py --execute # apply
 """
 
+import json
 import sqlite3
 import sys
-import json
 
 DB_PATH = "mrowisko.db"
 
