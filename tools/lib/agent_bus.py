@@ -241,6 +241,7 @@ class AgentBus:
         from core.services.backlog_service import BacklogService
         from core.services.session_service import SessionService
         from core.services.instance_service import InstanceService
+        from core.services.message_service import MessageService
         self._known_gaps = KnownGapsService(self._conn)
         self._workflows = WorkflowService(self._conn)
         self._telemetry = TelemetryService(self._conn)
@@ -248,6 +249,7 @@ class AgentBus:
         self._backlog = BacklogService(self._conn, db_path)
         self._sessions = SessionService(self._conn)
         self._instances = InstanceService(self._conn)
+        self._messages = MessageService(self._conn, db_path)
 
     def _run_migrations(self) -> None:
         for stmt in _MIGRATE_SQL:
@@ -308,157 +310,33 @@ class AgentBus:
 
     @staticmethod
     def _extract_title_from_markdown(content: str) -> tuple[str, str]:
-        """
-        Extract title from markdown header (# or ##).
+        """Delegates to MessageService."""
+        from core.services.message_service import MessageService
+        return MessageService.extract_title_from_markdown(content)
 
-        Args:
-            content: Message content (potentially with markdown header)
+    def send_message(self, sender: str, recipient: str, content: str, type: str = "suggestion", session_id: str = None) -> int:
+        """Delegates to MessageService."""
+        txn_conn = self._conn if self._in_transaction else None
+        return self._messages.send(sender, recipient, content, type, session_id, txn_conn)
 
-        Returns:
-            (title, body): Extracted title and content without header.
-                          If no header found, returns ("", content).
-
-        Example:
-            >>> _extract_title_from_markdown("# Title\\n\\nBody text")
-            ('Title', 'Body text')
-            >>> _extract_title_from_markdown("## Title\\nContent")
-            ('Title', 'Content')
-            >>> _extract_title_from_markdown("No header")
-            ('', 'No header')
-        """
-        if not content:
-            return "", content
-
-        lines = content.split('\n', 1)
-        first_line = lines[0].strip()
-
-        # Check for markdown header (# or ##)
-        if first_line.startswith('#'):
-            title = first_line.lstrip('#').strip()
-            # Content without header (skip first line + potential empty lines)
-            if len(lines) > 1:
-                body = lines[1].lstrip('\n')
-            else:
-                body = ""
-            return title, body
-
-        # No header found
-        return "", content
-
-    def send_message(
-        self,
-        sender: str,
-        recipient: str,
-        content: str,
-        type: str = "suggestion",
-        session_id: str = None,
-    ) -> int:
-        """Send a message from one role to another. Returns message id."""
-        from core.entities.messaging import Message
-        from core.mappers.legacy_api import LegacyAPIMapper
-        from core.repositories.message_repo import MessageRepository
-
-        # Legacy API validation (backward compatible)
-        if type not in ALLOWED_MESSAGE_TYPES:
-            raise ValueError(f"Invalid message type '{type}'. Allowed: {sorted(ALLOWED_MESSAGE_TYPES)}")
-
-        # Type mapping: legacy API → domain model (centralized)
-        type_enum = LegacyAPIMapper.map_message_type_to_domain(type)
-
-        # Extract title from markdown header (transparent for agent)
-        title, body = self._extract_title_from_markdown(content)
-
-        # Convert dict → entity
-        message = Message(
-            sender=sender,
-            recipient=recipient,
-            content=body if title else content,  # Use body if title extracted, otherwise original
-            title=title,
-            type=type_enum,
-            session_id=session_id
-        )
-
-        # Save via repository (CRITICAL: pass connection for transaction support)
-        repo = self._get_repository(MessageRepository)
-        saved = repo.save(message)
-
-        # Return ID (backward compatible)
-        return saved.id
-
-    def get_inbox(
-        self, role: str, status: str = "unread", summary_only: bool = False
-    ) -> list[dict]:
-        """Get messages for a role filtered by status. Ordered by created_at ASC.
-        
-        Args:
-            role: Recipient role to filter by.
-            status: Message status filter (unread/read/archived).
-            summary_only: If True, returns only metadata without content.
-        """
-        from core.entities.messaging import MessageStatus
-        from core.repositories.message_repo import MessageRepository
-
-        # Query via repository (transaction support)
-        repo = self._get_repository(MessageRepository)
-        messages = repo.find_by_recipient(recipient=role)
-
-        # Filter by status (str → enum)
-        status_enum = MessageStatus(status)
-        filtered = [m for m in messages if m.status == status_enum]
-
-        # Sort by created_at ASC, id ASC (stable ordering)
-        filtered.sort(key=lambda m: (m.created_at, m.id))
-
-        # Convert entity → dict (backward compatible, centralized)
-        from core.mappers.legacy_api import LegacyAPIMapper
-        result = [LegacyAPIMapper.message_to_dict(m) for m in filtered]
-
-        # Strip content for summary mode (saves context window)
-        if summary_only:
-            for msg in result:
-                msg.pop("content", None)
-
-        return result
+    def get_inbox(self, role: str, status: str = "unread", summary_only: bool = False) -> list[dict]:
+        """Delegates to MessageService."""
+        txn_conn = self._conn if self._in_transaction else None
+        return self._messages.get_inbox(role, status, summary_only, txn_conn)
 
     def get_message_by_id(self, message_id: int) -> dict | None:
-        """Get single message by ID with full content."""
-        from core.mappers.legacy_api import LegacyAPIMapper
-        from core.repositories.message_repo import MessageRepository
-
-        repo = self._get_repository(MessageRepository)
-        message = repo.get(message_id)
-        if message is None:
-            return None
-        return LegacyAPIMapper.message_to_dict(message)
+        """Delegates to MessageService."""
+        txn_conn = self._conn if self._in_transaction else None
+        return self._messages.get_by_id(message_id, txn_conn)
 
     def mark_read(self, message_id: int) -> None:
-        """Mark a message as read and set read_at timestamp."""
-        from core.repositories.message_repo import MessageRepository
-
-        # Repository query (transaction support)
-        repo = self._get_repository(MessageRepository)
-
-        # Get message
-        message = repo.get(message_id)
-        if not message:
-            return  # Silent failure (backward compatible)
-
-        # Call entity method (updates status + read_at)
-        try:
-            message.mark_read()
-        except Exception:
-            # If already read — graceful (backward compatible)
-            return
-
-        # Save updated message
-        repo.save(message)
+        """Delegates to MessageService."""
+        txn_conn = self._conn if self._in_transaction else None
+        self._messages.mark_read(message_id, txn_conn)
 
     def archive_message(self, message_id: int) -> None:
-        """Archive a message (status='archived')."""
-        self._conn.execute(
-            "UPDATE messages SET status = 'archived' WHERE id = ?",
-            (message_id,),
-        )
+        """Delegates to MessageService."""
+        self._messages.archive(message_id)
         self._auto_commit()
 
     # --- State ---
@@ -555,34 +433,9 @@ class AgentBus:
         """Delegates to SessionService."""
         return self._sessions.get_logs_init(role)
 
-    def get_messages(
-        self,
-        sender: str = None,
-        recipient: str = None,
-        status: str = None,
-        limit: int = 200,
-    ) -> list[dict]:
-        """Get messages with optional filters. Newest first."""
-        conditions, params = [], []
-        if sender:
-            conditions.append("sender = ?")
-            params.append(sender)
-        if recipient:
-            conditions.append("recipient = ?")
-            params.append(recipient)
-        if status:
-            conditions.append("status = ?")
-            params.append(status)
-        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-        params.append(limit)
-        rows = self._conn.execute(
-            f"""SELECT id, sender, recipient, type, content, title, status, session_id, created_at, read_at, claimed_by
-                FROM messages {where}
-                ORDER BY created_at DESC, id DESC
-                LIMIT ?""",
-            params,
-        ).fetchall()
-        return [dict(row) for row in rows]
+    def get_messages(self, sender: str = None, recipient: str = None, status: str = None, limit: int = 200) -> list[dict]:
+        """Delegates to MessageService."""
+        return self._messages.get_messages(sender, recipient, status, limit)
 
     # --- Workflow execution tracking ---
 
@@ -643,21 +496,14 @@ class AgentBus:
         )
 
     def mark_message_read(self, message_id: int) -> None:
-        """Mark a message as read."""
-        self._conn.execute(
-            "UPDATE messages SET status = 'read', read_at = datetime('now') WHERE id = ?",
-            (message_id,),
-        )
-        self._auto_commit()
+        """Alias for mark_read (backward compat)."""
+        self.mark_read(message_id)
 
     def mark_all_read(self, role: str) -> int:
-        """Mark all unread messages for a role as read. Returns count of updated rows."""
-        cursor = self._conn.execute(
-            "UPDATE messages SET status = 'read', read_at = datetime('now') WHERE recipient = ? AND status = 'unread'",
-            (role,),
-        )
+        """Delegates to MessageService."""
+        result = self._messages.mark_all_read(role)
         self._auto_commit()
-        return cursor.rowcount
+        return result
 
     # --- Trace ---
 
