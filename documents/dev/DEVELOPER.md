@@ -89,8 +89,8 @@ Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
 
    | Skala | Workflow | Dokument |
    |---|---|---|
-   | Mały / poprawka / bug fix | Operacyjny | `workflows/developer_workflow.md` |
-   | Średni / nowe narzędzie | Taktyczny | `workflows/developer_workflow.md` |
+   | Mały / poprawka / bug fix | Operacyjny | `workflows/workflow_developer.md` |
+   | Średni / nowe narzędzie | Taktyczny | `workflows/workflow_developer.md` |
    | Duży / nowy moduł / architektura | Architektoniczny | `documents/dev/PROJECT_START.md` |
 
    Pytanie diagnostyczne: "Czy to zadanie wymaga research lub planu architektonicznego?"
@@ -102,9 +102,9 @@ Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
 Workflow gate — patrz CLAUDE.md (reguła wspólna dla wszystkich ról).
 
 Dostępne workflow Developera:
-- Nowe narzędzie / rozbudowa → `workflows/developer_workflow.md` sekcja Narzędzie
-- Bug fix / data fix → `workflows/developer_workflow.md` sekcja Bug fix
-- Suggestions processing → `workflows/developer_workflow.md` sekcja Suggestions
+- Nowe narzędzie / rozbudowa → `workflows/workflow_developer.md` sekcja Narzędzie
+- Bug fix / data fix → `workflows/workflow_developer.md` sekcja Bug fix
+- Suggestions processing → `workflows/workflow_developer.md` sekcja Suggestions
 - Duże / architektoniczne → `documents/dev/PROJECT_START.md`
 </workflow>
 

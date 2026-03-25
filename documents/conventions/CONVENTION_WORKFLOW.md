@@ -1,6 +1,6 @@
 ---
 convention_id: workflow-convention
-version: "1.2"
+version: "1.4"
 status: active
 created: 2026-03-24
 updated: 2026-03-24
@@ -383,6 +383,9 @@ Convention żyje w: `documents/conventions/CONVENTION_WORKFLOW.md`
 Fazy mogą zawierać dodatkowe sekcje zwiększające precision i automatyzowalność.
 Wszystkie sekcje w 12R są **opcjonalne** — dodawaj gdy faza tego wymaga.
 Dla workflow DB-ready zalecane jest użycie wszystkich.
+
+**Guidance:** Dla prostych workflow max 4 sekcje per faza (Owner, Steps, Exit gate + 1 opcjonalna).
+Dodawaj więcej sekcji tylko gdy faza jest złożona lub multi-role.
 
 **Sekcje:**
 
@@ -828,7 +831,7 @@ Przed zatwierdzeniem workflow, sprawdź:
 
 ## References
 
-- Obecne workflow: `workflows/bi_view_creation_workflow.md`, `workflows/developer_workflow.md`
+- Obecne workflow: `workflows/workflow_developer.md`, `workflows/workflow_plan_review.md`, `workflows/workflow_code_review.md`, `workflows/workflow_suggestions_processing.md`
 - CONVENTION_META: `documents/conventions/CONVENTION_META.md`
 - Research (compliance): `documents/researcher/research/workflow_compliance.md`
 - Research (orchestration): `documents/researcher/research/workflow_orchestration.md`
@@ -839,6 +842,7 @@ Przed zatwierdzeniem workflow, sprawdź:
 
 | Wersja | Data | Zmiany |
 |---|---|---|
+| 1.4 | 2026-03-25 | Poprawki po review Architekta (msg #288): usunięto duplikat pliku, zaktualizowano References (nowe workflow), dodano guidance max 4 sekcji per faza dla prostych workflow. DB schema i język migracyjny — brak (usunięte wcześniej). |
 | 1.3 | 2026-03-25 | 13R: HANDOFF_POINT — jawne przekazanie kontroli między rolami. Checklist PE rozszerzony o weryfikację HANDOFF_POINT. |
 | 1.2 | 2026-03-24 | 12R: Extended phase template — inputs required, required artifacts, self-check, output format, handoff rule. Rozszerzony template 03R i przykład DB-ready. PE checklist rozszerzony. Research references zaktualizowane. |
 | 1.1 | 2026-03-24 | Dodano: outline, related_docs, participants, 7 output types, numeracja 1.1.1, Forbidden opcjonalny, nazewnictwo workflow_*, język polski |

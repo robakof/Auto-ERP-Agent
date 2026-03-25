@@ -43,7 +43,6 @@ def extract_active_items(text: str) -> list[dict]:
         title = title_match.group(1).strip() if title_match else "?"
 
         # Extract metadata fields
-        area_match = re.search(r"\*\*Obszar.*?\*\*.*?(\w+)", raw)
         value_match = re.search(r"\*\*Wartość:\*\*\s*(\w+)", raw)
         effort_match = re.search(r"\*\*Pracochłonność:\*\*\s*(.+)", raw)
         source_match = re.search(r"\*\*Źródło:\*\*\s*(.+)", raw)

@@ -128,7 +128,6 @@ def render_suggestions_md(data: list[dict], title: str, output: Path) -> None:
 def render_md(data: list[dict], columns: list[str], title: str, output: Path) -> None:
     """Human-readable md: each item as a section with metadata + content (if present)."""
     META_COLS = ["id", "area", "value", "effort", "status", "created_at", "sender", "author", "role"]
-    CONTENT_COLS = ["content", "title"]
 
     lines = [f"# {title} — {len(data)} pozycji\n"]
     for row in data:

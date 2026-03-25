@@ -57,8 +57,6 @@ def _parse_burning_time(nazwa: str, lang: str) -> str:
     days = float(days_str)
     hours = BURNING_TIME_HOURS.get(days, int(days * 24))
 
-    days_display = match.group(1)  # oryginalna forma (np. "5,5")
-
     return f"~{hours} h"
 
 
