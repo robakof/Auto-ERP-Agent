@@ -244,3 +244,32 @@ class TestLegacyMappingBoundary:
             back = LegacyAPIMapper.MESSAGE_TYPE_FROM_DOMAIN[domain_val]
             re_mapped = LegacyAPIMapper.MESSAGE_TYPE_TO_DOMAIN[back]
             assert re_mapped == domain_val, f"Round-trip failed for {legacy_key}"
+
+
+# ============================================================================
+# Suite 5: Entity ↔ Repository field sync (meta-test)
+# ============================================================================
+
+class TestEntityRepoFieldSync:
+    """Detect when entity fields diverge from repository SELECT columns."""
+
+    def test_message_entity_fields_match_db_columns(self, temp_db):
+        """All Message dataclass fields must exist as DB columns."""
+        import dataclasses
+        bus = AgentBus(db_path=temp_db)
+
+        # Get DB columns
+        columns = bus._conn.execute("PRAGMA table_info(messages)").fetchall()
+        db_column_names = {col[1] for col in columns}
+
+        # Get entity fields (excluding base Entity fields: id, created_at, updated_at)
+        entity_fields = {f.name for f in dataclasses.fields(Message)}
+        # Map entity field names to DB column names (1:1 in this project)
+        # Exclude 'updated_at' — base Entity field, not in messages table
+        entity_fields.discard("updated_at")
+
+        missing_in_db = entity_fields - db_column_names
+        assert not missing_in_db, (
+            f"Message entity fields missing from DB: {missing_in_db}. "
+            f"Add columns or update entity."
+        )

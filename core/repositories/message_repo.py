@@ -317,7 +317,7 @@ class MessageRepository(Repository[Message]):
         with self._connection() as conn:
             cursor = conn.execute(
                 """SELECT id, sender, recipient, content, title, type, status, session_id,
-                          created_at, read_at
+                          created_at, read_at, claimed_by
                    FROM messages
                    ORDER BY created_at DESC, id DESC"""
             )

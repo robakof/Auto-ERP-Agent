@@ -819,7 +819,7 @@ class AgentBus:
         where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
         params.append(limit)
         rows = self._conn.execute(
-            f"""SELECT id, sender, recipient, type, content, status, session_id, created_at, read_at
+            f"""SELECT id, sender, recipient, type, content, title, status, session_id, created_at, read_at, claimed_by
                 FROM messages {where}
                 ORDER BY created_at DESC, id DESC
                 LIMIT ?""",
@@ -1185,7 +1185,8 @@ class AgentBus:
     def get_pending_tasks(self, role: str, instance_id: str) -> list[dict]:
         """Return unread/unclaimed tasks for role OR specific instance_id."""
         rows = self._conn.execute(
-            """SELECT id, sender, recipient, type, content, created_at
+            """SELECT id, sender, recipient, type, content, title, status, session_id,
+                      created_at, read_at, claimed_by
                FROM messages
                WHERE (recipient = ? OR recipient = ?)
                  AND type = 'task'
