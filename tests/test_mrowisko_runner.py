@@ -59,7 +59,7 @@ def test_get_pending_tasks_returns_only_tasks(bus):
 def test_get_pending_tasks_ignores_claimed(tmp_db):
     msg_id = insert_message(tmp_db, "developer", "erp_specialist", "task", "Stare")
     conn = sqlite3.connect(tmp_db)
-    conn.execute("UPDATE messages SET status = 'claimed' WHERE id = ?", (msg_id,))
+    conn.execute("UPDATE messages SET claimed_by = 'runner-123' WHERE id = ?", (msg_id,))
     conn.commit()
     conn.close()
     insert_message(tmp_db, "developer", "erp_specialist", "task", "Nowe")
@@ -114,7 +114,7 @@ def test_claim_task_sets_claimed_by(tmp_db):
     conn = sqlite3.connect(tmp_db)
     row = conn.execute("SELECT status, claimed_by FROM messages WHERE id = ?", (msg_id,)).fetchone()
     conn.close()
-    assert row[0] == "claimed"
+    assert row[0] == "unread"  # status unchanged — claim uses claimed_by only
     assert row[1] == "erp_specialist:abc"
 
 

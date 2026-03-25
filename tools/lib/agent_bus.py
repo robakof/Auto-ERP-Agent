@@ -214,6 +214,8 @@ _MIGRATE_SQL = [
         SELECT MIN(rowid) FROM tool_calls GROUP BY session_id, tool_name, timestamp
     )""",
     "CREATE UNIQUE INDEX IF NOT EXISTS idx_tool_calls_dedup ON tool_calls(session_id, tool_name, timestamp)",
+    # #146: Fix claimed status leak — migrate 'claimed' to proper claimed_by
+    "UPDATE messages SET claimed_by = 'legacy-runner', status = 'unread' WHERE status = 'claimed'",
 ]
 
 
@@ -1188,6 +1190,7 @@ class AgentBus:
                WHERE (recipient = ? OR recipient = ?)
                  AND type = 'task'
                  AND status = 'unread'
+                 AND claimed_by IS NULL
                ORDER BY created_at ASC""",
             (role, instance_id),
         ).fetchall()
