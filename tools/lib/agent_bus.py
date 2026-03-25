@@ -237,9 +237,11 @@ class AgentBus:
         from core.services.known_gaps_service import KnownGapsService
         from core.services.workflow_service import WorkflowService
         from core.services.telemetry_service import TelemetryService
+        from core.services.suggestion_service import SuggestionService
         self._known_gaps = KnownGapsService(self._conn)
         self._workflows = WorkflowService(self._conn)
         self._telemetry = TelemetryService(self._conn)
+        self._suggestions = SuggestionService(self._conn, db_path)
 
     def _run_migrations(self) -> None:
         for stmt in _MIGRATE_SQL:
@@ -466,34 +468,9 @@ class AgentBus:
         recipients: list[str] = None,
         session_id: str = None,
     ) -> int:
-        """Add a suggestion from an agent. Returns suggestion id.
-
-        NOTE: Delegates to SuggestionRepository (M3 adapter pattern).
-        """
-        from core.entities.messaging import Suggestion, SuggestionType
-        from core.repositories.suggestion_repo import SuggestionRepository
-
-        # Convert string type to enum (backward compatibility)
-        try:
-            type_enum = SuggestionType(type)
-        except ValueError:
-            type_enum = SuggestionType.OBSERVATION
-
-        # Create entity (title auto-generated in __post_init__ if empty)
-        suggestion = Suggestion(
-            author=author,
-            content=content,
-            title=title,
-            type=type_enum,
-            recipients=recipients,
-            session_id=session_id
-        )
-
-        # Save via repository (transaction-aware)
-        repo = self._get_repository(SuggestionRepository)
-        saved = repo.save(suggestion)
-
-        return saved.id
+        """Delegates to SuggestionService."""
+        txn_conn = self._conn if self._in_transaction else None
+        return self._suggestions.add(author, content, title, type, recipients, session_id, txn_conn)
 
     def get_suggestions(
         self,
@@ -501,34 +478,9 @@ class AgentBus:
         author: str = None,
         type: str = None,
     ) -> list[dict]:
-        """Get suggestions. Newest first. Optional status, author, type filters.
-
-        NOTE: Delegates to SuggestionRepository (M3 adapter pattern).
-        """
-        from core.entities.messaging import SuggestionStatus, SuggestionType
-        from core.repositories.suggestion_repo import SuggestionRepository
-
-        repo = self._get_repository(SuggestionRepository)
-
-        # Query based on filters
-        if status and author and type:
-            # Multiple filters - use find_all and filter manually (TODO: optimize with composite query)
-            suggestions = repo.find_all()
-            suggestions = [s for s in suggestions if s.status.value == status and s.author == author and s.type.value == type]
-        elif status:
-            suggestions = repo.find_by_status(SuggestionStatus(status))
-        elif author:
-            suggestions = repo.find_by_author(author)
-        elif type:
-            suggestions = repo.find_by_type(SuggestionType(type))
-        else:
-            suggestions = repo.find_all()
-
-        # Convert entities to dicts (backward compatibility, centralized)
-        from core.mappers.legacy_api import LegacyAPIMapper
-        result = [LegacyAPIMapper.suggestion_to_dict(s) for s in suggestions]
-
-        return result
+        """Delegates to SuggestionService."""
+        txn_conn = self._conn if self._in_transaction else None
+        return self._suggestions.get(status, author, type, txn_conn)
 
     def update_suggestion_status(
         self,
@@ -536,39 +488,9 @@ class AgentBus:
         status: str,
         backlog_id: int = None,
     ) -> None:
-        """Update suggestion status and optionally link to backlog item.
-
-        NOTE: Delegates to SuggestionRepository (M3 adapter pattern).
-        """
-        from core.entities.messaging import SuggestionStatus
-        from core.repositories.suggestion_repo import SuggestionRepository
-
-        repo = self._get_repository(SuggestionRepository)
-
-        # Load entity
-        suggestion = repo.get(suggestion_id)
-        if not suggestion:
-            return  # Silently ignore if not found (backward compatible behavior)
-
-        # Map old status names to new ones (backward compatibility, centralized)
-        from core.mappers.legacy_api import LegacyAPIMapper
-        status_enum = LegacyAPIMapper.map_suggestion_status_to_domain(status)
-
-        # Update status using entity methods when possible
-        if status_enum == SuggestionStatus.IMPLEMENTED:
-            suggestion.implement(backlog_id=backlog_id)
-        elif status_enum == SuggestionStatus.REJECTED:
-            suggestion.reject()
-        elif status_enum == SuggestionStatus.DEFERRED:
-            suggestion.defer()
-        else:
-            # Direct status update for other cases (e.g. OPEN)
-            suggestion.status = status_enum
-            if backlog_id is not None:
-                suggestion.backlog_id = backlog_id
-
-        # Save
-        repo.save(suggestion)
+        """Delegates to SuggestionService."""
+        txn_conn = self._conn if self._in_transaction else None
+        self._suggestions.update_status(suggestion_id, status, backlog_id, txn_conn)
 
     # --- Backlog ---
 
