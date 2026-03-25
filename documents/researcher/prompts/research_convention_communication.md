@@ -1,29 +1,27 @@
-# Research: Operacyjny protokół komunikacji agent-agent
+# Research: Konwencje komunikacji agent-agent w systemach multi-agent
 
 ## Kontekst
 
-Projekt Mrowisko ma 176 open suggestions — agenci generują obserwacje szybciej niż system je absorbuje. Root cause: brak operacyjnej konwencji komunikacji. Mamy research o wzorcach architektonicznych (Blackboard, Tuple Space, Stigmergy) — nie powtarzaj tego. Potrzebujemy niższy poziom: format wiadomości, kategoryzacja, anti-duplikacja.
+System wieloagentowy z 6 wyspecjalizowanymi rolami komunikuje się przez wspólną bazę danych (SQLite). Agenci wysyłają wiadomości do innych ról, zgłaszają obserwacje/sugestie, przekazują zadania do backlogu i eskalują do człowieka. Problem: sugestii przybywa szybciej niż system je absorbuje (176 otwartych), wiadomości nie mają ustandaryzowanego formatu, brakuje kategoryzacji i mechanizmów zapobiegania duplikatom.
 
-Nasz system: SQLite DB (mrowisko.db), agent_bus_cli.py z komendami: send, suggest, backlog-add, flag, handoff. Typy sugestii: rule, discovery, observation, tool.
+**Czego NIE rób:** Nie oceniaj czy nasze obecne podejście jest dobre ani jak dopasować konwencję do projektu. To osobny krok po badaniu.
 
 ## Pytania badawcze
 
-1. **Message taxonomies w multi-agent systems:** Jak dojrzałe systemy MAS (JADE/FIPA, AutoGen, CrewAI) kategoryzują wiadomości? Jakie taksonomie speech acts / performatives stosują? Które kategorie są naprawdę potrzebne vs które to over-engineering?
+1. **Standardy formatu wiadomości w MAS:** Jak dojrzałe systemy multi-agent (JADE, FIPA ACL, KQML, AutoGen, CrewAI) standaryzują format wiadomości między agentami? Jakie pola uznają za obowiązkowe?
 
-2. **Anti-duplikacja obserwacji:** Jak systemy z wieloma agentami radzą sobie z duplikatami obserwacji? Mechanizmy: dedup by similarity, canonical IDs, merge strategies? Czy LLM-based dedup jest praktyczny?
+2. **Ontologie komunikacji i speech acts:** Jakie ontologie komunikacji agent-agent istnieją (speech acts, performatives, FIPA communicative acts)? Które kategorie wiadomości są naprawdę użyteczne w praktyce, a które to over-engineering?
 
-3. **Suggestion/observation overflow:** Jak projekty zarządzają rosnącym backlogiem sugestii/obserwacji? Strategie: TTL (auto-expire), priority decay, batch processing, triage workflows? Co działa w praktyce?
+3. **Zarządzanie backlogiem obserwacji/sugestii:** Jak duże projekty zarządzają rosnącym backlogiem obserwacji od wielu agentów? Strategie: TTL (auto-expire), priority decay, batch triage, dedup? Co działa w praktyce?
 
-4. **Message format standards:** Jakie formaty wiadomości agent-agent są najskuteczniejsze? (structured vs freeform, mandatory fields, max length, severity levels). Jak balansować strukturę (machine-parseable) z elastycznością (agent musi móc opisać niuans)?
-
-5. **Inbox management patterns:** Jak systemy multi-agent zarządzają inbox overflow? Read/unread, priority sorting, auto-routing, attention management?
+4. **Anti-patterns w komunikacji agent-agent:** Jakie wzorce komunikacji między agentami powodują szum, duplikaty lub utratę ważnych informacji? Co jest empirycznie udokumentowane jako szkodliwe?
 
 ## Output contract
 
-Zapisz wyniki do: `documents/researcher/research/convention_communication.md`
+Zapisz wyniki do: `documents/researcher/research/research_results_convention_communication.md`
 
-Struktura:
-- TL;DR — 3-5 kluczowych wniosków
-- Wyniki per pytanie (z siłą dowodów)
-- Otwarte pytania / luki
-- Źródła
+Struktura (obowiązkowa):
+- **TL;DR** — 3-5 najważniejszych wniosków z siłą dowodów
+- **Wyniki per pytanie** — każde pytanie osobno, siła dowodów per wniosek (empiryczne / praktyczne / spekulacja)
+- **Otwarte pytania / luki** — czego nie udało się potwierdzić lub gdzie źródła się rozjeżdżają
+- **Źródła** — tytuł, URL, opis zastosowania
