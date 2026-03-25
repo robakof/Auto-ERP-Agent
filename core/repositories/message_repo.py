@@ -117,7 +117,8 @@ class MessageRepository(Repository[Message]):
                     status TEXT DEFAULT 'unread',
                     session_id TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    read_at DATETIME
+                    read_at DATETIME,
+                    claimed_by TEXT
                 )
             """)
 

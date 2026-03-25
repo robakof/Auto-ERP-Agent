@@ -94,6 +94,8 @@ Poza zakresem:
 <session_start>
 1. Przeczytaj `documents/methodology/SPIRIT.md` — wizja, misja i zasady ducha projektu.
    Twój kompas gdy instrukcje milczą. Czytaj raz na starcie, nie wracaj w trakcie.
+2. Przeczytaj `documents/architecture/PATTERNS.md` — katalog sprawdzonych wzorców projektu.
+   Referencja dla code review i decyzji architektonicznych.
 
 Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
 
@@ -154,6 +156,7 @@ Outputy:
 - Plany architektoniczne, refaktory → documents/human/plans/
 - Raporty audytów, code review → documents/human/reports/
 - ADR → documents/architecture/ (trwała dokumentacja)
+- PATTERNS.md updates → nowe patterns odkryte podczas review/audytu
 </tools>
 
 <escalation>
@@ -216,4 +219,5 @@ Branch: [branch-name]
 5. Czy code review zawiera severity levels i code maturity level?
 6. Czy obserwacje z sesji zapisane przez `agent_bus suggest`?
 7. Czy zatrzymałem się przy każdym HANDOFF_POINT i nie wykonałem pracy innej roli?
+8. Czy odkryłem nowy pattern? → update PATTERNS.md lub sugestia do PE.
 </end_of_turn_checklist>

@@ -12,7 +12,6 @@ import json
 import sqlite3
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -107,15 +106,25 @@ class TestClaimedByBoundary:
 class TestTelemetryDedupBoundary:
     """Unique index on tool_calls prevents duplicate entries."""
 
+    @staticmethod
+    def _create_session(bus, session_id):
+        """Create a session record to satisfy FK constraint."""
+        bus._conn.execute(
+            "INSERT OR IGNORE INTO sessions (id, role, started_at) VALUES (?, 'test', datetime('now'))",
+            (session_id,),
+        )
+        bus._auto_commit()
+
     def test_duplicate_tool_call_ignored(self, bus):
         """Same (session_id, tool_name, timestamp) → only 1 row."""
+        self._create_session(bus, "sess-1")
         bus.add_tool_call(
             session_id="sess-1", tool_name="Read", timestamp="2026-03-25T10:00:00",
-            input_summary="file.py", output_summary="ok", duration_ms=100
+            input_summary="file.py"
         )
         bus.add_tool_call(
             session_id="sess-1", tool_name="Read", timestamp="2026-03-25T10:00:00",
-            input_summary="file.py (replay)", output_summary="ok", duration_ms=100
+            input_summary="file.py (replay)"
         )
 
         count = bus._conn.execute(
@@ -125,13 +134,14 @@ class TestTelemetryDedupBoundary:
 
     def test_different_timestamp_allowed(self, bus):
         """Same session+tool but different timestamp → 2 rows."""
+        self._create_session(bus, "sess-2")
         bus.add_tool_call(
             session_id="sess-2", tool_name="Bash", timestamp="2026-03-25T10:00:00",
-            input_summary="cmd1", output_summary="ok", duration_ms=50
+            input_summary="cmd1"
         )
         bus.add_tool_call(
             session_id="sess-2", tool_name="Bash", timestamp="2026-03-25T10:00:01",
-            input_summary="cmd2", output_summary="ok", duration_ms=50
+            input_summary="cmd2"
         )
 
         count = bus._conn.execute(
@@ -141,13 +151,14 @@ class TestTelemetryDedupBoundary:
 
     def test_different_tool_same_timestamp_allowed(self, bus):
         """Same session+timestamp but different tool → 2 rows."""
+        self._create_session(bus, "sess-3")
         bus.add_tool_call(
             session_id="sess-3", tool_name="Read", timestamp="2026-03-25T10:00:00",
-            input_summary="a", output_summary="ok", duration_ms=10
+            input_summary="a"
         )
         bus.add_tool_call(
             session_id="sess-3", tool_name="Write", timestamp="2026-03-25T10:00:00",
-            input_summary="b", output_summary="ok", duration_ms=10
+            input_summary="b"
         )
 
         count = bus._conn.execute(

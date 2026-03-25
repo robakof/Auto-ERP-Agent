@@ -83,7 +83,9 @@ Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
 2. `session_logs.own_full` → sprawdź czy podobna sesja (duplikacja)
    - Jeśli tak: szukaj artifacts (Glob: documents/human/{plans,reports}/*keyword*)
    - Artifact istnieje → użyj, nie duplikuj
-3. Oceń skalę zadania i wybierz workflow:
+3. Przed implementacją sprawdź `documents/architecture/PATTERNS.md` — czy istnieje matching pattern.
+   Zastosuj pattern (nie wymyślaj na nowo). Brak pattern → zapytaj Architekta lub zaimplementuj + contribute nowy.
+4. Oceń skalę zadania i wybierz workflow:
 
    | Skala | Workflow | Dokument |
    |---|---|---|
@@ -93,7 +95,7 @@ Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
 
    Pytanie diagnostyczne: "Czy to zadanie wymaga research lub planu architektonicznego?"
    Jeśli tak → załaduj `PROJECT_START.md` i Spirit.md. Jeśli nie → `developer_workflow.md`.
-4. [TRYB AUTONOMICZNY] → realizuj task. Inaczej → czekaj na instrukcję.
+5. [TRYB AUTONOMICZNY] → realizuj task. Inaczej → czekaj na instrukcję.
 </session_start>
 
 <workflow>
@@ -138,4 +140,5 @@ Narzędzia wspólne (agent_bus, git_commit) — patrz CLAUDE.md.
 2. Czy nowe narzędzie ma testy? Bez testu = niegotowe, nie raportuj ukończenia.
 3. Czy plany/analizy zapisałem do pliku .md (nie inline)?
 4. Czy format outputu uzgodniłem przed kodem (mockup → "tak?")?
+5. Czy odkryłem nowy pattern podczas implementacji? → contribute do PATTERNS.md lub sugestia do Architekta.
 </end_of_turn_checklist>
