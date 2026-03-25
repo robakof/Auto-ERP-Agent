@@ -233,6 +233,10 @@ class AgentBus:
         self._conn.commit()
         self._in_transaction = False
 
+        # Services (extracted from AgentBus — separation of concerns #149)
+        from core.services.known_gaps_service import KnownGapsService
+        self._known_gaps = KnownGapsService(self._conn)
+
     def _run_migrations(self) -> None:
         for stmt in _MIGRATE_SQL:
             try:
@@ -1207,55 +1211,20 @@ class AgentBus:
         reported_by: str,
         source_suggestion_id: int = None,
     ) -> int:
-        """Add a known gap (documented limitation with trigger condition)."""
-        cursor = self._conn.execute(
-            """INSERT INTO known_gaps
-               (title, description, area, trigger_condition, reported_by, source_suggestion_id)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (title, description, area, trigger_condition, reported_by, source_suggestion_id),
+        """Add a known gap. Delegates to KnownGapsService."""
+        result = self._known_gaps.add(
+            title, description, area, trigger_condition, reported_by, source_suggestion_id
         )
-        self._conn.commit()
-        return cursor.lastrowid
+        self._auto_commit()
+        return result
 
     def get_known_gaps(self, area: str = None, status: str = "open") -> list[dict]:
-        """Get known gaps, optionally filtered by area and status."""
-        conditions = []
-        params = []
-
-        if status and status != "all":
-            conditions.append("status = ?")
-            params.append(status)
-        if area:
-            conditions.append("area = ?")
-            params.append(area)
-
-        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-        rows = self._conn.execute(
-            f"""SELECT id, title, description, area, trigger_condition,
-                       source_suggestion_id, reported_by, status,
-                       resolved_by_backlog_id, created_at, resolved_at
-                FROM known_gaps {where}
-                ORDER BY created_at DESC""",
-            params,
-        ).fetchall()
-        return [dict(r) for r in rows]
+        """Get known gaps. Delegates to KnownGapsService."""
+        return self._known_gaps.get(area, status)
 
     def resolve_known_gap(self, gap_id: int, backlog_id: int) -> dict:
-        """Resolve a known gap by linking it to a backlog item."""
-        row = self._conn.execute(
-            "SELECT status FROM known_gaps WHERE id = ?", (gap_id,)
-        ).fetchone()
-
-        if not row:
-            return {"ok": False, "message": f"Gap {gap_id} not found"}
-        if row["status"] == "resolved":
-            return {"ok": False, "message": f"Gap {gap_id} already resolved"}
-
-        self._conn.execute(
-            """UPDATE known_gaps
-               SET status = 'resolved', resolved_by_backlog_id = ?, resolved_at = datetime('now')
-               WHERE id = ?""",
-            (backlog_id, gap_id),
-        )
-        self._conn.commit()
-        return {"ok": True, "message": f"Gap {gap_id} resolved with backlog {backlog_id}"}
+        """Resolve a known gap. Delegates to KnownGapsService."""
+        result = self._known_gaps.resolve(gap_id, backlog_id)
+        if result["ok"]:
+            self._auto_commit()
+        return result
