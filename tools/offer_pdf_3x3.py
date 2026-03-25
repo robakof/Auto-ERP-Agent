@@ -20,26 +20,33 @@ from reportlab.pdfgen import canvas
 from tools.offer_data import ProductData
 
 _PROJECT_ROOT = Path(__file__).parent.parent
-_LOGO_PDF     = _PROJECT_ROOT / "documents" / "Wzory plików" / "logo CEiM krzywe.pdf"
-_LOGO_PNG_CACHE = None
+_LOGO_FILES = {
+    "ceim":  _PROJECT_ROOT / "documents" / "Wzory plików" / "logo CEiM krzywe.pdf",
+    "kerti": _PROJECT_ROOT / "documents" / "Wzory plików" / "logo_kerti.jpg",
+}
+_LOGO_PNG_CACHE: dict = {}
 
 
-def _get_logo_png():
-    global _LOGO_PNG_CACHE
-    if _LOGO_PNG_CACHE:
-        return _LOGO_PNG_CACHE
-    if not _LOGO_PDF.exists():
+def _get_logo_png(logo: str = "ceim") -> str | None:
+    if logo in _LOGO_PNG_CACHE:
+        return _LOGO_PNG_CACHE[logo]
+    path = _LOGO_FILES.get(logo)
+    if not path or not path.exists():
         return None
+    # JPG/PNG — używamy bezpośrednio bez konwersji
+    if path.suffix.lower() in (".jpg", ".jpeg", ".png"):
+        _LOGO_PNG_CACHE[logo] = str(path)
+        return str(path)
+    # PDF — konwersja przez fitz
     try:
         import fitz
-        doc  = fitz.open(str(_LOGO_PDF))
-        page = doc[0]
-        pix  = page.get_pixmap(matrix=fitz.Matrix(4, 4), alpha=True)
-        out  = _PROJECT_ROOT / "tmp" / "logo_ceim.png"
+        doc = fitz.open(str(path))
+        pix = doc[0].get_pixmap(matrix=fitz.Matrix(4, 4), alpha=True)
+        out = _PROJECT_ROOT / "tmp" / f"logo_{logo}.png"
         out.parent.mkdir(exist_ok=True)
         pix.save(str(out))
-        _LOGO_PNG_CACHE = str(out)
-        return _LOGO_PNG_CACHE
+        _LOGO_PNG_CACHE[logo] = str(out)
+        return str(out)
     except Exception:
         return None
 
@@ -146,10 +153,10 @@ def _register_fonts():
 # Nagłówek strony
 # ---------------------------------------------------------------------------
 
-def _draw_header(c: canvas.Canvas, lang: str, font_header: str):
-    tr   = TRANSLATIONS[lang]
-    text = tr["header_wklady"]
-    y    = PAGE_H - MARGIN_V - HEADER_H
+def _draw_header(c: canvas.Canvas, lang: str, font_header: str,
+                 header_text: str | None = None, logo: str = "ceim"):
+    text   = header_text if header_text else TRANSLATIONS[lang]["header_wklady"]
+    y      = PAGE_H - MARGIN_V - HEADER_H
     text_y = y + HEADER_H * 0.5 - 4
 
     # Pomarańczowa linia akcentująca (wg brandbook)
@@ -159,11 +166,11 @@ def _draw_header(c: canvas.Canvas, lang: str, font_header: str):
 
     # Logo + tekst wycentrowane jako całość
     c.setFont(font_header, 22)
-    tw      = c.stringWidth(text, font_header, 22)
-    logo_path = _get_logo_png()
-    logo_h  = HEADER_H - 4 * mm
-    logo_w  = 0
-    gap     = 0
+    tw        = c.stringWidth(text, font_header, 22)
+    logo_path = _get_logo_png(logo)
+    logo_h    = HEADER_H - 4 * mm
+    logo_w    = 0
+    gap       = 0
 
     if logo_path:
         try:
@@ -342,6 +349,8 @@ def generate_pdf(
     output_path: str,
     lang: str = "pl",
     model: str = "wklady",
+    header_text: str | None = None,
+    logo: str = "ceim",
 ):
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     font_regular, font_bold, font_header = _register_fonts()
@@ -380,7 +389,7 @@ def generate_pdf(
         if page_idx > 0:
             c.showPage()
 
-        _draw_header(c, lang, font_header)
+        _draw_header(c, lang, font_header, header_text=header_text, logo=logo)
 
         for i, product in enumerate(padded[page_idx * per_page: (page_idx + 1) * per_page]):
             if product is None:

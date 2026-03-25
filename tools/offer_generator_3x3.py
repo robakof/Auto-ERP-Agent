@@ -24,14 +24,17 @@ def main():
     parser.add_argument("--output", required=True, help="Ścieżka wyjściowa PDF")
     parser.add_argument("--lang",   default="pl", choices=["pl", "en", "ro"])
     parser.add_argument("--model",  default="wklady", choices=["wklady"])
+    parser.add_argument("--header", default=None, help="Tekst nagłówka (domyślnie: z tłumaczeń)")
+    parser.add_argument("--logo",   default="ceim", choices=["ceim", "kerti"])
     args = parser.parse_args()
 
     print(f"Ładowanie danych z: {args.input}")
     products = load_products(args.input, lang=args.lang)
     print(f"Załadowano {len(products)} produktów.")
 
-    print(f"Generowanie PDF 3×3 ({args.lang.upper()})...")
-    output = generate_pdf(products, args.output, lang=args.lang, model=args.model)
+    print(f"Generowanie PDF 3×3 ({args.lang.upper()}, logo={args.logo})...")
+    output = generate_pdf(products, args.output, lang=args.lang, model=args.model,
+                          header_text=args.header, logo=args.logo)
     print(f"PDF zapisany: {output}")
 
 
