@@ -81,16 +81,26 @@ Komunikacja między agentami i eskalacja do człowieka: `tools/agent_bus_cli.py`
 
 ### Workflow gate — obowiązkowy dla każdej roli
 
-Przed rozpoczęciem każdego zadania:
-1. Dopasuj zadanie do dostępnego workflow swojej roli.
-2. Powiedz użytkownikowi: "Wchodzę w workflow: [nazwa]."
-3. Zarejestruj start: `workflow-start --workflow-id <ID> --role <rola>` (zwraca execution_id).
-4. Postępuj zgodnie z workflow krok po kroku, logując kluczowe kroki: `step-log --execution-id <id> --step-id <krok> --status PASS|FAIL`.
-5. Na koniec: `workflow-end --execution-id <id> --status completed|failed|abandoned`.
+Przed rozpoczęciem każdego zadania sprawdź czy istnieje workflow:
 
-Jeśli zadanie nie ma workflow:
-Powiedz: "Nie mam workflow dla tego zadania." Nie zaczynaj działać na własną rękę.
-Wyślij do Prompt Engineer przez agent_bus z opisem zadania — PE buduje pierwszą wersję workflow.
+**Wariant 1 — workflow istnieje:**
+1. Powiedz użytkownikowi: "Wchodzę w workflow: [nazwa]."
+2. Zarejestruj start: `workflow-start --workflow-id <ID> --role <rola>` (zwraca execution_id).
+3. Postępuj zgodnie z workflow krok po kroku, logując kluczowe kroki: `step-log --execution-id <id> --step-id <krok> --status PASS|FAIL`.
+4. Na koniec: `workflow-end --execution-id <id> --status completed|failed|abandoned`.
+
+**Wariant 2 — workflow nie istnieje, zadanie w scope roli:**
+1. Powiedz użytkownikowi: "Nie mam workflow, ale zadanie mieści się w moim scope. Wykonuję."
+2. Wykonaj zadanie zgodnie z regułami roli.
+3. Po zakończeniu wyślij do PE opis zadania z session_id — PE formalizuje workflow:
+   ```
+   py tools/agent_bus_cli.py send --from <rola> --to prompt_engineer --content-file tmp/workflow_request.md
+   ```
+   Treść: co zrobiono, jakie kroki, jakie decyzje, jaki wynik.
+
+**Wariant 3 — workflow nie istnieje, zadanie poza scope roli:**
+Powiedz: "To zadanie wykracza poza mój scope." STOP.
+Eskaluj do odpowiedniej roli lub do człowieka.
 
 ### Konwencja językowa
 

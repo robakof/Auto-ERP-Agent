@@ -1,6 +1,6 @@
 ---
 workflow_id: convention_creation
-version: "1.3"
+version: "1.4"
 owner_role: architect
 trigger: "Potrzeba nowej konwencji dla aspektu projektu"
 participants:
@@ -131,13 +131,18 @@ ESCALATE do PE jeśli research prompt nie daje wyników (problem z promptem, nie
    - Żadna reguła nie powinna duplikować innej konwencji.
    - Jeśli temat pokrywa inna konwencja → odwołaj się do niej, nie kopiuj.
 
-3. Utwórz draft (YAML header + wymagane sekcje).
+3. Dla każdej reguły: osąd agenta czy mechanizm w narzędziu?
+   - Reguła wymaga od agenta "pamiętaj zrobić X" → to powinien być mechanizm (backlog Developer).
+   - Reguła wymaga od agenta decyzji, klasyfikacji, oceny → to jest konwencja.
+   - Konwencja kompensująca brak mechanizmu = workaround. Najpierw mechanizm, potem konwencja.
+
+4. Utwórz draft (YAML header + wymagane sekcje).
 
 4. Status = draft.
 
 ### Exit gate
 
-PASS: YAML header kompletny, wymagane sekcje obecne, brak overlapu z innymi konwencjami, plik zapisany.
+PASS: YAML header kompletny, wymagane sekcje obecne, brak overlapu z innymi konwencjami, zero reguł kompensujących brak mechanizmu, plik zapisany.
 
 ---
 
@@ -253,6 +258,7 @@ PASS: commit, powiadomienia, log.
 - [ ] YAML header kompletny?
 - [ ] Brak overlapu z innymi konwencjami?
 - [ ] Każda reguła należy do tego dokumentu (nie innej konwencji)?
+- [ ] Każda reguła wymaga osądu (nie kompensuje braku mechanizmu)?
 - [ ] Limity jednoznaczne (twarde granice, nie widełki)?
 - [ ] Status = active?
 - [ ] Commit + powiadomienia?
@@ -263,6 +269,7 @@ PASS: commit, powiadomienia, log.
 
 | Wersja | Data | Zmiany |
 |---|---|---|
+| 1.4 | 2026-03-25 | Lekcja z CONV_COMMUNICATION: Faza 3 +krok "osąd vs mechanizm" (reguła kompensująca brak narzędzia = workaround, nie konwencja). Exit gate + self-check rozszerzony. |
 | 1.3 | 2026-03-25 | Lekcje z review CONV_PROMPT: Faza 3 +overlap check, Faza 4 +scope validation +jednoznaczne limity, self-check rozszerzony. |
 | 1.2 | 2026-03-25 | Faza 2: HANDOFF_POINT po kroku 3 (→ PE, STOP) i nowy krok 3.5 (→ Human, STOP). Usunięcie dwuznaczności: research wykonuje user/zewnętrzny agent, nie Architect. |
 | 1.1 | 2026-03-24 | Review: minimalizm, usunięcie defensywnych reguł, research jako pętla, domain check, agent rewolucjonista |

@@ -217,7 +217,7 @@ class MessageRepository(Repository[Message]):
         with self._connection() as conn:
             cursor = conn.execute(
                 """SELECT id, sender, recipient, content, title, type, status, session_id,
-                          created_at, read_at
+                          created_at, read_at, claimed_by
                    FROM messages
                    WHERE id = ?""",
                 (id,)
@@ -252,20 +252,20 @@ class MessageRepository(Repository[Message]):
                 conn.execute(
                     """UPDATE messages
                        SET sender = ?, recipient = ?, content = ?, title = ?, type = ?, status = ?,
-                           session_id = ?, read_at = ?
+                           session_id = ?, read_at = ?, claimed_by = ?
                        WHERE id = ?""",
                     (row_data["sender"], row_data["recipient"], row_data["content"], row_data["title"],
                      row_data["type"], row_data["status"], row_data["session_id"],
-                     row_data["read_at"], entity.id)
+                     row_data["read_at"], row_data["claimed_by"], entity.id)
                 )
             else:
                 # INSERT
                 cursor = conn.execute(
-                    """INSERT INTO messages (sender, recipient, content, title, type, status, session_id, read_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    """INSERT INTO messages (sender, recipient, content, title, type, status, session_id, read_at, claimed_by)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (row_data["sender"], row_data["recipient"], row_data["content"], row_data["title"],
                      row_data["type"], row_data["status"], row_data["session_id"],
-                     row_data["read_at"])
+                     row_data["read_at"], row_data["claimed_by"])
                 )
                 entity.id = cursor.lastrowid
 
@@ -336,7 +336,7 @@ class MessageRepository(Repository[Message]):
         with self._connection() as conn:
             cursor = conn.execute(
                 f"""SELECT id, sender, recipient, content, title, type, status, session_id,
-                           created_at, read_at
+                           created_at, read_at, claimed_by
                     FROM messages
                     WHERE {field} = ?
                     ORDER BY created_at DESC, id DESC""",
