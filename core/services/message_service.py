@@ -4,6 +4,7 @@ import sqlite3
 from typing import Optional
 
 from core.entities.messaging import Message, MessageStatus
+from core.exceptions import InvalidStateError
 from core.mappers.legacy_api import LegacyAPIMapper
 from core.repositories.message_repo import MessageRepository
 
@@ -105,8 +106,8 @@ class MessageService:
 
         try:
             message.mark_read()
-        except Exception:
-            return
+        except InvalidStateError:
+            return  # already read — graceful
 
         repo.save(message)
 

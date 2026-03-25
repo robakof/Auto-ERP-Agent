@@ -652,8 +652,11 @@ def main():
         "gaps": cmd_gaps,
         "gap-resolve": cmd_gap_resolve,
     }
-    result = commands[args.command](args, bus)
-    print_json(result)
+    try:
+        result = commands[args.command](args, bus)
+        print_json(result)
+    except Exception as e:
+        print_json({"ok": False, "error": f"{type(e).__name__}: {e}"})
 
 
 if __name__ == "__main__":

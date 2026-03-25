@@ -42,7 +42,7 @@ ignore = [
 python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
-# Start lenient — tighten incrementally
+# TODO: set to true after fixing mypy errors in core/services/ (post-#149 refactor done)
 disallow_untyped_defs = false
 check_untyped_defs = true
 ignore_missing_imports = true
