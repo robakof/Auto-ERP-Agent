@@ -1,14 +1,17 @@
 ---
 workflow_id: suggestions_processing
-version: "2.0"
-owner_role: prompt_engineer
-trigger: "PE przetwarza open suggestions (okresowy cleanup lub konserwacja backlogu)"
+version: "3.0"
+owner_role: architect
+trigger: "Architect triażuje open suggestions (batch per sesja)"
 participants:
-  - prompt_engineer (owner, kroki 1/2/3a/3b/3d/4)
-  - human (review mapy grup, review propozycji per group — krok 2.4 i 3.3)
+  - architect (owner triage — Faza 2)
+  - prompt_engineer (realizacja — sugestie typu prompt/konwencja/workflow)
+  - developer (realizacja — sugestie typu narzędzie/kod)
+  - metodolog (realizacja — sugestie typu proces/metoda)
+  - human (review mapy grup, review propozycji per group)
 related_docs:
   - documents/conventions/CONVENTION_WORKFLOW.md
-  - documents/prompt_engineer/PROMPT_ENGINEER.md
+  - documents/architect/ARCHITECT.md
 prerequisites:
   - session_init_done
   - suggestions_open_exist
@@ -23,9 +26,8 @@ outputs:
 
 # Workflow: Przetwarzanie sugestii
 
-PE przetwarza open suggestions z extraction pattern — wykopywanie actionable items przed zamknięciem.
-Workflow obsługuje duże zbiory (200+) przez sekwencyjne przetwarzanie grup: po podziale na grupy,
-każda grupa przechodzi pełny cykl (ekstrakcja → export → review → execution) zanim startuje następna.
+Architect triażuje open suggestions (widok systemowy), routuje do odpowiedniej roli, rola realizuje.
+Workflow obsługuje duże zbiory (200+) przez sekwencyjne przetwarzanie grup.
 
 **Zasada:** Extraction workflow > naive close. Sugestie zawierają lessons learned, patterns, rules — nie zamykaj bez sprawdzenia.
 
@@ -36,8 +38,8 @@ przez Decision Point.
 ## Outline
 
 1. **Inicjalizacja** — pobierz i policz open suggestions
-2. **Grupowanie** — podziel na grupy, eksportuj mapę do człowieka, czekaj na zatwierdzenie
-3. **[LOOP] Przetwarzanie grupy** — dla każdej grupy: ekstrakcja → export → review (human) → execution
+2. **Grupowanie i triage** — Architect dzieli na grupy, klasyfikuje, routuje
+3. **[LOOP] Przetwarzanie grupy** — ekstrakcja → export → review (human) → execution
 4. **Quality Gate** — globalny extraction ratio >= 10%
 5. **Zamknięcie** — log sesji
 
@@ -45,7 +47,7 @@ przez Decision Point.
 
 ## Faza 1: Inicjalizacja
 
-**Owner:** PE
+**Owner:** Architect
 
 ### Steps
 
@@ -64,9 +66,9 @@ PASS: sugestie załadowane, liczba znana, N >= 1.
 
 ---
 
-## Faza 2: Grupowanie
+## Faza 2: Grupowanie i triage
 
-**Owner:** PE (kroki 2.1-2.3), Human (krok 2.4)
+**Owner:** Architect (kroki 2.1-2.3, 2.5), Human (krok 2.4)
 
 ### Steps
 
@@ -98,17 +100,31 @@ PASS: sugestie załadowane, liczba znana, N >= 1.
 
 4. **[HUMAN STEP]** Pokaż człowiekowi mapę grup. Czekaj na: APPROVED lub REVISE.
    - REVISE → wróć do kroku 2.1 z nowymi kryteriami.
-   - APPROVED → przejdź do Fazy 3.
+   - APPROVED → przejdź do kroku 2.5.
+
+5. **Routing** — Architect przypisuje każdą grupę do roli realizującej:
+   - prompt / konwencja / workflow → route do PE
+   - narzędzie / kod → route do Developer
+   - architektura → Architect sam realizuje
+   - proces / metoda → route do Metodologa
+   - duplikat / stale → zamknij (bez backlog item)
+   ```
+   py tools/agent_bus_cli.py send --from architect --to <rola> --content-file tmp/suggestions_group_<name>.md
+   ```
+
+   → HANDOFF: <rola realizująca>. STOP.
+     Mechanizm: agent_bus send
+     Czekaj na: rola realizuje Fazę 3 per grupa i raportuje wynik.
 
 ### Exit gate
 
-PASS: mapa grup zatwierdzona przez człowieka, kolejność przetwarzania ustalona.
+PASS: mapa grup zatwierdzona przez człowieka, każda grupa ma przypisaną rolę realizującą.
 
 ---
 
 ## Faza 3: Przetwarzanie grup [LOOP]
 
-**Owner:** PE (kroki 3.1, 3.2, 3.4), Human (krok 3.3)
+**Owner:** rola przypisana w Fazie 2.5 (kroki 3.1, 3.2, 3.4), Human (krok 3.3)
 
 **Pętla:** Faza 3 wykonywana raz per grupa, sekwencyjnie. Po zakończonej grupie — Decision Point.
 Zanim startuje następna grupa, aktualna MUSI być w pełni zakończona (exit gate PASS).
@@ -123,7 +139,7 @@ Zanim startuje następna grupa, aktualna MUSI być w pełni zakończona (exit ga
 
 ### Krok 3.1: Ekstrakcja z grupy
 
-**Owner:** PE
+**Owner:** rola przypisana w Fazie 2.5
 
 1. Wczytaj pełną treść sugestii z `current_group` (nie tylko tytuły).
    ```
@@ -156,7 +172,7 @@ Zanim startuje następna grupa, aktualna MUSI być w pełni zakończona (exit ga
 
 ### Krok 3.2: Export propozycji do człowieka
 
-**Owner:** PE
+**Owner:** rola przypisana w Fazie 2.5
 
 1. Zapisz propozycje tasków do pliku:
    ```
@@ -201,7 +217,7 @@ SKIP: <suggestion_ids>
 
 ### Krok 3.4: Execution — dodaj do backlogu, zamknij sugestie grupy
 
-**Owner:** PE
+**Owner:** rola przypisana w Fazie 2.5
 
 1. Dla każdego APPROVED tasku — dodaj do backlogu:
    ```
@@ -249,7 +265,7 @@ BLOCKED: czekaj na feedback człowieka (krok 3.3 nieprzeszedł).
 
 ## Faza 4: Quality Gate
 
-**Owner:** Human (decyzja), PE (obliczenie ratio)
+**Owner:** Human (decyzja), Architect (obliczenie ratio)
 
 ### Steps
 
@@ -279,7 +295,7 @@ PASS: ratio >= 10% ALBO człowiek zatwierdził kontynuację z uzasadnieniem.
 
 ## Faza 5: Zamknięcie
 
-**Owner:** PE
+**Owner:** Architect
 
 ### Steps
 
@@ -300,7 +316,7 @@ PASS: ratio >= 10% ALBO człowiek zatwierdził kontynuację z uzasadnieniem.
 
 2. Log sesji:
    ```
-   py tools/agent_bus_cli.py log --role prompt_engineer --content-file tmp/suggestions_report_<data>.md
+   py tools/agent_bus_cli.py log --role architect --content-file tmp/suggestions_report_<data>.md
    ```
 
 3. Zamknij workflow tracking:
@@ -346,5 +362,6 @@ PASS: raport zapisany, log zalogowany.
 
 | Wersja | Data | Zmiany |
 |---|---|---|
+| 3.0 | 2026-03-25 | Triage ownership: PE → Architect (msg #316). Faza 2: Architect grupuje i routuje do roli realizującej (PE/Developer/Architect/Metodolog). HANDOFF_POINT po routing. Faza 3: owner = rola przypisana (nie zawsze PE). Faza 4-5: Architect. |
 | 2.0 | 2026-03-25 | Per-group loop (skalowalność 200+ sugestii). Human jako weryfikator per group (krok 3.3). Export propozycji do człowieka przed execution. Quality Gate z eskalacją do człowieka przy ratio < 10%. Nota o brakującym Loop Block w konwencji (msg #291 do Architekta). |
 | 1.0 | 2026-03-24 | Początkowa wersja — extraction pattern z sesji fb202ab52fee |
