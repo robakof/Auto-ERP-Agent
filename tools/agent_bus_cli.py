@@ -23,6 +23,18 @@ from tools.lib.agent_bus import AgentBus
 from tools.lib.output import print_json
 
 DB_PATH = "mrowisko.db"
+SESSION_DATA_FILE = Path("tmp/session_data.json")
+
+
+def get_session_role() -> str | None:
+    """Read current session role from tmp/session_data.json."""
+    if not SESSION_DATA_FILE.exists():
+        return None
+    try:
+        data = json.loads(SESSION_DATA_FILE.read_text(encoding="utf-8"))
+        return data.get("role")
+    except Exception:
+        return None
 
 
 def _read_content(args: argparse.Namespace) -> str:
@@ -53,8 +65,11 @@ def _bulk_json_processor(file_path: str, handler) -> list:
 
 
 def cmd_send(args: argparse.Namespace, bus: AgentBus) -> dict:
+    sender = args.sender or get_session_role()
+    if not sender:
+        return {"ok": False, "error": "No --from specified and no session found. Run session_init.py first."}
     msg_id = bus.send_message(
-        sender=args.sender,
+        sender=sender,
         recipient=args.to,
         content=_read_content(args),
         type=args.type,
@@ -121,9 +136,12 @@ _SUGGEST_TYPES = ("rule", "tool", "discovery", "observation")
 
 
 def cmd_suggest(args: argparse.Namespace, bus: AgentBus) -> dict:
+    author = args.sender or get_session_role()
+    if not author:
+        return {"ok": False, "error": "No --from specified and no session found. Run session_init.py first."}
     recipients = json.loads(args.recipients) if args.recipients else None
     sid = bus.add_suggestion(
-        author=args.sender,
+        author=author,
         content=_read_content(args),
         title=args.title or "",
         type=args.type or "observation",
@@ -273,8 +291,11 @@ def cmd_backlog_update_bulk(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 
 def cmd_log(args: argparse.Namespace, bus: AgentBus) -> dict:
+    role = args.role or get_session_role()
+    if not role:
+        return {"ok": False, "error": "No --role specified and no session found. Run session_init.py first."}
     lid = bus.add_session_log(
-        role=args.role,
+        role=role,
         content=_read_content(args),
         title=args.title,
         session_id=args.session_id,
@@ -395,7 +416,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # send
     p_send = subparsers.add_parser("send", help="Send a message to a role")
-    p_send.add_argument("--from", dest="sender", required=True)
+    p_send.add_argument("--from", dest="sender", help="Sender role (default: from session)")
     p_send.add_argument("--to", required=True)
     g_send = p_send.add_mutually_exclusive_group(required=True)
     g_send.add_argument("--content")
@@ -433,7 +454,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # suggest
     p_suggest = subparsers.add_parser("suggest", help="Add a suggestion from an agent")
-    p_suggest.add_argument("--from", dest="sender", required=True)
+    p_suggest.add_argument("--from", dest="sender", help="Author role (default: from session)")
     g_suggest = p_suggest.add_mutually_exclusive_group(required=True)
     g_suggest.add_argument("--content")
     g_suggest.add_argument("--content-file", dest="content_file")
@@ -517,7 +538,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # log
     p_log = subparsers.add_parser("log", help="Add a session log entry")
-    p_log.add_argument("--role", required=True)
+    p_log.add_argument("--role", help="Role (default: from session)")
     p_log.add_argument("--title", default=None)
     g_log = p_log.add_mutually_exclusive_group(required=True)
     g_log.add_argument("--content")

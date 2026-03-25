@@ -21,7 +21,8 @@ from tools.lib.agent_bus import AgentBus
 from tools.lib.output import print_json
 
 DB_PATH = "mrowisko.db"
-SESSION_ID_FILE = Path("tmp/session_id.txt")
+SESSION_ID_FILE = Path("tmp/session_id.txt")  # legacy
+SESSION_DATA_FILE = Path("tmp/session_data.json")
 CONFIG_FILE = Path("config/session_init_config.json")
 
 ROLE_DOCUMENTS = {
@@ -38,9 +39,18 @@ def generate_session_id() -> str:
     return uuid.uuid4().hex[:12]
 
 
-def write_session_id(session_id: str) -> None:
+def write_session_id(session_id: str, role: str = None) -> None:
     SESSION_ID_FILE.parent.mkdir(parents=True, exist_ok=True)
     SESSION_ID_FILE.write_text(session_id, encoding="utf-8")
+    # Also write session_data.json with role for CLI session-awareness
+    if role:
+        import datetime
+        data = {
+            "session_id": session_id,
+            "role": role,
+            "created_at": datetime.datetime.now().isoformat()
+        }
+        SESSION_DATA_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
 def read_session_id() -> str | None:
@@ -176,7 +186,7 @@ def main():
             return
 
     session_id = generate_session_id()
-    write_session_id(session_id)
+    write_session_id(session_id, role=args.role)
 
     doc_path = Path(ROLE_DOCUMENTS[args.role])
     doc_exists = doc_path.exists()
