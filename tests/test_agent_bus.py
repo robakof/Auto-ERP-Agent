@@ -446,6 +446,30 @@ class TestSessionsTraceModule:
         rows = bus._conn.execute("SELECT is_error FROM tool_calls WHERE session_id='sess1'").fetchall()
         assert rows[0]["is_error"] == 1
 
+    def test_add_tool_call_dedup_same_timestamp(self, bus):
+        """#147: Duplicate tool calls with same timestamp are ignored."""
+        bus.upsert_session("sess1", role="developer")
+        ts = "2026-03-25T10:00:00.000Z"
+        # First insert
+        id1 = bus.add_tool_call("sess1", "Read", input_summary="file.md", timestamp=ts)
+        # Duplicate insert (same session, tool, timestamp)
+        id2 = bus.add_tool_call("sess1", "Read", input_summary="file.md", timestamp=ts)
+        # Should be ignored (returns 0 or same id)
+        count = bus._conn.execute(
+            "SELECT COUNT(*) FROM tool_calls WHERE session_id='sess1' AND tool_name='Read'"
+        ).fetchone()[0]
+        assert count == 1, f"Expected 1 row, got {count} (duplicate not ignored)"
+
+    def test_add_tool_call_different_timestamp_allowed(self, bus):
+        """Different timestamps = different tool calls (allowed)."""
+        bus.upsert_session("sess1", role="developer")
+        bus.add_tool_call("sess1", "Read", input_summary="file.md", timestamp="2026-03-25T10:00:00.000Z")
+        bus.add_tool_call("sess1", "Read", input_summary="file.md", timestamp="2026-03-25T10:00:01.000Z")
+        count = bus._conn.execute(
+            "SELECT COUNT(*) FROM tool_calls WHERE session_id='sess1' AND tool_name='Read'"
+        ).fetchone()[0]
+        assert count == 2, f"Expected 2 rows (different timestamps), got {count}"
+
     def test_add_token_usage_returns_id(self, bus):
         bus.upsert_session("sess1", role="developer")
         tu_id = bus.add_token_usage("sess1", turn_index=0, input_tokens=1000, output_tokens=200)

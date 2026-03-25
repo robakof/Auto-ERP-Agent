@@ -1,6 +1,6 @@
 ---
 workflow_id: developer_operations
-version: "2.1"
+version: "2.2"
 owner_role: developer
 trigger: "Developer otrzymuje zadanie operacyjne lub taktyczne"
 related_docs:
@@ -50,8 +50,19 @@ Workflow multi-scenario — wybierz sekcję według typu zadania:
 ### Steps
 
 1. Sprawdź czysty working tree (`git status`). Jeśli brudny → zapytaj czy commitować.
-2. Dla średnich zadań: plan per feature do pliku .md (uwzględnij otwarte wątki
-   z poprzednich sesji). Zatwierdź z użytkownikiem przed kodem.
+2. Dla średnich zadań: plan per feature do pliku `documents/human/plans/<nazwa>.md`
+   (uwzględnij otwarte wątki z poprzednich sesji).
+   2.1. Wyślij plan do Architekta na review:
+        ```
+        py tools/agent_bus_cli.py send --from developer --to architect --content-file tmp/plan_review_request.md
+        ```
+        Pełny proces: `workflows/workflow_plan_review.md`.
+   2.2. → HANDOFF: architect. STOP.
+        Mechanizm: agent_bus send
+        Czekaj na: decyzję Architekta (APPROVE/REJECT) w inbox.
+        Nie przechodź do implementacji bez zatwierdzenia planu.
+   2.3. REJECT → popraw plan per feedback Architekta, wyślij ponownie.
+        APPROVE → przejdź do kroku 3.
 3. Zaproponuj pisanie testów najpierw (TDD preferowane).
    3.1. Napisz testy: integration tests (całe flow) + unit tests (funkcje czyste).
         Happy path + edge cases. Mockuj zależności zewnętrzne (DB, API, sieć).
@@ -60,10 +71,24 @@ Workflow multi-scenario — wybierz sekcję według typu zadania:
 4. Przy nieomawianych kwestiach w trakcie implementacji — pytaj użytkownika na bieżąco.
    4.1. Po implementacji: przetestuj, pokaż co zrobione, zapytaj o feedback.
    4.2. Poprawki na feedback użytkownika — iteruj aż do zatwierdzenia.
-5. Checklist publikacji nowego narzędzia:
-   5.1. Czy narzędzie dotyczy >1 roli? Tak → dokumentuj w CLAUDE.md. Nie → w dokumencie roli.
-   5.2. Wyślij `agent_bus send` do aktywnych ról (nazwa, składnia, kiedy używać).
-   5.3. Zapisz log sesji.
+5. Wyślij kod do code review Architekta:
+   ```
+   py tools/agent_bus_cli.py send --from developer --to architect --content-file tmp/code_review_request.md
+   ```
+   Treść: zakres zmian (pliki), cel, powiązanie z planem.
+   Pełny proces: `workflows/workflow_code_review.md`.
+
+   → HANDOFF: architect. STOP.
+     Mechanizm: agent_bus send
+     Czekaj na: raport code review od Architekta w inbox.
+     Nie commituj finalnie bez PASS z code review.
+
+   5.1. NEEDS REVISION → popraw per raport, wyślij ponownie do review.
+   5.2. PASS → przejdź do kroku 6.
+6. Checklist publikacji nowego narzędzia:
+   6.1. Czy narzędzie dotyczy >1 roli? Tak → dokumentuj w CLAUDE.md. Nie → w dokumencie roli.
+   6.2. Wyślij `agent_bus send` do aktywnych ról (nazwa, składnia, kiedy używać).
+   6.3. Zapisz log sesji.
 
 ### Forbidden
 
@@ -73,7 +98,9 @@ Workflow multi-scenario — wybierz sekcję według typu zadania:
 ### Exit gate
 
 PASS jeśli:
+- [ ] Plan zatwierdzony przez Architekta (APPROVE) — jeśli średnie zadanie
 - [ ] Testy przechodzą
+- [ ] Code review PASS od Architekta
 - [ ] Narzędzie w `tools/` z testami
 - [ ] Notyfikacja do ról (jeśli narzędzie wspólne)
 - [ ] Commit + push

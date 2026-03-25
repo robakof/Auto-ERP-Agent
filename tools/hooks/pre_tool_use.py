@@ -87,16 +87,30 @@ DANGEROUS_PATTERNS = [
 
 
 def split_chain(cmd: str) -> list[str]:
-    """Split command by && into segments."""
-    return [seg.strip() for seg in cmd.split("&&")]
+    """Split command by &&, || and ; into segments."""
+    import re
+    # Split on &&, ||, or ; (command separators)
+    segments = re.split(r'\s*(?:&&|\|\||;)\s*', cmd)
+    return [seg.strip() for seg in segments if seg.strip()]
 
 
 def extract_paths(cmd: str) -> list[str]:
-    """Extract paths from command, skipping flags."""
+    """Extract paths from command, skipping flags. Handles -- (end-of-flags)."""
     try:
         tokens = shlex.split(cmd, posix=False)
     except ValueError:
         tokens = cmd.split()
+
+    # Find -- marker (everything after is a path, not a flag)
+    try:
+        dash_dash_idx = tokens.index("--")
+        before_dash = tokens[1:dash_dash_idx]
+        after_dash = tokens[dash_dash_idx + 1:]
+        # Before --: skip flags. After --: everything is a path.
+        paths_before = [t for t in before_dash if not t.startswith("-")]
+        return paths_before + after_dash
+    except ValueError:
+        pass  # No -- found
     # Skip command and flags (start with -)
     return [t for t in tokens[1:] if not t.startswith("-")]
 
@@ -141,10 +155,9 @@ def check_mv(cmd: str) -> tuple[bool, str]:
 
 
 def check_execution(cmd: str) -> tuple[bool, str]:
-    """Check powershell/cmd/start commands."""
+    """Check powershell/cmd/start commands. Exact match only."""
     cmd_lower = cmd.lower().strip()
-    if any(cmd_lower == allowed or cmd_lower.startswith(allowed + " ")
-           for allowed in ALLOWED_EXECUTION_COMMANDS):
+    if cmd_lower in ALLOWED_EXECUTION_COMMANDS:
         return False, ""
     return True, REPAIR_MSG_EXECUTION
 

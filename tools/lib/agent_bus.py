@@ -209,6 +209,11 @@ _MIGRATE_SQL = [
     "ALTER TABLE suggestions ADD COLUMN type TEXT NOT NULL DEFAULT 'observation'",
     "ALTER TABLE suggestions ADD COLUMN title TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE session_log ADD COLUMN title TEXT",
+    # #147: Telemetry deduplication - cleanup duplicates before unique constraint
+    """DELETE FROM tool_calls WHERE rowid NOT IN (
+        SELECT MIN(rowid) FROM tool_calls GROUP BY session_id, tool_name, timestamp
+    )""",
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_tool_calls_dedup ON tool_calls(session_id, tool_name, timestamp)",
 ]
 
 
@@ -996,9 +1001,9 @@ class AgentBus:
         tokens_out: int = None,
         timestamp: str = None,
     ) -> int:
-        """Log a tool call for a session. Returns row id."""
+        """Log a tool call for a session. Returns row id or 0 if duplicate (rowcount=0)."""
         cursor = self._conn.execute(
-            """INSERT INTO tool_calls (session_id, tool_name, input_summary, is_error, tokens_out, timestamp)
+            """INSERT OR IGNORE INTO tool_calls (session_id, tool_name, input_summary, is_error, tokens_out, timestamp)
                VALUES (?, ?, ?, ?, ?, COALESCE(?, datetime('now')))""",
             (session_id, tool_name, input_summary, is_error, tokens_out, timestamp),
         )
