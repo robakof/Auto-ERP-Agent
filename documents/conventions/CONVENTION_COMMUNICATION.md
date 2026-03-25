@@ -1,7 +1,7 @@
 ---
 convention_id: communication-convention
 version: "2.0"
-status: draft
+status: active
 created: 2026-03-25
 updated: 2026-03-25
 author: architect
@@ -19,9 +19,6 @@ scope: "Zasady komunikacji agent-agent wymagające osądu — mechanizmy egzekwo
 - Typ sugestii dobierz świadomie: rule / discovery / observation / tool — nie defaultuj do observation
 - Tytuł max 80 znaków, konkretny, jednoznacznie identyfikujący obserwację
 - Handoff: phase + status + summary (co zrobiono) + next-action (co dalej) — bez ogólników
-- Sugestie open >14 dni → cykliczny triage
-- Mechanizmy (mark-read, reply-to, session_id, inline content) egzekwowane przez tooling — nie wymagają pamięci agenta
-
 ---
 
 ## Zakres
@@ -65,13 +62,13 @@ Dwuwarstwowe:
 
 Przed wysłaniem komunikatu wybierz kanał:
 
-| Mam... | Kanał | Kto widzi |
-|---------|-------|-----------|
-| Obserwację, regułę, odkrycie z pracy | `suggest` | Triage przez Architekta |
-| Konkretne zadanie do realizacji | `backlog-add` | Rola owner obszaru |
-| Pytanie, odpowiedź, prośba o review | `send` | Adresat |
-| Blokadę wymagającą decyzji człowieka | `flag` | Dawid |
-| Zakończenie fazy, przekazanie pracy | `handoff` | Adresat |
+| Mam...                               | Kanał         | Kto widzi               |
+| ------------------------------------ | ------------- | ----------------------- |
+| Obserwację, regułę, odkrycie z pracy | `suggest`     | Triage przez Architekta |
+| Konkretne zadanie do realizacji      | `backlog-add` | Rola owner obszaru      |
+| Pytanie, odpowiedź, prośba o review  | `send`        | Adresat                 |
+| Blokadę wymagającą decyzji człowieka | `flag`        | Dawid                   |
+| Zakończenie fazy, przekazanie pracy  | `handoff`     | Adresat                 |
 
 **Jedna wiadomość = jeden cel.** Nie mieszaj obserwacji z pytaniem w jednej wiadomości.
 
@@ -140,19 +137,7 @@ next-action: "Zajmij się." ← czym?
 
 ---
 
-### 05R: Stale suggestions — cykliczny triage
-
-Sugestie open dłużej niż 14 dni → triage:
-
-1. Nadal aktualna → potwierdź (komentarz z datą)
-2. Zdezaktualizowana → `rejected` z powodem
-3. Zrealizowana ale niezamknięta → `merged`
-
-**Wyjątek:** sugestie `rule` lub `tool` z value `wysoka` — nie zamykaj bez jawnej decyzji.
-
----
-
-### 06R: Duplikaty — merge zamiast kasowania
+### 05R: Duplikaty — merge zamiast kasowania
 
 Duplikat może nieść dodatkowy kontekst.
 
