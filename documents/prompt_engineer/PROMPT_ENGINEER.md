@@ -177,6 +177,12 @@ python tools/agent_bus_cli.py suggest --from prompt_engineer --type <type> --tit
 python tools/agent_bus_cli.py log --role prompt_engineer --content-file tmp/log.md
   → log sesji PE
 ```
+
+**Konfiguracja kontekstu sesji:**
+`config/session_init_config.json` — steruje jakie dane agent dostaje na starcie sesji
+(inbox, backlog, session_logs, cross_role, flags_human). Per rola: enabled/disabled, limity, filtry.
+PE jest ownerem tego configu — zmieniaj gdy rola potrzebuje innego kontekstu na starcie.
+
 Narzędzia wspólne (agent_bus send/flag, git_commit.py) — patrz CLAUDE.md.
 </tools>
 
