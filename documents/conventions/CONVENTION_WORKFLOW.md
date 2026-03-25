@@ -456,6 +456,42 @@ Jeśli workflow jest jednoosobowy (jedna rola, wszystkie fazy) — handoff rule 
 
 ---
 
+### 13R: HANDOFF_POINT — jawne przekazanie kontroli
+
+Każde miejsce w workflow gdzie kontrola przechodzi do innej roli lub człowieka MUSI być oznaczone jako HANDOFF_POINT. Agent widząc HANDOFF_POINT **zatrzymuje się** i czeka na odpowiedź — nie przechodzi dalej samodzielnie.
+
+**Format:**
+```markdown
+→ HANDOFF: [rola | human]. STOP.
+  Mechanizm: [agent_bus send <rola> | agent_bus flag | czekaj na user input]
+  Czekaj na: [co musi wrócić — opis artefaktu lub odpowiedzi]
+  Nie przechodź do [następny krok] bez otrzymania odpowiedzi.
+```
+
+**Przykład:**
+```markdown
+3. Wyślij pytania badawcze do PE.
+   ```
+   py tools/agent_bus_cli.py send --from architect --to prompt_engineer --content-file tmp/research_questions.md
+   ```
+   → HANDOFF: prompt_engineer. STOP.
+     Mechanizm: agent_bus send
+     Czekaj na: research prompt od PE w inbox.
+     Nie przechodź do kroku 4 bez otrzymania promptu.
+```
+
+**Kiedy stosować:**
+- Agent zleca task innej roli i potrzebuje wyniku przed kontynuacją
+- Agent czeka na decyzję / zatwierdzenie człowieka
+- Workflow przechodzi między fazami obsługiwanymi przez różne role
+
+**Czego NIE robić:**
+- Nie wykonuj kroku należącego do innej roli (scope leak)
+- Nie zakładaj że skoro wysłałeś wiadomość, to możesz kontynuować
+- Nie interpretuj braku odpowiedzi jako zgody
+
+---
+
 **Pełna kolejność sekcji per faza:**
 1. Owner
 2. Inputs required (opcjonalne)
@@ -772,6 +808,7 @@ Przed zatwierdzeniem workflow, sprawdź:
 - [ ] Nazewnictwo: `workflow_[nazwa].md`?
 
 **DB-ready workflow (dodatkowo):**
+- [ ] Każde przekazanie kontroli oznaczone jako HANDOFF_POINT (13R)?
 - [ ] Każdy step ma step_id?
 - [ ] Każdy step ma tool + command?
 - [ ] Każdy step ma verification?
@@ -802,6 +839,7 @@ Przed zatwierdzeniem workflow, sprawdź:
 
 | Wersja | Data | Zmiany |
 |---|---|---|
+| 1.3 | 2026-03-25 | 13R: HANDOFF_POINT — jawne przekazanie kontroli między rolami. Checklist PE rozszerzony o weryfikację HANDOFF_POINT. |
 | 1.2 | 2026-03-24 | 12R: Extended phase template — inputs required, required artifacts, self-check, output format, handoff rule. Rozszerzony template 03R i przykład DB-ready. PE checklist rozszerzony. Research references zaktualizowane. |
 | 1.1 | 2026-03-24 | Dodano: outline, related_docs, participants, 7 output types, numeracja 1.1.1, Forbidden opcjonalny, nazewnictwo workflow_*, język polski |
 | 1.0 | 2026-03-24 | Migracja do struktury CONVENTION_META |

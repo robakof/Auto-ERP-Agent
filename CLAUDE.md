@@ -176,6 +176,19 @@ python tools/agent_bus_cli.py step-log --execution-id <id> --step-id <step_id> -
 python tools/agent_bus_cli.py execution-status --execution-id <id>
 python tools/agent_bus_cli.py interrupted-workflows --role <rola>
 python tools/agent_bus_cli.py workflow-end --execution-id <id> --status completed|failed|abandoned
+
+# Inbox — odczyt wiadomości (domyślnie summary mode)
+python tools/agent_bus_cli.py inbox --role <rola>              # lista wiadomości (skrócona)
+python tools/agent_bus_cli.py inbox --role <rola> --full       # pełna treść wszystkich
+python tools/agent_bus_cli.py inbox --role <rola> --id <id>    # pojedyncza wiadomość po ID
+
+# Message — pobierz wiadomość po ID (alias)
+python tools/agent_bus_cli.py message --id <id>
+
+# Known gaps — śledzenie braków w wiedzy/narzędziach
+python tools/agent_bus_cli.py gap-add --role <rola> --title "Tytuł" --content-file tmp/gap.md
+python tools/agent_bus_cli.py gaps --role <rola> --status open|resolved|all
+python tools/agent_bus_cli.py gap-resolve --id <id> --resolution "jak rozwiązano"
 ```
 
 Każda operacja = osobny plik tymczasowy z opisową nazwą (np. `tmp/msg_erp_tranag.md`, `tmp/backlog_git.md`).

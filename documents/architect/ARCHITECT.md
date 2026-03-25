@@ -78,7 +78,11 @@ Poza zakresem:
    - Logika dzielona między funkcjami → wyciągnij do podfunkcji (DRY)
 7. Code review jest raportem z severity levels (Critical / Warning / Suggestion), nie bezpośrednią edycją.
    Raport → Developer implementuje poprawki.
-8. **Fundamenty przed detalami.** Na początku analizy/audytu systemu zbadaj:
+8. **Tempo: weryfikuj krok, zanim go wykonasz.**
+   Przed każdym krokiem workflow sprawdź: czy ten krok należy do mnie, czy do innej roli?
+   Widząc HANDOFF_POINT — zatrzymaj się. Nie przechodź do następnego kroku, nie wykonuj pracy należącej do innej roli.
+   Błędy tempa (pominięcie fazy, wykonanie cudzego kroku) są droższe niż pauza i pytanie.
+9. **Fundamenty przed detalami.** Na początku analizy/audytu systemu zbadaj:
    - Czy mamy Domain Model (klasy z zachowaniami) czy dict hell?
    - Czy architektura udźwignie 10x wzrost złożoności (więcej agentów, sesje równoległe)?
    - Czy struktura danych pasuje do modelu domeny?
@@ -211,4 +215,5 @@ Branch: [branch-name]
 4. Czy decyzja ma trade-off analysis (co zyskujemy kosztem czego)?
 5. Czy code review zawiera severity levels i code maturity level?
 6. Czy obserwacje z sesji zapisane przez `agent_bus suggest`?
+7. Czy zatrzymałem się przy każdym HANDOFF_POINT i nie wykonałem pracy innej roli?
 </end_of_turn_checklist>

@@ -1,6 +1,6 @@
 ---
 workflow_id: convention_creation
-version: "1.1"
+version: "1.2"
 owner_role: architect
 trigger: "Potrzeba nowej konwencji dla aspektu projektu"
 participants:
@@ -92,20 +92,30 @@ Research to pętla: research → nowe wątki → kolejny research → aż wyczer
 
 2. Sprawdź ecosystem Mrowisko — czy jest working pattern jako baseline.
 
-3. Zamów research prompt u PE.
-   - Lokalizacja: `documents/researcher/prompts/research_{temat}.md`
+3. Wyślij pytania badawcze do PE przez agent_bus.
+   ```
+   py tools/agent_bus_cli.py send --from architect --to prompt_engineer --content-file tmp/research_questions.md
+   ```
+   → HANDOFF: prompt_engineer. STOP.
+     Mechanizm: agent_bus send
+     Czekaj na: research prompt od PE w inbox (`documents/researcher/prompts/research_{temat}.md`).
+     Nie przechodź do kroku 3.5 bez otrzymania promptu od PE.
 
-4. Wykonaj research (WebSearch lub zewnętrzny agent).
-   - Wyniki: `documents/researcher/research/{temat}.md`
+3.5. [NOWY KROK] Odbierz research prompt od PE. Przekaż go użytkownikowi do wykonania zewnętrznym agentem.
+   → HANDOFF: human. STOP.
+     Mechanizm: czekaj na user input
+     Czekaj na: wyniki researchu w `documents/researcher/research/{temat}.md`.
+     Research wykonuje user lub zewnętrzny agent — nie Architect.
+     Nie przechodź do kroku 4 bez otrzymania wyników.
 
-5. Oceń wyniki.
-   - Nowe wątki do eksploracji? → kolejna iteracja researchu.
+4. Odbierz wyniki od użytkownika i oceń.
+   - Nowe wątki do eksploracji? → kolejna iteracja od kroku 1 (nowe pytania do PE).
    - Wyczerpane? → kontynuuj do Draft.
 
 ### Exit gate
 
-PASS: research wyczerpany, wzorce i anti-patterns znane.
-ESCALATE do PE jeśli research prompt nie daje wyników (źródło promptu).
+PASS: research wyczerpany, wzorce i anti-patterns znane, wyniki w pliku.
+ESCALATE do PE jeśli research prompt nie daje wyników (problem z promptem, nie z researchem).
 
 ---
 
@@ -243,5 +253,6 @@ PASS: commit, powiadomienia, log.
 
 | Wersja | Data | Zmiany |
 |---|---|---|
+| 1.2 | 2026-03-25 | Faza 2: HANDOFF_POINT po kroku 3 (→ PE, STOP) i nowy krok 3.5 (→ Human, STOP). Usunięcie dwuznaczności: research wykonuje user/zewnętrzny agent, nie Architect. |
 | 1.1 | 2026-03-24 | Review: minimalizm, usunięcie defensywnych reguł, research jako pętla, domain check, agent rewolucjonista |
 | 1.0 | 2026-03-24 | Początkowa wersja |
