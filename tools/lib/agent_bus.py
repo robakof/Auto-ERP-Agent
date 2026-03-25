@@ -239,11 +239,13 @@ class AgentBus:
         from core.services.telemetry_service import TelemetryService
         from core.services.suggestion_service import SuggestionService
         from core.services.backlog_service import BacklogService
+        from core.services.session_service import SessionService
         self._known_gaps = KnownGapsService(self._conn)
         self._workflows = WorkflowService(self._conn)
         self._telemetry = TelemetryService(self._conn)
         self._suggestions = SuggestionService(self._conn, db_path)
         self._backlog = BacklogService(self._conn, db_path)
+        self._sessions = SessionService(self._conn)
 
     def _run_migrations(self) -> None:
         for stmt in _MIGRATE_SQL:
@@ -533,107 +535,23 @@ class AgentBus:
 
     # --- Session log ---
 
-    def add_session_log(
-        self,
-        role: str,
-        content: str,
-        title: str = None,
-        session_id: str = None,
-    ) -> int:
-        """Add a session log entry. Returns log id."""
-        cursor = self._conn.execute(
-            """INSERT INTO session_log (role, content, title, session_id)
-               VALUES (?, ?, ?, ?)""",
-            (role, content, title, session_id),
-        )
+    def add_session_log(self, role: str, content: str, title: str = None, session_id: str = None) -> int:
+        """Delegates to SessionService."""
+        result = self._sessions.add_log(role, content, title, session_id)
         self._auto_commit()
-        return cursor.lastrowid
+        return result
 
     def get_session_log(self, role: str, limit: int = 20) -> list[dict]:
-        """Get session log entries for a role. Newest first."""
-        rows = self._conn.execute(
-            """SELECT id, role, content, title, session_id, created_at
-               FROM session_log WHERE role = ?
-               ORDER BY created_at DESC, id DESC
-               LIMIT ?""",
-            (role, limit),
-        ).fetchall()
-        return [dict(row) for row in rows]
+        """Delegates to SessionService."""
+        return self._sessions.get_log(role, limit)
 
-    def get_session_logs(
-        self,
-        role: str = None,
-        limit: int = 10,
-        offset: int = 0,
-        metadata_only: bool = False,
-    ) -> list[dict]:
-        """Get session log entries. Optionally filter by role. Newest first.
-
-        Args:
-            role: Filter by role (optional)
-            limit: Max number of logs to return (default 10)
-            offset: Number of logs to skip (default 0)
-            metadata_only: If True, exclude content field (default False)
-
-        Returns:
-            List of session log dicts
-        """
-        # Select fields based on metadata_only flag
-        if metadata_only:
-            fields = "id, role, title, created_at"
-        else:
-            fields = "id, role, content, title, session_id, created_at"
-
-        if role:
-            query = f"""SELECT {fields}
-                        FROM session_log WHERE role = ?
-                        ORDER BY created_at DESC, id DESC
-                        LIMIT ? OFFSET ?"""
-            rows = self._conn.execute(query, (role, limit, offset)).fetchall()
-        else:
-            query = f"""SELECT {fields}
-                        FROM session_log
-                        ORDER BY created_at DESC, id DESC
-                        LIMIT ? OFFSET ?"""
-            rows = self._conn.execute(query, (limit, offset)).fetchall()
-
-        return [dict(row) for row in rows]
+    def get_session_logs(self, role: str = None, limit: int = 10, offset: int = 0, metadata_only: bool = False) -> list[dict]:
+        """Delegates to SessionService."""
+        return self._sessions.get_logs(role, limit, offset, metadata_only)
 
     def get_session_logs_init(self, role: str) -> dict:
-        """Get session logs for session initialization (--init flag).
-
-        Returns structured output for session_start workflow:
-        - own_full: 3 latest logs (full content) for this role
-        - own_metadata: 7 next logs (metadata only) for this role
-        - cross_role: 20 latest logs (metadata only) for all roles (only for non-executor roles)
-
-        Args:
-            role: Role to get logs for
-
-        Returns:
-            Dict with keys: own_full, own_metadata, cross_role (or None)
-        """
-        # Executor roles (focused on their domain, noise from other roles not needed)
-        executor_roles = ["erp_specialist", "analyst"]
-
-        # 3 latest logs (full content)
-        own_full = self.get_session_logs(role=role, limit=3, metadata_only=False)
-
-        # 7 next logs (metadata only)
-        own_metadata = self.get_session_logs(
-            role=role, offset=3, limit=7, metadata_only=True
-        )
-
-        # 20 latest cross-role logs (metadata only) — only for non-executor roles
-        cross_role = None
-        if role not in executor_roles:
-            cross_role = self.get_session_logs(limit=20, metadata_only=True)
-
-        return {
-            "own_full": own_full,
-            "own_metadata": own_metadata,
-            "cross_role": cross_role,
-        }
+        """Delegates to SessionService."""
+        return self._sessions.get_logs_init(role)
 
     def get_messages(
         self,
@@ -743,25 +661,9 @@ class AgentBus:
 
     # --- Sessions module ---
 
-    def upsert_session(
-        self,
-        session_id: str,
-        role: str = None,
-        claude_session_id: str = None,
-        transcript_path: str = None,
-        ended_at: str = None,
-    ) -> None:
-        """Insert or update a session record."""
-        self._conn.execute(
-            """INSERT INTO sessions (id, role, claude_session_id, transcript_path, ended_at)
-               VALUES (?, ?, ?, ?, ?)
-               ON CONFLICT(id) DO UPDATE SET
-                   role              = COALESCE(excluded.role, role),
-                   claude_session_id = COALESCE(excluded.claude_session_id, claude_session_id),
-                   transcript_path   = COALESCE(excluded.transcript_path, transcript_path),
-                   ended_at          = COALESCE(excluded.ended_at, ended_at)""",
-            (session_id, role, claude_session_id, transcript_path, ended_at),
-        )
+    def upsert_session(self, session_id: str, role: str = None, claude_session_id: str = None, transcript_path: str = None, ended_at: str = None) -> None:
+        """Delegates to SessionService."""
+        self._sessions.upsert(session_id, role, claude_session_id, transcript_path, ended_at)
         self._auto_commit()
 
     def add_tool_call(
@@ -803,31 +705,15 @@ class AgentBus:
 
     # --- Conversation ---
 
-    def add_conversation_entry(
-        self,
-        speaker: str,
-        content: str,
-        event_type: str,
-        session_id: str = None,
-        raw_payload: str = None,
-    ) -> int:
-        """Log a conversation event (user prompt, agent response, etc.)."""
-        cursor = self._conn.execute(
-            """INSERT INTO conversation (session_id, speaker, content, event_type, raw_payload)
-               VALUES (?, ?, ?, ?, ?)""",
-            (session_id, speaker, content, event_type, raw_payload),
-        )
+    def add_conversation_entry(self, speaker: str, content: str, event_type: str, session_id: str = None, raw_payload: str = None) -> int:
+        """Delegates to SessionService."""
+        result = self._sessions.add_conversation_entry(speaker, content, event_type, session_id, raw_payload)
         self._auto_commit()
-        return cursor.lastrowid
+        return result
 
     def get_conversation(self, session_id: str) -> list[dict]:
-        """Get conversation entries for a session."""
-        rows = self._conn.execute(
-            """SELECT id, session_id, speaker, content, event_type, created_at
-               FROM conversation WHERE session_id = ? ORDER BY id""",
-            (session_id,),
-        ).fetchall()
-        return [dict(row) for row in rows]
+        """Delegates to SessionService."""
+        return self._sessions.get_conversation(session_id)
 
     def close(self):
         """Close the database connection."""
