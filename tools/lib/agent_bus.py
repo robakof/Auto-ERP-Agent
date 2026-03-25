@@ -240,12 +240,14 @@ class AgentBus:
         from core.services.suggestion_service import SuggestionService
         from core.services.backlog_service import BacklogService
         from core.services.session_service import SessionService
+        from core.services.instance_service import InstanceService
         self._known_gaps = KnownGapsService(self._conn)
         self._workflows = WorkflowService(self._conn)
         self._telemetry = TelemetryService(self._conn)
         self._suggestions = SuggestionService(self._conn, db_path)
         self._backlog = BacklogService(self._conn, db_path)
         self._sessions = SessionService(self._conn)
+        self._instances = InstanceService(self._conn)
 
     def _run_migrations(self) -> None:
         for stmt in _MIGRATE_SQL:
@@ -722,107 +724,52 @@ class AgentBus:
     # --- Agent instances ---
 
     def register_instance(self, instance_id: str, role: str) -> None:
-        """Register a runner instance. Upsert — safe to call on restart."""
-        self._conn.execute(
-            """INSERT INTO agent_instances (instance_id, role, status, started_at, last_seen_at)
-               VALUES (?, ?, 'idle', datetime('now'), datetime('now'))
-               ON CONFLICT(instance_id) DO UPDATE SET
-                   status = 'idle', active_task_id = NULL,
-                   started_at = datetime('now'), last_seen_at = datetime('now')""",
-            (instance_id, role),
-        )
+        """Delegates to InstanceService."""
+        self._instances.register(instance_id, role)
         self._auto_commit()
 
     def heartbeat(self, instance_id: str) -> None:
-        """Update last_seen_at for a running instance."""
-        self._conn.execute(
-            "UPDATE agent_instances SET last_seen_at = datetime('now') WHERE instance_id = ?",
-            (instance_id,),
-        )
+        """Delegates to InstanceService."""
+        self._instances.heartbeat(instance_id)
         self._auto_commit()
 
     def set_instance_busy(self, instance_id: str, task_id: int) -> None:
-        """Mark instance as busy with an active task."""
-        self._conn.execute(
-            "UPDATE agent_instances SET status = 'busy', active_task_id = ? WHERE instance_id = ?",
-            (task_id, instance_id),
-        )
+        """Delegates to InstanceService."""
+        self._instances.set_busy(instance_id, task_id)
         self._auto_commit()
 
     def set_instance_idle(self, instance_id: str) -> None:
-        """Mark instance as idle and clear active task."""
-        self._conn.execute(
-            "UPDATE agent_instances SET status = 'idle', active_task_id = NULL WHERE instance_id = ?",
-            (instance_id,),
-        )
+        """Delegates to InstanceService."""
+        self._instances.set_idle(instance_id)
         self._auto_commit()
 
     def terminate_instance(self, instance_id: str) -> None:
-        """Mark instance as terminated."""
-        self._conn.execute(
-            "UPDATE agent_instances SET status = 'terminated' WHERE instance_id = ?",
-            (instance_id,),
-        )
+        """Delegates to InstanceService."""
+        self._instances.terminate(instance_id)
         self._auto_commit()
 
     def get_free_instances(self, role: str) -> list[dict]:
-        """Return idle instances for role with recent heartbeat (TTL=60s)."""
-        rows = self._conn.execute(
-            """SELECT instance_id, role, status, started_at, last_seen_at
-               FROM agent_instances
-               WHERE role = ? AND status = 'idle'
-                 AND last_seen_at >= datetime('now', '-60 seconds')
-               ORDER BY last_seen_at DESC""",
-            (role,),
-        ).fetchall()
-        return [dict(r) for r in rows]
+        """Delegates to InstanceService."""
+        return self._instances.get_free(role)
 
     def get_all_instances(self) -> list[dict]:
-        """Return all non-terminated instances with recent heartbeat."""
-        rows = self._conn.execute(
-            """SELECT instance_id, role, status, active_task_id, started_at, last_seen_at
-               FROM agent_instances
-               WHERE status != 'terminated'
-                 AND last_seen_at >= datetime('now', '-60 seconds')
-               ORDER BY role, last_seen_at DESC""",
-        ).fetchall()
-        return [dict(r) for r in rows]
+        """Delegates to InstanceService."""
+        return self._instances.get_all()
 
     def claim_task(self, msg_id: int, instance_id: str) -> bool:
-        """Atomically claim a task. Returns True if claimed, False if already taken."""
-        cursor = self._conn.execute(
-            """UPDATE messages
-               SET claimed_by = ?
-               WHERE id = ? AND status = 'unread' AND claimed_by IS NULL""",
-            (instance_id, msg_id),
-        )
+        """Delegates to InstanceService."""
+        result = self._instances.claim_task(msg_id, instance_id)
         self._auto_commit()
-        return cursor.rowcount > 0
+        return result
 
     def unclaim_task(self, msg_id: int) -> None:
-        """Release a claimed task (e.g. after invocation failure)."""
-        self._conn.execute(
-            """UPDATE messages
-               SET claimed_by = NULL
-               WHERE id = ? AND claimed_by IS NOT NULL""",
-            (msg_id,),
-        )
+        """Delegates to InstanceService."""
+        self._instances.unclaim_task(msg_id)
         self._auto_commit()
 
     def get_pending_tasks(self, role: str, instance_id: str) -> list[dict]:
-        """Return unread/unclaimed tasks for role OR specific instance_id."""
-        rows = self._conn.execute(
-            """SELECT id, sender, recipient, type, content, title, status, session_id,
-                      created_at, read_at, claimed_by
-               FROM messages
-               WHERE (recipient = ? OR recipient = ?)
-                 AND type = 'task'
-                 AND status = 'unread'
-                 AND claimed_by IS NULL
-               ORDER BY created_at ASC""",
-            (role, instance_id),
-        ).fetchall()
-        return [dict(r) for r in rows]
+        """Delegates to InstanceService."""
+        return self._instances.get_pending_tasks(role, instance_id)
 
     # --- Known Gaps ---
 
