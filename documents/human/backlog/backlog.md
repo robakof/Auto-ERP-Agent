@@ -13,16 +13,16 @@
 
 ## Wysoka wartość, średnia praca
 
-| id | tytuł | obszar | wartość | effort |
-|----|-------|--------|---------|--------|
-| 175 | [CONV] P1: CONVENTION_FILE_STRUCTURE — nowa | Arch | wysoka | srednia |
-| 173 | [CONV] P1: CONVENTION_TESTING — nowa | Arch | wysoka | srednia |
-| 168 | Tryb nasluchu — agent refresh kontekstu w trakcie sesji | Arch | wysoka | srednia |
-| 158 | CLI-API sync guard: test + docelowo single source of truth | Dev | wysoka | srednia |
-| 147 | Telemetry deduplication — single source of truth | Dev | wysoka | srednia |
-| 146 | Claimed status leak — rozdzielenie status vs ownership | Dev | wysoka | srednia |
-| 145 | Boundary tests — testy na granicach modułów (foundation) | Dev | wysoka | srednia |
-| 139 | Architect audit — config-driven architecture w całym projekcie | Arch | wysoka | srednia |
+| id  | tytuł                                                          | obszar | wartość | effort  |
+| --- | -------------------------------------------------------------- | ------ | ------- | ------- |
+| 175 | [CONV] P1: CONVENTION_FILE_STRUCTURE — nowa                    | Arch   | wysoka  | srednia |
+| 173 | [CONV] P1: CONVENTION_TESTING — nowa                           | Arch   | wysoka  | srednia |
+| 168 | Tryb nasluchu — agent refresh kontekstu w trakcie sesji        | Arch   | wysoka  | srednia |
+| 158 | CLI-API sync guard: test + docelowo single source of truth     | Dev    | wysoka  | srednia |
+| 147 | Telemetry deduplication — single source of truth               | Dev    | wysoka  | srednia |
+| 146 | Claimed status leak — rozdzielenie status vs ownership         | Dev    | wysoka  | srednia |
+| 145 | Boundary tests — testy na granicach modułów (foundation)       | Dev    | wysoka  | srednia |
+| 139 | Architect audit — config-driven architecture w całym projekcie | Arch   | wysoka  | srednia |
 
 ## Wysoka wartość, duża praca
 
