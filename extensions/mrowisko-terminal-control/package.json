@@ -1,8 +1,8 @@
 {
   "name": "mrowisko-terminal-control",
-  "displayName": "Mrowisko Terminal Control",
-  "description": "Kontrola terminali VS Code dla agentów Mrowisko",
-  "version": "0.1.0",
+  "displayName": "Mrowisko Agent Launcher",
+  "description": "Spawn i zarzadzanie agentami Claude Code w terminalach VS Code",
+  "version": "0.2.0",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -11,20 +11,47 @@
   ],
   "activationEvents": [
     "onCommand:mrowisko.spawnAgent",
-    "onCommand:mrowisko.testTerminal"
+    "onCommand:mrowisko.listAgents",
+    "onCommand:mrowisko.stopAgent"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "mrowisko.testTerminal",
-        "title": "Mrowisko: Test Terminal Control"
-      },
-      {
         "command": "mrowisko.spawnAgent",
         "title": "Mrowisko: Spawn Agent"
+      },
+      {
+        "command": "mrowisko.listAgents",
+        "title": "Mrowisko: List Agents"
+      },
+      {
+        "command": "mrowisko.stopAgent",
+        "title": "Mrowisko: Stop Agent"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Mrowisko Agent Launcher",
+      "properties": {
+        "mrowisko.dbPath": {
+          "type": "string",
+          "default": "mrowisko.db",
+          "description": "Path to mrowisko.db (relative to workspace root or absolute)"
+        },
+        "mrowisko.defaultPermissionMode": {
+          "type": "string",
+          "enum": ["default", "acceptEdits", "plan", "bypassPermissions"],
+          "default": "default",
+          "description": "Default permission mode for spawned agents"
+        },
+        "mrowisko.terminalLocation": {
+          "type": "string",
+          "enum": ["editor", "panel"],
+          "default": "editor",
+          "description": "Where to open agent terminals"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
