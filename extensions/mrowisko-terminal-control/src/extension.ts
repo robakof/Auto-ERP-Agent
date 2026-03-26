@@ -3,11 +3,13 @@ import * as path from "path";
 import { Registry } from "./registry";
 import { Spawner } from "./spawner";
 import { Watcher } from "./watcher";
+import { Approver } from "./approver";
 import { registerCommands } from "./commands";
 import { TerminalMap } from "./types";
 
 let registry: Registry | undefined;
 let watcher: Watcher | undefined;
+let approver: Approver | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
   const dbPath = resolveDbPath();
@@ -16,9 +18,16 @@ export function activate(context: vscode.ExtensionContext): void {
   registry = new Registry(dbPath);
   const spawner = new Spawner(registry, terminals);
   watcher = new Watcher(registry, terminals);
+  approver = new Approver(dbPath, spawner);
 
   watcher.activate();
   registerCommands(context, registry, spawner, terminals);
+
+  // Poll for pending invocations (approval gate)
+  const pollInterval = vscode.workspace
+    .getConfiguration("mrowisko")
+    .get<number>("pollIntervalMs", 5000);
+  approver.start(pollInterval);
 
   // URI handler: allows spawning agents from CLI via
   // code --open-url "vscode://mrowisko.mrowisko-terminal-control?command=spawnAgent&role=developer&task=check+backlog"
@@ -59,6 +68,7 @@ export function activate(context: vscode.ExtensionContext): void {
 }
 
 export function deactivate(): void {
+  approver?.dispose();
   watcher?.dispose();
   registry?.dispose();
 }

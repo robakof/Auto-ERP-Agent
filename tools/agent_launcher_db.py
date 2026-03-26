@@ -68,6 +68,48 @@ def cmd_cleanup(args):
     print(json.dumps({"ok": True, "cleaned": cur.rowcount}))
 
 
+def cmd_pending_invocations(args):
+    conn = _connect()
+    rows = conn.execute(
+        "SELECT * FROM invocations WHERE status = 'pending' ORDER BY created_at ASC"
+    ).fetchall()
+    conn.close()
+    print(json.dumps({"ok": True, "data": [dict(r) for r in rows]}))
+
+
+def cmd_approve_invocation(args):
+    conn = _connect()
+    conn.execute(
+        "UPDATE invocations SET status = 'approved' WHERE id = ? AND status = 'pending'",
+        (args.id,),
+    )
+    conn.commit()
+    conn.close()
+    print(json.dumps({"ok": True}))
+
+
+def cmd_reject_invocation(args):
+    conn = _connect()
+    conn.execute(
+        "UPDATE invocations SET status = 'rejected', ended_at = datetime('now') WHERE id = ? AND status = 'pending'",
+        (args.id,),
+    )
+    conn.commit()
+    conn.close()
+    print(json.dumps({"ok": True}))
+
+
+def cmd_complete_invocation(args):
+    conn = _connect()
+    conn.execute(
+        "UPDATE invocations SET status = 'completed', ended_at = datetime('now') WHERE id = ?",
+        (args.id,),
+    )
+    conn.commit()
+    conn.close()
+    print(json.dumps({"ok": True}))
+
+
 def main():
     parser = argparse.ArgumentParser(description="Live agents DB helper")
     sub = parser.add_subparsers(dest="command")
@@ -87,6 +129,17 @@ def main():
 
     sub.add_parser("cleanup")
 
+    sub.add_parser("pending-invocations")
+
+    p_approve = sub.add_parser("approve-invocation")
+    p_approve.add_argument("--id", type=int, required=True)
+
+    p_reject = sub.add_parser("reject-invocation")
+    p_reject.add_argument("--id", type=int, required=True)
+
+    p_complete = sub.add_parser("complete-invocation")
+    p_complete.add_argument("--id", type=int, required=True)
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()
@@ -97,6 +150,10 @@ def main():
         "list-active": cmd_list_active,
         "mark-stopped": cmd_mark_stopped,
         "cleanup": cmd_cleanup,
+        "pending-invocations": cmd_pending_invocations,
+        "approve-invocation": cmd_approve_invocation,
+        "reject-invocation": cmd_reject_invocation,
+        "complete-invocation": cmd_complete_invocation,
     }
     handlers[args.command](args)
 

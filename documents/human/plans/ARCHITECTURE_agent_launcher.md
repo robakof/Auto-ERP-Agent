@@ -87,8 +87,10 @@ Metody:
 - cleanup(): void  ← oznacz orphaned agents jako stopped
 ```
 
-Wtyczka **polluje** registry co N sekund (np. 5s) żeby odświeżyć widok.
-Hooki **piszą** do registry (SessionStart/Stop/SessionEnd).
+Registry komunikuje się z mrowisko.db przez **Python bridge** (`tools/agent_launcher_db.py`
+wywoływany przez `execFileSync`). `better-sqlite3` odrzucony — ABI mismatch z Electron.
+
+Hooki **piszą** do registry (SessionStart/Stop/SessionEnd) bezpośrednio przez `sqlite3` (Python stdlib).
 
 ### 2.3 Watcher
 
@@ -101,7 +103,21 @@ Events:
 - onDidChangeActiveTerminal → UI update (opcjonalnie)
 ```
 
-### 2.4 Commands (VS Code Command Palette)
+### 2.4 URI Handler (CLI → Extension bridge)
+
+Agenci i człowiek mogą sterować wtyczką z terminala przez URI:
+
+```bash
+code --open-url "vscode://mrowisko.mrowisko-terminal-control?command=spawnAgent&role=developer&task=check+backlog"
+code --open-url "vscode://mrowisko.mrowisko-terminal-control?command=listAgents"
+code --open-url "vscode://mrowisko.mrowisko-terminal-control?command=stopAgent&sessionId=UUID"
+```
+
+**Uwaga Windows:** `code.cmd` interpretuje `&` jako separator. Używaj `Code.exe` bezpośrednio lub URL-encode.
+
+To jest kluczowy mechanizm: daje agentom dostęp do GUI wtyczki bez interakcji z UI. Agent w terminalu wywołuje URI → wtyczka reaguje.
+
+### 2.5 Commands (VS Code Command Palette)
 
 | Command | Opis | Faza |
 |---|---|---|
@@ -193,23 +209,26 @@ Terminal zamknięty → onDidCloseTerminal → cleanup
 
 ### 4.2 Agent-to-agent invocation (Faza 2)
 
+**Wariant A: Direct URI (zaufane pary)**
 ```
-Agent A (w workflow) → agent_bus send --to <rola> --content-file tmp/task.md
+Agent A (w workflow) → code --open-url "vscode://mrowisko...?command=spawnAgent&role=developer&task=..."
     │
     ▼
-agent_bus INSERT invocations(invoker='agent', target_role, task, status='pending')
-    │
-    ▼
-Wtyczka (poll invocations) → wykrywa pending
-    │
-    ▼
-[Approval gate] → Human zatwierdza (Faza testów) / auto-approve (zaufane pary)
-    │
-    ▼
-Spawner → nowy terminal → Claude Code → SessionStart hook
+URI handler → Spawner → nowy terminal → Claude Code → SessionStart hook
     │
     ▼
 Agent B pracuje → kończy → wysyła wynik do Agent A
+```
+
+**Wariant B: Approval gate (faza testów)**
+```
+Agent A → agent_bus INSERT invocations(status='pending')
+    │
+    ▼
+Wtyczka (poll invocations) → wykrywa pending → pokazuje approval dialog
+    │
+    ▼
+Human zatwierdza → URI handler → Spawner → terminal
 ```
 
 ---
@@ -223,7 +242,7 @@ extensions/mrowisko-terminal-control/
 ├── src/
 │   ├── extension.ts       ← activate/deactivate, command registration
 │   ├── spawner.ts         ← SpawnRequest → Terminal + DB
-│   ├── registry.ts        ← LiveAgent CRUD (better-sqlite3)
+│   ├── registry.ts        ← LiveAgent CRUD (Python bridge via execFileSync)
 │   ├── watcher.ts         ← Terminal API event handlers
 │   ├── commands.ts        ← Command implementations
 │   └── types.ts           ← LiveAgent, SpawnRequest, etc.
@@ -232,10 +251,12 @@ extensions/mrowisko-terminal-control/
 │       └── extension.test.ts
 └── README.md
 
-tools/hooks/
-├── on_session_start.py    ← NOWY: live_agents INSERT
-├── on_stop.py             ← ROZSZERZENIE: live_agents UPDATE last_activity
-└── on_session_end.py      ← NOWY: live_agents UPDATE status=stopped
+tools/
+├── agent_launcher_db.py   ← Python bridge: CRUD live_agents (wywoływany przez registry.ts)
+└── hooks/
+    ├── on_session_start.py    ← live_agents UPDATE starting→active (tylko spawned agents)
+    ├── on_stop.py             ← ROZSZERZENIE: live_agents UPDATE last_activity
+    └── on_session_end.py      ← live_agents UPDATE status=stopped
 ```
 
 ---
@@ -290,23 +311,29 @@ tools/hooks/
 | # | Task | Pliki | Zależność |
 |---|---|---|---|
 | M1.1 | Tabele `live_agents` + `invocations` w agent_bus.py | agent_bus.py | — |
-| M1.2 | `types.ts` + `registry.ts` (better-sqlite3) | src/ | M1.1 |
+| M1.2 | `types.ts` + `registry.ts` (Python bridge) + `agent_launcher_db.py` | src/, tools/ | M1.1 |
 | M1.3 | `spawner.ts` (createTerminal + sendText + DB insert) | src/ | M1.2 |
 | M1.4 | `commands.ts` (spawnAgent, listAgents, stopAgent) | src/ | M1.3 |
 | M1.5 | `watcher.ts` (onDidCloseTerminal → cleanup) | src/ | M1.2 |
 | M1.6 | `extension.ts` (activate: register commands + watcher) | src/ | M1.4, M1.5 |
 | M1.7 | Hook `on_session_start.py` | tools/hooks/ | M1.1 |
 | M1.8 | Hook `on_session_end.py` + rozszerzenie `on_stop.py` | tools/hooks/ | M1.1 |
-| M1.9 | Testy manualne + fix PoC | — | M1.6, M1.7, M1.8 |
+| M1.9 | URI handler (CLI → Extension bridge) | src/extension.ts | M1.6 |
+| M1.10 | Testy via URI handler + fix | — | M1.9 |
+
+### Milestone 1: STATUS — DONE ✓
+
+Commit: `9ac9a48`, `411bcad`, `cdc8a11`. Testy manualne PASS. Code review PASS (L3 Senior).
 
 ### Milestone 2: Invocation (Faza 2)
 
-| # | Task |
-|---|---|
-| M2.1 | CLI: `agent_bus_cli.py spawn-request` — agent żąda spawnu |
-| M2.2 | Wtyczka: poll `invocations` table, approval gate UI |
-| M2.3 | Hooki: SubagentStart/SubagentStop |
-| M2.4 | Multi-window: każda instancja polluje, spawni lokalnie |
+| # | Task | Opis |
+|---|---|---|
+| M2.1 | CLI spawn helper | Skrypt/komenda `agent_bus_cli.py spawn` budujący URI i wywołujący `code --open-url`. Agent z terminala spawni innego agenta. |
+| M2.2 | Invocation tracking | `agent_bus_cli.py spawn` zapisuje do `invocations` table (kto, kogo, kiedy, status). |
+| M2.3 | Approval gate (wariant B) | Wtyczka polluje `invocations` (status=pending) → dialog zatwierdzenia → spawn via URI. Konfigurowalne: auto-approve dla zaufanych par. |
+| M2.4 | Workflow invocation | Agent w workflow może wywołać innego agenta bezpośrednio (wariant A — direct URI, bez approval). |
+| M2.5 | Windows helper | Rozwiązanie problemu `code.cmd` vs `Code.exe` + `&` w URI na PowerShell. |
 
 ### Milestone 3: Orkiestracja (Faza 3)
 
@@ -326,7 +353,9 @@ tools/hooks/
 | D1 | CLI spawn (nie Agent SDK) | Agent SDK | CLI = pełna interaktywność, slash commands, status line |
 | D2 | `live_agents` osobna tabela | Rozszerzenie `sessions` | Różne lifecycle: sessions=trwała historia, live_agents=runtime |
 | D3 | Polling DB (nie IPC) | WebSocket/IPC między oknami | Prostsze, mrowisko.db już współdzielona, WAL mode |
-| D4 | `better-sqlite3` (nie async) | node-sqlite3 | Sync API prostsze w extensions, brak callback hell |
+| D4 | Python bridge (nie better-sqlite3) | better-sqlite3, node-sqlite3 | better-sqlite3 ABI mismatch z Electron. Python bridge reużywa infrastrukturę, zero native deps. Async w Fazie 3. |
 | D5 | `TerminalLocation.Editor` default | Panel (dół) | User chce terminale obok siebie pionowo |
 | D6 | Permission mode konfigurowalne | Hardcoded default | User oczekuje elastyczności per spawn |
 | D7 | UUID4 generowany przed spawnem | Claude generuje session_id | Pre-registration w registry zanim agent wystartuje |
+| D8 | URI handler (nie `code --command`) | `code --command` nie istnieje | URI handler daje agentom pełny dostęp do wtyczki z terminala. Kluczowy mechanizm dla Fazy 2. |
+| D9 | Manual sessions nie w live_agents | Rejestruj wszystko | Tylko spawned agents trackowane. Ręczne sesje nie zaśmiecają registry. |

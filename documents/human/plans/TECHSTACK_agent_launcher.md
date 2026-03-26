@@ -49,7 +49,7 @@ vscode.window.onDidOpenTerminal(terminal => { /* register */ });
 | Element | Technologia | Uzasadnienie |
 |---|---|---|
 | DB | **SQLite / mrowisko.db** | Istniejąca infrastruktura. Cross-window mediator (E-02). WAL mode. |
-| Dostęp z TS | **better-sqlite3** | Synchroniczny, szybki, natywne bindingi. Standard dla VS Code extensions z SQLite. |
+| Dostęp z TS | **Python bridge** (`tools/agent_launcher_db.py` via `execFileSync`) | `better-sqlite3` (native C++) nie działa w Electron (ABI mismatch). Python bridge reużywa infrastrukturę, zero native deps. Sync ~50ms — do async w Fazie 3. |
 | Dostęp z Python | **sqlite3** (stdlib) | Istniejący pattern (agent_bus.py). |
 
 ### Nowa tabela: `live_agents`
@@ -120,4 +120,5 @@ CREATE INDEX IF NOT EXISTS idx_invocations_status ON invocations(status);
 | Agent Teams | Brak integracji z mrowisko.db (E-01). |
 | tmux / Windows Terminal | Wymaga WSL, mniejsza kontrola niż VS Code Extension API. |
 | subprocess + stream-json | Brak interaktywności. `-p` = print and exit. |
-| node-sqlite3 (async) | Callback-based, trudniejsze w extensions. better-sqlite3 prostsze. |
+| node-sqlite3 (async) | Callback-based, trudniejsze w extensions. |
+| better-sqlite3 | Native C++ moduł — ABI mismatch z Electron (VS Code Extension Host). Nie kompiluje się bez electron-rebuild. Python bridge prostszy i kompatybilny. |

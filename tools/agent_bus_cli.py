@@ -486,6 +486,90 @@ def cmd_gap_resolve(args: argparse.Namespace, bus: AgentBus) -> dict:
     return result
 
 
+def cmd_spawn(args: argparse.Namespace, bus: AgentBus) -> dict:
+    """Spawn another agent via VS Code URI handler + record invocation."""
+    import subprocess
+    from pathlib import Path
+
+    sender = args.sender or _detect_role()
+    project_root = Path(__file__).parent.parent
+    vscode_uri = project_root / "tools" / "vscode_uri.py"
+
+    # Record invocation in DB
+    conn = bus._conn
+    conn.execute(
+        """INSERT INTO invocations (invoker_type, invoker_id, target_role, task, status)
+           VALUES ('agent', ?, ?, ?, 'approved')""",
+        (sender, args.role, args.task),
+    )
+    conn.commit()
+    inv_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+    # Call vscode_uri.py to trigger spawn
+    cmd = [sys.executable, str(vscode_uri), "--command", "spawnAgent", "--role", args.role, "--task", args.task]
+    if args.permission_mode:
+        cmd.extend(["--permission-mode", args.permission_mode])
+
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+    uri_result = {}
+    if result.stdout.strip():
+        try:
+            uri_result = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            pass
+
+    ok = uri_result.get("ok", False)
+
+    # Update invocation status
+    new_status = "running" if ok else "failed"
+    conn.execute(
+        "UPDATE invocations SET status = ? WHERE id = ?",
+        (new_status, inv_id),
+    )
+    conn.commit()
+
+    return {
+        "ok": ok,
+        "invocation_id": inv_id,
+        "target_role": args.role,
+        "task": args.task,
+        "uri": uri_result.get("uri", ""),
+    }
+
+
+def cmd_spawn_request(args: argparse.Namespace, bus: AgentBus) -> dict:
+    """Request agent spawn — inserts as 'pending' for human approval via wtyczka."""
+    sender = args.sender or _detect_role()
+    conn = bus._conn
+    conn.execute(
+        """INSERT INTO invocations (invoker_type, invoker_id, target_role, task, status)
+           VALUES ('agent', ?, ?, ?, 'pending')""",
+        (sender, args.role, args.task),
+    )
+    conn.commit()
+    inv_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+    return {
+        "ok": True,
+        "invocation_id": inv_id,
+        "status": "pending",
+        "target_role": args.role,
+        "task": args.task,
+        "message": "Spawn request created. Awaiting human approval in VS Code.",
+    }
+
+
+def cmd_invocations(args: argparse.Namespace, bus: AgentBus) -> dict:
+    """List invocations, optionally filtered by status."""
+    conn = bus._conn
+    if args.status:
+        rows = conn.execute(
+            "SELECT * FROM invocations WHERE status = ? ORDER BY id DESC", (args.status,)
+        ).fetchall()
+    else:
+        rows = conn.execute("SELECT * FROM invocations ORDER BY id DESC").fetchall()
+    return {"ok": True, "data": [dict(r) for r in rows], "count": len(rows)}
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="AgentBus CLI — message passing and state for agent swarm"
@@ -705,6 +789,23 @@ def build_parser() -> argparse.ArgumentParser:
     p_gap_res.add_argument("--id", type=int, required=True)
     p_gap_res.add_argument("--backlog-id", dest="backlog_id", type=int, required=True)
 
+    # spawn — direct agent invocation (M2, wariant A — no approval)
+    p_spawn = subparsers.add_parser("spawn", help="Spawn another agent via VS Code URI handler")
+    p_spawn.add_argument("--from", dest="sender", help="Invoker role")
+    p_spawn.add_argument("--role", required=True, help="Target agent role")
+    p_spawn.add_argument("--task", required=True, help="Task for the agent")
+    p_spawn.add_argument("--permission-mode", dest="permission_mode", help="Permission mode override")
+
+    # spawn-request — request spawn with approval gate (M2, wariant B)
+    p_spawn_req = subparsers.add_parser("spawn-request", help="Request agent spawn (pending approval)")
+    p_spawn_req.add_argument("--from", dest="sender", help="Invoker role")
+    p_spawn_req.add_argument("--role", required=True, help="Target agent role")
+    p_spawn_req.add_argument("--task", required=True, help="Task for the agent")
+
+    # invocations — list invocations
+    p_invocations = subparsers.add_parser("invocations", help="List invocations")
+    p_invocations.add_argument("--status", default=None, help="Filter by status")
+
     return parser
 
 
@@ -741,6 +842,9 @@ def main():
         "gap-add": cmd_gap_add,
         "gaps": cmd_gaps,
         "gap-resolve": cmd_gap_resolve,
+        "spawn": cmd_spawn,
+        "spawn-request": cmd_spawn_request,
+        "invocations": cmd_invocations,
     }
     try:
         result = commands[args.command](args, bus)

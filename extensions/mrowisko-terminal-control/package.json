@@ -46,6 +46,11 @@
           "default": "default",
           "description": "Default permission mode for spawned agents"
         },
+        "mrowisko.pollIntervalMs": {
+          "type": "number",
+          "default": 5000,
+          "description": "Interval (ms) for polling pending invocations"
+        },
         "mrowisko.terminalLocation": {
           "type": "string",
           "enum": ["editor", "panel"],
