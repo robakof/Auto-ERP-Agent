@@ -1,22 +1,21 @@
-2026-03-26 **23:46**
+27 . 03                                                                                                   **00:09**
 
-| W toku | Workflow | Zaplanowane | Nieprzeczytane |
-|:---:|:---:|:---:|:---:|
-| **5** | **8** | **28** | **90** |
+**Sesje**                    4
+Workflow             8
 
-#### Sesje
-
-| **Rola** | **Status** | **Kontekst** |
-|------|--------|----------|
+| **Sesje** | **Status** | **Kontekst** |
+| --------------- | ------------- | ------------ |
 | dispatcher | Z czlowiekiem | |
 | developer | Praca | |
 | architect | Praca | |
 | prompt_engineer | Praca | |
 
-#### Nieprzeczytane
+| Zadania | Wiadomosci |
+| :-----: | :--------: |
+| **29** | **90** |
 
-| **Rola** | **#** |
-|------|---|
+| **Rola** | Nieprzeczytane |
+| --------------- | -------------: |
 | erp_specialist | 23 |
 | prompt_engineer | 21 |
 | analyst | 20 |
