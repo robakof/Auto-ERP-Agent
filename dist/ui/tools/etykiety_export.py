@@ -1,0 +1,355 @@
+"""
+etykiety_export.py — Generuje etykiety wysyłkowe Word (6x9cm) dla klienta z ERP.
+
+Pobiera dane przez etykiety_10_oferty.sql, wypełnia szablon Word komórka po komórce.
+Jeden plik = jeden klient, tyle stron ile potrzeba.
+
+CLI:
+    python tools/etykiety_export.py --klient-gid 9402 --output output/etykiety_AUCHAN.docx
+
+Opcje:
+    --klient-gid INT    GIDNumer grupy klienta (z etykiety_grupy.sql)
+    --output PATH       Ścieżka do pliku wynikowego .docx
+    --template PATH     Domyślnie: "Etykiety do wypełnienia.docx"
+    --cols INT          Etykiet w wierszu (domyślnie: 4, jak w szablonie)
+"""
+
+import argparse
+import copy
+import re
+import sys
+from io import BytesIO
+from pathlib import Path
+
+from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Cm, Pt
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from tools.lib.output import print_json
+from tools.lib.sql_client import SqlClient
+
+_PROJECT_ROOT = Path(__file__).parent.parent
+SQL_PATH       = _PROJECT_ROOT / "solutions/jas/etykiety_10_oferty.sql"
+SQL_EXCEL_PATH = _PROJECT_ROOT / "solutions/jas/etykiety_excel.sql"
+TEMPLATE_PATH  = _PROJECT_ROOT / "documents/human/ar/dokumenty/Etykiety do wypełnienia.docx"
+DEFAULT_COLS   = 4
+
+
+# ---------------------------------------------------------------------------
+# Barcode
+# ---------------------------------------------------------------------------
+
+def _make_barcode_bytes(ean_str: str) -> BytesIO | None:
+    """Generuje PNG kodu kreskowego EAN-13. Zwraca None przy błędzie."""
+    try:
+        from barcode import EAN13
+        from barcode.writer import ImageWriter
+        buf = BytesIO()
+        EAN13(ean_str.strip(), writer=ImageWriter()).write(buf, options={
+            "write_text": False,
+            "module_height": 6.0,
+            "quiet_zone": 1.0,
+        })
+        buf.seek(0)
+        return buf
+    except Exception:
+        return None
+
+
+def _set_para_picture(para, image_bytes: BytesIO, width_cm: float) -> None:
+    """Czyści istniejące runy, wstawia obraz wycentrowany."""
+    for run in para.runs:
+        run.text = ""
+    para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    para.add_run().add_picture(image_bytes, width=Cm(width_cm))
+
+
+# ---------------------------------------------------------------------------
+# SQL
+# ---------------------------------------------------------------------------
+
+def _prepare_sql(klient_gid: int) -> str:
+    """Usuwa DECLARE @klient_gid i podstawia wartość bezpośrednio w SQL."""
+    sql = SQL_PATH.read_text(encoding="utf-8")
+    sql = re.sub(
+        r"DECLARE\s+@klient_gid\s+INT\s*=\s*\d+\s*;?\s*\n?",
+        "",
+        sql,
+        flags=re.IGNORECASE,
+    )
+    sql = sql.replace("@klient_gid", str(int(klient_gid)))
+    return sql.strip()
+
+
+def _query_products(klient_gid: int) -> list[dict]:
+    sql = _prepare_sql(klient_gid)
+    result = SqlClient().execute(sql, inject_top=None)
+    if not result["ok"]:
+        raise RuntimeError(result["error"]["message"])
+    cols = result["columns"]
+    return [dict(zip(cols, row)) for row in result["rows"]]
+
+
+def load_codes_from_excel(excel_path: str) -> list[str]:
+    """Czyta kolumnę 'Kod' z Excela. Zwraca listę niepustych kodów."""
+    import openpyxl
+    wb = openpyxl.load_workbook(excel_path, read_only=True, data_only=True)
+    ws = wb.active
+    headers = [str(c.value).strip() if c.value else "" for c in next(ws.iter_rows(min_row=1, max_row=1))]
+    try:
+        col_idx = headers.index("Kod")
+    except ValueError:
+        raise ValueError(f"Brak kolumny 'Kod' w pliku. Znalezione nagłówki: {headers}")
+    kody = []
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        val = row[col_idx]
+        if val:
+            kody.append(str(val).strip())
+    wb.close()
+    return kody
+
+
+def _query_products_from_codes(kody: list[str]) -> list[dict]:
+    """Pobiera dane etykiet z ERP dla podanej listy kodów Twr_Kod."""
+    if not kody:
+        return []
+    kody_in = ", ".join(f"'{k.replace(chr(39), chr(39)*2)}'" for k in kody)
+    sql = SQL_EXCEL_PATH.read_text(encoding="utf-8").replace("{kody_in}", kody_in)
+    result = SqlClient().execute(sql, inject_top=None)
+    if not result["ok"]:
+        raise RuntimeError(result["error"]["message"])
+    cols = result["columns"]
+    return [dict(zip(cols, row)) for row in result["rows"]]
+
+
+# ---------------------------------------------------------------------------
+# Wypełnianie komórki
+# ---------------------------------------------------------------------------
+
+def _v(value, suffix: str = "") -> str:
+    """Zwraca wartość jako string z sufiksem, lub pusty string dla None/''."""
+    if value is None:
+        return ""
+    s = str(value).strip()
+    return (s + suffix) if s else ""
+
+
+def _fill_cell(cell, product: dict) -> None:
+    """
+    Wypełnia komórkę szablonu danymi produktu.
+
+    Struktura komórki (17 paragrafów, indeksy stałe dla szablonu):
+      [2]  EAN:
+      [3]  → kod kreskowy EAN-13 (obraz)
+      [4]  → cyfry EAN (czytelne dla człowieka)
+      [5]  NAZWA:      [6]  → wartość nazwy
+      [8]  Wysokość: {val} cm
+      [9]  Czas palenia: {val} h
+      [10] Gramatura: {val} g
+      [12] COLI: {val} szt.
+      [13] PALETA: {val} szt.
+      [15] Uwagi:
+    """
+    paras = cell.paragraphs
+
+    # EAN barcode — para[3]
+    ean_val = _v(product.get("ean"))
+    if ean_val:
+        buf = _make_barcode_bytes(ean_val)
+        if buf:
+            _set_para_picture(paras[3], buf, width_cm=3.6)
+        else:
+            _set_para_value(paras[3], ean_val)
+    else:
+        _set_para_value(paras[3], "")
+
+    # EAN cyfry — para[4]: wycentrowane pod barkodem
+    _set_para_value(paras[4], ean_val)
+    paras[4].alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    # NAZWA — para[6]: zmniejszona czcionka
+    _set_para_value(paras[6], _v(product.get("nazwa")), font_size_pt=8)
+
+    # Wysokość — para[8]: jeden run "Wysokość: "
+    val = _v(product.get("wysokosc_cm"), " cm")
+    _set_run_text(paras[8], 0, f"Wysokość: {val}")
+
+    # Czas palenia — para[9]: dwa runy "Czas palenia" + ":"
+    val = _v(product.get("czas_palenia_h"), " h")
+    _set_run_text(paras[9], 0, f"Czas palenia: {val}")
+    _set_run_text(paras[9], 1, "")
+
+    # Gramatura — para[10]: dwa runy "Gramatura" + ":"
+    val = _v(product.get("gramatura_g"), " g")
+    _set_run_text(paras[10], 0, f"Gramatura: {val}")
+    _set_run_text(paras[10], 1, "")
+
+    # COLI — para[12]: jeden run "COLI:  "
+    val = _v(product.get("coli_szt"))
+    _set_run_text(paras[12], 0, f"COLI: {val} szt." if val else "COLI: ")
+
+    # PALETA — para[13]: jeden run "PALETA: "
+    val = _v(product.get("paleta_szt"))
+    _set_run_text(paras[13], 0, f"PALETA: {val} szt." if val else "PALETA: ")
+
+
+def _set_para_value(para, text: str, font_size_pt: int | None = None) -> None:
+    """Czyści istniejące runy i dodaje nowy z podanym tekstem."""
+    for run in para.runs:
+        run.text = ""
+    if text:
+        run = para.add_run(text)
+        if font_size_pt:
+            run.font.size = Pt(font_size_pt)
+
+
+def _set_run_text(para, index: int, text: str) -> None:
+    """Ustawia tekst runu o podanym indeksie (jeśli istnieje)."""
+    if index < len(para.runs):
+        para.runs[index].text = text
+
+
+# ---------------------------------------------------------------------------
+# Helpers wiersza
+# ---------------------------------------------------------------------------
+
+def _set_row_height_at_least(tr_el) -> None:
+    """Zmienia hRule wiersza z 'exact' na 'atLeast' — wiersz rozszerza się do treści."""
+    from docx.oxml.ns import qn
+    trPr = tr_el.find(qn("w:trPr"))
+    if trPr is None:
+        return
+    trH = trPr.find(qn("w:trHeight"))
+    if trH is not None:
+        trH.set(qn("w:hRule"), "atLeast")
+
+
+# ---------------------------------------------------------------------------
+# Generowanie dokumentu
+# ---------------------------------------------------------------------------
+
+def generate(
+    products: list[dict],
+    output_path: Path,
+    template_path: Path = TEMPLATE_PATH,
+    cols: int = DEFAULT_COLS,
+) -> None:
+    """
+    Generuje plik Word z etykietami.
+
+    Używa tabeli 0 z szablonu (siatka pustych etykiet, 4 kolumny).
+    Wiersze dodawane dynamicznie — Word paginuje automatycznie.
+    Pozostałe tabele z szablonu są usuwane.
+    """
+    doc = Document(str(template_path))
+    body = doc.element.body
+
+    table = doc.tables[0]
+    tbl_el = table._tbl
+
+    # Usuń wszystko po tabeli 0 (pozostałe tabele, akapity przykładów)
+    # Zachowaj jeden akapit na końcu (Word tego wymaga)
+    after = False
+    to_remove = []
+    for child in list(body):
+        if child is tbl_el:
+            after = True
+            continue
+        if after:
+            to_remove.append(child)
+
+    # Ostatni element body musi być akapitem — jeśli jest, zostaw go
+    if to_remove and to_remove[-1].tag.endswith("}p"):
+        to_remove = to_remove[:-1]
+    for el in to_remove:
+        body.remove(el)
+
+    # Zachowaj wzorzec wiersza z szablonu, następnie usuń wszystkie wiersze
+    template_row_xml = copy.deepcopy(table.rows[0]._tr)
+    _set_row_height_at_least(template_row_xml)
+    for row in list(table.rows):
+        table._tbl.remove(row._tr)
+
+    # Zbuduj tabelę: tyle wierszy ile potrzeba
+    n = len(products)
+    needed_rows = max(1, -(-n // cols))  # ceil(n / cols)
+
+    for ri in range(needed_rows):
+        new_row = copy.deepcopy(template_row_xml)
+        table._tbl.append(new_row)
+
+        row_obj = table.rows[ri]
+        for ci in range(cols):
+            idx = ri * cols + ci
+            if idx < n:
+                _fill_cell(row_obj.cells[ci], products[idx])
+            # else: komórka zostaje pusta (format szablonu zachowany)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    doc.save(str(output_path))
+
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Generuj etykiety Word dla klienta ERP.")
+    parser.add_argument("--klient-gid", type=int, required=True,
+                        help="GIDNumer grupy klienta (z etykiety_grupy.sql)")
+    parser.add_argument("--output", required=True,
+                        help="Ścieżka do pliku wynikowego .docx")
+    parser.add_argument("--template", default=str(TEMPLATE_PATH),
+                        help=f"Szablon Word (domyślnie: {TEMPLATE_PATH})")
+    parser.add_argument("--cols", type=int, default=DEFAULT_COLS,
+                        help=f"Etykiet w wierszu (domyślnie: {DEFAULT_COLS})")
+    args = parser.parse_args()
+
+    output_path = Path(args.output)
+    template_path = Path(args.template)
+
+    if not template_path.exists():
+        print_json({
+            "ok": False, "data": None,
+            "error": {"type": "TEMPLATE_NOT_FOUND", "message": str(template_path)},
+            "meta": {},
+        })
+        return
+
+    try:
+        products = _query_products(args.klient_gid)
+    except RuntimeError as e:
+        print_json({
+            "ok": False, "data": None,
+            "error": {"type": "SQL_ERROR", "message": str(e)},
+            "meta": {},
+        })
+        return
+
+    if not products:
+        print_json({
+            "ok": False, "data": None,
+            "error": {"type": "NO_DATA", "message": f"Brak produktów dla klient_gid={args.klient_gid}"},
+            "meta": {},
+        })
+        return
+
+    generate(products, output_path, template_path, args.cols)
+
+    print_json({
+        "ok": True,
+        "data": {
+            "row_count": len(products),
+            "output_path": str(output_path.resolve()),
+            "cols": args.cols,
+            "rows_generated": -(-len(products) // args.cols),
+        },
+        "error": None,
+        "meta": {},
+    })
+
+
+if __name__ == "__main__":
+    main()
