@@ -80,6 +80,17 @@ def main() -> None:
             is_error=is_error,
         )
 
+        # Refresh dashboard (fire-and-forget, skip if already rendering)
+        if not os.environ.get("MROWISKO_DASHBOARD_RENDERING"):
+            import subprocess
+            env = os.environ.copy()
+            env["MROWISKO_DASHBOARD_RENDERING"] = "1"
+            subprocess.Popen(
+                [sys.executable, str(PROJECT_ROOT / "tools" / "render_dashboard.py")],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                env=env,
+            )
+
     except Exception as e:
         try:
             err_file = PROJECT_ROOT / "tmp" / "hook_post_tool_use_error.txt"
