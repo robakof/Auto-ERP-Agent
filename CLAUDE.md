@@ -161,8 +161,8 @@ Długie treści zapisuj przez plik pośredni — nie inline w komendzie:
 # Sugestia (refleksja, obserwacja)
 py tools/agent_bus_cli.py suggest --from <rola> --content-file tmp/tmp.md
 
-# Backlog — nowe zadanie
-py tools/agent_bus_cli.py backlog-add --title "Tytuł" --area <obszar> --value wysoka --effort mala --content-file tmp/tmp.md
+# Backlog — nowe zadanie (--depends-on opcjonalne)
+py tools/agent_bus_cli.py backlog-add --title "Tytuł" --area <obszar> --value wysoka --effort mala --depends-on <id> --content-file tmp/tmp.md
 
 # Backlog — odczyt zadań dla swojej roli (filtruj po obszarze)
 py tools/agent_bus_cli.py backlog --area ERP       # ERP Specialist
@@ -310,6 +310,13 @@ Odkładając zadanie na później (bez anulowania):
 ```
 py tools/agent_bus_cli.py backlog-update --id <id> --status deferred
 ```
+
+Zależność między taskami (opcjonalne):
+```
+py tools/agent_bus_cli.py backlog-update --id <id> --depends-on <dependency_id>   # ustaw
+py tools/agent_bus_cli.py backlog-update --id <id> --depends-on 0                 # usuń
+```
+Przy `--status in_progress` z niezakończoną zależnością CLI zwraca warning.
 
 Inne role widzą `in_progress` i nie duplikują pracy.
 
