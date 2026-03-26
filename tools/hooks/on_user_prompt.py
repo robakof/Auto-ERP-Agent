@@ -53,12 +53,17 @@ def main():
             raw_payload=raw[:4000],
         )
 
-        # Refresh dashboard (fire-and-forget, non-blocking)
-        import subprocess
-        subprocess.Popen(
-            [sys.executable, str(PROJECT_ROOT / "tools" / "render_dashboard.py")],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-        )
+        # Refresh dashboard (fire-and-forget, skip if already rendering)
+        import os
+        if not os.environ.get("MROWISKO_DASHBOARD_RENDERING"):
+            import subprocess
+            env = os.environ.copy()
+            env["MROWISKO_DASHBOARD_RENDERING"] = "1"
+            subprocess.Popen(
+                [sys.executable, str(PROJECT_ROOT / "tools" / "render_dashboard.py")],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                env=env,
+            )
 
     except Exception as e:
         try:
