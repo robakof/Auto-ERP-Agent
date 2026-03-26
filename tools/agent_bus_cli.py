@@ -277,6 +277,7 @@ def cmd_backlog_add(args: argparse.Namespace, bus: AgentBus) -> dict:
         value=args.value,
         effort=args.effort,
         source_id=args.source_id,
+        depends_on=args.depends_on,
     )
     return {"ok": True, "id": bid}
 
@@ -308,18 +309,27 @@ def cmd_backlog(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 
 def cmd_backlog_update(args: argparse.Namespace, bus: AgentBus) -> dict:
+    result: dict = {"ok": True}
     with bus.transaction():
         if args.status:
-            bus.update_backlog_status(args.id, args.status)
+            status_result = bus.update_backlog_status(args.id, args.status)
+            if status_result.get("warning"):
+                result["warning"] = status_result["warning"]
+        if hasattr(args, "depends_on") and args.depends_on is not None:
+            dep_val = None if args.depends_on == 0 else args.depends_on
+            bus.update_backlog_depends_on(args.id, dep_val)
         if args.content_file or args.content:
             bus.update_backlog_content(args.id, _read_content(args))
-    return {"ok": True}
+    return result
 
 
 def cmd_backlog_update_bulk(args: argparse.Namespace, bus: AgentBus) -> dict:
     def handler(item):
         if "status" in item:
             bus.update_backlog_status(item["id"], item["status"])
+        if "depends_on" in item:
+            dep_val = None if item["depends_on"] == 0 else item["depends_on"]
+            bus.update_backlog_depends_on(item["id"], dep_val)
         if "content" in item:
             bus.update_backlog_content(item["id"], item["content"])
         return item["id"]
@@ -553,6 +563,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_badd.add_argument("--value", default=None, choices=["wysoka", "srednia", "niska"])
     p_badd.add_argument("--effort", default=None, choices=["mala", "srednia", "duza"])
     p_badd.add_argument("--source-id", dest="source_id", type=int, default=None)
+    p_badd.add_argument("--depends-on", dest="depends_on", type=int, default=None,
+                        help="ID of backlog item this depends on")
 
     # backlog-add-bulk
     p_bulk = subparsers.add_parser("backlog-add-bulk", help="Add multiple backlog items from JSON file")
@@ -572,6 +584,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_bupd.add_argument("--id", type=int, required=True)
     p_bupd.add_argument("--status", default=None,
                         choices=["planned", "in_progress", "done", "cancelled", "deferred"])
+    p_bupd.add_argument("--depends-on", dest="depends_on", type=int, default=None,
+                        help="ID of dependency (0 to clear)")
     g_bupd = p_bupd.add_mutually_exclusive_group()
     g_bupd.add_argument("--content")
     g_bupd.add_argument("--content-file", dest="content_file")

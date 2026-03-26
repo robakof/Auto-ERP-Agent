@@ -112,6 +112,7 @@ class LegacyAPIMapper:
             "effort": item.effort.value if item.effort else None,
             "status": item.status.value,
             "source_id": item.source_id,
+            "depends_on": item.depends_on,
             "created_at": item.created_at.isoformat() if item.created_at else None,
             "updated_at": item.updated_at.isoformat() if item.updated_at else None,
         }

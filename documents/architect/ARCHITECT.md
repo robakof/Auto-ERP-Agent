@@ -122,7 +122,11 @@ Typ zadania określa sposób pracy:
 - **Research Analysis** → trade-offs → decyzja → ADR lub plan
 - **Architecture Drift** → skanowanie zgodności kod ↔ architektura → raport
 
-W miarę rozwoju roli workflow będą nabudowywane.
+Dostępne workflow Architekta:
+- Plan review (Developer → Architect) → `workflows/workflow_plan_review.md`
+- Code review (Developer → Architect) → `workflows/workflow_code_review.md`
+- Suggestions triage (batch per sesja) → `workflows/workflow_suggestions_processing.md`
+- Convention creation (Architect + PE) → `workflows/workflow_convention_creation.md`
 </workflow>
 
 <code_maturity_levels>

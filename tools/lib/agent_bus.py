@@ -216,6 +216,8 @@ _MIGRATE_SQL = [
     "UPDATE messages SET claimed_by = 'legacy-runner', status = 'unread' WHERE status = 'claimed'",
     # #187 M4: reply_to_id for thread correlation
     "ALTER TABLE messages ADD COLUMN reply_to_id INTEGER REFERENCES messages(id)",
+    # #124: depends_on for backlog dependency tracking
+    "ALTER TABLE backlog ADD COLUMN depends_on INTEGER REFERENCES backlog(id)",
 ]
 
 
@@ -367,10 +369,11 @@ class AgentBus:
         value: str = None,
         effort: str = None,
         source_id: int = None,
+        depends_on: int = None,
     ) -> int:
         """Delegates to BacklogService."""
         txn_conn = self._conn if self._in_transaction else None
-        return self._backlog.add(title, content, area, value, effort, source_id, txn_conn)
+        return self._backlog.add(title, content, area, value, effort, source_id, depends_on, txn_conn)
 
     def get_backlog(self, status: str = None, area: str = None) -> list[dict]:
         """Delegates to BacklogService."""
@@ -382,10 +385,15 @@ class AgentBus:
         txn_conn = self._conn if self._in_transaction else None
         return self._backlog.get_by_id(backlog_id, txn_conn)
 
-    def update_backlog_status(self, backlog_id: int, status: str) -> None:
+    def update_backlog_status(self, backlog_id: int, status: str) -> dict:
+        """Delegates to BacklogService. Returns warning dict if dependency not done."""
+        txn_conn = self._conn if self._in_transaction else None
+        return self._backlog.update_status(backlog_id, status, txn_conn)
+
+    def update_backlog_depends_on(self, backlog_id: int, depends_on: int | None) -> None:
         """Delegates to BacklogService."""
         txn_conn = self._conn if self._in_transaction else None
-        self._backlog.update_status(backlog_id, status, txn_conn)
+        self._backlog.update_depends_on(backlog_id, depends_on, txn_conn)
 
     def update_backlog_content(self, backlog_id: int, content: str) -> None:
         """Delegates to BacklogService."""

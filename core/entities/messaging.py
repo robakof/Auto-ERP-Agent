@@ -246,6 +246,7 @@ class BacklogItem(Entity):
         value: Wartość biznesowa
         effort: Pracochłonność
         source_id: ID sugestii która dała początek zadaniu (opcjonalnie)
+        depends_on: ID innego backlog item od którego to zadanie zależy (opcjonalnie)
         updated_at: Timestamp ostatniej aktualizacji
 
     Example:
@@ -271,6 +272,7 @@ class BacklogItem(Entity):
     value: Optional[BacklogValue] = None
     effort: Optional[BacklogEffort] = None
     source_id: Optional[int] = None  # FK do Suggestion
+    depends_on: Optional[int] = None  # FK do innego BacklogItem
     updated_at: Optional[datetime] = None
 
     def start(self) -> None:

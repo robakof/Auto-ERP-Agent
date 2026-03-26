@@ -111,6 +111,7 @@ class BacklogRepository(Repository[BacklogItem]):
                     value TEXT,
                     effort TEXT,
                     source_id INTEGER,
+                    depends_on INTEGER REFERENCES backlog(id),
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME
                 )
@@ -165,6 +166,12 @@ class BacklogRepository(Repository[BacklogItem]):
         except ValueError as e:
             raise ValidationError(f"Invalid enum value in database: {e}")
 
+        # depends_on: graceful degradation for DBs without the column yet
+        try:
+            depends_on = row["depends_on"]
+        except (IndexError, KeyError):
+            depends_on = None
+
         return BacklogItem(
             title=row["title"],
             content=row["content"] or "",
@@ -173,6 +180,7 @@ class BacklogRepository(Repository[BacklogItem]):
             value=value_enum,
             effort=effort_enum,
             source_id=row["source_id"],
+            depends_on=depends_on,
             id=row["id"],
             created_at=datetime.fromisoformat(row["created_at"]) if row["created_at"] else datetime.now(),
             updated_at=datetime.fromisoformat(row["updated_at"]) if row["updated_at"] else None
@@ -196,6 +204,7 @@ class BacklogRepository(Repository[BacklogItem]):
             "value": entity.value.value if entity.value else None,
             "effort": entity.effort.value if entity.effort else None,
             "source_id": entity.source_id,
+            "depends_on": entity.depends_on,
             "created_at": entity.created_at.isoformat(),
             "updated_at": entity.updated_at.isoformat() if entity.updated_at else None
         }
@@ -212,7 +221,7 @@ class BacklogRepository(Repository[BacklogItem]):
         """
         with self._connection() as conn:
             cursor = conn.execute(
-                """SELECT id, title, content, area, status, value, effort, source_id,
+                """SELECT id, title, content, area, status, value, effort, source_id, depends_on,
                           created_at, updated_at
                    FROM backlog
                    WHERE id = ?""",
@@ -251,20 +260,20 @@ class BacklogRepository(Repository[BacklogItem]):
                 conn.execute(
                     """UPDATE backlog
                        SET title = ?, content = ?, area = ?, status = ?, value = ?,
-                           effort = ?, source_id = ?, updated_at = ?
+                           effort = ?, source_id = ?, depends_on = ?, updated_at = ?
                        WHERE id = ?""",
                     (row_data["title"], row_data["content"], row_data["area"],
                      row_data["status"], row_data["value"], row_data["effort"],
-                     row_data["source_id"], row_data["updated_at"], entity.id)
+                     row_data["source_id"], row_data["depends_on"], row_data["updated_at"], entity.id)
                 )
             else:
                 # INSERT
                 cursor = conn.execute(
-                    """INSERT INTO backlog (title, content, area, status, value, effort, source_id, created_at, updated_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    """INSERT INTO backlog (title, content, area, status, value, effort, source_id, depends_on, created_at, updated_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (row_data["title"], row_data["content"], row_data["area"],
                      row_data["status"], row_data["value"], row_data["effort"],
-                     row_data["source_id"], row_data["created_at"], row_data["updated_at"])
+                     row_data["source_id"], row_data["depends_on"], row_data["created_at"], row_data["updated_at"])
                 )
                 entity.id = cursor.lastrowid
 
@@ -310,7 +319,7 @@ class BacklogRepository(Repository[BacklogItem]):
         """
         with self._connection() as conn:
             cursor = conn.execute(
-                """SELECT id, title, content, area, status, value, effort, source_id,
+                """SELECT id, title, content, area, status, value, effort, source_id, depends_on,
                           created_at, updated_at
                    FROM backlog
                    ORDER BY created_at DESC, id DESC"""
