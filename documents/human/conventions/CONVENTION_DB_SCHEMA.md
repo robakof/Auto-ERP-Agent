@@ -1,7 +1,7 @@
 ---
 convention_id: db-schema
 version: "1.0"
-status: draft
+status: active
 created: 2026-03-26
 updated: 2026-03-26
 author: architect

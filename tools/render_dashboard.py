@@ -1,17 +1,15 @@
 """Generate markdown dashboard files from mrowisko.db.
 
-Produces Obsidian-friendly .md files in output directory:
-- Status.md — live agents, inbox, pending handoffs
-- Praca.md — running workflows, in-progress backlog
-- Kolejka.md — top 10 planned tasks by priority score
+Produces Obsidian-friendly .md files in output directory.
+Labels and translations loaded from config/dashboard_config.json.
 
 Usage:
     py tools/render_dashboard.py
     py tools/render_dashboard.py --output-dir documents/human/dashboard
-    py tools/render_dashboard.py --db mrowisko.db
 """
 
 import argparse
+import json
 import sqlite3
 import sys
 from datetime import datetime
@@ -24,6 +22,7 @@ from tools.lib.output import print_json
 
 DB_PATH = "mrowisko.db"
 DEFAULT_OUTPUT = "documents/human/dashboard"
+CONFIG_PATH = Path(__file__).parent.parent / "config" / "dashboard_config.json"
 
 SCORE_SQL = """
 ROUND(
@@ -34,8 +33,39 @@ ROUND(
 """
 
 
-def _render_status(conn: sqlite3.Connection) -> str:
-    """Render Status.md — metrics + agents + inbox + handoffs."""
+def _load_config() -> dict:
+    defaults = {
+        "max_title_length": 45,
+        "top_n": 10,
+        "labels": {},
+        "status_translations": {},
+    }
+    if CONFIG_PATH.exists():
+        try:
+            cfg = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+            defaults.update(cfg)
+        except Exception:
+            pass
+    return defaults
+
+
+def _l(cfg: dict, key: str) -> str:
+    """Get label from config."""
+    return cfg["labels"].get(key, key)
+
+
+def _t(cfg: dict, val: str) -> str:
+    """Translate status value."""
+    return cfg["status_translations"].get(val, val)
+
+
+def _trunc(text: str, max_len: int) -> str:
+    if len(text) <= max_len:
+        return text
+    return text[: max_len - 3] + "..."
+
+
+def _render_status(conn: sqlite3.Connection, cfg: dict) -> str:
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     c = lambda sql: conn.execute(sql).fetchone()[0]
     agents = c("SELECT COUNT(*) FROM live_agents WHERE status IN ('starting','active')")
@@ -47,27 +77,39 @@ def _render_status(conn: sqlite3.Connection) -> str:
     wf = c("SELECT COUNT(*) FROM workflow_execution WHERE status='running'")
     ip = c("SELECT COUNT(*) FROM backlog WHERE status='in_progress'")
     planned = c("SELECT COUNT(*) FROM backlog WHERE status='planned'")
+    L = lambda k: _l(cfg, k)
     lines = [
-        f"# Mrowisko {now}",
-        f"Agenci **{agents}** Unread **{unread}** Handoffy **{handoffs}** Workflow **{wf}** Backlog **{ip}** w toku **{planned}** planned",
-        "---"]
+        f"*{now}*",
+        f"| | |",
+        f"|---|---|",
+        f"| {L('agents')} | **{agents}** |",
+        f"| {L('unread')} | **{unread}** |",
+        f"| {L('handoffs')} | **{handoffs}** |",
+        f"| {L('workflow')} | **{wf}** |",
+        f"| {L('in_progress')} | **{ip}** |",
+        f"| {L('planned')} | **{planned}** |",
+    ]
     # Agents
     rows = conn.execute(
         "SELECT role, task FROM live_agents WHERE status IN ('starting','active') ORDER BY created_at DESC"
     ).fetchall()
     if rows:
-        lines.append("## Agenci")
-        lines.append("| Rola | Task |")
+        maxl = cfg["max_title_length"]
+        lines.append(f"## {L('agents')}")
+        lines.append(f"| {L('role')} | {L('task')} |")
         lines.append("|------|------|")
         for a in rows:
-            lines.append(f"| {a['role']} | {a['task'] or '-'} |")
+            lines.append(f"| {a['role']} | {_trunc(a['task'] or '-', maxl)} |")
     # Inbox
     rows = conn.execute(
         "SELECT recipient, COUNT(*) as n FROM messages WHERE status='unread' GROUP BY recipient ORDER BY n DESC"
     ).fetchall()
     if rows:
-        lines.append("## Inbox")
-        lines.append(" ".join(f"**{r['recipient']}** {r['n']}" for r in rows))
+        lines.append(f"## {L('unread')}")
+        lines.append(f"| {L('role')} | # |")
+        lines.append("|------|---|")
+        for r in rows:
+            lines.append(f"| {r['recipient']} | {r['n']} |")
     # Handoffs
     rows = conn.execute(
         """SELECT m.sender, m.recipient, m.title FROM messages m
@@ -76,29 +118,28 @@ def _render_status(conn: sqlite3.Connection) -> str:
            ORDER BY m.created_at DESC"""
     ).fetchall()
     if rows:
-        lines.append("## Handoffy")
+        lines.append(f"## {L('handoffs')}")
         for p in rows:
             lines.append(f"- {p['sender']} > {p['recipient']}: {p['title']}")
     return "\n".join(lines) + "\n"
 
 
-def _render_workstreams(conn: sqlite3.Connection) -> str:
-    """Render Praca.md — workflows aggregated + in-progress table."""
+def _render_workstreams(conn: sqlite3.Connection, cfg: dict) -> str:
     wf_n = conn.execute("SELECT COUNT(*) FROM workflow_execution WHERE status='running'").fetchone()[0]
     ip_n = conn.execute("SELECT COUNT(*) FROM backlog WHERE status='in_progress'").fetchone()[0]
+    L = lambda k: _l(cfg, k)
     lines = [
-        "# Praca",
-        f"Workflow **{wf_n}** In progress **{ip_n}**",
-        "---"]
-    # Workflows aggregated
+        f"{L('workflow')} **{wf_n}** {L('in_progress')} **{ip_n}**",
+    ]
+    # Workflows aggregated — table
     wf_agg = conn.execute(
         """SELECT workflow_id, COUNT(*) as cnt
            FROM workflow_execution WHERE status='running'
            GROUP BY workflow_id ORDER BY cnt DESC"""
     ).fetchall()
     if wf_agg:
-        lines.append("## Workflow")
-        lines.append("| Typ | Ile | Etap |")
+        lines.append(f"## {L('workflow')}")
+        lines.append(f"| {L('type')} | {L('count')} | {L('stage')} |")
         lines.append("|-----|-----|------|")
         for wf in wf_agg:
             if wf["cnt"] == 1:
@@ -113,41 +154,41 @@ def _render_workstreams(conn: sqlite3.Connection) -> str:
                 lines.append(f"| {wf['workflow_id']} | 1 ({detail['role']}) | {step} |")
             else:
                 lines.append(f"| {wf['workflow_id']} | {wf['cnt']} | - |")
-    # In-progress backlog
+    # In-progress backlog — table
     tasks = conn.execute(
-        "SELECT id, title, area, value FROM backlog WHERE status='in_progress' ORDER BY area, id"
+        "SELECT id, title, area FROM backlog WHERE status='in_progress' ORDER BY area, id"
     ).fetchall()
     if tasks:
-        lines.append("## In progress")
-        lines.append("| ID | Area | Tytul | Priorytet |")
-        lines.append("|----|------|-------|-----------|")
+        maxl = cfg["max_title_length"]
+        lines.append(f"## {L('in_progress')}")
+        lines.append(f"| {L('id')} | {L('area')} | {L('task')} |")
+        lines.append("|----|------|------|")
         for t in tasks:
-            lines.append(f"| {t['id']} | {t['area']} | {t['title']} | {t['value'] or '-'} |")
+            lines.append(f"| {t['id']} | {t['area']} | {_trunc(t['title'], maxl)} |")
     return "\n".join(lines) + "\n"
 
 
-def _render_backlog(conn: sqlite3.Connection) -> str:
-    """Render Kolejka.md — top 10 by score (impact/effort)."""
+def _render_backlog(conn: sqlite3.Connection, cfg: dict) -> str:
     total = conn.execute("SELECT COUNT(*) FROM backlog WHERE status='planned'").fetchone()[0]
+    top_n = cfg["top_n"]
+    L = lambda k: _l(cfg, k)
     lines = [
-        "# Kolejka",
-        f"Planned **{total}**",
-        "---"]
-    # Top 10 scored
+        f"{L('planned')} **{total}**",
+    ]
     rows = conn.execute(f"""
-        SELECT id, title, value, effort, {SCORE_SQL} as score
+        SELECT id, title, {SCORE_SQL} as score
         FROM backlog WHERE status='planned'
         ORDER BY score DESC, id
-        LIMIT 10
-    """).fetchall()
+        LIMIT ?
+    """, (top_n,)).fetchall()
     if rows:
-        lines.append("| # | Pkt | ID | Tytul | Efekt | Wysilek |")
-        lines.append("|---|-----|----|-------|-------|---------|")
+        maxl = cfg["max_title_length"]
+        lines.append(f"| {L('rank')} | {L('score')} | {L('id')} | {L('task')} |")
+        lines.append("|---|---|----|------|")
         for i, r in enumerate(rows, 1):
-            lines.append(
-                f"| {i} | {int(r['score'])} | {r['id']} | {r['title']} | {r['value'] or '-'} | {r['effort'] or '-'} |")
+            lines.append(f"| {i} | {int(r['score'])} | {r['id']} | {_trunc(r['title'], maxl)} |")
     else:
-        lines.append("Brak zaplanowanych zadan.")
+        lines.append("Brak zadan.")
     return "\n".join(lines) + "\n"
 
 
@@ -157,19 +198,22 @@ def main():
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT, help="Output directory for .md files")
     args = parser.parse_args()
 
+    cfg = _load_config()
     bus = AgentBus(db_path=args.db)
     conn = bus._conn
     output = Path(args.output_dir)
     output.mkdir(parents=True, exist_ok=True)
 
+    L = lambda k: _l(cfg, k)
     files = {
-        "Status.md": _render_status(conn),
-        "Praca.md": _render_workstreams(conn),
-        "Kolejka.md": _render_backlog(conn),
+        f"{L('header_status')}.md": _render_status(conn, cfg),
+        f"{L('header_work')}.md": _render_workstreams(conn, cfg),
+        f"{L('header_queue')}.md": _render_backlog(conn, cfg),
     }
 
     # Clean old files
-    for old in ["status.md", "workstreams.md", "backlog_overview.md"]:
+    for old in ["status.md", "workstreams.md", "backlog_overview.md",
+                "Status.md", "Praca.md", "Kolejka.md"]:
         old_path = output / old
         if old_path.exists():
             old_path.unlink()

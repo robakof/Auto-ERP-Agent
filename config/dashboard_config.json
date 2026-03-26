@@ -1,0 +1,40 @@
+{
+  "max_title_length": 45,
+  "top_n": 10,
+  "labels": {
+    "header_status": "Mrowisko",
+    "header_work": "Praca",
+    "header_queue": "Kolejka",
+    "agents": "Agenci",
+    "unread": "Nieprzeczytane",
+    "handoffs": "Przekazania",
+    "workflow": "Workflow",
+    "in_progress": "W toku",
+    "planned": "Zaplanowane",
+    "score": "Pkt",
+    "task": "Zadanie",
+    "role": "Rola",
+    "area": "Obszar",
+    "type": "Typ",
+    "count": "Ile",
+    "stage": "Etap",
+    "id": "ID",
+    "rank": "#",
+    "priority": "Priorytet"
+  },
+  "status_translations": {
+    "starting": "startuje",
+    "active": "aktywny",
+    "stopped": "zatrzymany",
+    "unread": "nieprzeczytane",
+    "read": "przeczytane",
+    "planned": "zaplanowane",
+    "in_progress": "w toku",
+    "done": "gotowe",
+    "deferred": "odlozone",
+    "cancelled": "anulowane",
+    "running": "w toku",
+    "completed": "zakonczone",
+    "failed": "nieudane"
+  }
+}
