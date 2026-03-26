@@ -50,29 +50,32 @@ class TestDashboardGeneration:
         result = run_cli(["--output-dir", output_dir], db)
         assert result["ok"] is True
         assert result["files_written"] == 3
-        for name in ["status.md", "workstreams.md", "backlog_overview.md"]:
+        for name in ["Status.md", "Praca.md", "Kolejka.md"]:
             assert (Path(output_dir) / name).exists()
 
     def test_status_contains_metrics_header(self, db, output_dir):
-        result = run_cli(["--output-dir", output_dir], db)
-        content = (Path(output_dir) / "status.md").read_text(encoding="utf-8")
+        run_cli(["--output-dir", output_dir], db)
+        content = (Path(output_dir) / "Status.md").read_text(encoding="utf-8")
         assert "Mrowisko" in content
-        assert "Agenci:" in content
-        assert "Unread:" in content
+        assert "Agenci" in content
+        assert "Unread" in content
 
-    def test_backlog_overview_with_data(self, db, output_dir):
-        run_bus(["backlog-add", "--title", "Task1", "--area", "Dev",
-                 "--value", "wysoka", "--content", "x"], db)
-        run_bus(["backlog-add", "--title", "Task2", "--area", "Arch",
-                 "--content", "y"], db)
-        result = run_cli(["--output-dir", output_dir], db)
-        content = (Path(output_dir) / "backlog_overview.md").read_text(encoding="utf-8")
-        assert "Dev" in content
-        assert "Arch" in content
+    def test_kolejka_with_scoring(self, db, output_dir):
+        run_bus(["backlog-add", "--title", "High-Low", "--area", "Dev",
+                 "--value", "wysoka", "--effort", "mala", "--content", "x"], db)
+        run_bus(["backlog-add", "--title", "Low-High", "--area", "Arch",
+                 "--value", "niska", "--effort", "duza", "--content", "y"], db)
+        run_cli(["--output-dir", output_dir], db)
+        content = (Path(output_dir) / "Kolejka.md").read_text(encoding="utf-8")
+        assert "High-Low" in content
+        assert "Pkt" in content
+        # High-value/low-effort should be first (score 10)
+        high_pos = content.index("High-Low")
+        low_pos = content.index("Low-High")
+        assert high_pos < low_pos
 
     def test_empty_db_no_crash(self, db, output_dir):
         result = run_cli(["--output-dir", output_dir], db)
         assert result["ok"] is True
-        # Files should still be created (empty state)
-        for name in ["status.md", "workstreams.md", "backlog_overview.md"]:
+        for name in ["Status.md", "Praca.md", "Kolejka.md"]:
             assert (Path(output_dir) / name).exists()

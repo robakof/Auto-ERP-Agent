@@ -226,4 +226,5 @@ status TEXT NOT NULL DEFAULT 'open'
 
 | Wersja | Data | Zmiany |
 |---|---|---|
+| 1.1 | 2026-03-26 | +11R BEGIN IMMEDIATE dla write paths. Research potwierdził: snake_case, CHECK na enumach, idx_ naming OK. Plural vs singular — spójność ważniejsza niż wybór. |
 | 1.0 | 2026-03-26 | Początkowa wersja — 10 reguł, 2 przykłady, 4 antywzorce. Baseline: 14 tabel w mrowisko.db. |
