@@ -570,6 +570,58 @@ def cmd_invocations(args: argparse.Namespace, bus: AgentBus) -> dict:
     return {"ok": True, "data": [dict(r) for r in rows], "count": len(rows)}
 
 
+def cmd_inbox_summary(args: argparse.Namespace, bus: AgentBus) -> dict:
+    """Unread message counts per role, grouped by type."""
+    conn = bus._conn
+    rows = conn.execute(
+        """SELECT recipient, type, COUNT(*) as cnt
+           FROM messages
+           WHERE status = 'unread'
+           GROUP BY recipient, type
+           ORDER BY recipient, cnt DESC"""
+    ).fetchall()
+    summary: dict = {}
+    for r in rows:
+        role = r["recipient"]
+        if role not in summary:
+            summary[role] = {"total": 0, "types": {}}
+        summary[role]["total"] += r["cnt"]
+        summary[role]["types"][r["type"]] = r["cnt"]
+    # Ensure all known roles appear (even with 0)
+    for role in _get_all_roles():
+        if role not in summary:
+            summary[role] = {"total": 0, "types": {}}
+    return {"ok": True, "data": summary}
+
+
+def cmd_live_agents(args: argparse.Namespace, bus: AgentBus) -> dict:
+    """List agents with status starting or active."""
+    conn = bus._conn
+    rows = conn.execute(
+        """SELECT id, session_id, role, task, status, created_at, last_activity
+           FROM live_agents
+           WHERE status IN ('starting', 'active')
+           ORDER BY created_at DESC"""
+    ).fetchall()
+    return {"ok": True, "data": [dict(r) for r in rows], "count": len(rows)}
+
+
+def cmd_handoffs_pending(args: argparse.Namespace, bus: AgentBus) -> dict:
+    """Unread handoffs whose recipient has no active agent."""
+    conn = bus._conn
+    rows = conn.execute(
+        """SELECT m.id, m.sender, m.recipient, m.title, m.created_at,
+                  CASE WHEN la.id IS NOT NULL THEN 1 ELSE 0 END as recipient_live
+           FROM messages m
+           LEFT JOIN live_agents la
+             ON la.role = m.recipient AND la.status IN ('starting', 'active')
+           WHERE m.type = 'handoff' AND m.status = 'unread'
+             AND la.id IS NULL
+           ORDER BY m.created_at DESC"""
+    ).fetchall()
+    return {"ok": True, "data": [dict(r) for r in rows], "count": len(rows)}
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="AgentBus CLI — message passing and state for agent swarm"
@@ -806,6 +858,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_invocations = subparsers.add_parser("invocations", help="List invocations")
     p_invocations.add_argument("--status", default=None, help="Filter by status")
 
+    # inbox-summary — unread counts per role (PM tool)
+    subparsers.add_parser("inbox-summary", help="Unread message counts per role")
+
+    # live-agents — active agents list (PM tool)
+    subparsers.add_parser("live-agents", help="List active/starting agents")
+
+    # handoffs-pending — unread handoffs with no live recipient (PM tool)
+    subparsers.add_parser("handoffs-pending", help="Handoffs awaiting delivery")
+
     return parser
 
 
@@ -845,6 +906,9 @@ def main():
         "spawn": cmd_spawn,
         "spawn-request": cmd_spawn_request,
         "invocations": cmd_invocations,
+        "inbox-summary": cmd_inbox_summary,
+        "live-agents": cmd_live_agents,
+        "handoffs-pending": cmd_handoffs_pending,
     }
     try:
         result = commands[args.command](args, bus)
