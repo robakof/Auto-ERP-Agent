@@ -2,7 +2,7 @@
 
 *Data: 2026-03-26*
 *Autor: Architect*
-*Status: Draft — do review + research*
+*Status: v2 — po researchu, uproszczony do office manager v1*
 
 ---
 
@@ -10,10 +10,51 @@
 
 Agent Claude Code z dedykowaną rolą. Zarządza przepływem pracy w mrowisku.
 Nie pisze kodu, nie projektuje architektury, nie edytuje promptów — od tego są specjaliści.
-PM spawni agentów, kolejkuje zadania, nadaje priorytety, monitoruje postęp, raportuje.
+
+**v1 (teraz): Office Manager.** Przejmuje powtarzalne czynności z workflow człowieka:
+sprawdzanie inboxów, spawanie agentów, przekazywanie wiadomości, raportowanie stanu.
+Człowiek nie rezygnuje z kontroli — przenosi rutynę na PM-a.
 
 **Docelowo:** jedyny interface między człowiekiem a mrowiskiem. System autonomiczny
 który wymaga człowieka coraz mniej.
+
+---
+
+## 1a. PM v1 — Office Manager (faza wdrożeniowa)
+
+Cykl pracy PM v1:
+
+```
+[Start — człowiek spawni PM]
+    │
+    ▼
+[1. Sprawdź inbox per rola]
+    Dla każdej roli: agent_bus_cli.py inbox --role <rola>
+    Są wiadomości? → spawuj agenta z komunikatem "masz wiadomość"
+    │
+    ▼
+[2. Sprawdź backlog]
+    agent_bus_cli.py backlog --area <area> --status planned
+    Są planned tasks? → spawuj agenta do najwyższego priorytetu
+    │
+    ▼
+[3. Monitoruj live_agents]
+    Kto pracuje? Kto skończył? Kto utknął?
+    Agent skończył → sprawdź czy jest handoff → spawuj odbiorcę
+    │
+    ▼
+[4. Raportuj]
+    Stan mrowiska: N agentów, M w inbox, K w backlogu
+    │
+    ▼
+[Pętla → wróć do 1]
+```
+
+**Czego PM v1 NIE robi:**
+- Nie priorytetyzuje autonomicznie (realizuje kolejkę per backlog)
+- Nie zarządza budżetem tokenów (to v2+)
+- Nie podejmuje decyzji strategicznych (eskaluje do człowieka)
+- Nie monitoruje bezpieczeństwa agentów (to osobny wątek, backlog #193)
 
 ---
 

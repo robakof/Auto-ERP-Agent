@@ -148,6 +148,37 @@
       "enabled": true
     }
   },
+  "pm": {
+    "inbox": {
+      "enabled": true,
+      "limit": 20,
+      "status": "unread"
+    },
+    "backlog": {
+      "enabled": true,
+      "areas": ["Dev", "Arch", "ERP", "Prompts", "Metodolog", "Bot"],
+      "statuses": ["planned"],
+      "limit": 30
+    },
+    "session_logs": {
+      "own_full": {
+        "enabled": true,
+        "limit": 3
+      },
+      "own_metadata": {
+        "enabled": true,
+        "offset": 3,
+        "limit": 7
+      },
+      "cross_role": {
+        "enabled": true,
+        "limit": 30
+      }
+    },
+    "flags_human": {
+      "enabled": true
+    }
+  },
   "metodolog": {
     "inbox": {
       "enabled": true,

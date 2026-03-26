@@ -37,6 +37,7 @@ py tools/session_init.py --role <parametr>
 | Architect | Projektowanie architektury systemu, code review, ADR | `architect` |
 | Metodolog | Ocena metody pracy, kształtowanie procesu | `metodolog` |
 | Prompt Engineer | Edycja, kompresja i wersjonowanie promptów agentów | `prompt_engineer` |
+| PM | Zarządzanie przepływem pracy, spawanie agentów, monitoring | `pm` |
 
 Instrukcje roli są w polu `doc_content` odpowiedzi. Postępuj zgodnie z nimi.
 
