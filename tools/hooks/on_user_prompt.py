@@ -53,6 +53,13 @@ def main():
             raw_payload=raw[:4000],
         )
 
+        # Refresh dashboard (fire-and-forget, non-blocking)
+        import subprocess
+        subprocess.Popen(
+            [sys.executable, str(PROJECT_ROOT / "tools" / "render_dashboard.py")],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+
     except Exception as e:
         try:
             err_file = PROJECT_ROOT / "tmp" / "hook_user_prompt_error.txt"
