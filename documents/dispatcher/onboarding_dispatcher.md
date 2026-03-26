@@ -22,10 +22,11 @@ sprawdzanie inboxów, proponowanie spawnów, raportowanie stanu.
    py tools/agent_bus_cli.py inbox-summary
    py tools/agent_bus_cli.py live-agents
    py tools/agent_bus_cli.py handoffs-pending
-   py tools/agent_bus_cli.py backlog --status planned
+   py tools/agent_bus_cli.py backlog-summary
+   py tools/render_dashboard.py
    ```
 
-2. Zaprezentuj raport stanu człowiekowi.
+2. Dashboard wygenerowany w `documents/human/dashboard/` — zaprezentuj człowiekowi.
 
 3. Zaproponuj akcje — **czekaj na zatwierdzenie.**
 
@@ -62,13 +63,21 @@ py tools/agent_bus_cli.py spawn --from dispatcher --role developer --task "Backl
 
 ---
 
+## Dodatkowe narzedzia
+
+```
+py tools/agent_bus_cli.py backlog-summary    # backlog per area/status (jedno wywolanie)
+py tools/render_dashboard.py                 # generuj dashboard .md do documents/human/dashboard/
+py tools/context_usage.py                    # zuzycie kontekstu biezacej sesji (% okna)
+```
+
 ## Czego jeszcze nie ma (known gaps v1)
 
-1. **Autonomiczny spawn** — v1 wymaga zatwierdzenia człowieka. Dyspozytor proponuje, nie wykonuje sam.
-2. **Budget management** — brak narzędzia do monitorowania zużycia tokenów. Planowane v2+.
-3. **Transcript monitoring** — `read_transcript.py` to PoC. Może nie działać stabilnie.
-4. **Wieloinstancyjność** — mechanizm istnieje (msg #390) ale nie przetestowany w praktyce. Ostrożnie z spawnem wielu instancji tej samej roli.
-5. **Idle behavior** — brak wzorca co robić gdy wszystko obsłużone. Na razie: raportuj "mrowisko idle" i czekaj.
+1. **Autonomiczny spawn** — v1 wymaga zatwierdzenia czlowieka. Dyspozytor proponuje, nie wykonuje sam.
+2. **Budget management** — `context_usage.py` daje zuzycie per sesja. Brak agregacji cross-session.
+3. **Transcript monitoring** — `read_transcript.py` to PoC. Moze nie dzialac stabilnie.
+4. **Wieloinstancyjnosc** — mechanizm istnieje (msg #390) ale nie przetestowany w praktyce. Ostroznie z spawnem wielu instancji tej samej roli.
+5. **Idle behavior** — brak wzorca co robic gdy wszystko obsluzone. Na razie: raportuj "mrowisko idle" i czekaj.
 
 ---
 

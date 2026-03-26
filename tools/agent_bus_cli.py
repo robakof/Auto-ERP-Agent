@@ -606,6 +606,24 @@ def cmd_live_agents(args: argparse.Namespace, bus: AgentBus) -> dict:
     return {"ok": True, "data": [dict(r) for r in rows], "count": len(rows)}
 
 
+def cmd_backlog_summary(args: argparse.Namespace, bus: AgentBus) -> dict:
+    """Backlog counts per area, grouped by status."""
+    conn = bus._conn
+    rows = conn.execute(
+        """SELECT area, status, COUNT(*) as cnt
+           FROM backlog
+           GROUP BY area, status
+           ORDER BY area, cnt DESC"""
+    ).fetchall()
+    summary: dict = {}
+    for r in rows:
+        area = r["area"] or "unknown"
+        if area not in summary:
+            summary[area] = {}
+        summary[area][r["status"]] = r["cnt"]
+    return {"ok": True, "data": summary}
+
+
 def cmd_handoffs_pending(args: argparse.Namespace, bus: AgentBus) -> dict:
     """Unread handoffs whose recipient has no active agent."""
     conn = bus._conn
@@ -858,6 +876,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_invocations = subparsers.add_parser("invocations", help="List invocations")
     p_invocations.add_argument("--status", default=None, help="Filter by status")
 
+    # backlog-summary — backlog counts per area (PM tool)
+    subparsers.add_parser("backlog-summary", help="Backlog counts per area and status")
+
     # inbox-summary — unread counts per role (PM tool)
     subparsers.add_parser("inbox-summary", help="Unread message counts per role")
 
@@ -906,6 +927,7 @@ def main():
         "spawn": cmd_spawn,
         "spawn-request": cmd_spawn_request,
         "invocations": cmd_invocations,
+        "backlog-summary": cmd_backlog_summary,
         "inbox-summary": cmd_inbox_summary,
         "live-agents": cmd_live_agents,
         "handoffs-pending": cmd_handoffs_pending,

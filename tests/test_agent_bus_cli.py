@@ -825,3 +825,26 @@ class TestCliHandoffsPending:
         run_cli(["mark-read", "--id", str(h["id"])], db)
         result = run_cli(["handoffs-pending"], db)
         assert result["count"] == 0
+
+
+class TestCliBacklogSummary:
+    def test_empty_db(self, db):
+        result = run_cli(["backlog-summary"], db)
+        assert result["ok"] is True
+        assert result["data"] == {}
+
+    def test_counts_by_area_and_status(self, db):
+        run_cli(["backlog-add", "--title", "T1", "--area", "Dev", "--content", "x"], db)
+        run_cli(["backlog-add", "--title", "T2", "--area", "Dev", "--content", "y"], db)
+        run_cli(["backlog-add", "--title", "T3", "--area", "Arch", "--content", "z"], db)
+        result = run_cli(["backlog-summary"], db)
+        assert result["data"]["Dev"]["planned"] == 2
+        assert result["data"]["Arch"]["planned"] == 1
+
+    def test_includes_in_progress(self, db):
+        item = run_cli(["backlog-add", "--title", "T1", "--area", "Dev", "--content", "x"], db)
+        run_cli(["backlog-update", "--id", str(item["id"]), "--status", "in_progress"], db)
+        run_cli(["backlog-add", "--title", "T2", "--area", "Dev", "--content", "y"], db)
+        result = run_cli(["backlog-summary"], db)
+        assert result["data"]["Dev"]["planned"] == 1
+        assert result["data"]["Dev"]["in_progress"] == 1
