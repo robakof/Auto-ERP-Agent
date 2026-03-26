@@ -1,4 +1,16 @@
-# Backlog — planned
+# Backlog
+
+**Total planned:** 27
+
+| Area | Planned | Est. context |
+|------|---------|-------------|
+| Arch | 10 | - |
+| Dev | 8 | - |
+| Metodolog | 5 | - |
+| ERP | 3 | - |
+| Prompt | 1 | - |
+
+---
 
 
 ## Arch

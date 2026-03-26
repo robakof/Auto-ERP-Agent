@@ -145,6 +145,20 @@ PRAGMA busy_timeout=3000;
 
 WAL = współbieżność read+write. foreign_keys = integralność referencyjna. busy_timeout = odporność na lock contention przy wielu agentach.
 
+### 11R: BEGIN IMMEDIATE dla write paths
+
+Operacje zapisu w kontekście multi-agent POWINNY używać `BEGIN IMMEDIATE`:
+
+```python
+conn.execute("BEGIN IMMEDIATE")
+conn.execute("UPDATE live_agents SET status = 'active' WHERE session_id = ?", (sid,))
+conn.commit()
+```
+
+Dlaczego: `BEGIN IMMEDIATE` rezerwuje write lock na starcie transakcji. Bez tego SQLite może zwrócić `SQLITE_BUSY` w środku transakcji (po partial work). Z `BEGIN IMMEDIATE` — albo lock dostaniesz od razu, albo dostaniesz busy od razu (bez zmarnowanej pracy).
+
+Dla pojedynczych statementów (jeden INSERT/UPDATE) — opcjonalne (statement sam jest transakcją).
+
 ---
 
 ## Przykłady
