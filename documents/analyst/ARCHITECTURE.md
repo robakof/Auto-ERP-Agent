@@ -58,7 +58,7 @@ Cała dalsza praca odbywa się na SQLite — bez kolejnych połączeń do SQL Se
 **`data_quality_init.py`** — eksport widoku lub tabeli CDN do SQLite.
 
 ```
-python tools/data_quality_init.py \
+py tools/data_quality_init.py \
   --source "BI.KntKarty" \
   --output "solutions/analyst/KntKarty/KntKarty_workdb.db"
 ```
@@ -71,7 +71,7 @@ Tworzy plik SQLite z tabelą `dane` (kopia źródła) oraz pustymi tabelami
 **`data_quality_query.py`** — query na lokalnym SQLite.
 
 ```
-python tools/data_quality_query.py \
+py tools/data_quality_query.py \
   --db "solutions/analyst/KntKarty/KntKarty_workdb.db" \
   --sql "SELECT Telefon, Email, COUNT(*) FROM dane WHERE Telefon LIKE '%@%' GROUP BY Telefon, Email"
 ```
@@ -83,7 +83,7 @@ Odpowiednik `sql_query.py` ale dla lokalnego SQLite. Obsługuje `--count-only` i
 **`data_quality_save.py`** — zapis obserwacji do tabeli `findings`.
 
 ```
-python tools/data_quality_save.py \
+py tools/data_quality_save.py \
   --db "solutions/analyst/KntKarty/KntKarty_workdb.db" \
   --column "Telefon" \
   --observation "47 rekordów zawiera znak '@' — prawdopodobne adresy email wpisane w pole telefonu." \
@@ -95,7 +95,7 @@ python tools/data_quality_save.py \
 **`data_quality_records.py`** — zapis konkretnych rekordów do tabeli `records`.
 
 ```
-python tools/data_quality_records.py \
+py tools/data_quality_records.py \
   --db "solutions/analyst/KntKarty/KntKarty_workdb.db" \
   --column "Telefon" \
   --sql "SELECT Kod_Kontrahenta, Nazwa_Kontrahenta, Telefon FROM dane WHERE Telefon LIKE '%@%'"
@@ -109,7 +109,7 @@ Agent dobiera identyfikatory rekordu samodzielnie (kod, nazwa, nr dokumentu — 
 **`data_quality_report.py`** — generuje raport Excel z pliku SQLite.
 
 ```
-python tools/data_quality_report.py \
+py tools/data_quality_report.py \
   --db "solutions/analyst/KntKarty/KntKarty_workdb.db" \
   --output "solutions/analyst/KntKarty/KntKarty_report.xlsx"
 ```
@@ -127,7 +127,7 @@ Tworzy plik Excel z dwiema zakładkami:
 1. Ustal zakres: widok BI lub tabela CDN
 2. Eksportuj do SQLite:
    ```
-   python tools/data_quality_init.py --source "BI.KntKarty" --output "...workdb.db"
+   py tools/data_quality_init.py --source "BI.KntKarty" --output "...workdb.db"
    ```
 3. Jeśli plik SQLite już istnieje — przeczytaj tabelę `findings` (wznowienie po przerwie)
 
@@ -136,7 +136,7 @@ Tworzy plik Excel z dwiema zakładkami:
 Jeśli analizowany zakres to widok BI z istniejącym planem:
 
 ```
-python tools/excel_read_rows.py \
+py tools/excel_read_rows.py \
   --file "solutions/bi/{Zakres}/{Zakres}_plan.xlsx" \
   --columns CDN_Pole,Uwzglednic,Transformacja,Alias_w_widoku
 ```
@@ -154,13 +154,13 @@ Dla każdej kolumny (lub grupy kolumn gdy kontekst tego wymaga):
 
 **Krok 1 — zrozum co kolumna powinna zawierać:**
 ```
-python tools/docs_search.py "{nazwa_kolumny}" --table {tabela}
+py tools/docs_search.py "{nazwa_kolumny}" --table {tabela}
 ```
 Na podstawie nazwy, opisu, sample values — agent formuje hipotezę co powinno być w polu.
 
 **Krok 2 — zbadaj dane przez SQLite:**
 ```
-python tools/data_quality_query.py --db "...workdb.db" --sql "..."
+py tools/data_quality_query.py --db "...workdb.db" --sql "..."
 ```
 Agent dobiera zapytanie samodzielnie. Może łączyć dowolne kolumny bez dodatkowego kosztu
 połączenia. Nie ma stałego zestawu zapytań — agent decyduje co i jak sprawdzić.
@@ -168,10 +168,10 @@ połączenia. Nie ma stałego zestawu zapytań — agent decyduje co i jak spraw
 **Krok 3 — jeśli znaleziono problem:**
 ```
 # Zapisz obserwację
-python tools/data_quality_save.py --db "...workdb.db" --column "..." --observation "..." --rows-affected N
+py tools/data_quality_save.py --db "...workdb.db" --column "..." --observation "..." --rows-affected N
 
 # Zapisz konkretne rekordy z identyfikatorami
-python tools/data_quality_records.py --db "...workdb.db" --column "..." --sql "SELECT ..."
+py tools/data_quality_records.py --db "...workdb.db" --column "..." --sql "SELECT ..."
 ```
 
 Jeśli kolumna wygląda poprawnie — przejdź do następnej bez zapisu.
@@ -179,7 +179,7 @@ Jeśli kolumna wygląda poprawnie — przejdź do następnej bez zapisu.
 ### Generowanie raportu
 
 ```
-python tools/data_quality_report.py \
+py tools/data_quality_report.py \
   --db "solutions/analyst/{Zakres}/{Zakres}_workdb.db" \
   --output "solutions/analyst/{Zakres}/{Zakres}_report.xlsx"
 ```

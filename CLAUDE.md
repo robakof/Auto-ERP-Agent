@@ -11,7 +11,7 @@ Eskaluje do użytkownika zamiast zgadywać.
 
 ## Twoja rola
 
-**Wykonaj na początku sesji:** `python tools/session_init.py --role <parametr>`
+**Wykonaj na początku sesji:** `py tools/session_init.py --role <parametr>`
 
 Jeśli nie wykonałeś session_init — **STOP**. Nie znasz swoich instrukcji, narzędzi i zakresu.
 Zapytaj użytkownika o rolę (tabela poniżej). Nie wykonuj poleceń bez określonej roli.
@@ -26,7 +26,7 @@ Skróty ("PE", "Dev") nie są jawną nazwą — pytaj o potwierdzenie.
 Określ rolę na podstawie kontekstu sesji, następnie wywołaj:
 
 ```
-python tools/session_init.py --role <parametr>
+py tools/session_init.py --role <parametr>
 ```
 
 | Rola | Kontekst sesji | Parametr |
@@ -154,53 +154,53 @@ Długie treści zapisuj przez plik pośredni — nie inline w komendzie:
 # 2. Przekaż ścieżkę do CLI
 
 # Sugestia (refleksja, obserwacja)
-python tools/agent_bus_cli.py suggest --from <rola> --content-file tmp/tmp.md
+py tools/agent_bus_cli.py suggest --from <rola> --content-file tmp/tmp.md
 
 # Backlog — nowe zadanie
-python tools/agent_bus_cli.py backlog-add --title "Tytuł" --area <obszar> --value wysoka --effort mala --content-file tmp/tmp.md
+py tools/agent_bus_cli.py backlog-add --title "Tytuł" --area <obszar> --value wysoka --effort mala --content-file tmp/tmp.md
 
 # Backlog — odczyt zadań dla swojej roli (filtruj po obszarze)
-python tools/agent_bus_cli.py backlog --area ERP       # ERP Specialist
-python tools/agent_bus_cli.py backlog --area Bot       # Bot
-python tools/agent_bus_cli.py backlog --area Arch      # Architect (architektura, konwencje, review)
-python tools/agent_bus_cli.py backlog --area Dev       # Developer (narzędzia, kod)
-python tools/agent_bus_cli.py backlog --area Prompt    # Prompt Engineer (prompty, workflow)
-python tools/agent_bus_cli.py backlog --area Metodolog  # Metodolog (procesy, metoda pracy)
+py tools/agent_bus_cli.py backlog --area ERP       # ERP Specialist
+py tools/agent_bus_cli.py backlog --area Bot       # Bot
+py tools/agent_bus_cli.py backlog --area Arch      # Architect (architektura, konwencje, review)
+py tools/agent_bus_cli.py backlog --area Dev       # Developer (narzędzia, kod)
+py tools/agent_bus_cli.py backlog --area Prompt    # Prompt Engineer (prompty, workflow)
+py tools/agent_bus_cli.py backlog --area Metodolog  # Metodolog (procesy, metoda pracy)
 
 # Log sesji
-python tools/agent_bus_cli.py log --role <rola> --content-file tmp/tmp.md
+py tools/agent_bus_cli.py log --role <rola> --content-file tmp/tmp.md
 
 # Wiadomość do innej roli
-python tools/agent_bus_cli.py send --from <rola> --to developer --content-file tmp/tmp.md
+py tools/agent_bus_cli.py send --from <rola> --to developer --content-file tmp/tmp.md
 
 # Eskalacja do człowieka
-python tools/agent_bus_cli.py flag --from <rola> --reason-file tmp/tmp.md
+py tools/agent_bus_cli.py flag --from <rola> --reason-file tmp/tmp.md
 
 # Handoff — przekazanie między rolami
-python tools/agent_bus_cli.py handoff --from <rola> --to <rola> --phase "nazwa fazy" --status PASS --summary "co zrobiono" --next-action "co dalej"
+py tools/agent_bus_cli.py handoff --from <rola> --to <rola> --phase "nazwa fazy" --status PASS --summary "co zrobiono" --next-action "co dalej"
 
 # Backlog — odczyt konkretnego zadania
-python tools/agent_bus_cli.py backlog --id <id>
+py tools/agent_bus_cli.py backlog --id <id>
 
 # Workflow tracking — śledzenie wykonania workflow
-python tools/agent_bus_cli.py workflow-start --workflow-id <WORKFLOW_ID> --role <rola>
-python tools/agent_bus_cli.py step-log --execution-id <id> --step-id <step_id> --status PASS|FAIL
-python tools/agent_bus_cli.py execution-status --execution-id <id>
-python tools/agent_bus_cli.py interrupted-workflows --role <rola>
-python tools/agent_bus_cli.py workflow-end --execution-id <id> --status completed|failed|abandoned
+py tools/agent_bus_cli.py workflow-start --workflow-id <WORKFLOW_ID> --role <rola>
+py tools/agent_bus_cli.py step-log --execution-id <id> --step-id <step_id> --status PASS|FAIL
+py tools/agent_bus_cli.py execution-status --execution-id <id>
+py tools/agent_bus_cli.py interrupted-workflows --role <rola>
+py tools/agent_bus_cli.py workflow-end --execution-id <id> --status completed|failed|abandoned
 
 # Inbox — odczyt wiadomości (domyślnie summary mode)
-python tools/agent_bus_cli.py inbox --role <rola>              # lista wiadomości (skrócona)
-python tools/agent_bus_cli.py inbox --role <rola> --full       # pełna treść wszystkich
-python tools/agent_bus_cli.py inbox --role <rola> --id <id>    # pojedyncza wiadomość po ID
+py tools/agent_bus_cli.py inbox --role <rola>              # lista wiadomości (skrócona)
+py tools/agent_bus_cli.py inbox --role <rola> --full       # pełna treść wszystkich
+py tools/agent_bus_cli.py inbox --role <rola> --id <id>    # pojedyncza wiadomość po ID
 
 # Message — pobierz wiadomość po ID (alias)
-python tools/agent_bus_cli.py message --id <id>
+py tools/agent_bus_cli.py message --id <id>
 
 # Known gaps — śledzenie braków w wiedzy/narzędziach
-python tools/agent_bus_cli.py gap-add --role <rola> --title "Tytuł" --content-file tmp/gap.md
-python tools/agent_bus_cli.py gaps --role <rola> --status open|resolved|all
-python tools/agent_bus_cli.py gap-resolve --id <id> --resolution "jak rozwiązano"
+py tools/agent_bus_cli.py gap-add --role <rola> --title "Tytuł" --content-file tmp/gap.md
+py tools/agent_bus_cli.py gaps --role <rola> --status open|resolved|all
+py tools/agent_bus_cli.py gap-resolve --id <id> --resolution "jak rozwiązano"
 ```
 
 Każda operacja = osobny plik tymczasowy z opisową nazwą (np. `tmp/msg_erp_tranag.md`, `tmp/backlog_git.md`).
@@ -263,10 +263,10 @@ Wszystkie commity wykonuj przez `tools/git_commit.py` — nie przez bezpośredni
 Do usuwania i przenoszenia plików używaj `rm`/`mv` (OS), a nie `git rm`/`git mv` — `--all` w git_commit.py staguje wszystko łącznie z usunięciami:
 
 ```
-python tools/git_commit.py --message "feat: opis"             # samo commit
-python tools/git_commit.py --message "feat: opis" --all       # git add -A + commit
-python tools/git_commit.py --message "feat: opis" --all --push  # add + commit + push
-python tools/git_commit.py --push-only                        # tylko push
+py tools/git_commit.py --message "feat: opis"             # samo commit
+py tools/git_commit.py --message "feat: opis" --all       # git add -A + commit
+py tools/git_commit.py --message "feat: opis" --all --push  # add + commit + push
+py tools/git_commit.py --push-only                        # tylko push
 ```
 
 ### Zero failing tests
@@ -293,17 +293,17 @@ Autonomiczna realizacja prowadzi do zbędnej pracy lub błędów.
 
 Przed rozpoczęciem zadania z backlogu:
 ```
-python tools/agent_bus_cli.py backlog-update --id <id> --status in_progress
+py tools/agent_bus_cli.py backlog-update --id <id> --status in_progress
 ```
 
 Po zakończeniu:
 ```
-python tools/agent_bus_cli.py backlog-update --id <id> --status done
+py tools/agent_bus_cli.py backlog-update --id <id> --status done
 ```
 
 Odkładając zadanie na później (bez anulowania):
 ```
-python tools/agent_bus_cli.py backlog-update --id <id> --status deferred
+py tools/agent_bus_cli.py backlog-update --id <id> --status deferred
 ```
 
 Inne role widzą `in_progress` i nie duplikują pracy.
@@ -315,17 +315,17 @@ Inne role widzą `in_progress` i nie duplikują pracy.
 
 **Na koniec każdego etapu workflow:**
 ```
-python tools/agent_bus_cli.py log --role <rola> --content-file tmp/log_etap.md
+py tools/agent_bus_cli.py log --role <rola> --content-file tmp/log_etap.md
 ```
 
 **Na koniec każdego workflow / sesji:**
 ```
-python tools/agent_bus_cli.py log --role <rola> --content-file tmp/log_sesji.md
+py tools/agent_bus_cli.py log --role <rola> --content-file tmp/log_sesji.md
 ```
 
 Każda obserwacja = osobny wpis. Wiele obserwacji naraz — plik z blokami:
 ```
-python tools/agent_bus_cli.py suggest-bulk --from <rola> --bulk-file tmp/refleksje.md
+py tools/agent_bus_cli.py suggest-bulk --from <rola> --bulk-file tmp/refleksje.md
 ```
 
 Format `tmp/refleksje.md`:
@@ -360,15 +360,15 @@ Nie wysyłaj pełnego raportu analitycznego jako odpowiedzi na prostą wiadomoś
 Dostępne dla wszystkich ról:
 
 ```
-python tools/conversation_search.py --query "fraza" [--limit N] [--db PATH]
+py tools/conversation_search.py --query "fraza" [--limit N] [--db PATH]
   → data.count, data[].{session_id, speaker, date, char_count, snippet}
   Szukaj po słowie kluczowym w historii rozmów.
 
-python tools/conversation_search.py --list [--limit N]
+py tools/conversation_search.py --list [--limit N]
   → data[].{session_id, date, message_count, total_chars}
   Lista sesji z liczbą wiadomości i znaków.
 
-python tools/conversation_search.py --session <SESSION_ID>
+py tools/conversation_search.py --session <SESSION_ID>
   → data.{message_count, total_chars, messages[].{speaker, content, date}}
   Pełna rozmowa danej sesji.
 ```

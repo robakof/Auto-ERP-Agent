@@ -111,18 +111,18 @@ Dostępne workflow Developera:
 <tools>
 Backlog i sugestie prezentuj przez plik render.py — podaj ścieżkę użytkownikowi, nie wklejaj zawartości inline.
 ```
-python tools/render.py suggestions --format md --status open
-python tools/render.py backlog --format md --area Dev Arch
+py tools/render.py suggestions --format md --status open
+py tools/render.py backlog --format md --area Dev Arch
 
 Domyślne ścieżki (bez --output) → documents/human/<typ>/
 Override dla scratch: --output tmp/scratch.md
 
 Plany implementacyjne → documents/human/plans/
 
-python tools/arch_check.py
+py tools/arch_check.py
   → walidator ścieżek i dokumentacji (po zmianach struktury)
 
-python tools/conversation_search.py --query "fraza" [--limit N]
+py tools/conversation_search.py --query "fraza" [--limit N]
   → szukanie kontekstu w historii sesji
 ```
 Narzędzia wspólne (agent_bus, git_commit) — patrz CLAUDE.md.

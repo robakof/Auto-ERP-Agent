@@ -110,61 +110,61 @@ z pytaniem jeśli niejednoznaczny.
 
 <tools>
 ```
-python tools/sql_query.py "SELECT ..." [--export SCIEZKA.xlsx] [--count-only] [--quiet]
-python tools/sql_query.py --file SCIEZKA.sql [--export SCIEZKA.xlsx] [--count-only] [--quiet]
+py tools/sql_query.py "SELECT ..." [--export SCIEZKA.xlsx] [--count-only] [--quiet]
+py tools/sql_query.py --file SCIEZKA.sql [--export SCIEZKA.xlsx] [--count-only] [--quiet]
   → data.columns, data.rows, data.row_count, [data.export_path] | error.type
   --count-only: pomiń rows (tylko row_count + columns); --quiet: wypisz "OK {n}" lub "ERROR: ..."
 
-python tools/docs_search.py "fraza" [--table CDN.XXX] [--limit N]
+py tools/docs_search.py "fraza" [--table CDN.XXX] [--limit N]
   → data.results[].{table_name, col_name, col_label, data_type, description, value_dict, sample_values}
   → data.gid_types[].{gid_type, internal_name, symbol, description}
 
-python tools/solutions_search.py "fraza" [--window "Okno"] [--type columns|filters]
+py tools/solutions_search.py "fraza" [--window "Okno"] [--type columns|filters]
   → data.results[].{window, view, type, name, sql, filtr_sql}
 
-python tools/windows_search.py "fraza" [--type columns|filters]
+py tools/windows_search.py "fraza" [--type columns|filters]
   → data.results[].{id, name, aliases, primary_table, config_types}
 
-python tools/excel_export.py "SELECT ..." [--output SCIEZKA.xlsx] [--view-name "Nazwa"]
-python tools/excel_export.py --file SCIEZKA.sql [--output SCIEZKA.xlsx] [--view-name "Nazwa"]
+py tools/excel_export.py "SELECT ..." [--output SCIEZKA.xlsx] [--view-name "Nazwa"]
+py tools/excel_export.py --file SCIEZKA.sql [--output SCIEZKA.xlsx] [--view-name "Nazwa"]
   → data.path, data.row_count, data.columns | error.type
 
-python tools/excel_export_bi.py --sql "SELECT ..." --view-name "Nazwa"
-python tools/excel_export_bi.py --file SCIEZKA.sql  --view-name "Nazwa"
+py tools/excel_export_bi.py --sql "SELECT ..." --view-name "Nazwa"
+py tools/excel_export_bi.py --file SCIEZKA.sql  --view-name "Nazwa"
                                 [--source-table CDN.XXX] [--plan SCIEZKA.xlsx] [--output SCIEZKA.xlsx]
   → data.path, data.view_name, data.row_count, data.sheets | error.type
 
-python tools/excel_read_stats.py --file SCIEZKA.xlsx [--sheet NAZWA]
+py tools/excel_read_stats.py --file SCIEZKA.xlsx [--sheet NAZWA]
                                  [--max-unique N] [--columns col1,col2]
   → data.sheet, data.row_count, data.columns[].{name, total, distinct, null_count, values|sample}
 
-python tools/excel_read_rows.py --file SCIEZKA.xlsx [--sheet NAZWA] [--columns col1,col2]
+py tools/excel_read_rows.py --file SCIEZKA.xlsx [--sheet NAZWA] [--columns col1,col2]
   → data.sheet, data.row_count, data.columns[], data.rows[]
 
-python tools/solutions_save.py --window "..." --view "..." --type columns|filters --name "..." --sql "..."
+py tools/solutions_save.py --window "..." --view "..." --type columns|filters --name "..." --sql "..."
   → data.path
 
-python tools/solutions_save_view.py --draft SCIEZKA.sql [--view-name NAZWA] [--schema AIBI]
+py tools/solutions_save_view.py --draft SCIEZKA.sql [--view-name NAZWA] [--schema AIBI]
   → data.path, data.view_name, data.schema | error.type
 
-python tools/bi_plan_generate.py --src SCIEZKA_plan_src.sql [--output SCIEZKA.xlsx]
+py tools/bi_plan_generate.py --src SCIEZKA_plan_src.sql [--output SCIEZKA.xlsx]
   → data.path, data.row_count, data.columns | error.type
 
-python tools/bi_verify.py --draft SCIEZKA.sql --view-name NAZWA
+py tools/bi_verify.py --draft SCIEZKA.sql --view-name NAZWA
                           [--plan SCIEZKA.xlsx] [--source-table CDN.XXX]
                           [--export SCIEZKA.xlsx] [--max-unique N]
   → data.row_count, data.column_count, data.export_path, data.stats[]
 
-python tools/bi_discovery.py CDN.NazwaTabeli [--pk Kolumna_GIDNumer] [--filter "warunek WHERE"]
+py tools/bi_discovery.py CDN.NazwaTabeli [--pk Kolumna_GIDNumer] [--filter "warunek WHERE"]
                              [--max-enum N] [--no-enum]
   → data.table, data.row_count, data.columns[].{name, sql_type, distinct, role, [values], [min, max]}
   --no-enum: pomija GROUP BY — UŻYWAJ dla tabel >50 kolumn
 
-python tools/search_bi.py "fraza"
-python tools/search_bi.py ""   # wszystkie dostępne widoki
+py tools/search_bi.py "fraza"
+py tools/search_bi.py ""   # wszystkie dostępne widoki
   → lista widoków AIBI z katalogu
 
-python tools/windows_update.py --id ... [--name "..."] [--primary-table CDN.XXX]
+py tools/windows_update.py --id ... [--name "..."] [--primary-table CDN.XXX]
                                 [--add-alias "..."] [--config-types columns filters]
   → data.window, data.created
 ```

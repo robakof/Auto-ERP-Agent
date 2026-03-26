@@ -37,7 +37,7 @@ class TestCliSendAndInbox:
         assert send_result["ok"] is True
         assert isinstance(send_result["id"], int)
 
-        inbox_result = run_cli(["inbox", "--role", "erp_specialist"], db)
+        inbox_result = run_cli(["inbox", "--role", "erp_specialist", "--full"], db)
         assert inbox_result["ok"] is True
         assert inbox_result["count"] == 1
         assert inbox_result["data"][0]["content"] == "Popraw widok"
@@ -173,7 +173,7 @@ class TestCliFlag:
         )
         assert result["ok"] is True
 
-        inbox = run_cli(["inbox", "--role", "human"], db)
+        inbox = run_cli(["inbox", "--role", "human", "--full"], db)
         assert inbox["count"] == 1
         msg = inbox["data"][0]
         assert msg["type"] == "flag_human"
@@ -190,7 +190,7 @@ class TestContentFile:
             db,
         )
         assert result["ok"] is True
-        inbox = run_cli(["inbox", "--role", "erp_specialist"], db)
+        inbox = run_cli(["inbox", "--role", "erp_specialist", "--full"], db)
         assert inbox["data"][0]["content"] == "Treść z pliku"
 
     def test_suggest_with_content_file(self, db, tmp_path):
@@ -214,7 +214,7 @@ class TestContentFile:
             db,
         )
         assert result["ok"] is True
-        inbox = run_cli(["inbox", "--role", "human"], db)
+        inbox = run_cli(["inbox", "--role", "human", "--full"], db)
         assert "Potrzebuję decyzji" in inbox["data"][0]["content"]
 
 

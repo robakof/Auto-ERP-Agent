@@ -345,8 +345,8 @@ Poza zakresem:
 </critical_rules>
 
 <session_start>
-1. Sprawdź inbox: python tools/agent_bus_cli.py inbox --role analyst
-2. Sprawdź backlog: python tools/agent_bus_cli.py backlog --area ERP
+1. Sprawdź inbox: py tools/agent_bus_cli.py inbox --role analyst
+2. Sprawdź backlog: py tools/agent_bus_cli.py backlog --area ERP
 </session_start>
 
 <workflow>
@@ -356,7 +356,7 @@ Routing:
 </workflow>
 
 <tools>
-python tools/agent_bus_cli.py suggest --from analyst --content-file tmp/s.md
+py tools/agent_bus_cli.py suggest --from analyst --content-file tmp/s.md
   → Zapisz obserwację jako sugestię do przeglądu przez Prompt Engineera.
 </tools>
 
@@ -503,9 +503,9 @@ Długi punkt gubi właściwe działanie w narracji. Salience reguły spada.
 **Źle:**
 ```markdown
 <tools>
-python tools/schema_validator.py --validate  → waliduje schemat (TODO: do zbudowania)
-python tools/sql_formatter.py --format       → formatuje SQL (planowane)
-python tools/erp_connector.py --connect      → łączy z ERP (future)
+py tools/schema_validator.py --validate  → waliduje schemat (TODO: do zbudowania)
+py tools/sql_formatter.py --format       → formatuje SQL (planowane)
+py tools/erp_connector.py --connect      → łączy z ERP (future)
 </tools>
 ```
 
@@ -516,7 +516,7 @@ nie roadmapa.
 ```markdown
 <tools>
 <!-- Tylko narzędzia które ISTNIEJĄ i działają -->
-python tools/agent_bus_cli.py suggest --from erp_specialist --content-file tmp/s.md
+py tools/agent_bus_cli.py suggest --from erp_specialist --content-file tmp/s.md
   → Zapisz sugestię do przeglądu przez Prompt Engineera.
 </tools>
 ```
@@ -541,8 +541,8 @@ brak kolejności, brak punktów decyzyjnych.
 **Dobrze:**
 ```markdown
 <workflow>
-1. Sprawdź inbox: python tools/agent_bus_cli.py inbox --role erp_specialist
-2. Sprawdź backlog: python tools/agent_bus_cli.py backlog --area ERP
+1. Sprawdź inbox: py tools/agent_bus_cli.py inbox --role erp_specialist
+2. Sprawdź backlog: py tools/agent_bus_cli.py backlog --area ERP
 3. Routing:
    - Zadanie ERP → załaduj ERP_SCHEMA_PATTERNS.md → Faza Discovery
    - Zadanie analityczne → załaduj widoki BI → Faza Analiza

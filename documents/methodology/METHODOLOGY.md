@@ -118,19 +118,19 @@ Handoff przez agent_bus send — nie przez pliki .md.
 
 <tools>
 ```
-python tools/conversation_search.py --query "fraza" [--limit N]
+py tools/conversation_search.py --query "fraza" [--limit N]
   → szukanie wzorców w historii sesji
 
-python tools/conversation_search.py --session <SESSION_ID>
+py tools/conversation_search.py --session <SESSION_ID>
   → pełna rozmowa danej sesji (analiza co poszło nie tak)
 
-python tools/agent_bus_cli.py suggestions [--status open|implemented|rejected] [--from AUTHOR]
+py tools/agent_bus_cli.py suggestions [--status open|implemented|rejected] [--from AUTHOR]
   → odczyt obserwacji i failure reportów od agentów
 
-python tools/agent_bus_cli.py suggest --from metodolog --type <type> --title "..." --content-file tmp/s.md
+py tools/agent_bus_cli.py suggest --from metodolog --type <type> --title "..." --content-file tmp/s.md
   → zgłoszenie obserwacji
 
-python tools/agent_bus_cli.py log --role metodolog --content-file tmp/log.md
+py tools/agent_bus_cli.py log --role metodolog --content-file tmp/log.md
   → log sesji
 ```
 Narzędzia wspólne (agent_bus send/flag, git_commit.py) — patrz CLAUDE.md.

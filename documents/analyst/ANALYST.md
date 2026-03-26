@@ -74,7 +74,7 @@ Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
 ### Krok 1 — Inicjalizacja obszaru roboczego
 
 ```
-python tools/data_quality_init.py \
+py tools/data_quality_init.py \
   --source "BI.KntKarty" \
   --output "solutions/analyst/KntKarty/KntKarty_workdb.db"
 ```
@@ -115,23 +115,23 @@ Dla każdej kolumny:
 
 1a. Zrozum co kolumna powinna zawierać:
     ```
-    python tools/docs_search.py "{nazwa_kolumny}" --table {tabela}
+    py tools/docs_search.py "{nazwa_kolumny}" --table {tabela}
     ```
     Sformułuj hipotezę — nie zaczynaj od zapytania.
 
 1b. Zbadaj co faktycznie zawiera:
     ```
-    python tools/data_quality_query.py \
+    py tools/data_quality_query.py \
       --db "...workdb.db" --sql "SELECT ..."
     ```
     Dobierz zapytanie do charakteru kolumny. Brak stałego zestawu sprawdzeń.
 
 1c. Problem znaleziony → zapisz obserwację + konkretne rekordy:
     ```
-    python tools/data_quality_save.py \
+    py tools/data_quality_save.py \
       --db "...workdb.db" --column "X" --observation "..." --rows-affected N
 
-    python tools/data_quality_records.py \
+    py tools/data_quality_records.py \
       --db "...workdb.db" --column "X" --sql "SELECT Kod, Nazwa, X FROM dane WHERE ..."
     ```
     Dobierz kolumny identyfikujące (kod, nazwa, numer dokumentu) do kontekstu tabeli.
@@ -141,7 +141,7 @@ Dla każdej kolumny:
 ### Krok 4 — Generowanie raportu
 
 ```
-python tools/data_quality_report.py \
+py tools/data_quality_report.py \
   --db "...workdb.db" --output "...report.xlsx"
 ```
 
@@ -152,25 +152,25 @@ Zaktualizuj progress log.
 
 <tools>
 ```
-python tools/data_quality_init.py --source "BI.X" --output "...workdb.db" [--force]
+py tools/data_quality_init.py --source "BI.X" --output "...workdb.db" [--force]
   → data.source, data.db_path, data.row_count, data.columns
 
-python tools/data_quality_query.py --db "...workdb.db" --sql "SELECT ..." [--count-only] [--quiet]
+py tools/data_quality_query.py --db "...workdb.db" --sql "SELECT ..." [--count-only] [--quiet]
   → data.row_count, data.columns, data.rows
 
-python tools/data_quality_save.py --db "...workdb.db" --column "X" --observation "..." --rows-affected N
+py tools/data_quality_save.py --db "...workdb.db" --column "X" --observation "..." --rows-affected N
   → data.id, data.column, data.rows_affected
 
-python tools/data_quality_records.py --db "...workdb.db" --column "X" --sql "SELECT ..."
+py tools/data_quality_records.py --db "...workdb.db" --column "X" --sql "SELECT ..."
   → data.column, data.records_saved
 
-python tools/data_quality_report.py --db "...workdb.db" --output "...report.xlsx"
+py tools/data_quality_report.py --db "...workdb.db" --output "...report.xlsx"
   → data.output_path, data.findings_count, data.records_count
 
-python tools/docs_search.py "fraza" [--table CDN.XXX] [--limit N]
+py tools/docs_search.py "fraza" [--table CDN.XXX] [--limit N]
   → data.results[].{col_name, col_label, description, sample_values}
 
-python tools/excel_read_rows.py --file SCIEZKA.xlsx [--columns col1,col2]
+py tools/excel_read_rows.py --file SCIEZKA.xlsx [--columns col1,col2]
   → data.rows[]
 ```
 

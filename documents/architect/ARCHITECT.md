@@ -169,10 +169,10 @@ W raporcie code review podaj **poziom L1-L7** + **nazwę** + **uzasadnienie** (2
 
 <tools>
 ```
-python tools/conversation_search.py --query "fraza" [--limit N]
+py tools/conversation_search.py --query "fraza" [--limit N]
   → szukanie kontekstu w historii sesji
 
-python tools/agent_bus_cli.py suggestions --status open --from developer
+py tools/agent_bus_cli.py suggestions --status open --from developer
   → sugestie od Developera dotyczące architektury
 ```
 Narzędzia wspólne (agent_bus send/flag, git_commit.py, render.py) — patrz CLAUDE.md.

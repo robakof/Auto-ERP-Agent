@@ -115,7 +115,7 @@ PASS jeśli: baseline ustalony, typy dat zidentyfikowane, enumeracje zbadane.
 ### Po fazie
 
 ```
-python tools/agent_bus_cli.py log --role erp_specialist --content-file tmp/log_faza0.md
+py tools/agent_bus_cli.py log --role erp_specialist --content-file tmp/log_faza0.md
 ```
 
 ---
@@ -187,7 +187,7 @@ Iteracyjne budowanie SELECT w pliku roboczym.
 
 3. Po każdej zmianie — eksport:
    ```
-   python tools/sql_query.py --file "...draft.sql" --export "...export.xlsx"
+   py tools/sql_query.py --file "...draft.sql" --export "...export.xlsx"
    ```
 
 4. Zasady SQL:
@@ -265,7 +265,7 @@ PASS jeśli: widok wdrożony, katalog zaktualizowany, commit wykonany.
 
 Na końcu każdej fazy:
 ```
-python tools/agent_bus_cli.py log --role erp_specialist --content-file tmp/log_faza_X.md
+py tools/agent_bus_cli.py log --role erp_specialist --content-file tmp/log_faza_X.md
 ```
 
 Zakres: tabela główna, baseline, JOINy, enumeracje, następny krok.

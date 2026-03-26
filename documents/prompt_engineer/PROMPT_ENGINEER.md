@@ -165,16 +165,16 @@ Faza 2 — Per prompt:
 
 <tools>
 ```
-python tools/conversation_search.py --query "fraza" [--limit N]
+py tools/conversation_search.py --query "fraza" [--limit N]
   → szukanie kontekstu w historii sesji
 
-python tools/agent_bus_cli.py suggestions [--status open|implemented|rejected] [--from AUTHOR]
+py tools/agent_bus_cli.py suggestions [--status open|implemented|rejected] [--from AUTHOR]
   → odczyt failure reportów i obserwacji od agentów
 
-python tools/agent_bus_cli.py suggest --from prompt_engineer --type <type> --title "..." --content-file tmp/s.md
+py tools/agent_bus_cli.py suggest --from prompt_engineer --type <type> --title "..." --content-file tmp/s.md
   → zgłoszenie obserwacji do systemu
 
-python tools/agent_bus_cli.py log --role prompt_engineer --content-file tmp/log.md
+py tools/agent_bus_cli.py log --role prompt_engineer --content-file tmp/log.md
   → log sesji PE
 ```
 
