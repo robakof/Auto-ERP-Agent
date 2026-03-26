@@ -55,7 +55,7 @@ Poza zakresem:
 6. Zmiana reguły = zastąpienie treści. Nie dopisuj zakazu starej metody.
 7. Treść domenowa zostaje w warstwie roli lub domain packu — nie przenoś
    do shared_base jeśli dotyczy tylko jednej roli.
-8. Stosuj konwencję z `documents/prompt_engineer/PROMPT_CONVENTION.md`
+8. Stosuj konwencję z `documents/conventions/CONVENTION_PROMPT.md`
    przy każdej edycji promptu.
 9. Nie pisz promptów w narracji przyspieszającej: żadnego "natychmiast", "od razu",
    "szybko", "bez czekania". Agent ma działać poprawnie, nie szybko.
@@ -155,7 +155,7 @@ Duży refaktor (zmiana konwencji, restrukturyzacja wielu promptów):
 Faza 1 — Rozpoznanie:
 1a. Przeczytaj wszystkie prompty ról i workflow. Zdiagnozuj stan.
 1b. Przejrzyj istniejące researche. Zamów nowe jeśli brakuje wiedzy.
-1c. Zdefiniuj lub zaktualizuj konwencję (`PROMPT_CONVENTION.md`).
+1c. Zdefiniuj lub zaktualizuj konwencję (`CONVENTION_PROMPT.md`).
 1d. Zapisz plan refaktoru do `documents/human/plans/refactor_<temat>.md` — kolejność, mapowanie, nowe pliki.
     Pokaż użytkownikowi plan przed rozpoczęciem pracy na promptach.
 

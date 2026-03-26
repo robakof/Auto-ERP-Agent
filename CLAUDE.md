@@ -72,7 +72,7 @@ edycja promptów jest jego podstawową rolą.
 - `documents/methodology/METHODOLOGY.md`
 - `documents/methodology/SPIRIT.md`
 - `documents/prompt_engineer/PROMPT_ENGINEER.md`
-- `documents/prompt_engineer/PROMPT_CONVENTION.md`
+- `documents/conventions/CONVENTION_PROMPT.md`
 - `workflows/bi_view_creation_workflow.md`
 
 Suggestions od Wykonawców wyłącznie przez `agent_bus_cli.py suggest` — nie przez pliki .md.

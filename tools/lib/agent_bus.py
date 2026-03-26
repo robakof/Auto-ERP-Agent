@@ -218,6 +218,41 @@ _MIGRATE_SQL = [
     "ALTER TABLE messages ADD COLUMN reply_to_id INTEGER REFERENCES messages(id)",
     # #124: depends_on for backlog dependency tracking
     "ALTER TABLE backlog ADD COLUMN depends_on INTEGER REFERENCES backlog(id)",
+    # Agent Launcher M1: live_agents table
+    """CREATE TABLE IF NOT EXISTS live_agents (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id      TEXT UNIQUE NOT NULL,
+        role            TEXT NOT NULL,
+        task            TEXT,
+        terminal_name   TEXT,
+        window_id       TEXT,
+        status          TEXT NOT NULL DEFAULT 'starting',
+        spawned_by      TEXT,
+        permission_mode TEXT NOT NULL DEFAULT 'default',
+        created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+        last_activity   TEXT,
+        stopped_at      TEXT,
+        transcript_path TEXT,
+        CHECK (status IN ('starting', 'active', 'stopped'))
+    )""",
+    "CREATE INDEX IF NOT EXISTS idx_live_agents_status ON live_agents(status)",
+    "CREATE INDEX IF NOT EXISTS idx_live_agents_role ON live_agents(role)",
+    # Agent Launcher M1: invocations table
+    """CREATE TABLE IF NOT EXISTS invocations (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        invoker_type    TEXT NOT NULL,
+        invoker_id      TEXT NOT NULL,
+        target_role     TEXT NOT NULL,
+        task            TEXT NOT NULL,
+        session_id      TEXT REFERENCES sessions(id),
+        status          TEXT NOT NULL DEFAULT 'pending',
+        created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+        ended_at        TEXT,
+        CHECK (invoker_type IN ('human', 'agent', 'orchestrator')),
+        CHECK (status IN ('pending', 'approved', 'running', 'completed', 'failed', 'rejected'))
+    )""",
+    "CREATE INDEX IF NOT EXISTS idx_invocations_status ON invocations(status)",
+    "CREATE INDEX IF NOT EXISTS idx_invocations_session ON invocations(session_id)",
 ]
 
 

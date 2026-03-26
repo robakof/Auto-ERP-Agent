@@ -1,7 +1,7 @@
 ---
 convention_id: prompt-convention
 version: "1.0"
-status: active
+status: archived
 created: 2026-03-24
 updated: 2026-03-25
 author: prompt_engineer

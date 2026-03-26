@@ -1,6 +1,6 @@
 ---
 workflow_id: bi_view_creation
-version: "3.0"
+version: "3.1"
 owner_role: erp_specialist
 trigger: "Użytkownik prosi o utworzenie widoku BI"
 participants:
@@ -31,7 +31,7 @@ Proces tworzenia widoku BI dla systemu ERP Comarch XL.
 ## Outline
 
 0. **Inicjalizacja** — utworzenie plików roboczych
-1. **Discovery** — analiza struktury, enumeracje, typy danych
+1. **Discovery** — analiza struktury, enumeracje, typy danych, enumeracje, typy danych
 2. **Plan mapowania** — plan kolumn + recenzja Analityka
 3. **SQL na brudnopisie** — iteracyjne budowanie SELECT
 4. **Weryfikacja eksportu** — bi_verify + approval Analityka
@@ -39,7 +39,7 @@ Proces tworzenia widoku BI dla systemu ERP Comarch XL.
 
 ---
 
-## Inicjalizacja
+## Faza 0 — Inicjalizacja
 
 **Owner:** ERP Specialist
 
@@ -115,7 +115,7 @@ PASS jeśli: baseline ustalony, typy dat zidentyfikowane, enumeracje zbadane.
 ### Po fazie
 
 ```
-python tools/agent_bus_cli.py log --role erp_specialist --content-file tmp/log_faza0.md
+py tools/agent_bus_cli.py log --role erp_specialist --content-file tmp/log_faza0.md
 ```
 
 ---
@@ -149,6 +149,11 @@ Zatwierdzony plan kolumn przed napisaniem SQL.
    Kolumny: `CDN_Pole`, `Opis`, `Alias_w_widoku`, `Transformacja`, `Uwzglednic`, `Komentarz_Analityka`.
 
 5. Wyślij plan do Analityka (`agent_bus send`).
+
+   → HANDOFF: analyst. STOP.
+     Mechanizm: agent_bus send
+     Czekaj na: feedback lub zatwierdzenie planu od Analityka
+     Nie przechodź do Fazy 1b bez odpowiedzi.
 
 ### Faza 1b — Recenzja planu (Analityk)
 
@@ -187,7 +192,7 @@ Iteracyjne budowanie SELECT w pliku roboczym.
 
 3. Po każdej zmianie — eksport:
    ```
-   python tools/sql_query.py --file "...draft.sql" --export "...export.xlsx"
+   py tools/sql_query.py --file "...draft.sql" --export "...export.xlsx"
    ```
 
 4. Zasady SQL:
@@ -242,6 +247,11 @@ PASS jeśli: eksport aktualny, row count zgadza się, Analityk potwierdził.
 
 2. Zgłoś do DBA (`agent_bus flag`).
 
+   → HANDOFF: human (DBA). STOP.
+     Mechanizm: agent_bus flag
+     Czekaj na: potwierdzenie wdrożenia od DBA
+     Nie przechodź do kroku 3 bez potwierdzenia.
+
 3. Po wdrożeniu — zaktualizuj katalog (`bi_catalog_add.py`).
 
 4. Uzupełnij ręcznie: `description`, `example_questions`.
@@ -265,7 +275,7 @@ PASS jeśli: widok wdrożony, katalog zaktualizowany, commit wykonany.
 
 Na końcu każdej fazy:
 ```
-python tools/agent_bus_cli.py log --role erp_specialist --content-file tmp/log_faza_X.md
+py tools/agent_bus_cli.py log --role erp_specialist --content-file tmp/log_faza_X.md
 ```
 
 Zakres: tabela główna, baseline, JOINy, enumeracje, następny krok.

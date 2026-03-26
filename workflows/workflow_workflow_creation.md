@@ -1,6 +1,6 @@
 ---
 workflow_id: workflow_creation
-version: "1.1"
+version: "1.2"
 owner_role: prompt_engineer
 trigger: "Agent wykonał proces bez workflow i wysłał konwersację do formalizacji"
 participants:
@@ -16,8 +16,6 @@ prerequisites:
 outputs:
   - type: file
     path: "workflows/workflow_{nazwa}.md"
-  - type: file
-    path: "documents/human/workflows/workflow_{nazwa}.md"
   - type: message
     field: "powiadomienie agenta źródłowego"
   - type: commit
@@ -35,8 +33,8 @@ Formalizacja workflow na podstawie REALNEJ praktyki. Owner: PE.
 2. **Ekstrakcja** — wyciągnięcie kroków, pułapek, learnings z konwersacji
 3. **Draft** — minimalna formalizacja
 4. **Review** — z userem (notuję → edycje osobno)
-5. **Approval** — Dawid
-6. **Publication** — commit, powiadomienia
+5. **Revision** — wdrożenie uwag
+6. **Approval + Publication** — zatwierdzenie, commit, powiadomienia
 
 ---
 
@@ -147,6 +145,11 @@ PASS: draft minimalny, oparty na praktyce.
 
 1. Przedstaw draft userowi.
 
+   → HANDOFF: human. STOP.
+     Mechanizm: czekaj na user input
+     Czekaj na: feedback lub zatwierdzenie draftu
+     Nie przechodź do Fazy 5 bez odpowiedzi.
+
 2. Notuję uwagi — NIE edytuję od razu.
 
 3. Po zebraniu → potwierdź zakres edycji.
@@ -157,14 +160,47 @@ PASS: uwagi zebrane, zakres potwierdzony.
 
 ---
 
-## Faza 5: Revision + Approval + Publication
+## Faza 5: Revision
 
-(Analogicznie do workflow_convention_creation)
+**Owner:** PE
 
-1. Wdróż uwagi.
-2. Skopiuj do `documents/human/workflows/`.
-3. Dawid zatwierdza.
-4. Commit + powiadomienia.
+### Steps
+
+1. Wdróż uwagi z Fazy 4.
+2. Jeśli zmiany istotne → pokaż userowi ponownie (wróć do Fazy 4).
+
+### Exit gate
+
+PASS: uwagi wdrożone.
+
+---
+
+## Faza 6: Approval + Publication
+
+**Owner:** PE
+
+### Steps
+
+1. Przedstaw finalną wersję userowi do zatwierdzenia.
+
+   → HANDOFF: human. STOP.
+     Mechanizm: czekaj na user input
+     Czekaj na: zatwierdzenie ("OK" / "poprawki")
+     Nie commituj bez zatwierdzenia.
+
+2. Commit:
+   ```
+   py tools/git_commit.py --message "feat(PE): workflow_{nazwa} v1.0" --all
+   ```
+3. Powiadom agenta źródłowego:
+   ```
+   py tools/agent_bus_cli.py send --from prompt_engineer --to <agent> --content-file tmp/workflow_ready.md
+   ```
+4. Zaktualizuj backlog (jeśli task z backlogu).
+
+### Exit gate
+
+PASS: commit wykonany, agent powiadomiony.
 
 ---
 

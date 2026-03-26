@@ -8,7 +8,7 @@ participants:
   - architect / developer (zlecający — dostarcza pytania badawcze)
   - human (uruchamia prompt w zewnętrznym narzędziu)
 related_docs:
-  - documents/prompt_engineer/PROMPT_CONVENTION.md
+  - documents/conventions/CONVENTION_PROMPT.md
   - documents/researcher/prompts/research_convention_prompt.md
 prerequisites:
   - session_init_done

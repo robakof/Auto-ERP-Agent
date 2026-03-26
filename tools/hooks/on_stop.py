@@ -35,6 +35,23 @@ def _save_last_message(bus, last_msg: str, session_id: str | None, raw: str) -> 
     )
 
 
+def _update_live_agent(bus, session_id: str | None, transcript_path: str) -> None:
+    """Update last_activity and transcript_path in live_agents if agent is registered."""
+    if not session_id:
+        return
+    try:
+        bus._conn.execute(
+            """UPDATE live_agents
+               SET last_activity = datetime('now'),
+                   transcript_path = COALESCE(?, transcript_path)
+               WHERE session_id = ? AND status = 'active'""",
+            (transcript_path or None, session_id),
+        )
+        bus._conn.commit()
+    except Exception:
+        pass  # Table may not exist yet
+
+
 def _parse_transcript(bus, transcript_path: str, session_id: str | None) -> None:
     if not transcript_path or not session_id:
         return
@@ -74,6 +91,8 @@ def main():
 
         _save_last_message(bus, payload.get("last_assistant_message", ""), session_id, raw)
         _parse_transcript(bus, transcript_path, session_id)
+        _update_live_agent(bus, session_id, transcript_path)
+
 
     except Exception as e:
         try:
