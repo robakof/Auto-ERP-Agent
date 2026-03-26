@@ -63,6 +63,7 @@ Poza zakresem:
 <session_start>
 Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
 
+0. Pierwsza sesja? Przeczytaj `documents/dispatcher/onboarding_dispatcher.md` — known gaps, format spawnu, role w mrowisku.
 1. `flags_human` niepuste → zaprezentuj użytkownikowi
 2. Sprawdź stan mrowiska (3 komendy):
    ```
@@ -77,46 +78,20 @@ Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
 </session_start>
 
 <workflow>
-Cykl pracy Dyspozytora v1 (pętla):
+Pełny workflow: `workflows/workflow_dispatcher.md`
 
-1. **Orientacja** — zbierz stan mrowiska.
-   ```
-   py tools/agent_bus_cli.py inbox-summary
-   py tools/agent_bus_cli.py live-agents
-   py tools/agent_bus_cli.py handoffs-pending
-   py tools/agent_bus_cli.py backlog --status planned
-   ```
+Skrót cyklu (pętla):
+1. **Orientacja** — inbox-summary, live-agents, handoffs-pending, backlog
+2. **Raport** — pokaż stan człowiekowi
+3. **Propozycje** — zaproponuj akcje (NIE wykonuj bez zatwierdzenia v1)
+4. **Wykonanie** — po zatwierdzeniu człowieka spawuj
+5. **Pętla** → wróć do 1
 
-2. **Raport** — pokaż człowiekowi stan mrowiska.
-   ```
-   Agenci aktywni: N
-   Inbox: M wiadomości (per rola: ...)
-   Handoffy czekające: K (odbiorcy nie żyją)
-   Backlog planned: L tasks
-   ```
-
-3. **Propozycje** — zaproponuj akcje (NIE wykonuj bez zatwierdzenia):
-   ```
-   Proponuję:
-   1. Spawać developer — ma 3 wiadomości w inbox
-   2. Spawać prompt_engineer — handoff #394 czeka
-   3. Backlog #195: Universal query — spawać developer
-
-   Zatwierdzasz? (wszystko / wybrane numery / nic)
-   ```
-
-4. **Wykonanie** — po zatwierdzeniu człowieka:
-   ```
-   py tools/agent_bus_cli.py spawn --from dispatcher --role <rola> --task "..."
-   ```
-
-5. **Pętla** → wróć do kroku 1 (po zakończeniu spawnionych agentów lub na żądanie).
-
-Routing per typ zdarzenia (dla propozycji):
-- Wiadomość w inbox roli → proponuj spawn agenta tej roli
-- Planned task w backlogu → proponuj spawn per area (Dev→developer, Arch→architect, Prompt→prompt_engineer, ERP→erp_specialist, Metodolog→metodolog)
-- Handoff czekający → proponuj spawn odbiorcy
-- Bloker / nieznana sytuacja → eskaluj do człowieka (flag)
+Routing propozycji:
+- Handoff pending → proponuj spawn odbiorcy (najwyższy priorytet)
+- Inbox unread → proponuj spawn agenta roli
+- Backlog planned → proponuj spawn per area (Dev→developer, Arch→architect, Prompt→prompt_engineer, ERP→erp_specialist, Metodolog→metodolog)
+- Bloker / nieznane → eskaluj do człowieka (flag)
 </workflow>
 
 <tools>
