@@ -6,9 +6,10 @@
 
 ## Szybkie strzały (wysoka wartość, mała praca)
 
-| id | tytuł | obszar | wartość | effort |
-|----|-------|--------|---------|--------|
-| 174 | [CONV] P1: CONVENTION_GIT — formalizacja | Dev | wysoka | mala |
+| id  | tytuł                                    | obszar | wartość | effort |
+| --- | ---------------------------------------- | ------ | ------- | ------ |
+| 174 | [CONV] P1: CONVENTION_GIT — formalizacja | Dev    | wysoka  | mala   |
+|     |                                          |        |         |        |
 
 ## Wysoka wartość, średnia praca
 
@@ -18,15 +19,15 @@
 
 ## Średnia wartość, mała praca
 
-| id | tytuł | obszar | wartość | effort |
-|----|-------|--------|---------|--------|
-| 190 | [DEV] SQL extraction — schema i migrations do core/database/ | Dev | srednia | mala |
-| 184 | inbox --full --status unread (bulk read) | Dev | srednia | mala |
-| 180 | [CONV] P2: CONVENTION_HOOKS | Dev | srednia | mala |
-| 166 | convention_init.py — scaffolding tool for new conventions | Dev | srednia | mala |
-| 155 | Cancelled/superseded status dla handoff | Dev | srednia | mala |
-| 154 | agent_bus_cli: filtr po senderze | Dev | srednia | mala |
-| 141 | Agent communication — broadcast messages (do wszystkich) | Dev | srednia | mala |
+| id  | tytuł                                                        | obszar | wartość | effort |
+| --- | ------------------------------------------------------------ | ------ | ------- | ------ |
+| 190 | [DEV] SQL extraction — schema i migrations do core/database/ | Dev    | srednia | mala   |
+| 184 | inbox --full --status unread (bulk read)                     | Dev    | srednia | mala   |
+| 180 | [CONV] P2: CONVENTION_HOOKS                                  | Dev    | srednia | mala   |
+| 166 | convention_init.py — scaffolding tool for new conventions    | Dev    | srednia | mala   |
+| 155 | Cancelled/superseded status dla handoff                      | Dev    | srednia | mala   |
+| 154 | agent_bus_cli: filtr po senderze                             | Dev    | srednia | mala   |
+| 141 | Agent communication — broadcast messages (do wszystkich)     | Dev    | srednia | mala   |
 
 ## Średnia wartość, średnia/duża praca
 
