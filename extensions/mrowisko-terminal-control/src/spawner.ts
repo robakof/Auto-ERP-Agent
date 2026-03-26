@@ -3,8 +3,9 @@ import * as crypto from "crypto";
 import { Registry } from "./registry";
 import { SpawnRequest, TerminalMap } from "./types";
 
-/** Delay (ms) before sending the first user message to Claude Code. */
-const STARTUP_DELAY_MS = 4000;
+function getConfig<T>(key: string, fallback: T): T {
+  return vscode.workspace.getConfiguration("mrowisko").get<T>(key, fallback);
+}
 
 export class Spawner {
   constructor(
@@ -47,7 +48,8 @@ export class Spawner {
 
     // Build claude command with task context in system prompt
     // TODO(phase-3): escape systemPrompt for PowerShell special chars
-    const autoPrompt = `[TRYB AUTONOMICZNY] Rola: ${request.role}. Task: ${request.task}`;
+    const template = getConfig("autoPromptTemplate", "[TRYB AUTONOMICZNY] Rola: {role}. Task: {task}");
+    const autoPrompt = template.replace("{role}", request.role).replace("{task}", request.task);
     const extraPrompt = request.systemPrompt
       ? `${autoPrompt} ${request.systemPrompt}`
       : autoPrompt;
@@ -62,12 +64,13 @@ export class Spawner {
 
     terminal.sendText(cmd);
 
-    // Delay first user message — Claude Code needs ~3-4s to start and accept stdin.
+    // Delay first user message — Claude Code needs time to start and accept stdin.
     // The system prompt already contains the task context, so Claude knows what to do.
     // This message triggers session_init via CLAUDE.md routing.
+    const delay = getConfig("startupDelayMs", 4000);
     setTimeout(() => {
       terminal.sendText(`${request.role}, ${request.task}`);
-    }, STARTUP_DELAY_MS);
+    }, delay);
 
     terminal.show();
 

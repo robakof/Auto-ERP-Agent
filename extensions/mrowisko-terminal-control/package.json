@@ -54,6 +54,16 @@
           "default": 5000,
           "description": "Interval (ms) for polling pending invocations"
         },
+        "mrowisko.startupDelayMs": {
+          "type": "number",
+          "default": 4000,
+          "description": "Delay (ms) before sending first message to spawned Claude Code"
+        },
+        "mrowisko.autoPromptTemplate": {
+          "type": "string",
+          "default": "[TRYB AUTONOMICZNY] Rola: {role}. Task: {task}",
+          "description": "System prompt template for spawned agents ({role} and {task} are replaced)"
+        },
         "mrowisko.terminalLocation": {
           "type": "string",
           "enum": ["editor", "panel"],
