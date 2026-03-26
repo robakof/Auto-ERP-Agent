@@ -207,6 +207,11 @@ py tools/agent_bus_cli.py inbox --role <rola> --sender <rola>  # filtruj po nada
 # Message — pobierz wiadomość po ID (alias)
 py tools/agent_bus_cli.py message --id <id>
 
+# Monitoring (narzędzia PM / Dyspozytor)
+py tools/agent_bus_cli.py inbox-summary         # unread per rola, grouped by type
+py tools/agent_bus_cli.py live-agents            # lista aktywnych agentów (starting/active)
+py tools/agent_bus_cli.py handoffs-pending       # handoffy bez żywego odbiorcy
+
 # Known gaps — śledzenie braków w wiedzy/narzędziach
 py tools/agent_bus_cli.py gap-add --role <rola> --title "Tytuł" --content-file tmp/gap.md
 py tools/agent_bus_cli.py gaps --role <rola> --status open|resolved|all
@@ -388,6 +393,11 @@ py tools/conversation_search.py --list [--limit N]
 py tools/conversation_search.py --session <SESSION_ID>
   → data.{message_count, total_chars, messages[].{speaker, content, date}}
   Pełna rozmowa danej sesji.
+py tools/context_usage.py                        # bieżąca sesja (autodetect)
+py tools/context_usage.py --transcript PATH      # konkretny plik
+py tools/context_usage.py --session-id UUID      # z live_agents
+  → context_used_pct, current_context_tokens, turns, cumulative
+  Faktyczne zużycie kontekstu z live transcript. Używaj zamiast zgadywania "~XX%".
 ```
 
 Używaj gdy potrzebujesz kontekstu z poprzednich sesji.

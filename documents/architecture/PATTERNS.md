@@ -655,15 +655,77 @@ Message Title Extraction:
 
 ---
 
+## Meta Patterns
+
+### Pattern: Manifestation Through Action (Manifestacja przez działanie)
+
+**Problem:** System rośnie — pojawiają się nowe potrzeby. Dwa skrajne podejścia: (1) buduj wszystko z góry (premature abstraction), (2) nic nie buduj aż będzie za późno (reactive debt).
+
+**Solution:**
+- Gdy agent napotyka potrzebę której system nie przewidział → rozwiąż ad-hoc (fallback, workaround)
+- Gdy ta sama potrzeba pojawia się 2-3x → krystalizuj w trwałą mechanikę (narzędzie, komenda, pattern)
+- **Nie buduj nic poza scope manifestacji.** Narzędzie powstaje TYLKO gdy potrzeba się zmaterializowała w realnej pracy.
+
+**When to use:**
+- Decyzja "czy budować narzędzie/komendę/abstrakcję?"
+- Planowanie scope nowych features
+- Priorytetyzacja backlogu (manifestowane > spekulatywne)
+
+**When NOT to use:**
+- Fundamenty architektoniczne (DB schema, security) — te wymagają planowania z góry
+- Compliance / safety gates — nie czekaj aż exploit się zmaterializuje
+
+**Example:**
+```
+Cykl manifestacji (real case: Agent Launcher CLI):
+
+1. POTRZEBA: Dyspozytor musi wiedzieć kto ma wiadomości w inbox
+   → Ad-hoc: 6x agent_bus_cli.py inbox --role <rola> (drogo, powtarzalne)
+
+2. POWTÓRZENIE: Każdy cykl Dyspozytora = te same 6 wywołań
+   → Manifestacja potwierdzona: potrzeba jest realna
+
+3. KRYSTALIZACJA: Developer buduje `inbox-summary` (1 wywołanie, pełny obraz)
+   → Narzędzie ma udowodnioną wartość — bo powstało z faktycznego użycia
+
+4. FALLBACK: Universal query dla ad-hoc pytań których nikt nie przewidział
+   → Gdy ad-hoc się powtarza → nowa krystalizacja → nowa komenda
+```
+
+**Anti-pattern:**
+```
+Spekulatywne narzędzia:
+  ✗ "Może kiedyś ktoś będzie potrzebował filtrować backlog po dacie"
+  ✗ Budujemy --date-from --date-to zanim ktokolwiek zapytał
+  ✗ Narzędzie istnieje, nikt go nie używa, maintainujemy martwy kod
+
+Instead:
+  ✓ Ktoś faktycznie potrzebuje filtrować po dacie (ad-hoc query)
+  ✓ Powtarza się 3x w ciągu tygodnia
+  ✓ Developer buduje --date-from --date-to
+  ✓ Narzędzie ma 3 potwierdzone use-cases od dnia zero
+```
+
+**Samoreferencyjność:** Ten pattern sam powstał przez manifestację — nie był planowany. Pojawił się w rozmowie o konkretnym problemie (za dużo komend CLI) i skrystalizował w zasadę.
+
+**Powiązanie z SPIRIT.md:** "Buduj dom, nie szałas" — ale dom rośnie pokój po pokoju, nie cały naraz. Każdy pokój zbudowany bo ktoś w nim potrzebował mieszkać.
+
+**Ref:**
+- Sugestia #392 (pełny opis)
+- Backlog #195 (universal query + auto-krystalizacja)
+- Rozmowa Architect-User 2026-03-26
+
+---
+
 ## Changelog
+
+**2026-03-26:** Manifestation Through Action
+- Nowa kategoria: Meta Patterns
+- Pattern: Manifestacja przez działanie (ad-hoc → powtórzenie → krystalizacja)
+- Source: rozmowa Architect-User o universal query vs dedykowane komendy CLI
 
 **2026-03-24:** Initial catalog
 - 13 patterns (system design, validation, domain model, migration, testing, security, data quality)
 - 5 anti-patterns
 - Source: M1-M4 ADR-001 + code walkthrough session + mid-level assessment
 - Added: Convention First Architecture (user observation: workflow convention gap)
-
-**Future updates:**
-- Po każdym ADR (extract patterns)
-- Po code review (good/bad patterns identified)
-- Ad-hoc discoveries
