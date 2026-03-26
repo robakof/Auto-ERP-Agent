@@ -1,24 +1,21 @@
-# Aktywne watki pracy
+# Aktywne watki
 
-## Workflow w toku
+## Workflow
 
-| ID | Workflow | Rola | Start |
-|----|----------|------|-------|
-| 28 | developer_operations | developer | 2026-03-26 21:15:53 |
-| 27 | developer_operations | developer | 2026-03-26 20:13:34 |
-| 24 | workflow_developer | developer | 2026-03-26 12:28:12 |
-| 15 | workflow_creation | prompt_engineer | 2026-03-25 10:49:25 |
-| 13 | convention_creation | architect | 2026-03-25 10:27:25 |
-| 9 | convention_creation | architect | 2026-03-25 09:49:59 |
-| 10 | convention_creation | architect | 2026-03-25 09:49:59 |
-| 8 | convention_creation | architect | 2026-03-25 09:49:58 |
+- **#28** developer/developer_operations (od 2026-03-26)
+- **#27** developer/developer_operations (od 2026-03-26)
+- **#24** developer/workflow_developer (od 2026-03-26)
+- **#15** prompt_engineer/workflow_creation (od 2026-03-25)
+- **#13** architect/convention_creation (od 2026-03-25)
+- **#9** architect/convention_creation (od 2026-03-25)
+- **#10** architect/convention_creation (od 2026-03-25)
+- **#8** architect/convention_creation (od 2026-03-25)
 
-## Backlog in_progress
+## In progress
 
-| ID | Tytul | Area | Priorytet |
-|----|-------|------|-----------|
-| 115 | Refaktor na Domain Model (ADR-001) | Arch | wysoka |
-| 150 | Convention Registry — centralizacja + META_CONVENTION | Arch | wysoka |
-| 171 | [CONV] P0: CONVENTION_CODE — rozszerzenie | Arch | wysoka |
-| 179 | [CONV] P2: CONVENTION_DB_SCHEMA | Arch | srednia |
-| 158 | CLI-API sync guard: test + docelowo single source of truth | Dev | wysoka |
+- **#115** [Arch] Refaktor na Domain Model (ADR-001) [wysoka]
+- **#150** [Arch] Convention Registry — centralizacja + META_CONVENTION [wysoka]
+- **#171** [Arch] [CONV] P0: CONVENTION_CODE — rozszerzenie [wysoka]
+- **#179** [Arch] [CONV] P2: CONVENTION_DB_SCHEMA [srednia]
+- **#158** [Dev] CLI-API sync guard: test + docelowo single source of truth [wysoka]
+

@@ -53,11 +53,12 @@ class TestDashboardGeneration:
         for name in ["status.md", "workstreams.md", "backlog_overview.md"]:
             assert (Path(output_dir) / name).exists()
 
-    def test_status_contains_sections(self, db, output_dir):
+    def test_status_contains_metrics_header(self, db, output_dir):
         result = run_cli(["--output-dir", output_dir], db)
         content = (Path(output_dir) / "status.md").read_text(encoding="utf-8")
-        assert "# Status mrowiska" in content
-        assert "Live agents" in content or "Aktywni agenci" in content
+        assert "Mrowisko" in content
+        assert "Agenci:" in content
+        assert "Unread:" in content
 
     def test_backlog_overview_with_data(self, db, output_dir):
         run_bus(["backlog-add", "--title", "Task1", "--area", "Dev",

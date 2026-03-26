@@ -27,92 +27,112 @@ DEFAULT_OUTPUT = "documents/human/dashboard"
 
 
 def _render_status(conn: sqlite3.Connection) -> str:
-    """Render status.md — live agents, inbox summary, pending handoffs."""
+    """Render status.md — compact metrics header + details below."""
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
-    lines = [f"# Status mrowiska\n", f"*Wygenerowano: {now}*\n"]
 
-    # Live agents
+    # Collect counts
+    agent_count = conn.execute(
+        "SELECT COUNT(*) FROM live_agents WHERE status IN ('starting', 'active')"
+    ).fetchone()[0]
+    unread_total = conn.execute(
+        "SELECT COUNT(*) FROM messages WHERE status = 'unread'"
+    ).fetchone()[0]
+    handoff_count = conn.execute(
+        """SELECT COUNT(*) FROM messages m
+           LEFT JOIN live_agents la ON la.role = m.recipient AND la.status IN ('starting', 'active')
+           WHERE m.type = 'handoff' AND m.status = 'unread' AND la.id IS NULL"""
+    ).fetchone()[0]
+    workflow_count = conn.execute(
+        "SELECT COUNT(*) FROM workflow_execution WHERE status = 'running'"
+    ).fetchone()[0]
+    backlog_ip = conn.execute(
+        "SELECT COUNT(*) FROM backlog WHERE status = 'in_progress'"
+    ).fetchone()[0]
+    backlog_planned = conn.execute(
+        "SELECT COUNT(*) FROM backlog WHERE status = 'planned'"
+    ).fetchone()[0]
+
+    lines = [
+        f"# Mrowisko — {now}\n",
+        f"**Agenci:** {agent_count} | "
+        f"**Unread:** {unread_total} | "
+        f"**Handoffy pending:** {handoff_count} | "
+        f"**Workflow running:** {workflow_count} | "
+        f"**Backlog:** {backlog_ip} in_progress, {backlog_planned} planned\n",
+        "---\n",
+    ]
+
+    # Live agents — compact
     agents = conn.execute(
-        """SELECT role, task, status, created_at
+        """SELECT role, task, created_at
            FROM live_agents WHERE status IN ('starting', 'active')
            ORDER BY created_at DESC"""
     ).fetchall()
-    lines.append("## Aktywni agenci\n")
     if agents:
-        lines.append("| Rola | Task | Status | Od |")
-        lines.append("|------|------|--------|----|")
+        lines.append("## Agenci\n")
         for a in agents:
-            lines.append(f"| {a['role']} | {a['task'] or '-'} | {a['status']} | {a['created_at']} |")
-    else:
-        lines.append("Brak aktywnych agentow.\n")
+            lines.append(f"- **{a['role']}** — {a['task'] or '(brak task)'}")
+        lines.append("")
 
-    # Inbox summary
+    # Inbox — one-liner per role
     inbox = conn.execute(
         """SELECT recipient, COUNT(*) as cnt
            FROM messages WHERE status = 'unread'
            GROUP BY recipient ORDER BY cnt DESC"""
     ).fetchall()
-    lines.append("\n## Inbox (unread)\n")
     if inbox:
-        lines.append("| Rola | Nieprzeczytane |")
-        lines.append("|------|---------------|")
-        for i in inbox:
-            lines.append(f"| {i['recipient']} | {i['cnt']} |")
-    else:
-        lines.append("Wszystkie inboxy puste.\n")
+        lines.append("## Inbox\n")
+        lines.append(" | ".join(f"**{i['recipient']}** {i['cnt']}" for i in inbox))
+        lines.append("")
 
-    # Pending handoffs
+    # Pending handoffs — compact
     pending = conn.execute(
-        """SELECT m.sender, m.recipient, m.title, m.created_at
+        """SELECT m.sender, m.recipient, m.title
            FROM messages m
            LEFT JOIN live_agents la
              ON la.role = m.recipient AND la.status IN ('starting', 'active')
            WHERE m.type = 'handoff' AND m.status = 'unread' AND la.id IS NULL
            ORDER BY m.created_at DESC"""
     ).fetchall()
-    lines.append("\n## Handoffy oczekujace\n")
     if pending:
-        lines.append("| Od | Do | Tytul | Data |")
-        lines.append("|----|-----|-------|------|")
+        lines.append("## Handoffy pending\n")
         for p in pending:
-            lines.append(f"| {p['sender']} | {p['recipient']} | {p['title']} | {p['created_at']} |")
-    else:
-        lines.append("Brak oczekujacych handoffow.\n")
+            lines.append(f"- {p['sender']} -> {p['recipient']}: {p['title']}")
+        lines.append("")
 
     return "\n".join(lines) + "\n"
 
 
 def _render_workstreams(conn: sqlite3.Connection) -> str:
     """Render workstreams.md — running workflows, in-progress backlog."""
-    lines = ["# Aktywne watki pracy\n"]
+    lines = ["# Aktywne watki\n"]
 
-    # Running workflows
+    # Running workflows — compact
     workflows = conn.execute(
         """SELECT id, workflow_id, role, started_at
            FROM workflow_execution WHERE status = 'running'
            ORDER BY started_at DESC"""
     ).fetchall()
-    lines.append("## Workflow w toku\n")
     if workflows:
-        lines.append("| ID | Workflow | Rola | Start |")
-        lines.append("|----|----------|------|-------|")
+        lines.append("## Workflow\n")
         for w in workflows:
-            lines.append(f"| {w['id']} | {w['workflow_id']} | {w['role']} | {w['started_at']} |")
+            lines.append(f"- **#{w['id']}** {w['role']}/{w['workflow_id']} (od {w['started_at'][:10]})")
+        lines.append("")
     else:
         lines.append("Brak aktywnych workflow.\n")
 
-    # In-progress backlog
+    # In-progress backlog — compact
     tasks = conn.execute(
         """SELECT id, title, area, value
            FROM backlog WHERE status = 'in_progress'
            ORDER BY area, id"""
     ).fetchall()
-    lines.append("\n## Backlog in_progress\n")
     if tasks:
-        lines.append("| ID | Tytul | Area | Priorytet |")
-        lines.append("|----|-------|------|-----------|")
+        lines.append("## In progress\n")
         for t in tasks:
-            lines.append(f"| {t['id']} | {t['title']} | {t['area']} | {t['value'] or '-'} |")
+            prio = f"[{t['value']}]" if t['value'] else ""
+            lines.append(f"- **#{t['id']}** [{t['area']}] {t['title']} {prio}")
+        lines.append("")
     else:
         lines.append("Brak taskow w toku.\n")
 

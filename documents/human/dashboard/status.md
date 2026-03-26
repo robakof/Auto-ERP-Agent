@@ -1,29 +1,20 @@
-# Status mrowiska
+# Mrowisko — 2026-03-26 22:34
 
-*Wygenerowano: 2026-03-26 22:21*
+**Agenci:** 3 | **Unread:** 87 | **Handoffy pending:** 1 | **Workflow running:** 8 | **Backlog:** 5 in_progress, 27 planned
 
-## Aktywni agenci
+---
 
-| Rola | Task | Status | Od |
-|------|------|--------|----|
-| developer | test timing fix — powinienes zaladowac agenta i uruchomic session_init | active | 2026-03-26 17:06:47 |
-| architect | test approval gate M2.3 | active | 2026-03-26 16:55:11 |
-| erp_specialist | test M2 spawn from CLI | active | 2026-03-26 16:42:17 |
+## Agenci
 
-## Inbox (unread)
+- **developer** — test timing fix — powinienes zaladowac agenta i uruchomic session_init
+- **architect** — test approval gate M2.3
+- **erp_specialist** — test M2 spawn from CLI
 
-| Rola | Nieprzeczytane |
-|------|---------------|
-| erp_specialist | 22 |
-| analyst | 19 |
-| prompt_engineer | 18 |
-| metodolog | 11 |
-| developer | 7 |
-| architect | 2 |
-| dispatcher | 1 |
+## Inbox
 
-## Handoffy oczekujace
+**erp_specialist** 23 | **analyst** 20 | **prompt_engineer** 19 | **metodolog** 12 | **developer** 7 | **architect** 4 | **dispatcher** 2
 
-| Od | Do | Tytul | Data |
-|----|-----|-------|------|
-| architect | prompt_engineer | Handoff: PM v1 — prompt roli | 2026-03-26 19:15:41 |
+## Handoffy pending
+
+- architect -> prompt_engineer: Handoff: PM v1 — prompt roli
+
