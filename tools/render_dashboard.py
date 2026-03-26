@@ -1,7 +1,6 @@
 """Generate markdown dashboard files from mrowisko.db.
 
-Produces Obsidian-friendly .md files in output directory.
-Labels and translations loaded from config/dashboard_config.json.
+Labels and translations from config/dashboard_config.json.
 
 Usage:
     py tools/render_dashboard.py
@@ -64,32 +63,43 @@ def _trunc(text: str, max_len: int) -> str:
     return text[: max_len - 3] + "..."
 
 
+def _session_status(conn: sqlite3.Connection, role: str) -> str:
+    """Determine session status: Praca / Czeka / Stoi / empty."""
+    wf = conn.execute(
+        """SELECT we.id,
+                  (SELECT COUNT(*) FROM step_log sl WHERE sl.execution_id = we.id) as steps,
+                  we.started_at
+           FROM workflow_execution we
+           WHERE we.role = ? AND we.status = 'running'
+           ORDER BY we.started_at DESC LIMIT 1""",
+        (role,),
+    ).fetchone()
+    if not wf:
+        return "Stoi"
+    return "Praca"
+
+
 def _render_status(conn: sqlite3.Connection, cfg: dict) -> str:
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    now = datetime.now()
     c = lambda sql: conn.execute(sql).fetchone()[0]
-    agents = c("SELECT COUNT(*) FROM live_agents WHERE status IN ('starting','active')")
     unread = c("SELECT COUNT(*) FROM messages WHERE status='unread'")
-    handoffs = c(
-        """SELECT COUNT(*) FROM messages m
-           LEFT JOIN live_agents la ON la.role=m.recipient AND la.status IN ('starting','active')
-           WHERE m.type='handoff' AND m.status='unread' AND la.id IS NULL""")
+    L = lambda k: _l(cfg, k)
+    sess_n = c("SELECT COUNT(DISTINCT role) FROM session_log WHERE content LIKE '%session started%' AND created_at > datetime('now', '-24 hours')")
     wf = c("SELECT COUNT(*) FROM workflow_execution WHERE status='running'")
     ip = c("SELECT COUNT(*) FROM backlog WHERE status='in_progress'")
     planned = c("SELECT COUNT(*) FROM backlog WHERE status='planned'")
-    L = lambda k: _l(cfg, k)
     lines = [
-        f"*{now}*",
+        f"**{now.strftime('%H:%M')}** {now.strftime('%Y-%m-%d')}",
         "",
-        "| | |",
+        "| Metryka | |",
         "|---|---|",
-        f"| {L('agents')} | **{agents}** |",
+        f"| {L('sessions')} | **{sess_n}** |",
         f"| {L('unread')} | **{unread}** |",
-        f"| {L('handoffs')} | **{handoffs}** |",
         f"| {L('workflow')} | **{wf}** |",
         f"| {L('in_progress')} | **{ip}** |",
         f"| {L('planned')} | **{planned}** |",
     ]
-    # Active sessions (from session_log)
+    # Sessions
     sessions = conn.execute(
         """SELECT role, session_id, created_at
            FROM session_log
@@ -100,43 +110,22 @@ def _render_status(conn: sqlite3.Connection, cfg: dict) -> str:
            ORDER BY created_at DESC"""
     ).fetchall()
     if sessions:
-        lines += ["", f"## {L('sessions')}", ""]
-        lines.append(f"| {L('role')} | Sesja | Start |")
-        lines.append("|------|-------|-------|")
+        lines += ["", f"#### {L('sessions')}", ""]
+        lines.append(f"| {L('role')} | Status | Kontekst |")
+        lines.append("|------|--------|----------|")
         for s in sessions:
-            lines.append(f"| {s['role']} | {s['session_id'][:8]} | {s['created_at'][:16]} |")
-    # Spawned agents
-    rows = conn.execute(
-        "SELECT role, task FROM live_agents WHERE status IN ('starting','active') ORDER BY created_at DESC"
-    ).fetchall()
-    if rows:
-        maxl = cfg["max_title_length"]
-        lines += ["", f"## {L('agents')}", ""]
-        lines.append(f"| {L('role')} | {L('task')} |")
-        lines.append("|------|------|")
-        for a in rows:
-            lines.append(f"| {a['role']} | {_trunc(a['task'] or '-', maxl)} |")
-    # Inbox
+            status = _session_status(conn, s["role"])
+            lines.append(f"| {s['role']} | {status} | |")
+    # Unread per role
     rows = conn.execute(
         "SELECT recipient, COUNT(*) as n FROM messages WHERE status='unread' GROUP BY recipient ORDER BY n DESC"
     ).fetchall()
     if rows:
-        lines += ["", f"## {L('unread')}", ""]
+        lines += ["", f"#### {L('unread')}", ""]
         lines.append(f"| {L('role')} | # |")
         lines.append("|------|---|")
         for r in rows:
             lines.append(f"| {r['recipient']} | {r['n']} |")
-    # Handoffs
-    rows = conn.execute(
-        """SELECT m.sender, m.recipient, m.title FROM messages m
-           LEFT JOIN live_agents la ON la.role=m.recipient AND la.status IN ('starting','active')
-           WHERE m.type='handoff' AND m.status='unread' AND la.id IS NULL
-           ORDER BY m.created_at DESC"""
-    ).fetchall()
-    if rows:
-        lines += ["", f"## {L('handoffs')}"]
-        for p in rows:
-            lines.append(f"- {p['sender']} > {p['recipient']}: {p['title']}")
     return "\n".join(lines) + "\n"
 
 
@@ -154,7 +143,7 @@ def _render_workstreams(conn: sqlite3.Connection, cfg: dict) -> str:
            GROUP BY workflow_id ORDER BY cnt DESC"""
     ).fetchall()
     if wf_agg:
-        lines += ["", f"## {L('workflow')}", ""]
+        lines += ["", f"#### {L('workflow')}", ""]
         lines.append(f"| {L('type')} | {L('count')} | {L('stage')} |")
         lines.append("|-----|-----|------|")
         for wf in wf_agg:
@@ -177,7 +166,7 @@ def _render_workstreams(conn: sqlite3.Connection, cfg: dict) -> str:
     ).fetchall()
     if tasks:
         maxl = cfg["max_title_length"]
-        lines += ["", f"## {L('in_progress')}", ""]
+        lines += ["", f"#### {L('in_progress')}", ""]
         lines.append(f"| {L('id')} | {L('area')} | {L('task')} |")
         lines.append("|----|------|------|")
         for t in tasks:
@@ -186,13 +175,16 @@ def _render_workstreams(conn: sqlite3.Connection, cfg: dict) -> str:
 
 
 def _render_backlog(conn: sqlite3.Connection, cfg: dict) -> str:
-    total = conn.execute("SELECT COUNT(*) FROM backlog WHERE status='planned'").fetchone()[0]
+    total_planned = conn.execute("SELECT COUNT(*) FROM backlog WHERE status='planned'").fetchone()[0]
+    total_deferred = conn.execute("SELECT COUNT(*) FROM backlog WHERE status='deferred'").fetchone()[0]
+    open_suggestions = conn.execute("SELECT COUNT(*) FROM suggestions WHERE status='open'").fetchone()[0]
     top_n = cfg["top_n"]
     L = lambda k: _l(cfg, k)
+    maxl = cfg["max_title_length"]
     lines = [
-        f"{L('planned')} **{total}**",
-        "",
+        f"{L('planned')} **{total_planned}** {L('deferred')} **{total_deferred}** {L('suggestions')} **{open_suggestions}**",
     ]
+    # Top N planned
     rows = conn.execute(f"""
         SELECT id, title, {SCORE_SQL} as score
         FROM backlog WHERE status='planned'
@@ -200,13 +192,24 @@ def _render_backlog(conn: sqlite3.Connection, cfg: dict) -> str:
         LIMIT ?
     """, (top_n,)).fetchall()
     if rows:
-        maxl = cfg["max_title_length"]
+        lines += ["", f"#### {L('planned')}", ""]
         lines.append(f"| {L('id')} | {L('task')} | {L('score')} |")
         lines.append("|----|------|---|")
         for r in rows:
             lines.append(f"| {r['id']} | {_trunc(r['title'], maxl)} | {int(r['score'])} |")
-    else:
-        lines.append("Brak zadan.")
+    # Deferred
+    deferred = conn.execute(f"""
+        SELECT id, title, {SCORE_SQL} as score
+        FROM backlog WHERE status='deferred'
+        ORDER BY score DESC, id
+        LIMIT ?
+    """, (top_n,)).fetchall()
+    if deferred:
+        lines += ["", f"#### {L('deferred')}", ""]
+        lines.append(f"| {L('id')} | {L('task')} | {L('score')} |")
+        lines.append("|----|------|---|")
+        for r in deferred:
+            lines.append(f"| {r['id']} | {_trunc(r['title'], maxl)} | {int(r['score'])} |")
     return "\n".join(lines) + "\n"
 
 

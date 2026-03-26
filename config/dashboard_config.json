@@ -21,7 +21,9 @@
     "id": "ID",
     "rank": "#",
     "priority": "Priorytet",
-    "sessions": "Ostatnie sesje"
+    "sessions": "Sesje",
+    "deferred": "Odlozone",
+    "suggestions": "Sugestie"
   },
   "status_translations": {
     "starting": "startuje",

@@ -1,6 +1,6 @@
 Workflow **8** W toku **5**
 
-## Workflow
+#### Workflow
 
 | Typ | Ile | Etap |
 |-----|-----|------|
@@ -9,7 +9,7 @@ Workflow **8** W toku **5**
 | Workflow deweloperski | 1 (developer) | 1 |
 | Tworzenie workflow | 1 (prompt_engineer) | 4 |
 
-## W toku
+#### W toku
 
 | ID | Obszar | Zadanie |
 |----|------|------|
