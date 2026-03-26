@@ -1,4 +1,4 @@
-27 . 03                                                                                                   **00:09**
+27 . 03                                                                                                   **00:19**
 
 **Sesje**                    4
 Workflow             8
@@ -12,12 +12,12 @@ Workflow             8
 
 | Zadania | Wiadomosci |
 | :-----: | :--------: |
-| **29** | **90** |
+| **29** | **91** |
 
 | **Rola** | Nieprzeczytane |
 | --------------- | -------------: |
 | erp_specialist | 23 |
-| prompt_engineer | 21 |
+| prompt_engineer | 22 |
 | analyst | 20 |
 | metodolog | 12 |
 | developer | 7 |

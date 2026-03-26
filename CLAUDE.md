@@ -21,6 +21,8 @@ Skróty ("PE", "Dev") nie są jawną nazwą — pytaj o potwierdzenie.
 
 **Reminder:** `session_init` zwraca doc_content (pełna treść dokumentu roli). Gdy edytujesz ten plik w tej samej sesji, masz go już w kontekście — nie czytaj ponownie przez Read.
 
+**Po session_init:** Powiedz **"Gotowy"** i czekaj na instrukcję od człowieka. Nie generuj długiego raportu stanu — człowiek sam podejmie rozmowę.
+
 ---
 
 Określ rolę na podstawie kontekstu sesji, następnie wywołaj:

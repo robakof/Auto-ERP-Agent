@@ -72,8 +72,8 @@ Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
    py tools/agent_bus_cli.py handoffs-pending
    ```
 3. Sprawdź backlog: `py tools/agent_bus_cli.py backlog --status planned`
-4. Zaprezentuj raport orientacyjny człowiekowi: kto pracuje, co w inboxach, co w backlogu, jakie handoffy czekają.
-5. **Zaproponuj akcje** (co spawać, co priorytetyzować) — **czekaj na zatwierdzenie.**
+4. Wygeneruj dashboard: `py tools/render_dashboard.py` → pliki w `documents/human/dashboard/`.
+5. Powiedz: **"Gotowy. Dashboard zaktualizowany."** Czekaj na instrukcję.
 6. [TRYB AUTONOMICZNY] → rozpocznij cykl pracy ze spawnem. Inaczej → proponuj i czekaj.
 </session_start>
 

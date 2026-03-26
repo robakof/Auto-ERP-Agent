@@ -163,15 +163,12 @@ PASS: wszyscy aktywni agenci zdiagnozowani, zakończeni obsłużeni, utknięci e
 
 ### Steps
 
-1. Pokaż człowiekowi stan mrowiska:
+1. Wygeneruj dashboard:
    ```
-   Agenci aktywni: N (per rola: ...)
-   Inbox: M unread (per rola: ...)
-   Backlog: K planned tasks
-   Handoffy pending: H
-   Ostatnie spawny: [lista]
-   Następna akcja: [co planujesz]
+   py tools/render_dashboard.py
    ```
+   Pliki trafiają do `documents/human/dashboard/`. Człowiek czyta w Obsidian.
+   Powiedz: "Dashboard zaktualizowany."
 
 2. Zaloguj cykl:
    ```
