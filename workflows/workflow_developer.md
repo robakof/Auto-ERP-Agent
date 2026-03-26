@@ -1,6 +1,6 @@
 ---
 workflow_id: developer_operations
-version: "2.3"
+version: "2.4"
 owner_role: developer
 trigger: "Developer otrzymuje zadanie operacyjne lub taktyczne"
 related_docs:
@@ -73,7 +73,11 @@ Workflow multi-scenario — wybierz sekcję według typu zadania:
         Uruchom wszystkie testy dotykające zmienionego kodu (nie tylko nowe).
         Raportuj explicit: "test_X.py::TestY — 8/8 PASS".
         Scope lokalny = szybki fix. Scope cała faza = debugowanie w ciemno.
-   3.4. Commit per działająca zmiana.
+   3.4. **Blast radius check** przed commitem: grep po pattern który zmieniłeś.
+        Gdzie jeszcze ten sam pattern jest używany? Czy wszędzie zaktualizowane?
+        Jeden pattern zaimplementowany w części miejsc = bug.
+        Mechanizm: `Grep <pattern> <pliki>` → lista miejsc → weryfikacja pokrycia.
+   3.5. Commit per działająca zmiana.
 4. Przy nieomawianych kwestiach w trakcie implementacji — pytaj użytkownika na bieżąco.
    4.1. Po implementacji: przetestuj, pokaż co zrobione, zapytaj o feedback.
    4.2. Poprawki na feedback użytkownika — iteruj aż do zatwierdzenia.
@@ -107,6 +111,7 @@ PASS jeśli:
 - [ ] Plan zatwierdzony przez Architekta (APPROVE) — jeśli średnie zadanie
 - [ ] Testy przechodzą — **explicit lista**: `test_X.py::TestY — N/N PASS` (nie "testy pass")
 - [ ] Sprawdzone istniejące testy dotykające zmienionego kodu (nie tylko nowe)
+- [ ] Blast radius check — grep po zmienionym pattern, pokrycie kompletne
 - [ ] Code review PASS od Architekta
 - [ ] Narzędzie w `tools/` z testami
 - [ ] Notyfikacja do ról (jeśli narzędzie wspólne)
@@ -127,7 +132,8 @@ PASS jeśli:
    1.3. Przedstaw diagnozę użytkownikowi — zakres, przyczyna, propozycja naprawy.
 2. Napraw. Test checkpoint po każdej zmianie. Verify.
    2.1. Uruchom testy dotykające zmienionego kodu — raportuj explicit: `test_X.py::TestY — N/N PASS`.
-   2.2. Commit z opisem przyczyny (nie tylko objawu).
+   2.2. **Blast radius check:** grep po pattern który naprawiłeś. Ten sam bug może istnieć w innych miejscach.
+   2.3. Commit z opisem przyczyny (nie tylko objawu).
 
 ### Forbidden
 
@@ -141,6 +147,7 @@ PASS jeśli:
 - [ ] Zasięg zdiagnozowany (blind spot query)
 - [ ] Fix zweryfikowany — explicit: `test_X.py::TestY — N/N PASS`
 - [ ] Istniejące testy zmienionego kodu też passują
+- [ ] Blast radius check — ten sam bug nie istnieje w innych miejscach
 - [ ] Commit
 
 ---
