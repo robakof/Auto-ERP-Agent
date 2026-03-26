@@ -1,6 +1,6 @@
 ---
 workflow_id: prompt_refactor
-version: "1.0"
+version: "1.1"
 owner_role: prompt_engineer
 trigger: "PE identyfikuje prompt/workflow wymagający refaktoru (styl stary, domena inline, niespójność z konwencją)"
 participants:
@@ -8,7 +8,8 @@ participants:
   - human (review)
 related_docs:
   - documents/conventions/CONVENTION_WORKFLOW.md
-  - documents/prompt_engineer/PROMPT_CONVENTION.md
+  - documents/conventions/CONVENTION_PROMPT.md
+  - documents/conventions/CONVENTION_META.md
 prerequisites:
   - session_init_done
   - target_file_identified
@@ -45,7 +46,7 @@ Używaj gdy dokument wymaga modernizacji do aktualnej konwencji lub separation o
 | Typ dokumentu | Konwencja referencyjna | Cel |
 |---|---|---|
 | Workflow | CONVENTION_WORKFLOW.md | YAML header, outline, strict steps |
-| Prompt roli | PROMPT_CONVENTION.md | Struktura sekcji, mission/scope/rules |
+| Prompt roli | CONVENTION_PROMPT.md | Struktura sekcji, mission/scope/rules |
 | Konwencja | CONVENTION_META.md | TL;DR, reguły, antywzorce |
 
 ---
@@ -206,8 +207,13 @@ BLOCKED jeśli suma nie zgadza się z liczbą z Fazy 2.
 1. Pokaż użytkownikowi:
    - Przepisany dokument (diff jeśli możliwy)
    - Audyt mapowania (`documents/human/reports/refactor_audit_{nazwa}.md`)
-2. Poczekaj na feedback.
-3. Jeśli poprawki → wróć do Fazy 4 lub 5.
+
+   → HANDOFF: human. STOP.
+     Mechanizm: czekaj na user input
+     Czekaj na: feedback lub zatwierdzenie
+     Nie przechodź do Fazy 7 bez zatwierdzenia.
+
+2. Jeśli poprawki → wróć do Fazy 4 lub 5.
 
 ### Exit gate
 
@@ -229,9 +235,8 @@ PASS jeśli użytkownik zatwierdził.
    - Zgodność z CONVENTION_{typ}
    - Audyt: documents/human/reports/refactor_audit_{nazwa}.md
    ```
-2. Skopiuj finalną wersję do `documents/human/workflows/` (backup dla człowieka).
-3. Wyślij notyfikację do ról które używają dokumentu (jeśli dotyczy).
-4. Zaktualizuj status backlogu (jeśli task z backlogu).
+2. Wyślij notyfikację do ról które używają dokumentu (jeśli dotyczy).
+3. Zaktualizuj status backlogu (jeśli task z backlogu).
 
 ### Exit gate
 
@@ -256,7 +261,7 @@ PASS jeśli commit wykonany i notyfikacje wysłane.
 
 ### Scenariusz B: Refaktor promptu roli
 
-**Konwencja:** PROMPT_CONVENTION.md
+**Konwencja:** CONVENTION_PROMPT.md
 
 **Typowe zmiany:**
 - Dodanie/aktualizacja YAML header (agent_id, role_type, escalates_to)
