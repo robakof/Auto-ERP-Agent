@@ -148,7 +148,7 @@
       "enabled": true
     }
   },
-  "pm": {
+  "dispatcher": {
     "inbox": {
       "enabled": true,
       "limit": 20,

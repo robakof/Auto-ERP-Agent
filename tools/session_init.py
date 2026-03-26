@@ -32,7 +32,7 @@ ROLE_DOCUMENTS = {
     "architect":      "documents/architect/ARCHITECT.md",
     "metodolog":      "documents/methodology/METHODOLOGY.md",
     "prompt_engineer": "documents/prompt_engineer/PROMPT_ENGINEER.md",
-    "pm":              "documents/pm/PM.md",
+    "dispatcher":      "documents/dispatcher/DISPATCHER.md",
 }
 
 
