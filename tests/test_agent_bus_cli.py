@@ -532,3 +532,181 @@ class TestCliSessionLog:
         logs = run_cli(["session-logs", "--role", "developer", "--limit", "1"], db)
         assert logs["data"][0]["content"] == "Content from file"
         assert logs["data"][0]["title"] == "File Test"
+
+
+class TestDependsOn:
+    """Tests for #124 — backlog depends_on."""
+
+    def test_backlog_add_with_depends_on(self, db):
+        parent = run_cli(
+            ["backlog-add", "--title", "Parent task",
+             "--content", "Parent", "--area", "Dev"],
+            db,
+        )
+        child = run_cli(
+            ["backlog-add", "--title", "Child task",
+             "--content", "Child", "--area", "Dev",
+             "--depends-on", str(parent["id"])],
+            db,
+        )
+        assert child["ok"] is True
+        item = run_cli(["backlog", "--id", str(child["id"])], db)
+        assert item["data"]["depends_on"] == parent["id"]
+
+    def test_backlog_add_without_depends_on(self, db):
+        result = run_cli(
+            ["backlog-add", "--title", "No dep",
+             "--content", "Solo", "--area", "Dev"],
+            db,
+        )
+        item = run_cli(["backlog", "--id", str(result["id"])], db)
+        assert item["data"]["depends_on"] is None
+
+    def test_backlog_update_set_depends_on(self, db):
+        parent = run_cli(
+            ["backlog-add", "--title", "Dep target",
+             "--content", "x", "--area", "Dev"],
+            db,
+        )
+        child = run_cli(
+            ["backlog-add", "--title", "Dep source",
+             "--content", "y", "--area", "Dev"],
+            db,
+        )
+        run_cli(
+            ["backlog-update", "--id", str(child["id"]),
+             "--depends-on", str(parent["id"])],
+            db,
+        )
+        item = run_cli(["backlog", "--id", str(child["id"])], db)
+        assert item["data"]["depends_on"] == parent["id"]
+
+    def test_backlog_update_clear_depends_on(self, db):
+        parent = run_cli(
+            ["backlog-add", "--title", "P", "--content", "x", "--area", "Dev"],
+            db,
+        )
+        child = run_cli(
+            ["backlog-add", "--title", "C", "--content", "y", "--area", "Dev",
+             "--depends-on", str(parent["id"])],
+            db,
+        )
+        # Clear with --depends-on 0
+        run_cli(
+            ["backlog-update", "--id", str(child["id"]), "--depends-on", "0"],
+            db,
+        )
+        item = run_cli(["backlog", "--id", str(child["id"])], db)
+        assert item["data"]["depends_on"] is None
+
+    def test_dependency_warning_on_in_progress(self, db):
+        parent = run_cli(
+            ["backlog-add", "--title", "Blocker",
+             "--content", "x", "--area", "Dev"],
+            db,
+        )
+        child = run_cli(
+            ["backlog-add", "--title", "Blocked",
+             "--content", "y", "--area", "Dev",
+             "--depends-on", str(parent["id"])],
+            db,
+        )
+        result = run_cli(
+            ["backlog-update", "--id", str(child["id"]),
+             "--status", "in_progress"],
+            db,
+        )
+        assert result["ok"] is True
+        assert "warning" in result
+        assert "Blocker" in result["warning"]
+
+    def test_no_warning_when_dependency_done(self, db):
+        parent = run_cli(
+            ["backlog-add", "--title", "Done dep",
+             "--content", "x", "--area", "Dev"],
+            db,
+        )
+        run_cli(
+            ["backlog-update", "--id", str(parent["id"]),
+             "--status", "done"],
+            db,
+        )
+        child = run_cli(
+            ["backlog-add", "--title", "Free to go",
+             "--content", "y", "--area", "Dev",
+             "--depends-on", str(parent["id"])],
+            db,
+        )
+        result = run_cli(
+            ["backlog-update", "--id", str(child["id"]),
+             "--status", "in_progress"],
+            db,
+        )
+        assert result["ok"] is True
+        assert "warning" not in result
+
+    def test_depends_on_in_bulk_update(self, db, tmp_path):
+        parent = run_cli(
+            ["backlog-add", "--title", "Bulk parent",
+             "--content", "x", "--area", "Dev"],
+            db,
+        )
+        child = run_cli(
+            ["backlog-add", "--title", "Bulk child",
+             "--content", "y", "--area", "Dev"],
+            db,
+        )
+        bulk_file = tmp_path / "bulk_dep.json"
+        bulk_file.write_text(
+            json.dumps([{"id": child["id"], "depends_on": parent["id"]}]),
+            encoding="utf-8",
+        )
+        result = run_cli(
+            ["backlog-update-bulk", "--file", str(bulk_file)],
+            db,
+        )
+        assert result["ok"] is True
+        item = run_cli(["backlog", "--id", str(child["id"])], db)
+        assert item["data"]["depends_on"] == parent["id"]
+
+
+class TestBroadcast:
+    """Tests for #141 — send --to all."""
+
+    def test_broadcast_sends_to_all_except_sender(self, db):
+        result = run_cli(
+            ["send", "--from", "developer", "--to", "all",
+             "--content", "Broadcast test"],
+            db,
+        )
+        assert result["ok"] is True
+        assert result["count"] >= 1
+        assert "developer" not in result["recipients"]
+        # Every recipient should have the message
+        for recipient in result["recipients"]:
+            inbox = run_cli(["inbox", "--role", recipient, "--full"], db)
+            assert inbox["count"] == 1
+            assert inbox["data"][0]["content"] == "Broadcast test"
+
+    def test_broadcast_excludes_sender(self, db):
+        result = run_cli(
+            ["send", "--from", "architect", "--to", "all",
+             "--content", "From architect"],
+            db,
+        )
+        assert "architect" not in result["recipients"]
+        # Architect inbox should be empty
+        inbox = run_cli(["inbox", "--role", "architect"], db)
+        assert inbox["count"] == 0
+
+    def test_broadcast_atomic(self, db):
+        result = run_cli(
+            ["send", "--from", "developer", "--to", "all",
+             "--content", "Atomic test"],
+            db,
+        )
+        # All IDs should be sequential (created in one transaction)
+        ids = result["ids"]
+        assert len(ids) == result["count"]
+        for i in range(1, len(ids)):
+            assert ids[i] == ids[i - 1] + 1
