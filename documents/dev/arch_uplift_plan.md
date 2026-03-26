@@ -27,17 +27,21 @@ Analiza koncepcyjna: `documents/dev/analiza_kierunki_2026-03-14.md`
 
 ---
 
-## Faza 2 — Wywoływanie agentów (planned)
+## Faza 2 — Wywoływanie agentów (✓ done)
 
 **Cel:** agent może zlecić zadanie innemu agentowi bez człowieka w pętli.
 
 | id | Zadanie | Status |
 |----|---------|--------|
-| 48 | Mrowisko runner — inbox poller + subprocess Claude Code CLI | planned |
-| 51 | Runner z approval gate (człowiek zatwierdza każde wywołanie) | planned |
-| 52 | Runner autonomiczny (bez gate, dla zaufanych par ról) | planned |
+| 48 | Agent Launcher — wtyczka VS Code (M1: spawn+registry, M2: invocation, M3: auto-approve) | ✓ done |
+| 51 | Approval gate (spawn-request → dialog → approve/reject) | ✓ done |
+| 52 | Direct spawn + trusted pairs (auto-approve w config) | ✓ done |
+|    | URI handler (agent z terminala steruje wtyczką) | ✓ done |
+|    | sendText + read_transcript (agent pisze i czyta innego agenta) | ✓ done |
 
-**Zależność:** wymaga działającej Fazy 1 (session_id jako parent_session_id wywołania).
+**PRD:** `documents/human/plans/PRD_agent_launcher.md`
+**Architecture:** `documents/human/plans/ARCHITECTURE_agent_launcher.md`
+**Commity:** `9ac9a48`..`bd09b76` (9 commitów)
 
 ---
 
@@ -120,15 +124,19 @@ Plan roli: `documents/dev/prompt_engineer_plan.md`
 
 ---
 
-## Faza 4 — Project Manager (planned)
+## Faza 4 — Dyspozytor (in progress)
 
-**Cel:** rola orkiestrująca wielowątkowe sesje agentów.
+**Cel:** rola koordynująca przepływ pracy — office manager mrowiska.
 
 | id | Zadanie | Status |
 |----|---------|--------|
-| 55 | PM — rola: planuje sesje, monitoruje backlog, raportuje stan | planned |
+| 55 | Dyspozytor v1 — prompt roli, narzędzia CLI | ✓ done |
+|    | Prompt DISPATCHER.md (PE) | ✓ done (review minor) |
+|    | Narzędzia: inbox-summary, live-agents, handoffs-pending (Dev) | ✓ done |
+|    | Test: pierwszy spawn Dyspozytora | planned |
 
-**Zależność:** sensowny dopiero po Fazie 2 (bez runnera PM nie ma czym zarządzać).
+**Zależność:** Faza 2 (Agent Launcher) — ✓ done (M1-M3).
+**Uwaga:** Dawna nazwa "PM" zmieniona na "Dyspozytor" (`dispatcher`) — koordynuje przepływ, nie zarządza projektem.
 
 ---
 
@@ -188,4 +196,79 @@ PE Faza 1 nie blokuje na Fazę 3 — można wdrożyć wcześniej jako .md editor
 
 ---
 
-*Ostatnia aktualizacja: 2026-03-17 (po research multiagent_prompts + system_prompt_structure)*
+## Faza 7 — Strict workflow enforcement (planned)
+
+**Cel:** agent poza workflow jest podejrzany. Każdy krok logowany, każdy workflow zgodny z konwencją.
+
+| id | Zadanie | Status |
+|----|---------|--------|
+|    | Audit trail — każdy krok workflow logowany do DB | planned |
+|    | Workflow compliance gate — agent musi być w workflow żeby działać | planned |
+|    | DB-driven workflows (parsowalne, nie prose) | planned |
+
+**Zależność:** Faza 4 (Dyspozytor — enforcement through orchestration).
+**Backlog:** powiązane z konwencją CONVENTION_WORKFLOW (DB-ready format).
+
+---
+
+## Faza 8 — Security multi-agent (planned)
+
+**Cel:** ochrona przed przejęciem/zatruciem agentów, prompt injection, nieautoryzowanym spawnem.
+
+| id | Zadanie | Status |
+|----|---------|--------|
+|    | Research: Cyber Security systemów wieloagentowych | planned (backlog #193) |
+|    | Agent identity verification (kto spawnowal, kto pisze) | planned |
+|    | Allowlist akcji per rola (nie tylko narzędzia — scope operacji) | planned |
+
+**Zależność:** Faza 7 (strict enforcement jako fundament bezpieczeństwa).
+
+---
+
+## Faza 9 — Architektura skali (planned)
+
+**Cel:** wieloinstancyjność ról, ochrona kontekstu, routing per workflow.
+
+| id | Zadanie | Status |
+|----|---------|--------|
+|    | Wieloinstancyjność roli (Developer-1 w workflow, Developer-2 wolny) | planned (backlog #194) |
+|    | Ochrona kontekstu (agent w workflow nie dostaje niezwiązanych tasków) | planned |
+|    | Kolejka Dyspozytora (globalna) + kolejka per rola (lokalna) | planned |
+|    | live_agents.workflow_id — Dyspozytor widzi kto jest w jakim kontekście | planned |
+|    | Token budget scheduling | planned |
+
+**Zależność:** Faza 7+8 (enforcement + security jako fundament skali).
+
+---
+
+## Zaktualizowana mapa zależności
+
+```
+Faza 1 (zapis sesji)
+    │
+    ▼
+Faza 2 (agent invocation) ✓ DONE
+    │
+    ├──────────────────────────────────┐
+    ▼                                 ▼
+Faza 4 (Dyspozytor) ← in progress   Faza 3 (prompty w DB) ← planned
+    │                                 │
+    ▼                                 ▼
+Faza 5 (docs w DB)               PE Faza 2 (prompt registry)
+    │
+    ▼
+Faza 6 (odblokowanie agentów)
+    │
+    ▼
+Faza 7 (strict workflow enforcement)
+    │
+    ▼
+Faza 8 (security multi-agent)
+    │
+    ▼
+Faza 9 (architektura skali — wieloinstancyjność, kontekst, budget)
+```
+
+---
+
+*Ostatnia aktualizacja: 2026-03-26 (Faza 2 DONE, Faza 4 Dyspozytor in progress, Fazy 7-9 dodane)*
