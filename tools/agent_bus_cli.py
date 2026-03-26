@@ -24,6 +24,16 @@ from tools.lib.output import print_json
 
 DB_PATH = "mrowisko.db"
 SESSION_DATA_FILE = Path("tmp/session_data.json")
+SESSION_INIT_CONFIG = Path("config/session_init_config.json")
+
+
+def _get_all_roles() -> list[str]:
+    """Read role list from session_init_config.json keys."""
+    try:
+        config = json.loads(SESSION_INIT_CONFIG.read_text(encoding="utf-8"))
+        return list(config.keys())
+    except Exception:
+        return ["erp_specialist", "analyst", "developer", "architect", "metodolog", "prompt_engineer"]
 
 
 def _get_session_data() -> dict:
@@ -90,13 +100,27 @@ def cmd_send(args: argparse.Namespace, bus: AgentBus) -> dict:
     sender = args.sender or get_session_role()
     if not sender:
         return {"ok": False, "error": "No --from specified and no session found. Run session_init.py first."}
+    content = _read_content(args)
+    session_id = args.session_id or get_session_id()
+    reply_to_id = getattr(args, "reply_to_id", None)
+
+    if args.to == "all":
+        recipients = [r for r in _get_all_roles() if r != sender]
+        ids = []
+        with bus.transaction():
+            for recipient in recipients:
+                mid = bus.send_message(
+                    sender=sender, recipient=recipient,
+                    content=content, type=args.type,
+                    session_id=session_id, reply_to_id=reply_to_id,
+                )
+                ids.append(mid)
+        return {"ok": True, "ids": ids, "recipients": recipients, "count": len(ids)}
+
     msg_id = bus.send_message(
-        sender=sender,
-        recipient=args.to,
-        content=_read_content(args),
-        type=args.type,
-        session_id=args.session_id or get_session_id(),
-        reply_to_id=getattr(args, "reply_to_id", None),
+        sender=sender, recipient=args.to,
+        content=content, type=args.type,
+        session_id=session_id, reply_to_id=reply_to_id,
     )
     return {"ok": True, "id": msg_id}
 

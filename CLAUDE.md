@@ -178,6 +178,9 @@ py tools/agent_bus_cli.py log --role <rola> --content-file tmp/tmp.md
 # Wiadomość do innej roli
 py tools/agent_bus_cli.py send --from <rola> --to developer --content-file tmp/tmp.md
 
+# Broadcast do wszystkich ról (sender wykluczony)
+py tools/agent_bus_cli.py send --from <rola> --to all --content-file tmp/tmp.md
+
 # Eskalacja do człowieka
 py tools/agent_bus_cli.py flag --from <rola> --reason-file tmp/tmp.md
 

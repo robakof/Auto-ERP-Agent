@@ -1,6 +1,6 @@
 ---
 workflow_id: developer_operations
-version: "2.5"
+version: "2.4"
 owner_role: developer
 trigger: "Developer otrzymuje zadanie operacyjne lub taktyczne"
 related_docs:
@@ -95,15 +95,10 @@ Workflow multi-scenario — wybierz sekcję według typu zadania:
 
    5.1. NEEDS REVISION → popraw per raport, wyślij ponownie do review.
    5.2. PASS → przejdź do kroku 6.
-6. Checklist publikacji (nowe narzędzie LUB zmiana istniejącego):
-   6.1. **Dokumentacja CLI:** Czy dodałeś/zmienił argumenty CLI, komendy lub format outputu?
-        Tak → zaktualizuj CLAUDE.md (jeśli narzędzie wspólne) lub dokument roli (jeśli jednej roli).
-        Bez tego agenci nie wiedzą o nowej funkcji.
-   6.2. **Potwierdzenie zlecającemu:** Jeśli task pochodzi z inbox/backlog — wyślij potwierdzenie
-        z wynikiem (co zrobiono, jaki commit, co się zmieniło).
-   6.3. **Notyfikacja ról:** Jeśli zmiana dotyczy narzędzia używanego przez inne role
-        → wyślij `agent_bus send` do zainteresowanych ról (co się zmieniło, nowa składnia).
-   6.4. Zapisz log sesji.
+6. Checklist publikacji nowego narzędzia:
+   6.1. Czy narzędzie dotyczy >1 roli? Tak → dokumentuj w CLAUDE.md. Nie → w dokumencie roli.
+   6.2. Wyślij `agent_bus send` do aktywnych ról (nazwa, składnia, kiedy używać).
+   6.3. Zapisz log sesji.
 
 ### Forbidden
 
@@ -119,9 +114,7 @@ PASS jeśli:
 - [ ] Blast radius check — grep po zmienionym pattern, pokrycie kompletne
 - [ ] Code review PASS od Architekta
 - [ ] Narzędzie w `tools/` z testami
-- [ ] Dokumentacja CLI zaktualizowana (CLAUDE.md lub dokument roli) — jeśli zmieniony interfejs
-- [ ] Potwierdzenie do zlecającego (jeśli task z inbox/backlog)
-- [ ] Notyfikacja do ról (jeśli zmiana cross-role)
+- [ ] Notyfikacja do ról (jeśli narzędzie wspólne)
 - [ ] Commit + push
 
 ---
