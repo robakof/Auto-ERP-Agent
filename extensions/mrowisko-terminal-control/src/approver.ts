@@ -42,6 +42,7 @@ export class Approver {
   private poll(): void {
     try {
       const output = this.run(["pending-invocations"]);
+      console.log("[Mrowisko Approver] poll result:", output.trim());
       const result = JSON.parse(output) as {
         ok: boolean;
         data: PendingInvocation[];
@@ -55,16 +56,17 @@ export class Approver {
           this.showApprovalDialog(inv);
         }
       }
-    } catch {
-      // Silently ignore poll errors
+    } catch (e) {
+      console.error("[Mrowisko Approver] poll error:", e);
     }
   }
 
   private async showApprovalDialog(inv: PendingInvocation): Promise<void> {
+    console.log("[Mrowisko Approver] showing dialog for invocation", inv.id);
     const approve = "Approve";
     const reject = "Reject";
 
-    const choice = await vscode.window.showInformationMessage(
+    const choice = await vscode.window.showWarningMessage(
       `Agent ${inv.invoker_id} wants to spawn ${inv.target_role}: "${inv.task}"`,
       approve,
       reject

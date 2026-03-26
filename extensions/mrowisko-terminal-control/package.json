@@ -11,10 +11,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onUri",
-    "onCommand:mrowisko.spawnAgent",
-    "onCommand:mrowisko.listAgents",
-    "onCommand:mrowisko.stopAgent"
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
