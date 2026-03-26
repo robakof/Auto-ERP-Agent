@@ -132,6 +132,11 @@ Eskalacja idzie wyłącznie w górę. Jeśli zadanie nie pasuje do Twojej roli:
 | `sed`/`awk` do edycji pliku  | `Edit`         |
 | Zapis pliku                  | `Write` (nigdy `echo >`) — jeśli plik już istnieje, najpierw `Read`, potem `Write` |
 
+**Interpreter Python — sprawdź przed użyciem:**
+
+Przed pierwszym wywołaniem Python w sesji uruchom: `which py python python3 2>/dev/null`.
+Używaj tego interpretera który jest dostępny. Nie zakładaj `python` — na Windows często działa tylko `py`.
+
 **Reguły pisania komend Bash:**
 
 Hook bezpieczeństwa blokuje zbyt złożone komendy. Trzymaj się prostych form:

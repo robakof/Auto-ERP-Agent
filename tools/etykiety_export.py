@@ -18,9 +18,12 @@ import argparse
 import copy
 import re
 import sys
+from io import BytesIO
 from pathlib import Path
 
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Cm, Pt
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -28,9 +31,39 @@ from tools.lib.output import print_json
 from tools.lib.sql_client import SqlClient
 
 _PROJECT_ROOT = Path(__file__).parent.parent
-SQL_PATH = _PROJECT_ROOT / "solutions/jas/etykiety_10_oferty.sql"
-TEMPLATE_PATH = _PROJECT_ROOT / "Etykiety do wypełnienia.docx"
-DEFAULT_COLS = 4
+SQL_PATH       = _PROJECT_ROOT / "solutions/jas/etykiety_10_oferty.sql"
+SQL_EXCEL_PATH = _PROJECT_ROOT / "solutions/jas/etykiety_excel.sql"
+TEMPLATE_PATH  = _PROJECT_ROOT / "documents/human/ar/dokumenty/Etykiety do wypełnienia.docx"
+DEFAULT_COLS   = 4
+
+
+# ---------------------------------------------------------------------------
+# Barcode
+# ---------------------------------------------------------------------------
+
+def _make_barcode_bytes(ean_str: str) -> BytesIO | None:
+    """Generuje PNG kodu kreskowego EAN-13. Zwraca None przy błędzie."""
+    try:
+        from barcode import EAN13
+        from barcode.writer import ImageWriter
+        buf = BytesIO()
+        EAN13(ean_str.strip(), writer=ImageWriter()).write(buf, options={
+            "write_text": False,
+            "module_height": 6.0,
+            "quiet_zone": 1.0,
+        })
+        buf.seek(0)
+        return buf
+    except Exception:
+        return None
+
+
+def _set_para_picture(para, image_bytes: BytesIO, width_cm: float) -> None:
+    """Czyści istniejące runy, wstawia obraz wycentrowany."""
+    for run in para.runs:
+        run.text = ""
+    para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    para.add_run().add_picture(image_bytes, width=Cm(width_cm))
 
 
 # ---------------------------------------------------------------------------
@@ -59,6 +92,38 @@ def _query_products(klient_gid: int) -> list[dict]:
     return [dict(zip(cols, row)) for row in result["rows"]]
 
 
+def load_codes_from_excel(excel_path: str) -> list[str]:
+    """Czyta kolumnę 'Kod' z Excela. Zwraca listę niepustych kodów."""
+    import openpyxl
+    wb = openpyxl.load_workbook(excel_path, read_only=True, data_only=True)
+    ws = wb.active
+    headers = [str(c.value).strip() if c.value else "" for c in next(ws.iter_rows(min_row=1, max_row=1))]
+    try:
+        col_idx = headers.index("Kod")
+    except ValueError:
+        raise ValueError(f"Brak kolumny 'Kod' w pliku. Znalezione nagłówki: {headers}")
+    kody = []
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        val = row[col_idx]
+        if val:
+            kody.append(str(val).strip())
+    wb.close()
+    return kody
+
+
+def _query_products_from_codes(kody: list[str]) -> list[dict]:
+    """Pobiera dane etykiet z ERP dla podanej listy kodów Twr_Kod."""
+    if not kody:
+        return []
+    kody_in = ", ".join(f"'{k.replace(chr(39), chr(39)*2)}'" for k in kody)
+    sql = SQL_EXCEL_PATH.read_text(encoding="utf-8").replace("{kody_in}", kody_in)
+    result = SqlClient().execute(sql, inject_top=None)
+    if not result["ok"]:
+        raise RuntimeError(result["error"]["message"])
+    cols = result["columns"]
+    return [dict(zip(cols, row)) for row in result["rows"]]
+
+
 # ---------------------------------------------------------------------------
 # Wypełnianie komórki
 # ---------------------------------------------------------------------------
@@ -76,21 +141,36 @@ def _fill_cell(cell, product: dict) -> None:
     Wypełnia komórkę szablonu danymi produktu.
 
     Struktura komórki (17 paragrafów, indeksy stałe dla szablonu):
-      [2]  EAN:        [3]  → wartość EAN
+      [2]  EAN:
+      [3]  → kod kreskowy EAN-13 (obraz)
+      [4]  → cyfry EAN (czytelne dla człowieka)
       [5]  NAZWA:      [6]  → wartość nazwy
       [8]  Wysokość: {val} cm
       [9]  Czas palenia: {val} h
       [10] Gramatura: {val} g
       [12] COLI: {val} szt.
       [13] PALETA: {val} szt.
+      [15] Uwagi:
     """
     paras = cell.paragraphs
 
-    # EAN — para[3]: dodaj run z wartością (para jest pusta w szablonie)
-    _set_para_value(paras[3], _v(product.get("ean")))
+    # EAN barcode — para[3]
+    ean_val = _v(product.get("ean"))
+    if ean_val:
+        buf = _make_barcode_bytes(ean_val)
+        if buf:
+            _set_para_picture(paras[3], buf, width_cm=3.6)
+        else:
+            _set_para_value(paras[3], ean_val)
+    else:
+        _set_para_value(paras[3], "")
 
-    # NAZWA — para[6]
-    _set_para_value(paras[6], _v(product.get("nazwa")))
+    # EAN cyfry — para[4]: wycentrowane pod barkodem
+    _set_para_value(paras[4], ean_val)
+    paras[4].alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    # NAZWA — para[6]: zmniejszona czcionka
+    _set_para_value(paras[6], _v(product.get("nazwa")), font_size_pt=8)
 
     # Wysokość — para[8]: jeden run "Wysokość: "
     val = _v(product.get("wysokosc_cm"), " cm")
@@ -115,18 +195,35 @@ def _fill_cell(cell, product: dict) -> None:
     _set_run_text(paras[13], 0, f"PALETA: {val} szt." if val else "PALETA: ")
 
 
-def _set_para_value(para, text: str) -> None:
+def _set_para_value(para, text: str, font_size_pt: int | None = None) -> None:
     """Czyści istniejące runy i dodaje nowy z podanym tekstem."""
     for run in para.runs:
         run.text = ""
     if text:
-        para.add_run(text)
+        run = para.add_run(text)
+        if font_size_pt:
+            run.font.size = Pt(font_size_pt)
 
 
 def _set_run_text(para, index: int, text: str) -> None:
     """Ustawia tekst runu o podanym indeksie (jeśli istnieje)."""
     if index < len(para.runs):
         para.runs[index].text = text
+
+
+# ---------------------------------------------------------------------------
+# Helpers wiersza
+# ---------------------------------------------------------------------------
+
+def _set_row_height_at_least(tr_el) -> None:
+    """Zmienia hRule wiersza z 'exact' na 'atLeast' — wiersz rozszerza się do treści."""
+    from docx.oxml.ns import qn
+    trPr = tr_el.find(qn("w:trPr"))
+    if trPr is None:
+        return
+    trH = trPr.find(qn("w:trHeight"))
+    if trH is not None:
+        trH.set(qn("w:hRule"), "atLeast")
 
 
 # ---------------------------------------------------------------------------
@@ -171,6 +268,7 @@ def generate(
 
     # Zachowaj wzorzec wiersza z szablonu, następnie usuń wszystkie wiersze
     template_row_xml = copy.deepcopy(table.rows[0]._tr)
+    _set_row_height_at_least(template_row_xml)
     for row in list(table.rows):
         table._tbl.remove(row._tr)
 

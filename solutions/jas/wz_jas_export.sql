@@ -1,3 +1,8 @@
+USE [ERPXL_CEIM];
+GO
+
+CREATE OR ALTER VIEW AILO.wz_jas_export AS
+
 -- =============================================================================
 -- WZ → JAS: lista zatwierdzonych WZ bez FV (wszystkie magazyny, bieżący rok)
 -- Przeznaczenie: wejście dla agenta — jeden wiersz = jeden typ palety na WZ

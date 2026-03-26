@@ -65,7 +65,18 @@ class OfferApp3x3(tk.Tk):
         ttk.Combobox(frame, textvariable=self._lang_var, values=list(LANGUAGES.keys()),
                      state="readonly", width=16).grid(row=3, column=1, sticky="w", **pad)
 
-        ttk.Separator(frame, orient="horizontal").grid(row=4, column=0, columnspan=3, sticky="ew", pady=10)
+        ttk.Label(frame, text="Nagłówek:").grid(row=4, column=0, sticky="w", **pad)
+        self._header_var = tk.StringVar(value="Wkłady zniczowe CEiM")
+        ttk.Entry(frame, textvariable=self._header_var, width=38).grid(row=4, column=1, sticky="w", **pad)
+
+        ttk.Label(frame, text="Logo:").grid(row=5, column=0, sticky="w", **pad)
+        self._logo_var = tk.StringVar(value="ceim")
+        logo_frame = ttk.Frame(frame)
+        logo_frame.grid(row=5, column=1, sticky="w", **pad)
+        ttk.Radiobutton(logo_frame, text="CEiM",  variable=self._logo_var, value="ceim").pack(side="left")
+        ttk.Radiobutton(logo_frame, text="KERTI", variable=self._logo_var, value="kerti").pack(side="left", padx=(12, 0))
+
+        ttk.Separator(frame, orient="horizontal").grid(row=6, column=0, columnspan=3, sticky="ew", pady=10)
 
         self._gen_btn = tk.Button(
             frame, text="  Generuj PDF  ",
@@ -75,15 +86,15 @@ class OfferApp3x3(tk.Tk):
             relief="flat", cursor="hand2",
             command=self._on_generate,
         )
-        self._gen_btn.grid(row=5, column=0, columnspan=3, pady=(4, 0))
+        self._gen_btn.grid(row=7, column=0, columnspan=3, pady=(4, 0))
 
         self._status_var = tk.StringVar(value="Wybierz plik i kliknij Generuj.")
         self._status_lbl = ttk.Label(frame, textvariable=self._status_var,
                                      foreground=COLOR_GRAY, wraplength=440)
-        self._status_lbl.grid(row=6, column=0, columnspan=3, pady=(10, 0), sticky="w")
+        self._status_lbl.grid(row=8, column=0, columnspan=3, pady=(10, 0), sticky="w")
 
         self._progress = ttk.Progressbar(frame, mode="indeterminate", length=440)
-        self._progress.grid(row=7, column=0, columnspan=3, pady=(6, 4))
+        self._progress.grid(row=9, column=0, columnspan=3, pady=(6, 4))
         self._progress.grid_remove()
 
     def _browse_input(self):
@@ -112,6 +123,8 @@ class OfferApp3x3(tk.Tk):
         input_path  = self._input_var.get().strip()
         output_path = self._output_var.get().strip()
         lang        = LANGUAGES.get(self._lang_var.get(), "pl")
+        header_text = self._header_var.get().strip() or None
+        logo        = self._logo_var.get()
 
         if not input_path or not Path(input_path).exists():
             messagebox.showerror("Błąd", "Plik produktów nie istnieje.")
@@ -128,7 +141,8 @@ class OfferApp3x3(tk.Tk):
         def worker():
             try:
                 products = load_products(input_path, lang=lang)
-                generate_pdf(products, output_path, lang=lang)
+                generate_pdf(products, output_path, lang=lang,
+                             header_text=header_text, logo=logo)
                 self.after(0, lambda: self._on_done(output_path))
             except Exception:
                 self.after(0, lambda: self._on_error(str(e)))

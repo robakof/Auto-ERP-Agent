@@ -1,0 +1,221 @@
+{
+    "request": {
+        "shipment": {
+            "goodsName": "Pole obligatoryjne - nazwa towaru",
+            "declaredValue": 0,
+            "returnablePackaging": false,
+            "customerRefNo": "", 
+            "remarks": "",
+            "customClearancePlaceId": null,
+            "loadingPlace": {
+                "address": {
+                    "name": "MIEJSCE ZAŁADUNKU / NADAWCA: -> Miasto załadunku TELĄŻNA-KANAŁ",
+                    "street": "Nazwa ulicy załadunku",
+                    "houseNo": "",
+                    "flatNo": "",
+                    "city": "TELĄŻNA-KANAŁ",
+                    "zipCode": "87-820",
+                    "country": "PL",
+                    "contact": "",
+                    "notifications": {
+                        "data": {
+                            "email": "",
+                            "text": ""
+                        },
+                        "enabled": false
+                    },
+                    
+                    "payer": {
+                        "vatNumber": "",
+                        "contractType": "B2C",
+                        "isVatPayer": false
+                    }
+                   
+                }
+               
+            },
+            "deliveryPlace": {
+                "address": {
+                    "name": "MIEJSCE DOSTARCZENIA: -> Miasto rozładunku DANKOWICE PIERWSZE",
+                    "street": "Nazwa ulicy dostarczenia",
+                    "houseNo": "",
+                    "flatNo": "",
+                    "city": "DANKOWICE PIERWSZE",
+                    "zipCode": "42-160",
+                    "country": "PL",
+                    "contact": "",
+                    "commercialNetworkId": 10,
+                    "notifications": {
+                        "data": {
+                            "email": "",
+                            "text": ""
+                        },
+                        "enabled": false
+                    },
+                    
+                    "payer": {
+                        "vatNumber": "",
+                        "contractType": "B2C",
+                        "isVatPayer": false
+                    }
+
+                }
+               
+            },
+            "recipient": {
+                "address": {
+                    "name": "ODBIORCA: -> Miasto odbiorcy MIŁKOWICE-STAWKI",
+                    "street": "Nazwa ulicy odbiorcy",
+                    "houseNo": "",
+                    "flatNo": "",
+                    "city": "MIŁKOWICE-STAWKI",
+                    "zipCode": "17-312",
+                    "country": "PL",
+                    "contact": "",
+                    "notifications": {
+                        "enabled": false,
+                        "data": {
+                            "email": "",
+                            "text": ""
+                        }
+                    },
+                   
+                     "payer": {
+                        "vatNumber": "",
+                        "contractType": "B2C",
+                        "isVatPayer": false
+                    }
+
+                }
+            },
+            "pickupDate": "2026-09-01", 
+            "deliveryDate": "2026-09-02",
+            "notifications": {
+                "data": {
+                    "email": "",
+                    "text": ""
+                },
+                "enabled": false
+            },
+
+            "returnableDocuments": {
+                "type": "Digital"
+              },
+            
+"cod": {
+                "value": 0,
+                "type": "Contractor",
+                "naturalPersonEmailAddress": "",
+                "bank": {
+                    "accountNo": ""
+                },
+                "thirdParty": {
+                    "name": "",
+                    "vatNo": ""
+                } 
+}
+
+        },
+        "additionalServices": [
+  
+],
+        "documents": [
+            ],
+        "cargo": [
+            {
+                "barcode": "12",
+                "sscc": "12",
+                "customerRefNO": "test",
+                "package": {
+                    "type": "EPN",
+                    "quantity": 1
+                },
+                "dimensions": {
+                    "length": 120,
+                    "width": 80,
+                    "height": 150,
+                    "weight": 50
+                }, 
+                
+                "dangerousGoods": []
+
+            },
+            {
+                "barcode": "12",
+                "sscc": "12",
+                "customerRefNO": "test",
+                "package": {
+                    "type": "EFN",
+                    "quantity": 1
+                },
+                "dimensions": {
+                    "length": 120,
+                    "width": 80,
+                    "height": 150,
+                    "weight": 50
+                }, 
+                
+                "dangerousGoods": []
+
+            },
+            {
+                "barcode": "12",
+                "sscc": "12",
+                "customerRefNO": "test",
+                "package": {
+                    "type": "MB",
+                    "quantity": 1
+                },
+                "dimensions": {
+                    "length": 200,
+                    "width": 50,
+                    "height": 50,
+                    "weight": 100
+                }, 
+                
+                "dangerousGoods": []
+
+            },
+            {
+                "barcode": "12",
+                "sscc": "12",
+                "customerRefNO": "test",
+                "package": {
+                    "type": "PPN",
+                    "quantity": 1
+                },
+                "dimensions": {
+                    "length": 220,
+                    "width": 120,
+                    "height": 150,
+                    "weight": 500
+                }, 
+                
+                "dangerousGoods": []
+
+            }, {
+                "barcode": "12",
+                "sscc": "12",
+                "customerRefNO": "test",
+                "package": {
+                    "type": "KRT",
+                    "quantity": 1
+                },
+                "dimensions": {
+                    "length": 100,
+                    "width": 50,
+                    "height": 50,
+                    "weight": 31
+                }, 
+                
+                "dangerousGoods": []
+
+            }
+            
+
+
+            
+        ]
+    }
+    
+}
