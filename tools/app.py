@@ -60,8 +60,8 @@ APPS = [
         "name": "Etykiety Wysyłkowe",
         "desc": "Generowanie etykiet wysyłkowych z ERP",
         "icon": "🏷️",
-        "page": None,
-        "active": False,
+        "page": "pages/etykiety_wysylkowe.py",
+        "active": True,
     },
     {
         "name": "Wycena Produkcji",
