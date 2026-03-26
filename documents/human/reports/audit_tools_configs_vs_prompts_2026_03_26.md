@@ -160,5 +160,23 @@ Po weryfikacji co robią:
 
 ### P3: Porządki (niski priorytet)
 
-- Ocenić czy verify, setup_machine, mrowisko_runner, bot_stop powinny być w promptach
+- verify, setup_machine — one-time setup, nie potrzebują referencji
+- mrowisko_runner — infrastruktura, Developer zna z kodu
+- bot_stop — operacyjne, niche
 - Rozważyć czy migracje jednorazowe powinny trafić do archive/
+
+---
+
+## Realizacja
+
+### P1: Workflow → prompty ról (2026-03-26) ✓
+
+- **ARCHITECT.md** — dodano: workflow_plan_review, workflow_code_review, workflow_suggestions_processing, workflow_convention_creation
+- **DEVELOPER.md** — dodano jako participant: workflow_plan_review, workflow_code_review
+- **PROMPT_ENGINEER.md** — dodano: workflow_research_prompt_creation, workflow_prompt_refactor, workflow_convention_creation, workflow_workflow_creation, workflow_suggestions_processing
+
+### P2: Narzędzia → prompty ról (2026-03-26) ✓
+
+- **ERP_SPECIALIST.md** — dodano: bi_catalog_add, excel_write_cells
+- **ARCHITECT.md** — dodano: arch_check
+- verify, setup_machine, mrowisko_runner, bot_stop — ocenione, pominięte (one-time/infra/operacyjne)

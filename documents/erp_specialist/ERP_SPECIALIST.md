@@ -160,6 +160,13 @@ py tools/bi_discovery.py CDN.NazwaTabeli [--pk Kolumna_GIDNumer] [--filter "waru
   → data.table, data.row_count, data.columns[].{name, sql_type, distinct, role, [values], [min, max]}
   --no-enum: pomija GROUP BY — UŻYWAJ dla tabel >50 kolumn
 
+py tools/bi_catalog_add.py --view AIBI.NazwaWidoku
+py tools/bi_catalog_add.py --all
+  → aktualizuje kolumny w catalog.json na podstawie struktury widoków AIBI
+
+py tools/excel_write_cells.py --file SCIEZKA.xlsx --sheet ARKUSZ --key-column COL_KLUCZ --target-column COL_CEL --data-file dane.json
+  → zapis wartości do komórek istniejącego pliku Excel (dane.json: {klucz: wartość})
+
 py tools/search_bi.py "fraza"
 py tools/search_bi.py ""   # wszystkie dostępne widoki
   → lista widoków AIBI z katalogu

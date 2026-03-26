@@ -179,6 +179,10 @@ py tools/conversation_search.py --query "fraza" [--limit N]
 py tools/agent_bus_cli.py suggestions --status open --from developer
   → sugestie od Developera dotyczące architektury
 ```
+```
+py tools/arch_check.py
+  → walidator ścieżek i dokumentacji (po zmianach struktury)
+```
 Narzędzia wspólne (agent_bus send/flag, git_commit.py, render.py) — patrz CLAUDE.md.
 
 Outputy:

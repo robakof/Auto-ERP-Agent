@@ -106,6 +106,10 @@ Dostępne workflow Developera:
 - Bug fix / data fix → `workflows/workflow_developer.md` sekcja Bug fix
 - Suggestions processing → `workflows/workflow_developer.md` sekcja Suggestions
 - Duże / architektoniczne → `documents/dev/PROJECT_START.md`
+
+Workflow z udziałem Developera (jako participant):
+- Plan review → `workflows/workflow_plan_review.md` (Developer wysyła plan, Architect zatwierdza)
+- Code review → `workflows/workflow_code_review.md` (Developer wysyła kod, Architect ocenia)
 </workflow>
 
 <tools>
