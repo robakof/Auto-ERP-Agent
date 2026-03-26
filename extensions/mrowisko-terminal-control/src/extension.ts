@@ -46,6 +46,8 @@ export function activate(context: vscode.ExtensionContext): void {
               `Agent ${role} uruchomiony via URI: ${task}`
             );
           }
+        } else if (command === "reload") {
+          vscode.commands.executeCommand("workbench.action.reloadWindow");
         } else if (command === "listAgents") {
           vscode.commands.executeCommand("mrowisko.listAgents");
         } else if (command === "stopAgent") {
