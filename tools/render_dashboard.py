@@ -39,6 +39,7 @@ def _load_config() -> dict:
         "top_n": 10,
         "labels": {},
         "status_translations": {},
+        "workflow_translations": {},
     }
     if CONFIG_PATH.exists():
         try:
@@ -50,17 +51,10 @@ def _load_config() -> dict:
 
 
 def _l(cfg: dict, key: str) -> str:
-    """Get label from config."""
     return cfg["labels"].get(key, key)
 
 
-def _t(cfg: dict, val: str) -> str:
-    """Translate status value."""
-    return cfg["status_translations"].get(val, val)
-
-
 def _tw(cfg: dict, workflow_id: str) -> str:
-    """Translate workflow ID to Polish name."""
     return cfg.get("workflow_translations", {}).get(workflow_id, workflow_id)
 
 
@@ -85,8 +79,9 @@ def _render_status(conn: sqlite3.Connection, cfg: dict) -> str:
     L = lambda k: _l(cfg, k)
     lines = [
         f"*{now}*",
-        f"| | |",
-        f"|---|---|",
+        "",
+        "| | |",
+        "|---|---|",
         f"| {L('agents')} | **{agents}** |",
         f"| {L('unread')} | **{unread}** |",
         f"| {L('handoffs')} | **{handoffs}** |",
@@ -94,13 +89,29 @@ def _render_status(conn: sqlite3.Connection, cfg: dict) -> str:
         f"| {L('in_progress')} | **{ip}** |",
         f"| {L('planned')} | **{planned}** |",
     ]
-    # Agents
+    # Active sessions (from session_log)
+    sessions = conn.execute(
+        """SELECT role, session_id, created_at
+           FROM session_log
+           WHERE content LIKE '%session started%'
+             AND created_at > datetime('now', '-24 hours')
+           GROUP BY role
+           HAVING created_at = MAX(created_at)
+           ORDER BY created_at DESC"""
+    ).fetchall()
+    if sessions:
+        lines += ["", f"## {L('sessions')}", ""]
+        lines.append(f"| {L('role')} | Sesja | Start |")
+        lines.append("|------|-------|-------|")
+        for s in sessions:
+            lines.append(f"| {s['role']} | {s['session_id'][:8]} | {s['created_at'][:16]} |")
+    # Spawned agents
     rows = conn.execute(
         "SELECT role, task FROM live_agents WHERE status IN ('starting','active') ORDER BY created_at DESC"
     ).fetchall()
     if rows:
         maxl = cfg["max_title_length"]
-        lines.append(f"## {L('agents')}")
+        lines += ["", f"## {L('agents')}", ""]
         lines.append(f"| {L('role')} | {L('task')} |")
         lines.append("|------|------|")
         for a in rows:
@@ -110,7 +121,7 @@ def _render_status(conn: sqlite3.Connection, cfg: dict) -> str:
         "SELECT recipient, COUNT(*) as n FROM messages WHERE status='unread' GROUP BY recipient ORDER BY n DESC"
     ).fetchall()
     if rows:
-        lines.append(f"## {L('unread')}")
+        lines += ["", f"## {L('unread')}", ""]
         lines.append(f"| {L('role')} | # |")
         lines.append("|------|---|")
         for r in rows:
@@ -123,7 +134,7 @@ def _render_status(conn: sqlite3.Connection, cfg: dict) -> str:
            ORDER BY m.created_at DESC"""
     ).fetchall()
     if rows:
-        lines.append(f"## {L('handoffs')}")
+        lines += ["", f"## {L('handoffs')}"]
         for p in rows:
             lines.append(f"- {p['sender']} > {p['recipient']}: {p['title']}")
     return "\n".join(lines) + "\n"
@@ -136,14 +147,14 @@ def _render_workstreams(conn: sqlite3.Connection, cfg: dict) -> str:
     lines = [
         f"{L('workflow')} **{wf_n}** {L('in_progress')} **{ip_n}**",
     ]
-    # Workflows aggregated — table
+    # Workflows aggregated
     wf_agg = conn.execute(
         """SELECT workflow_id, COUNT(*) as cnt
            FROM workflow_execution WHERE status='running'
            GROUP BY workflow_id ORDER BY cnt DESC"""
     ).fetchall()
     if wf_agg:
-        lines.append(f"## {L('workflow')}")
+        lines += ["", f"## {L('workflow')}", ""]
         lines.append(f"| {L('type')} | {L('count')} | {L('stage')} |")
         lines.append("|-----|-----|------|")
         for wf in wf_agg:
@@ -160,13 +171,13 @@ def _render_workstreams(conn: sqlite3.Connection, cfg: dict) -> str:
                 lines.append(f"| {name} | 1 ({detail['role']}) | {step} |")
             else:
                 lines.append(f"| {name} | {wf['cnt']} | - |")
-    # In-progress backlog — table
+    # In-progress backlog
     tasks = conn.execute(
         "SELECT id, title, area FROM backlog WHERE status='in_progress' ORDER BY area, id"
     ).fetchall()
     if tasks:
         maxl = cfg["max_title_length"]
-        lines.append(f"## {L('in_progress')}")
+        lines += ["", f"## {L('in_progress')}", ""]
         lines.append(f"| {L('id')} | {L('area')} | {L('task')} |")
         lines.append("|----|------|------|")
         for t in tasks:
@@ -180,6 +191,7 @@ def _render_backlog(conn: sqlite3.Connection, cfg: dict) -> str:
     L = lambda k: _l(cfg, k)
     lines = [
         f"{L('planned')} **{total}**",
+        "",
     ]
     rows = conn.execute(f"""
         SELECT id, title, {SCORE_SQL} as score

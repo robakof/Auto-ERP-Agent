@@ -20,7 +20,8 @@
     "stage": "Etap",
     "id": "ID",
     "rank": "#",
-    "priority": "Priorytet"
+    "priority": "Priorytet",
+    "sessions": "Ostatnie sesje"
   },
   "status_translations": {
     "starting": "startuje",

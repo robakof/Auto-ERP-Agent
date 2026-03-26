@@ -1,4 +1,5 @@
 Zaplanowane **28**
+
 | ID | Zadanie | Pkt |
 |----|------|---|
 | 160 | Zasada 'Agent jako rewolucjonista' — dodan... | 10 |
