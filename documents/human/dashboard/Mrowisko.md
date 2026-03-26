@@ -1,25 +1,21 @@
-**23:36** 2026-03-26
+2026-03-26 **23:46**
 
-| Metryka | |
-|---|---|
-| Sesje | **4** |
-| Nieprzeczytane | **90** |
-| Workflow | **8** |
-| W toku | **5** |
-| Zaplanowane | **28** |
+| W toku | Workflow | Zaplanowane | Nieprzeczytane |
+|:---:|:---:|:---:|:---:|
+| **5** | **8** | **28** | **90** |
 
 #### Sesje
 
-| Rola | Status | Kontekst |
+| **Rola** | **Status** | **Kontekst** |
 |------|--------|----------|
-| dispatcher | Stoi | |
+| dispatcher | Z czlowiekiem | |
 | developer | Praca | |
 | architect | Praca | |
 | prompt_engineer | Praca | |
 
 #### Nieprzeczytane
 
-| Rola | # |
+| **Rola** | **#** |
 |------|---|
 | erp_specialist | 23 |
 | prompt_engineer | 21 |

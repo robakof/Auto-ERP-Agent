@@ -1,8 +1,10 @@
-Workflow **8** W toku **5**
+| Workflow | W toku |
+|:---:|:---:|
+| **8** | **5** |
 
 #### Workflow
 
-| Typ | Ile | Etap |
+| **Typ** | **Ile** | **Etap** |
 |-----|-----|------|
 | Tworzenie konwencji | 4 | - |
 | Operacje deweloperskie | 2 | - |
@@ -11,7 +13,7 @@ Workflow **8** W toku **5**
 
 #### W toku
 
-| ID | Obszar | Zadanie |
+| **ID** | **Obszar** | **Zadanie** |
 |----|------|------|
 | 115 | Arch | Refaktor na Domain Model (ADR-001) |
 | 150 | Arch | Convention Registry — centralizacja + META... |

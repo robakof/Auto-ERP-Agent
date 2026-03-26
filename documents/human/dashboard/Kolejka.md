@@ -1,8 +1,10 @@
-Zaplanowane **28** Odlozone **28** Sugestie **251**
+| Zaplanowane | Odlozone | Sugestie |
+|:---:|:---:|:---:|
+| **28** | **28** | **251** |
 
 #### Zaplanowane
 
-| ID | Zadanie | Pkt |
+| **ID** | **Zadanie** | **Pkt** |
 |----|------|---|
 | 160 | Zasada 'Agent jako rewolucjonista' — dodan... | 10 |
 | 162 | Zasada 'Projektuj na porzadek' — dodanie d... | 10 |
@@ -17,7 +19,7 @@ Zaplanowane **28** Odlozone **28** Sugestie **251**
 
 #### Odlozone
 
-| ID | Zadanie | Pkt |
+| **ID** | **Zadanie** | **Pkt** |
 |----|------|---|
 | 57 | [Arch 5.2] Render widoku sesji dla człowie... | 10 |
 | 94 | Error handling dla Anthropic API | 10 |

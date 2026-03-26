@@ -1,6 +1,7 @@
 """Generate markdown dashboard files from mrowisko.db.
 
 Labels and translations from config/dashboard_config.json.
+Designed for 5s auto-refresh — queries are simple SELECTs.
 
 Usage:
     py tools/render_dashboard.py
@@ -22,6 +23,7 @@ from tools.lib.output import print_json
 DB_PATH = "mrowisko.db"
 DEFAULT_OUTPUT = "documents/human/dashboard"
 CONFIG_PATH = Path(__file__).parent.parent / "config" / "dashboard_config.json"
+SESSION_DATA = Path(__file__).parent.parent / "tmp" / "session_data.json"
 
 SCORE_SQL = """
 ROUND(
@@ -63,41 +65,55 @@ def _trunc(text: str, max_len: int) -> str:
     return text[: max_len - 3] + "..."
 
 
-def _session_status(conn: sqlite3.Connection, role: str) -> str:
-    """Determine session status: Praca / Czeka / Stoi / empty."""
+def _current_session_id() -> str | None:
+    if SESSION_DATA.exists():
+        try:
+            data = json.loads(SESSION_DATA.read_text(encoding="utf-8"))
+            return data.get("session_id")
+        except Exception:
+            pass
+    return None
+
+
+def _session_status(conn: sqlite3.Connection, role: str, session_id: str) -> str:
+    """Praca / Z czlowiekiem / Czeka / Stoi."""
+    current_sid = _current_session_id()
+    # Current session = actively working with human
+    if current_sid and session_id == current_sid:
+        return "Z czlowiekiem"
+    # Recent conversation activity (last 30 min) = with human
+    conv = conn.execute(
+        """SELECT MAX(created_at) as last
+           FROM conversation
+           WHERE session_id = ? AND created_at > datetime('now', '-30 minutes')""",
+        (session_id,),
+    ).fetchone()
+    if conv and conv["last"]:
+        return "Z czlowiekiem"
+    # Running workflow = working
     wf = conn.execute(
-        """SELECT we.id,
-                  (SELECT COUNT(*) FROM step_log sl WHERE sl.execution_id = we.id) as steps,
-                  we.started_at
-           FROM workflow_execution we
-           WHERE we.role = ? AND we.status = 'running'
-           ORDER BY we.started_at DESC LIMIT 1""",
+        "SELECT id FROM workflow_execution WHERE role = ? AND status = 'running' LIMIT 1",
         (role,),
     ).fetchone()
-    if not wf:
-        return "Stoi"
-    return "Praca"
+    if wf:
+        return "Praca"
+    return "Stoi"
 
 
 def _render_status(conn: sqlite3.Connection, cfg: dict) -> str:
     now = datetime.now()
     c = lambda sql: conn.execute(sql).fetchone()[0]
-    unread = c("SELECT COUNT(*) FROM messages WHERE status='unread'")
     L = lambda k: _l(cfg, k)
-    sess_n = c("SELECT COUNT(DISTINCT role) FROM session_log WHERE content LIKE '%session started%' AND created_at > datetime('now', '-24 hours')")
-    wf = c("SELECT COUNT(*) FROM workflow_execution WHERE status='running'")
     ip = c("SELECT COUNT(*) FROM backlog WHERE status='in_progress'")
+    wf = c("SELECT COUNT(*) FROM workflow_execution WHERE status='running'")
     planned = c("SELECT COUNT(*) FROM backlog WHERE status='planned'")
+    unread = c("SELECT COUNT(*) FROM messages WHERE status='unread'")
     lines = [
-        f"**{now.strftime('%H:%M')}** {now.strftime('%Y-%m-%d')}",
+        f"{now.strftime('%Y-%m-%d')} **{now.strftime('%H:%M')}**",
         "",
-        "| Metryka | |",
-        "|---|---|",
-        f"| {L('sessions')} | **{sess_n}** |",
-        f"| {L('unread')} | **{unread}** |",
-        f"| {L('workflow')} | **{wf}** |",
-        f"| {L('in_progress')} | **{ip}** |",
-        f"| {L('planned')} | **{planned}** |",
+        f"| {L('in_progress')} | {L('workflow')} | {L('planned')} | {L('unread')} |",
+        "|:---:|:---:|:---:|:---:|",
+        f"| **{ip}** | **{wf}** | **{planned}** | **{unread}** |",
     ]
     # Sessions
     sessions = conn.execute(
@@ -111,10 +127,10 @@ def _render_status(conn: sqlite3.Connection, cfg: dict) -> str:
     ).fetchall()
     if sessions:
         lines += ["", f"#### {L('sessions')}", ""]
-        lines.append(f"| {L('role')} | Status | Kontekst |")
+        lines.append(f"| **{L('role')}** | **Status** | **Kontekst** |")
         lines.append("|------|--------|----------|")
         for s in sessions:
-            status = _session_status(conn, s["role"])
+            status = _session_status(conn, s["role"], s["session_id"])
             lines.append(f"| {s['role']} | {status} | |")
     # Unread per role
     rows = conn.execute(
@@ -122,7 +138,7 @@ def _render_status(conn: sqlite3.Connection, cfg: dict) -> str:
     ).fetchall()
     if rows:
         lines += ["", f"#### {L('unread')}", ""]
-        lines.append(f"| {L('role')} | # |")
+        lines.append(f"| **{L('role')}** | **#** |")
         lines.append("|------|---|")
         for r in rows:
             lines.append(f"| {r['recipient']} | {r['n']} |")
@@ -134,7 +150,9 @@ def _render_workstreams(conn: sqlite3.Connection, cfg: dict) -> str:
     ip_n = conn.execute("SELECT COUNT(*) FROM backlog WHERE status='in_progress'").fetchone()[0]
     L = lambda k: _l(cfg, k)
     lines = [
-        f"{L('workflow')} **{wf_n}** {L('in_progress')} **{ip_n}**",
+        f"| {L('workflow')} | {L('in_progress')} |",
+        "|:---:|:---:|",
+        f"| **{wf_n}** | **{ip_n}** |",
     ]
     # Workflows aggregated
     wf_agg = conn.execute(
@@ -144,7 +162,7 @@ def _render_workstreams(conn: sqlite3.Connection, cfg: dict) -> str:
     ).fetchall()
     if wf_agg:
         lines += ["", f"#### {L('workflow')}", ""]
-        lines.append(f"| {L('type')} | {L('count')} | {L('stage')} |")
+        lines.append(f"| **{L('type')}** | **{L('count')}** | **{L('stage')}** |")
         lines.append("|-----|-----|------|")
         for wf in wf_agg:
             name = _tw(cfg, wf["workflow_id"])
@@ -167,7 +185,7 @@ def _render_workstreams(conn: sqlite3.Connection, cfg: dict) -> str:
     if tasks:
         maxl = cfg["max_title_length"]
         lines += ["", f"#### {L('in_progress')}", ""]
-        lines.append(f"| {L('id')} | {L('area')} | {L('task')} |")
+        lines.append(f"| **{L('id')}** | **{L('area')}** | **{L('task')}** |")
         lines.append("|----|------|------|")
         for t in tasks:
             lines.append(f"| {t['id']} | {t['area']} | {_trunc(t['title'], maxl)} |")
@@ -182,7 +200,9 @@ def _render_backlog(conn: sqlite3.Connection, cfg: dict) -> str:
     L = lambda k: _l(cfg, k)
     maxl = cfg["max_title_length"]
     lines = [
-        f"{L('planned')} **{total_planned}** {L('deferred')} **{total_deferred}** {L('suggestions')} **{open_suggestions}**",
+        f"| {L('planned')} | {L('deferred')} | {L('suggestions')} |",
+        "|:---:|:---:|:---:|",
+        f"| **{total_planned}** | **{total_deferred}** | **{open_suggestions}** |",
     ]
     # Top N planned
     rows = conn.execute(f"""
@@ -193,7 +213,7 @@ def _render_backlog(conn: sqlite3.Connection, cfg: dict) -> str:
     """, (top_n,)).fetchall()
     if rows:
         lines += ["", f"#### {L('planned')}", ""]
-        lines.append(f"| {L('id')} | {L('task')} | {L('score')} |")
+        lines.append(f"| **{L('id')}** | **{L('task')}** | **{L('score')}** |")
         lines.append("|----|------|---|")
         for r in rows:
             lines.append(f"| {r['id']} | {_trunc(r['title'], maxl)} | {int(r['score'])} |")
@@ -206,7 +226,7 @@ def _render_backlog(conn: sqlite3.Connection, cfg: dict) -> str:
     """, (top_n,)).fetchall()
     if deferred:
         lines += ["", f"#### {L('deferred')}", ""]
-        lines.append(f"| {L('id')} | {L('task')} | {L('score')} |")
+        lines.append(f"| **{L('id')}** | **{L('task')}** | **{L('score')}** |")
         lines.append("|----|------|---|")
         for r in deferred:
             lines.append(f"| {r['id']} | {_trunc(r['title'], maxl)} | {int(r['score'])} |")
@@ -232,7 +252,6 @@ def main():
         f"{L('header_queue')}.md": _render_backlog(conn, cfg),
     }
 
-    # Clean old files
     for old in ["status.md", "workstreams.md", "backlog_overview.md",
                 "Status.md", "Praca.md", "Kolejka.md"]:
         old_path = output / old
