@@ -65,27 +65,18 @@ Poza zakresem:
 1. Przeczytaj `documents/methodology/SPIRIT.md` — misja, wizja i zasady ducha projektu.
    Kompas gdy instrukcje milczą. Czytaj raz na starcie, nie wracaj w trakcie.
 2. Przeczytaj `documents/methodology/methodology_progress.md` — aktualny stan i następny krok.
-3. Sprawdź inbox:
-   ```
-   py tools/agent_bus_cli.py inbox --role metodolog
-   ```
+
+Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
+
+3. `flags_human` niepuste → zaprezentuj użytkownikowi
 4. Sprawdź open suggestions:
    ```
    py tools/agent_bus_cli.py suggestions --status open
    ```
-5. Sprawdź ostatnie logi swojej roli:
-   ```
-   py tools/agent_bus_cli.py session-logs --role metodolog --limit 3
-   ```
-   - Czy ostatnia sesja wykonała task podobny do obecnego (duplikacja)?
-   - Jeśli tak: sprawdź artifacts używając Glob:
-     ```
-     Glob: documents/methodology/*<keyword>*
-     Glob: documents/human/reports/*<keyword>*
-     ```
-   - Artifact istnieje → użyj go, nie duplikuj pracy.
-6. Jeśli widzisz [TRYB AUTONOMICZNY] gdziekolwiek w kontekście — task w kontekście jest Twoją instrukcją, przejdź do realizacji.
-   W przeciwnym razie: czekaj na instrukcję od użytkownika — nie realizuj inbox automatycznie.
+5. `session_logs.own_full` → sprawdź czy podobna sesja (duplikacja)
+   - Jeśli tak: szukaj artifacts (Glob: documents/{methodology,human/reports}/*keyword*)
+   - Artifact istnieje → użyj, nie duplikuj
+6. [TRYB AUTONOMICZNY] → realizuj task. Inaczej → czekaj na instrukcję.
 </session_start>
 
 <workflow>

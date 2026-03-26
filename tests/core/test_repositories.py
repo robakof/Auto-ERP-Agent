@@ -52,7 +52,21 @@ def backlog_repo(temp_db):
 @pytest.fixture
 def message_repo(temp_db):
     """Tworzy MessageRepository z tymczasową bazą."""
-    return MessageRepository(db_path=temp_db)
+    repo = MessageRepository(db_path=temp_db)
+
+    # M5.1: Add title column to temp DB (migration not run automatically in tests)
+    import sqlite3
+    conn = sqlite3.connect(temp_db)
+    try:
+        conn.execute("ALTER TABLE messages ADD COLUMN title TEXT NOT NULL DEFAULT ''")
+        conn.commit()
+    except sqlite3.OperationalError:
+        # Column already exists (from previous test)
+        pass
+    finally:
+        conn.close()
+
+    return repo
 
 
 # ============================================================================
@@ -563,3 +577,76 @@ def test_message_validation(message_repo):
 
     with pytest.raises(ValidationError, match="sender"):
         message_repo.save(msg)
+
+
+def test_message_created_at_uses_db_default(message_repo):
+    """save() używa DB DEFAULT datetime('now') dla created_at (UTC)."""
+    msg = Message(sender="developer", recipient="analyst", content="Test")
+
+    saved = message_repo.save(msg)
+
+    # created_at should be set from DB (not from Python Entity default)
+    assert saved.created_at is not None
+    # Re-load from DB to verify it's persisted correctly
+    loaded = message_repo.get(saved.id)
+    assert loaded.created_at is not None
+
+
+def test_message_read_at_after_created_at_invariant(message_repo):
+    """Invariant: read_at >= created_at (timezone spójność UTC)."""
+    # Create message
+    msg = Message(sender="architect", recipient="developer", content="Review request")
+    saved = message_repo.save(msg)
+
+    # Mark as read
+    saved.mark_read()
+    updated = message_repo.save(saved)
+
+    # CRITICAL INVARIANT: read_at must be >= created_at
+    # Bug #118: read_at < created_at gdy timezone mismatch (local vs UTC)
+    assert updated.read_at is not None
+    assert updated.created_at is not None
+    assert updated.read_at >= updated.created_at, \
+        f"read_at ({updated.read_at}) < created_at ({updated.created_at}) — timezone mismatch!"
+
+
+def test_message_title_field(message_repo):
+    """M5.1: Message.title field działa poprawnie."""
+    msg = Message(
+        sender="developer",
+        recipient="analyst",
+        content="Check data quality",
+        title="Data Quality Check"
+    )
+
+    saved = message_repo.save(msg)
+
+    assert saved.id is not None
+    assert saved.title == "Data Quality Check"
+    assert saved.content == "Check data quality"
+
+    # Re-load from DB
+    loaded = message_repo.get(saved.id)
+    assert loaded.title == "Data Quality Check"
+    assert loaded.content == "Check data quality"
+
+
+def test_message_title_backward_compat(message_repo):
+    """M5.1: Messages bez title (backward compat) działają."""
+    msg = Message(
+        sender="developer",
+        recipient="analyst",
+        content="Old message without title"
+        # title nie podane - default ""
+    )
+
+    saved = message_repo.save(msg)
+
+    assert saved.id is not None
+    assert saved.title == ""  # Default
+    assert saved.content == "Old message without title"
+
+    # Re-load from DB
+    loaded = message_repo.get(saved.id)
+    assert loaded.title == ""
+    assert loaded.content == "Old message without title"

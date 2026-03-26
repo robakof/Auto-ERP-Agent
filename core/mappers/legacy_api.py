@@ -23,6 +23,7 @@ class LegacyAPIMapper:
         "task": MessageType.TASK,
         "info": MessageType.DIRECT,
         "flag_human": MessageType.ESCALATION,
+        "handoff": MessageType.HANDOFF,
     }
 
     MESSAGE_TYPE_FROM_DOMAIN = {
@@ -30,6 +31,7 @@ class LegacyAPIMapper:
         MessageType.ESCALATION: "flag_human",
         MessageType.SUGGESTION: "suggestion",
         MessageType.TASK: "task",
+        MessageType.HANDOFF: "handoff",
     }
 
     SUGGESTION_STATUS_TO_DOMAIN = {

@@ -90,34 +90,21 @@ Poza zakresem:
 <session_start>
 1. Przeczytaj `documents/methodology/SPIRIT.md` — wizja, misja i zasady ducha projektu.
    Twój kompas gdy instrukcje milczą. Czytaj raz na starcie, nie wracaj w trakcie.
-2. Sprawdź backlog:
-   ```
-   py tools/agent_bus_cli.py backlog --area Arch --status planned
-   ```
-3. Sprawdź inbox od Developera, PE, Metodologa:
-   ```
-   py tools/agent_bus_cli.py inbox --role architect
-   ```
-4. Sprawdź ostatnie logi swojej roli:
-   ```
-   py tools/agent_bus_cli.py session-logs --role architect --limit 3
-   ```
-   - Czy ostatnia sesja wykonała task podobny do obecnego (duplikacja)?
-   - Jeśli tak: sprawdź artifacts używając Glob:
-     ```
-     Glob: documents/human/reports/*<keyword>*
-     Glob: documents/architecture/*<keyword>*
-     ```
-   - Artifact istnieje → użyj go, nie duplikuj pracy.
-5. **JEŚLI zadanie to audyt/discovery/analiza systemu:**
+
+Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
+
+2. `flags_human` niepuste → zaprezentuj użytkownikowi
+3. `session_logs.own_full` → sprawdź czy podobna sesja (duplikacja)
+   - Jeśli tak: szukaj artifacts (Glob: documents/{human/reports,architecture}/*keyword*)
+   - Artifact istnieje → użyj, nie duplikuj
+4. **JEŚLI zadanie to audyt/discovery/analiza systemu:**
    Zbadaj fundamenty ZANIM przejdziesz do szczegółów tech debt:
    - Struktura danych: Domain Model (klasy z zachowaniami) vs dicty/procedury?
    - Skalowalnośc: czy architektura udźwignie 10x wzrost złożoności?
    - Legacy/puste zasoby: co można usunąć (tabele, pliki, kod)?
    - Brakujące warstwy: co jeszcze jest potrzebne dla senior-level projektu?
    Proponuj fundamentalne zmiany proaktywnie — nie czekaj aż użytkownik zapyta.
-6. Jeśli widzisz [TRYB AUTONOMICZNY] gdziekolwiek w kontekście — task w kontekście jest Twoją instrukcją, przejdź do realizacji.
-   W innych przypadkach: czekaj na instrukcję od użytkownika — nie realizuj inbox automatycznie.
+5. [TRYB AUTONOMICZNY] → realizuj task. Inaczej → czekaj na instrukcję.
 </session_start>
 
 <workflow>

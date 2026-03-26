@@ -33,6 +33,7 @@ class MessageType(Enum):
     SUGGESTION = "suggestion"
     TASK = "task"
     ESCALATION = "escalation"
+    HANDOFF = "handoff"
 
 
 @dataclass
@@ -59,6 +60,7 @@ class Message(Entity):
     sender: str
     recipient: str
     content: str
+    title: str = ""
     type: MessageType = MessageType.DIRECT
     status: MessageStatus = MessageStatus.UNREAD
     session_id: Optional[str] = None

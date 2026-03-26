@@ -10,7 +10,7 @@ import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 
-ALLOWED_MESSAGE_TYPES = {"suggestion", "task", "info", "flag_human"}
+ALLOWED_MESSAGE_TYPES = {"suggestion", "task", "info", "flag_human", "handoff"}
 
 HEARTBEAT_TTL_SECONDS = 60
 
@@ -66,7 +66,10 @@ CREATE TABLE IF NOT EXISTS messages (
     status      TEXT NOT NULL DEFAULT 'unread',
     session_id  TEXT,
     created_at  TEXT NOT NULL DEFAULT (datetime('now')),
-    read_at     TEXT
+    read_at     TEXT,
+    claimed_by  TEXT,
+    title       TEXT NOT NULL DEFAULT '',
+    CHECK (type IN ('direct', 'suggestion', 'task', 'escalation', 'flag_human', 'info', 'handoff'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_recipient_status
@@ -154,6 +157,51 @@ CREATE TABLE IF NOT EXISTS agent_instances (
 );
 
 CREATE INDEX IF NOT EXISTS idx_agent_instances_role_status ON agent_instances(role, status);
+
+CREATE TABLE IF NOT EXISTS workflow_execution (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    workflow_id     TEXT NOT NULL,
+    role            TEXT NOT NULL,
+    session_id      TEXT,
+    status          TEXT NOT NULL DEFAULT 'running',
+    started_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    ended_at        TEXT,
+    CHECK (status IN ('running', 'completed', 'interrupted', 'failed'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_workflow_execution_role_status ON workflow_execution(role, status);
+
+CREATE TABLE IF NOT EXISTS step_log (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    execution_id    INTEGER NOT NULL,
+    step_id         TEXT NOT NULL,
+    step_index      INTEGER,
+    status          TEXT NOT NULL,
+    output_summary  TEXT,
+    output_json     TEXT,
+    timestamp       TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (execution_id) REFERENCES workflow_execution(id),
+    CHECK (status IN ('PASS', 'FAIL', 'BLOCKED', 'SKIPPED', 'IN_PROGRESS'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_step_log_execution ON step_log(execution_id);
+
+CREATE TABLE IF NOT EXISTS known_gaps (
+    id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+    title                TEXT NOT NULL,
+    description          TEXT NOT NULL,
+    area                 TEXT NOT NULL,
+    trigger_condition    TEXT NOT NULL,
+    source_suggestion_id INTEGER REFERENCES suggestions(id),
+    reported_by          TEXT NOT NULL,
+    status               TEXT NOT NULL DEFAULT 'open',
+    resolved_by_backlog_id INTEGER REFERENCES backlog(id),
+    created_at           TEXT NOT NULL DEFAULT (datetime('now')),
+    resolved_at          TEXT,
+    CHECK (status IN ('open', 'resolved'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_known_gaps_area_status ON known_gaps(area, status);
 """
 
 _MIGRATE_SQL = [
@@ -236,6 +284,45 @@ class AgentBus:
 
     # --- Messages ---
 
+    @staticmethod
+    def _extract_title_from_markdown(content: str) -> tuple[str, str]:
+        """
+        Extract title from markdown header (# or ##).
+
+        Args:
+            content: Message content (potentially with markdown header)
+
+        Returns:
+            (title, body): Extracted title and content without header.
+                          If no header found, returns ("", content).
+
+        Example:
+            >>> _extract_title_from_markdown("# Title\\n\\nBody text")
+            ('Title', 'Body text')
+            >>> _extract_title_from_markdown("## Title\\nContent")
+            ('Title', 'Content')
+            >>> _extract_title_from_markdown("No header")
+            ('', 'No header')
+        """
+        if not content:
+            return "", content
+
+        lines = content.split('\n', 1)
+        first_line = lines[0].strip()
+
+        # Check for markdown header (# or ##)
+        if first_line.startswith('#'):
+            title = first_line.lstrip('#').strip()
+            # Content without header (skip first line + potential empty lines)
+            if len(lines) > 1:
+                body = lines[1].lstrip('\n')
+            else:
+                body = ""
+            return title, body
+
+        # No header found
+        return "", content
+
     def send_message(
         self,
         sender: str,
@@ -256,11 +343,15 @@ class AgentBus:
         # Type mapping: legacy API → domain model (centralized)
         type_enum = LegacyAPIMapper.map_message_type_to_domain(type)
 
+        # Extract title from markdown header (transparent for agent)
+        title, body = self._extract_title_from_markdown(content)
+
         # Convert dict → entity
         message = Message(
             sender=sender,
             recipient=recipient,
-            content=content,
+            content=body if title else content,  # Use body if title extracted, otherwise original
+            title=title,
             type=type_enum,
             session_id=session_id
         )
@@ -285,8 +376,8 @@ class AgentBus:
         status_enum = MessageStatus(status)
         filtered = [m for m in messages if m.status == status_enum]
 
-        # Sort by created_at ASC (backward compatible)
-        filtered.sort(key=lambda m: m.created_at)
+        # Sort by created_at ASC, id ASC (stable ordering)
+        filtered.sort(key=lambda m: (m.created_at, m.id))
 
         # Convert entity → dict (backward compatible, centralized)
         from core.mappers.legacy_api import LegacyAPIMapper
@@ -507,6 +598,25 @@ class AgentBus:
 
         return result
 
+    def get_backlog_by_id(self, backlog_id: int) -> dict | None:
+          """Get a single backlog item by ID.
+
+          NOTE: Delegates to BacklogRepository (M3 adapter pattern).
+          """
+          from core.repositories.backlog_repo import BacklogRepository
+          from core.mappers.legacy_api import LegacyAPIMapper
+
+          repo = self._get_repository(BacklogRepository)
+          item = repo.get(backlog_id)
+          if item is None:
+              return None
+          return LegacyAPIMapper.backlog_to_dict(item)
+
+
+
+
+
+
     def update_backlog_status(self, backlog_id: int, status: str) -> None:
         """Update backlog item status and set updated_at.
 
@@ -684,6 +794,112 @@ class AgentBus:
             params,
         ).fetchall()
         return [dict(row) for row in rows]
+
+    # --- Workflow execution tracking ---
+
+    def start_workflow_execution(
+        self, workflow_id: str, role: str, session_id: str = None
+    ) -> int:
+        """Start a new workflow execution, returns execution_id."""
+        cursor = self._conn.execute(
+            """INSERT INTO workflow_execution (workflow_id, role, session_id)
+               VALUES (?, ?, ?)""",
+            (workflow_id, role, session_id),
+        )
+        self._conn.commit()
+        return cursor.lastrowid
+
+    def log_step(
+        self,
+        execution_id: int,
+        step_id: str,
+        status: str,
+        step_index: int = None,
+        output_summary: str = None,
+        output_json: dict = None,
+    ) -> int:
+        """Log a workflow step, returns step_log.id."""
+        json_str = json.dumps(output_json) if output_json else None
+        cursor = self._conn.execute(
+            """INSERT INTO step_log (execution_id, step_id, step_index, status, output_summary, output_json)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (execution_id, step_id, step_index, status, output_summary, json_str),
+        )
+        self._conn.commit()
+        return cursor.lastrowid
+
+    def end_workflow_execution(self, execution_id: int, status: str = "completed") -> dict:
+        """End a workflow execution (set ended_at and status).
+
+        Returns dict with 'ok' and 'message' keys. If workflow is already ended,
+        returns ok=False with info about current status (idempotency guard).
+        """
+        # Check current state first (idempotency guard)
+        row = self._conn.execute(
+            "SELECT status, ended_at FROM workflow_execution WHERE id = ?",
+            (execution_id,),
+        ).fetchone()
+
+        if not row:
+            return {"ok": False, "message": f"Execution {execution_id} not found"}
+
+        if row["ended_at"] is not None:
+            return {
+                "ok": False,
+                "message": f"Execution {execution_id} already ended with status '{row['status']}'"
+            }
+
+        self._conn.execute(
+            """UPDATE workflow_execution
+               SET status = ?, ended_at = datetime('now')
+               WHERE id = ?""",
+            (status, execution_id),
+        )
+        self._conn.commit()
+        return {"ok": True, "message": f"Execution {execution_id} ended with status '{status}'"}
+
+    def get_execution_status(self, execution_id: int) -> dict | None:
+        """Get execution status with steps."""
+        row = self._conn.execute(
+            """SELECT id, workflow_id, role, session_id, status, started_at, ended_at
+               FROM workflow_execution WHERE id = ?""",
+            (execution_id,),
+        ).fetchone()
+        if not row:
+            return None
+
+        steps = self._conn.execute(
+            """SELECT step_id, status, output_summary, timestamp
+               FROM step_log WHERE execution_id = ?
+               ORDER BY timestamp ASC, id ASC""",
+            (execution_id,),
+        ).fetchall()
+
+        result = dict(row)
+        result["steps"] = [dict(s) for s in steps]
+        if steps:
+            result["last_step"] = steps[-1]["step_id"]
+            result["last_status"] = steps[-1]["status"]
+        return result
+
+    def get_interrupted_executions(self, role: str = None) -> list[dict]:
+        """Get interrupted/running executions (no ended_at)."""
+        if role:
+            rows = self._conn.execute(
+                """SELECT id, workflow_id, role, session_id, status, started_at
+                   FROM workflow_execution
+                   WHERE role = ? AND ended_at IS NULL
+                   ORDER BY started_at DESC""",
+                (role,),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                """SELECT id, workflow_id, role, session_id, status, started_at
+                   FROM workflow_execution
+                   WHERE ended_at IS NULL
+                   ORDER BY started_at DESC""",
+            ).fetchall()
+        return [dict(r) for r in rows]
 
     # --- Human escalation ---
 
@@ -946,3 +1162,67 @@ class AgentBus:
             (role, instance_id),
         ).fetchall()
         return [dict(r) for r in rows]
+
+    # --- Known Gaps ---
+
+    def add_known_gap(
+        self,
+        title: str,
+        description: str,
+        area: str,
+        trigger_condition: str,
+        reported_by: str,
+        source_suggestion_id: int = None,
+    ) -> int:
+        """Add a known gap (documented limitation with trigger condition)."""
+        cursor = self._conn.execute(
+            """INSERT INTO known_gaps
+               (title, description, area, trigger_condition, reported_by, source_suggestion_id)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (title, description, area, trigger_condition, reported_by, source_suggestion_id),
+        )
+        self._conn.commit()
+        return cursor.lastrowid
+
+    def get_known_gaps(self, area: str = None, status: str = "open") -> list[dict]:
+        """Get known gaps, optionally filtered by area and status."""
+        conditions = []
+        params = []
+
+        if status and status != "all":
+            conditions.append("status = ?")
+            params.append(status)
+        if area:
+            conditions.append("area = ?")
+            params.append(area)
+
+        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+        rows = self._conn.execute(
+            f"""SELECT id, title, description, area, trigger_condition,
+                       source_suggestion_id, reported_by, status,
+                       resolved_by_backlog_id, created_at, resolved_at
+                FROM known_gaps {where}
+                ORDER BY created_at DESC""",
+            params,
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def resolve_known_gap(self, gap_id: int, backlog_id: int) -> dict:
+        """Resolve a known gap by linking it to a backlog item."""
+        row = self._conn.execute(
+            "SELECT status FROM known_gaps WHERE id = ?", (gap_id,)
+        ).fetchone()
+
+        if not row:
+            return {"ok": False, "message": f"Gap {gap_id} not found"}
+        if row["status"] == "resolved":
+            return {"ok": False, "message": f"Gap {gap_id} already resolved"}
+
+        self._conn.execute(
+            """UPDATE known_gaps
+               SET status = 'resolved', resolved_by_backlog_id = ?, resolved_at = datetime('now')
+               WHERE id = ?""",
+            (backlog_id, gap_id),
+        )
+        self._conn.commit()
+        return {"ok": True, "message": f"Gap {gap_id} resolved with backlog {backlog_id}"}
