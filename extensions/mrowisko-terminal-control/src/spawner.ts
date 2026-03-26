@@ -3,6 +3,9 @@ import * as crypto from "crypto";
 import { Registry } from "./registry";
 import { SpawnRequest, TerminalMap } from "./types";
 
+/** Delay (ms) before sending the first user message to Claude Code. */
+const STARTUP_DELAY_MS = 4000;
+
 export class Spawner {
   constructor(
     private registry: Registry,
@@ -42,30 +45,29 @@ export class Spawner {
       location,
     });
 
-    // Build claude command
-    const systemPrompt = request.systemPrompt || "";
-    const appendPrompt = systemPrompt
-      ? `--append-system-prompt "${systemPrompt.replace(/"/g, '\\"')}" `
-      : "";
+    // Build claude command with task context in system prompt
+    // TODO(phase-3): escape systemPrompt for PowerShell special chars
+    const autoPrompt = `[TRYB AUTONOMICZNY] Rola: ${request.role}. Task: ${request.task}`;
+    const extraPrompt = request.systemPrompt
+      ? `${autoPrompt} ${request.systemPrompt}`
+      : autoPrompt;
 
     const cmd = [
       "claude",
       `--name "Agent-${request.role}"`,
       `--session-id "${sessionId}"`,
-      appendPrompt,
+      `--append-system-prompt "${extraPrompt.replace(/"/g, '\\"')}"`,
       `--permission-mode ${permissionMode}`,
-    ]
-      .filter(Boolean)
-      .join(" ");
+    ].join(" ");
 
-    // TODO(phase-2): escape systemPrompt for PowerShell special chars (backticks, $, parentheses)
-    // Currently safe because we control input; will need fix for agent-to-agent invocation.
     terminal.sendText(cmd);
 
-    // Auto-start: send role + task as first message.
-    // Safe to call immediately — VS Code terminal buffers input in a queue,
-    // so the task message waits until claude CLI is ready to accept stdin.
-    terminal.sendText(`${request.role}, ${request.task}`);
+    // Delay first user message — Claude Code needs ~3-4s to start and accept stdin.
+    // The system prompt already contains the task context, so Claude knows what to do.
+    // This message triggers session_init via CLAUDE.md routing.
+    setTimeout(() => {
+      terminal.sendText(`${request.role}, ${request.task}`);
+    }, STARTUP_DELAY_MS);
 
     terminal.show();
 

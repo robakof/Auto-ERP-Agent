@@ -1,16 +1,30 @@
 import * as vscode from "vscode";
+import * as fs from "fs";
+import * as path from "path";
 import { Registry } from "./registry";
 import { Spawner } from "./spawner";
 import { TerminalMap } from "./types";
 
-const ROLES = [
-  { label: "developer", description: "Rozbudowa narzedzi, architektury" },
-  { label: "erp_specialist", description: "Konfiguracja ERP, widoki BI" },
-  { label: "analyst", description: "Analiza jakosci danych" },
-  { label: "architect", description: "Architektura systemu, code review" },
-  { label: "prompt_engineer", description: "Edycja i wersjonowanie promptow" },
-  { label: "metodolog", description: "Ocena metody pracy" },
-];
+function loadRoles(): vscode.QuickPickItem[] {
+  try {
+    const folders = vscode.workspace.workspaceFolders;
+    if (!folders) {
+      return [];
+    }
+    const configPath = path.join(folders[0].uri.fsPath, "config", "session_init_config.json");
+    const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    return Object.keys(config).map((role) => ({ label: role }));
+  } catch {
+    return [
+      { label: "developer" },
+      { label: "erp_specialist" },
+      { label: "analyst" },
+      { label: "architect" },
+      { label: "prompt_engineer" },
+      { label: "metodolog" },
+    ];
+  }
+}
 
 export function registerCommands(
   context: vscode.ExtensionContext,
@@ -32,7 +46,7 @@ export function registerCommands(
 }
 
 async function spawnAgent(spawner: Spawner): Promise<void> {
-  const role = await vscode.window.showQuickPick(ROLES, {
+  const role = await vscode.window.showQuickPick(loadRoles(), {
     placeHolder: "Wybierz role agenta",
   });
   if (!role) {

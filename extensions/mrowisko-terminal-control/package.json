@@ -43,6 +43,12 @@
           "default": "default",
           "description": "Default permission mode for spawned agents"
         },
+        "mrowisko.trustedPairs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Trusted invoker>target pairs for auto-approve (e.g. developer>erp_specialist)"
+        },
         "mrowisko.pollIntervalMs": {
           "type": "number",
           "default": 5000,

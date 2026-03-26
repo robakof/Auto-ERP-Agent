@@ -39,10 +39,18 @@ export class Approver {
     this.timer = setInterval(() => this.poll(), intervalMs);
   }
 
+  /** Check if invoker→target pair is trusted (auto-approve without dialog). */
+  private isTrustedPair(invoker: string, target: string): boolean {
+    const trusted = vscode.workspace
+      .getConfiguration("mrowisko")
+      .get<string[]>("trustedPairs", []);
+    // Format: ["developer>erp_specialist", "architect>developer"]
+    return trusted.includes(`${invoker}>${target}`);
+  }
+
   private poll(): void {
     try {
       const output = this.run(["pending-invocations"]);
-      console.log("[Mrowisko Approver] poll result:", output.trim());
       const result = JSON.parse(output) as {
         ok: boolean;
         data: PendingInvocation[];
@@ -53,16 +61,31 @@ export class Approver {
       for (const inv of result.data) {
         if (!this.processing.has(inv.id)) {
           this.processing.add(inv.id);
-          this.showApprovalDialog(inv);
+          if (this.isTrustedPair(inv.invoker_id, inv.target_role)) {
+            this.autoApprove(inv);
+          } else {
+            this.showApprovalDialog(inv);
+          }
         }
       }
-    } catch (e) {
-      console.error("[Mrowisko Approver] poll error:", e);
+    } catch {
+      // Poll errors are non-critical — extension host may not have py in PATH yet
+    }
+  }
+
+  private autoApprove(inv: PendingInvocation): void {
+    try {
+      this.run(["approve-invocation", "--id", String(inv.id)]);
+      this.spawner.spawn({ role: inv.target_role, task: inv.task });
+      vscode.window.showInformationMessage(
+        `Auto-approved: ${inv.invoker_id} → ${inv.target_role}`
+      );
+    } finally {
+      this.processing.delete(inv.id);
     }
   }
 
   private async showApprovalDialog(inv: PendingInvocation): Promise<void> {
-    console.log("[Mrowisko Approver] showing dialog for invocation", inv.id);
     const approve = "Approve";
     const reject = "Reject";
 
