@@ -407,4 +407,4 @@ Używaj gdy potrzebujesz kontekstu z poprzednich sesji.
 - Bez emoji (dozwolone: ✓, ✗)
 - Konkretna komunikacja — pokazuj trade-offy, nie zgaduj
 - Brak pewności → pytaj, nie zakładaj
-- Kończ każdą wiadomość linią: `Kontekst: ~XX%` (szacowane zużycie okna kontekstowego)
+- Kończ każdą wiadomość linią: `Kontekst: XX%` — użyj `py tools/context_usage.py` (pole `context_used_pct`). Nie zgaduj procentu na oko.
