@@ -2,17 +2,19 @@
 
 Observability-only hook. Fires when a Claude Code session starts.
 Updates live_agents status from 'starting' to 'active' if pre-registered,
-or inserts a new record for manually started sessions.
+or skips for manually started sessions (only spawned agents are tracked).
 """
 
 import io
 import json
+import sqlite3
 import sys
 from pathlib import Path
 
 sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8")
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
+DB_PATH = PROJECT_ROOT / "mrowisko.db"
 SESSION_ID_FILE = PROJECT_ROOT / "tmp" / "session_id.txt"
 
 
@@ -20,6 +22,14 @@ def _read_session_id() -> str | None:
     if SESSION_ID_FILE.exists():
         return SESSION_ID_FILE.read_text(encoding="utf-8").strip() or None
     return None
+
+
+def _connect() -> sqlite3.Connection:
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA foreign_keys=ON")
+    conn.execute("PRAGMA busy_timeout=3000")
+    return conn
 
 
 def main():
@@ -31,32 +41,23 @@ def main():
         if not session_id:
             return
 
-        sys.path.insert(0, str(PROJECT_ROOT))
-        from tools.lib.agent_bus import AgentBus
-        bus = AgentBus(db_path=str(PROJECT_ROOT / "mrowisko.db"))
-        conn = bus._conn
+        conn = _connect()
 
-        # Check if pre-registered by spawner (status='starting')
+        # Only update pre-registered agents (spawned by launcher, status='starting').
+        # Manual sessions (started by human typing `claude`) are not tracked in live_agents.
         row = conn.execute(
             "SELECT id FROM live_agents WHERE session_id = ?",
             (session_id,),
         ).fetchone()
 
         if row:
-            # Pre-registered — update to active
             conn.execute(
                 "UPDATE live_agents SET status = 'active', last_activity = datetime('now') WHERE session_id = ?",
                 (session_id,),
             )
-        else:
-            # Manual session — insert as active
-            conn.execute(
-                """INSERT INTO live_agents (session_id, role, status, spawned_by, last_activity)
-                   VALUES (?, 'unknown', 'active', 'manual', datetime('now'))""",
-                (session_id,),
-            )
+            conn.commit()
 
-        conn.commit()
+        conn.close()
 
     except Exception as e:
         try:

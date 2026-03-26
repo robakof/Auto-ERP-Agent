@@ -20,6 +20,40 @@ export function activate(context: vscode.ExtensionContext): void {
   watcher.activate();
   registerCommands(context, registry, spawner, terminals);
 
+  // URI handler: allows spawning agents from CLI via
+  // code --open-url "vscode://mrowisko.mrowisko-terminal-control?command=spawnAgent&role=developer&task=check+backlog"
+  context.subscriptions.push(
+    vscode.window.registerUriHandler({
+      handleUri(uri: vscode.Uri): void {
+        const params = new URLSearchParams(uri.query);
+        const command = params.get("command");
+
+        if (command === "spawnAgent") {
+          const role = params.get("role");
+          const task = params.get("task");
+          if (role && task) {
+            spawner.spawn({ role, task });
+            vscode.window.showInformationMessage(
+              `Agent ${role} uruchomiony via URI: ${task}`
+            );
+          }
+        } else if (command === "listAgents") {
+          vscode.commands.executeCommand("mrowisko.listAgents");
+        } else if (command === "stopAgent") {
+          const sessionId = params.get("sessionId");
+          if (sessionId) {
+            const terminal = terminals.get(sessionId);
+            if (terminal) {
+              terminal.dispose();
+            } else {
+              registry?.markStopped(sessionId);
+            }
+          }
+        }
+      },
+    })
+  );
+
   // Cleanup orphaned agents on startup
   registry.cleanup();
 }

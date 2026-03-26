@@ -58,9 +58,13 @@ export class Spawner {
       .filter(Boolean)
       .join(" ");
 
+    // TODO(phase-2): escape systemPrompt for PowerShell special chars (backticks, $, parentheses)
+    // Currently safe because we control input; will need fix for agent-to-agent invocation.
     terminal.sendText(cmd);
 
-    // Auto-start: send role + task as first message
+    // Auto-start: send role + task as first message.
+    // Safe to call immediately — VS Code terminal buffers input in a queue,
+    // so the task message waits until claude CLI is ready to accept stdin.
     terminal.sendText(`${request.role}, ${request.task}`);
 
     terminal.show();

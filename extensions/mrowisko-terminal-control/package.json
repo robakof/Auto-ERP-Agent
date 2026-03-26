@@ -2,7 +2,8 @@
   "name": "mrowisko-terminal-control",
   "displayName": "Mrowisko Agent Launcher",
   "description": "Spawn i zarzadzanie agentami Claude Code w terminalach VS Code",
-  "version": "0.2.0",
+  "version": "0.3.0",
+  "publisher": "mrowisko",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -10,6 +11,7 @@
     "Other"
   ],
   "activationEvents": [
+    "onUri",
     "onCommand:mrowisko.spawnAgent",
     "onCommand:mrowisko.listAgents",
     "onCommand:mrowisko.stopAgent"
