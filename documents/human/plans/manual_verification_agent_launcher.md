@@ -12,24 +12,7 @@ Otwórz terminal w VS Code (ten gdzie normalnie pracujesz z Claude Code).
 
 ---
 
-## Test 1: Baseline — normalna sesja
-
-**Komenda:**
-```
-claude
-```
-
-**Sprawdź:**
-- [ ] Sesja interaktywna (możesz pisać)
-- [ ] Status line na dole widoczna
-- [ ] `/help` działa
-- [ ] Wpisz: "Developer, sprawdź backlog Dev" — czy odpala session_init?
-
-Zamknij sesję: `/exit`
-
----
-
-## Test 2: Spawn z --append-system-prompt
+## Test 1: Spawn z --append-system-prompt
 
 **Komenda:**
 ```
@@ -47,7 +30,7 @@ Zamknij: `/exit`
 
 ---
 
-## Test 3: Spawn z pełnym zestawem flag
+## Test 2: Spawn z pełnym zestawem flag
 
 **Komenda:**
 ```
@@ -63,7 +46,7 @@ Zamknij: `/exit`
 
 ---
 
-## Test 4: Resume w innym terminalu
+## Test 3: Resume w innym terminalu
 
 **Krok 1:** Otwórz nowy terminal (drugi, obok).
 
@@ -80,7 +63,7 @@ Zamknij: `/exit`
 
 ---
 
-## Test 5: Permission mode
+## Test 4: Permission mode
 
 **Komenda:**
 ```

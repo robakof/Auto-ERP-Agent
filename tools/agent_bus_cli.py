@@ -127,6 +127,8 @@ def cmd_send(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 def cmd_handoff(args: argparse.Namespace, bus: AgentBus) -> dict:
     """Send a structured handoff message between roles."""
+    if args.to == "all":
+        return {"ok": False, "error": "Handoff is 1:1 — use 'send --to all' for broadcast."}
     # Build structured content
     parts = [f"## Handoff: {args.phase}"]
     parts.append(f"**Status:** {args.status}")
