@@ -201,6 +201,7 @@ py tools/agent_bus_cli.py workflow-end --execution-id <id> --status completed|fa
 py tools/agent_bus_cli.py inbox --role <rola>              # lista wiadomości (skrócona)
 py tools/agent_bus_cli.py inbox --role <rola> --full       # pełna treść wszystkich
 py tools/agent_bus_cli.py inbox --role <rola> --id <id>    # pojedyncza wiadomość po ID
+py tools/agent_bus_cli.py inbox --role <rola> --sender <rola>  # filtruj po nadawcy
 
 # Message — pobierz wiadomość po ID (alias)
 py tools/agent_bus_cli.py message --id <id>

@@ -170,6 +170,10 @@ def cmd_inbox(args: argparse.Namespace, bus: AgentBus) -> dict:
     summary_only = not full_mode
     messages = bus.get_inbox(role=args.role, status=args.status, summary_only=summary_only)
 
+    # Filter by sender if specified
+    if args.sender:
+        messages = [m for m in messages if m.get("sender") == args.sender]
+
     # M3: auto mark-read when reading full content
     if full_mode and messages:
         for msg in messages:
@@ -521,6 +525,7 @@ def build_parser() -> argparse.ArgumentParser:
                          choices=["unread", "read", "archived"])
     p_inbox.add_argument("--id", type=int, help="Get single message by ID (full content)")
     p_inbox.add_argument("--full", action="store_true", help="Include full content for all messages")
+    p_inbox.add_argument("--sender", default=None, help="Filter by sender role")
 
     # message (alias for inbox --id)
     p_message = subparsers.add_parser("message", help="Get single message by ID")

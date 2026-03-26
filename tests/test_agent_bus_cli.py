@@ -710,3 +710,35 @@ class TestBroadcast:
         assert len(ids) == result["count"]
         for i in range(1, len(ids)):
             assert ids[i] == ids[i - 1] + 1
+
+
+class TestInboxSenderFilter:
+    """Tests for #154 — inbox --sender filter."""
+
+    def test_filter_by_sender(self, db):
+        run_cli(["send", "--from", "developer", "--to", "human", "--content", "From dev"], db)
+        run_cli(["send", "--from", "architect", "--to", "human", "--content", "From arch"], db)
+
+        # Use --sender without --full first (no auto mark-read)
+        all_msgs = run_cli(["inbox", "--role", "human"], db)
+        assert all_msgs["count"] == 2
+
+        filtered = run_cli(["inbox", "--role", "human", "--full", "--sender", "architect"], db)
+        assert filtered["count"] == 1
+        assert filtered["data"][0]["sender"] == "architect"
+        assert filtered["data"][0]["content"] == "From arch"
+
+    def test_filter_by_sender_no_match(self, db):
+        run_cli(["send", "--from", "developer", "--to", "human", "--content", "Only dev"], db)
+
+        filtered = run_cli(["inbox", "--role", "human", "--sender", "architect"], db)
+        assert filtered["count"] == 0
+        assert filtered["data"] == []
+
+    def test_filter_by_sender_summary_mode(self, db):
+        run_cli(["send", "--from", "developer", "--to", "human", "--content", "Dev msg"], db)
+        run_cli(["send", "--from", "analyst", "--to", "human", "--content", "Analyst msg"], db)
+
+        filtered = run_cli(["inbox", "--role", "human", "--sender", "developer"], db)
+        assert filtered["count"] == 1
+        assert "content" not in filtered["data"][0]  # summary mode
