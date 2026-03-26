@@ -46,6 +46,15 @@ export function activate(context: vscode.ExtensionContext): void {
               `Agent ${role} uruchomiony via URI: ${task}`
             );
           }
+        } else if (command === "sendText") {
+          const sessionId = params.get("sessionId");
+          const text = params.get("text");
+          if (sessionId && text) {
+            const terminal = terminals.get(sessionId);
+            if (terminal) {
+              terminal.sendText(text);
+            }
+          }
         } else if (command === "reload") {
           vscode.commands.executeCommand("workbench.action.reloadWindow");
         } else if (command === "listAgents") {
