@@ -1,8 +1,8 @@
-*2026-03-26 23:07*
+*2026-03-26 23:14*
 | | |
 |---|---|
 | Agenci | **3** |
-| Nieprzeczytane | **87** |
+| Nieprzeczytane | **88** |
 | Przekazania | **1** |
 | Workflow | **8** |
 | W toku | **5** |
@@ -18,7 +18,7 @@
 |------|---|
 | erp_specialist | 23 |
 | analyst | 20 |
-| prompt_engineer | 19 |
+| prompt_engineer | 20 |
 | metodolog | 12 |
 | developer | 7 |
 | architect | 4 |

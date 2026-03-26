@@ -2,10 +2,10 @@ Workflow **8** W toku **5**
 ## Workflow
 | Typ | Ile | Etap |
 |-----|-----|------|
-| convention_creation | 4 | - |
-| developer_operations | 2 | - |
-| workflow_developer | 1 (developer) | 1 |
-| workflow_creation | 1 (prompt_engineer) | 4 |
+| Tworzenie konwencji | 4 | - |
+| Operacje deweloperskie | 2 | - |
+| Workflow deweloperski | 1 (developer) | 1 |
+| Tworzenie workflow | 1 (prompt_engineer) | 4 |
 ## W toku
 | ID | Obszar | Zadanie |
 |----|------|------|

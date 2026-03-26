@@ -36,5 +36,14 @@
     "running": "w toku",
     "completed": "zakonczone",
     "failed": "nieudane"
+  },
+  "workflow_translations": {
+    "developer_operations": "Operacje deweloperskie",
+    "convention_creation": "Tworzenie konwencji",
+    "workflow_developer": "Workflow deweloperski",
+    "workflow_creation": "Tworzenie workflow",
+    "workflow_dispatcher": "Workflow dyspozytora",
+    "plan_review": "Przegląd planu",
+    "code_review": "Przegląd kodu"
   }
 }

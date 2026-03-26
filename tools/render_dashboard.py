@@ -59,6 +59,11 @@ def _t(cfg: dict, val: str) -> str:
     return cfg["status_translations"].get(val, val)
 
 
+def _tw(cfg: dict, workflow_id: str) -> str:
+    """Translate workflow ID to Polish name."""
+    return cfg.get("workflow_translations", {}).get(workflow_id, workflow_id)
+
+
 def _trunc(text: str, max_len: int) -> str:
     if len(text) <= max_len:
         return text
@@ -142,6 +147,7 @@ def _render_workstreams(conn: sqlite3.Connection, cfg: dict) -> str:
         lines.append(f"| {L('type')} | {L('count')} | {L('stage')} |")
         lines.append("|-----|-----|------|")
         for wf in wf_agg:
+            name = _tw(cfg, wf["workflow_id"])
             if wf["cnt"] == 1:
                 detail = conn.execute(
                     """SELECT we.role,
@@ -151,9 +157,9 @@ def _render_workstreams(conn: sqlite3.Connection, cfg: dict) -> str:
                     (wf["workflow_id"],),
                 ).fetchone()
                 step = str(detail["steps"]) if detail["steps"] else "-"
-                lines.append(f"| {wf['workflow_id']} | 1 ({detail['role']}) | {step} |")
+                lines.append(f"| {name} | 1 ({detail['role']}) | {step} |")
             else:
-                lines.append(f"| {wf['workflow_id']} | {wf['cnt']} | - |")
+                lines.append(f"| {name} | {wf['cnt']} | - |")
     # In-progress backlog — table
     tasks = conn.execute(
         "SELECT id, title, area FROM backlog WHERE status='in_progress' ORDER BY area, id"
@@ -183,10 +189,10 @@ def _render_backlog(conn: sqlite3.Connection, cfg: dict) -> str:
     """, (top_n,)).fetchall()
     if rows:
         maxl = cfg["max_title_length"]
-        lines.append(f"| {L('rank')} | {L('score')} | {L('id')} | {L('task')} |")
-        lines.append("|---|---|----|------|")
-        for i, r in enumerate(rows, 1):
-            lines.append(f"| {i} | {int(r['score'])} | {r['id']} | {_trunc(r['title'], maxl)} |")
+        lines.append(f"| {L('id')} | {L('task')} | {L('score')} |")
+        lines.append("|----|------|---|")
+        for r in rows:
+            lines.append(f"| {r['id']} | {_trunc(r['title'], maxl)} | {int(r['score'])} |")
     else:
         lines.append("Brak zadan.")
     return "\n".join(lines) + "\n"
