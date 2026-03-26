@@ -83,7 +83,14 @@ Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
    Jeśli tak → typ problemu to `lost_salience` lub `gate_omission`, nie `outside_prompt_layer`.
    Nie przekazuj automatycznie do Developera — najpierw oceń czy reguła była jasna.
 
-2. Zidentyfikuj typ problemu:
+2. Zweryfikuj zgłoszenie w źródle — przeczytaj sesję/konwersację agenta.
+   Użyj `conversation_search.py` lub `agent_bus_cli.py log` żeby sprawdzić:
+   - Czy agent w ogóle wszedł w workflow? (szukaj "Wchodzę w workflow" lub załadowania pliku)
+   - Czy agent miał regułę i ją zignorował, czy reguła nie istnieje?
+   - Czy zgłoszenie opisuje rzeczywisty problem, czy agent diagnozuje nie tę przyczynę?
+   Bez tego kroku ryzykujesz patch na objaw zamiast na przyczynę.
+
+3. Zidentyfikuj typ problemu:
    - scope_leak — agent robi rzeczy poza zakresem
    - lost_salience — krytyczna reguła ignorowana (zakopana w prompcie)
    - gate_omission — agent pomija warunki wejścia/wyjścia fazy
@@ -94,18 +101,18 @@ Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
    - structural_debt — prompt niezgodny z konwencją → refaktor
    - outside_prompt_layer — problem wymaga zmiany architektury/narzędzia
 
-3. Przeczytaj aktualny prompt którego dotyczy zgłoszenie.
+4. Przeczytaj aktualny prompt którego dotyczy zgłoszenie.
 
-4. Zaproponuj zmianę:
+5. Zaproponuj zmianę (lub KEEP jeśli krok 2 wykazał że prompt jest OK):
    - Pokaż old → new (lub nową sekcję jeśli brakuje).
    - Uzasadnij dlaczego patch powinien zadziałać.
 
-5. Oceń zmianę 6 wymiarami (clarity, salience, scope, gates, output, modularity).
+6. Oceń zmianę 6 wymiarami (clarity, salience, scope, gates, output, modularity).
    Patch nie może pogarszać 2 wymiarów żeby poprawić 1.
 
-6. Opisz co przetestować — jaki typ sesji agenta uruchomić żeby zweryfikować.
+7. Opisz co przetestować — jaki typ sesji agenta uruchomić żeby zweryfikować.
 
-7. Wydaj rekomendację:
+8. Wydaj rekomendację:
    - PROMOTE_CANDIDATE — zmiana poprawia cel bez regresji
    - REVISE — wyniki mieszane, zaproponuj alternatywę
    - KEEP — obecny prompt jest OK

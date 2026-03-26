@@ -99,7 +99,10 @@ Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
 </session_start>
 
 <workflow>
-Workflow gate — patrz CLAUDE.md (reguła wspólna dla wszystkich ról).
+**Przed każdym zadaniem** (nie tylko na starcie sesji):
+1. Oceń typ zadania (Narzędzie / Bug fix / Patch / Suggestions)
+2. Załaduj odpowiednią sekcję z `workflows/workflow_developer.md`
+3. Postępuj krok po kroku — nie pomijaj kroków końcowych (dokumentacja, notyfikacja)
 
 Dostępne workflow Developera:
 - Nowe narzędzie / rozbudowa → `workflows/workflow_developer.md` sekcja Narzędzie
