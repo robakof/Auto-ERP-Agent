@@ -1,17 +1,67 @@
-import Database from "better-sqlite3";
-import { LiveAgent, LiveAgentRow, rowToLiveAgent } from "./types";
+import { execFileSync } from "child_process";
+import * as path from "path";
+import { LiveAgent } from "./types";
+
+interface DbRow {
+  id: number;
+  session_id: string;
+  role: string;
+  task: string | null;
+  terminal_name: string | null;
+  window_id: string | null;
+  status: string;
+  spawned_by: string | null;
+  permission_mode: string;
+  created_at: string;
+  last_activity: string | null;
+  stopped_at: string | null;
+  transcript_path: string | null;
+}
+
+function rowToLiveAgent(row: DbRow): LiveAgent {
+  return {
+    id: row.id,
+    sessionId: row.session_id,
+    role: row.role,
+    task: row.task,
+    terminalName: row.terminal_name,
+    windowId: row.window_id,
+    status: row.status as LiveAgent["status"],
+    spawnedBy: row.spawned_by,
+    permissionMode: row.permission_mode,
+    createdAt: row.created_at,
+    lastActivity: row.last_activity,
+    stoppedAt: row.stopped_at,
+    transcriptPath: row.transcript_path,
+  };
+}
 
 export class Registry {
-  private db: Database.Database;
+  private scriptPath: string;
+  private cwd: string;
 
   constructor(dbPath: string) {
-    this.db = new Database(dbPath);
-    this.db.pragma("journal_mode = WAL");
-    this.db.pragma("foreign_keys = ON");
-    this.db.pragma("busy_timeout = 3000");
+    // dbPath is relative to workspace root — derive workspace root
+    this.cwd = path.dirname(dbPath) || process.cwd();
+    if (path.basename(dbPath) === "mrowisko.db") {
+      this.cwd = path.dirname(dbPath);
+    }
+    this.scriptPath = path.join(this.cwd, "tools", "agent_launcher_db.py");
   }
 
-  /** Pre-register agent before terminal spawn (status='starting'). */
+  private run(args: string[]): string {
+    return execFileSync("py", [this.scriptPath, ...args], {
+      cwd: this.cwd,
+      encoding: "utf-8",
+      timeout: 10000,
+    });
+  }
+
+  private runJson(args: string[]): unknown {
+    const output = this.run(args);
+    return JSON.parse(output);
+  }
+
   insert(
     sessionId: string,
     role: string,
@@ -20,68 +70,34 @@ export class Registry {
     permissionMode: string,
     spawnedBy: string
   ): void {
-    this.db
-      .prepare(
-        `INSERT INTO live_agents (session_id, role, task, terminal_name, status, permission_mode, spawned_by)
-         VALUES (?, ?, ?, ?, 'starting', ?, ?)`
-      )
-      .run(sessionId, role, task, terminalName, permissionMode, spawnedBy);
+    this.run([
+      "insert",
+      "--session-id", sessionId,
+      "--role", role,
+      "--task", task,
+      "--terminal-name", terminalName,
+      "--permission-mode", permissionMode,
+      "--spawned-by", spawnedBy,
+    ]);
   }
 
-  /** Get all agents with given status (or all if not specified). */
   getActiveAgents(): LiveAgent[] {
-    const rows = this.db
-      .prepare(
-        "SELECT * FROM live_agents WHERE status IN ('starting', 'active') ORDER BY created_at DESC"
-      )
-      .all() as LiveAgentRow[];
-    return rows.map(rowToLiveAgent);
+    const result = this.runJson(["list-active"]) as {
+      ok: boolean;
+      data: DbRow[];
+    };
+    return result.data.map(rowToLiveAgent);
   }
 
-  getAgentBySessionId(sessionId: string): LiveAgent | null {
-    const row = this.db
-      .prepare("SELECT * FROM live_agents WHERE session_id = ?")
-      .get(sessionId) as LiveAgentRow | undefined;
-    return row ? rowToLiveAgent(row) : null;
-  }
-
-  getAgentsByRole(role: string): LiveAgent[] {
-    const rows = this.db
-      .prepare(
-        "SELECT * FROM live_agents WHERE role = ? AND status IN ('starting', 'active') ORDER BY created_at DESC"
-      )
-      .all(role) as LiveAgentRow[];
-    return rows.map(rowToLiveAgent);
-  }
-
-  updateStatus(
-    sessionId: string,
-    status: LiveAgent["status"]
-  ): void {
-    this.db
-      .prepare("UPDATE live_agents SET status = ? WHERE session_id = ?")
-      .run(status, sessionId);
-  }
-
-  /** Mark stopped + set stopped_at for a specific agent. */
   markStopped(sessionId: string): void {
-    this.db
-      .prepare(
-        "UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now') WHERE session_id = ? AND status != 'stopped'"
-      )
-      .run(sessionId);
+    this.run(["mark-stopped", "--session-id", sessionId]);
   }
 
-  /** Cleanup orphaned agents (starting/active but no terminal). */
   cleanup(): void {
-    this.db
-      .prepare(
-        "UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now') WHERE status IN ('starting', 'active') AND last_activity < datetime('now', '-1 hour')"
-      )
-      .run();
+    this.run(["cleanup"]);
   }
 
   dispose(): void {
-    this.db.close();
+    // No persistent connection to close
   }
 }
