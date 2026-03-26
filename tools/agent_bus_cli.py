@@ -95,7 +95,7 @@ def cmd_send(args: argparse.Namespace, bus: AgentBus) -> dict:
         recipient=args.to,
         content=_read_content(args),
         type=args.type,
-        session_id=args.session_id,
+        session_id=args.session_id or get_session_id(),
         reply_to_id=getattr(args, "reply_to_id", None),
     )
     return {"ok": True, "id": msg_id}
@@ -128,7 +128,7 @@ def cmd_handoff(args: argparse.Namespace, bus: AgentBus) -> dict:
         recipient=args.to,
         content=content,
         type="handoff",
-        session_id=args.session_id,
+        session_id=args.session_id or get_session_id(),
     )
     return {"ok": True, "id": msg_id}
 
@@ -337,7 +337,7 @@ def cmd_log(args: argparse.Namespace, bus: AgentBus) -> dict:
         role=role,
         content=_read_content(args),
         title=args.title,
-        session_id=args.session_id,
+        session_id=args.session_id or get_session_id(),
     )
     return {"ok": True, "id": lid}
 
@@ -373,7 +373,7 @@ def cmd_workflow_start(args: argparse.Namespace, bus: AgentBus) -> dict:
     execution_id = bus.start_workflow_execution(
         workflow_id=args.workflow_id,
         role=args.role,
-        session_id=args.session_id,
+        session_id=args.session_id or get_session_id(),
     )
     return {"ok": True, "execution_id": execution_id}
 
@@ -418,7 +418,7 @@ def cmd_flag(args: argparse.Namespace, bus: AgentBus) -> dict:
         sender=args.sender,
         reason=reason,
         urgency=args.urgency,
-        session_id=args.session_id,
+        session_id=args.session_id or get_session_id(),
     )
     return {"ok": True, "id": flag_id}
 
