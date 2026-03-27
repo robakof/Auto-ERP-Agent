@@ -537,6 +537,68 @@ def cmd_spawn(args: argparse.Namespace, bus: AgentBus) -> dict:
     }
 
 
+def cmd_poke(args: argparse.Namespace, bus: AgentBus) -> dict:
+    """Poke a live agent — send text to its VS Code terminal via extension."""
+    import subprocess
+    from pathlib import Path
+
+    project_root = Path(__file__).parent.parent
+    vscode_uri = project_root / "tools" / "vscode_uri.py"
+
+    # Lookup terminal_name from live_agents
+    conn = bus._conn
+    row = conn.execute(
+        """SELECT terminal_name, session_id FROM live_agents
+           WHERE role = ? AND status = 'active'
+           ORDER BY last_activity DESC LIMIT 1""",
+        (args.role,),
+    ).fetchone()
+
+    if not row or not row[0]:
+        return {
+            "ok": False,
+            "error": f"No active agent with terminal_name for role '{args.role}'",
+        }
+
+    terminal_name, session_id = row
+
+    # Read message from file or inline
+    if args.message_file:
+        message = Path(args.message_file).read_text(encoding="utf-8").strip()
+    else:
+        message = args.message or ""
+
+    if not message:
+        return {"ok": False, "error": "No message provided (--message or --message-file)"}
+
+    # Format: [POKE od sender] message
+    sender = args.sender or get_session_role() or "unknown"
+    formatted = f"[POKE od {sender}] {message}"
+
+    cmd = [
+        sys.executable, str(vscode_uri),
+        "--command", "pokeAgent",
+        "--terminal-name", terminal_name,
+        "--message", formatted,
+    ]
+
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+    uri_result = {}
+    if result.stdout.strip():
+        try:
+            uri_result = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            pass
+
+    return {
+        "ok": uri_result.get("ok", False),
+        "target_role": args.role,
+        "terminal_name": terminal_name,
+        "session_id": session_id,
+        "uri": uri_result.get("uri", ""),
+    }
+
+
 def cmd_spawn_request(args: argparse.Namespace, bus: AgentBus) -> dict:
     """Request agent spawn — inserts as 'pending' for human approval via wtyczka."""
     sender = args.sender or get_session_role()
@@ -859,6 +921,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_gap_res.add_argument("--id", type=int, required=True)
     p_gap_res.add_argument("--backlog-id", dest="backlog_id", type=int, required=True)
 
+    # poke — send text to live agent's terminal
+    p_poke = subparsers.add_parser("poke", help="Poke a live agent — send text to its VS Code terminal")
+    p_poke.add_argument("--from", dest="sender", help="Sender role")
+    p_poke.add_argument("--role", required=True, help="Target agent role")
+    p_poke.add_argument("--message", help="Message text (inline)")
+    p_poke.add_argument("--message-file", dest="message_file", help="Message text from file")
+
     # spawn — direct agent invocation (M2, wariant A — no approval)
     p_spawn = subparsers.add_parser("spawn", help="Spawn another agent via VS Code URI handler")
     p_spawn.add_argument("--from", dest="sender", help="Invoker role")
@@ -924,6 +993,7 @@ def main():
         "gap-add": cmd_gap_add,
         "gaps": cmd_gaps,
         "gap-resolve": cmd_gap_resolve,
+        "poke": cmd_poke,
         "spawn": cmd_spawn,
         "spawn-request": cmd_spawn_request,
         "invocations": cmd_invocations,

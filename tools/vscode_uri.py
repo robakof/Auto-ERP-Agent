@@ -54,11 +54,13 @@ def _build_uri(command: str, **params: str) -> str:
 def main():
     parser = argparse.ArgumentParser(description="VS Code URI helper")
     parser.add_argument("--uri", help="Full URI to open")
-    parser.add_argument("--command", help="Extension command (spawnAgent, listAgents, stopAgent)")
+    parser.add_argument("--command", help="Extension command (spawnAgent, listAgents, stopAgent, pokeAgent)")
     parser.add_argument("--role", help="Agent role")
     parser.add_argument("--task", help="Agent task")
     parser.add_argument("--session-id", help="Session ID (for stopAgent)")
     parser.add_argument("--permission-mode", help="Permission mode override")
+    parser.add_argument("--terminal-name", help="Terminal name (for pokeAgent)")
+    parser.add_argument("--message", help="Message text (for pokeAgent)")
 
     args = parser.parse_args()
 
@@ -79,6 +81,10 @@ def main():
             params["sessionId"] = args.session_id
         if args.permission_mode:
             params["permissionMode"] = args.permission_mode
+        if args.terminal_name:
+            params["terminalName"] = args.terminal_name
+        if args.message:
+            params["message"] = args.message
         uri = _build_uri(args.command, **params)
 
     # Find Code.exe

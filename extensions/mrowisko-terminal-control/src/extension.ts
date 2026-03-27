@@ -55,6 +55,24 @@ export function activate(context: vscode.ExtensionContext): void {
               terminal.sendText(text);
             }
           }
+        } else if (command === "pokeAgent") {
+          const terminalName = params.get("terminalName");
+          const message = params.get("message");
+          if (terminalName && message) {
+            const terminal = vscode.window.terminals.find(
+              (t) => t.name === terminalName
+            );
+            if (terminal) {
+              terminal.sendText(message);
+              vscode.window.showInformationMessage(
+                `Poke wysłany do: ${terminalName}`
+              );
+            } else {
+              vscode.window.showWarningMessage(
+                `Terminal "${terminalName}" nie znaleziony.`
+              );
+            }
+          }
         } else if (command === "reload") {
           vscode.commands.executeCommand("workbench.action.reloadWindow");
         } else if (command === "listAgents") {
