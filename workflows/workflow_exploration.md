@@ -45,44 +45,59 @@ Agent NIE może samodzielnie autoryzować pracy bez workflow — musi uzyskać z
 
 ### Steps
 
-1. Przeszukaj `workflows/` pod kątem pasującego workflow.
+1. Wylistuj WSZYSTKIE pliki workflow:
    ```
    Glob: workflows/workflow_*.md
    ```
-2. Przeczytaj outline znalezionych workflow — sprawdź czy któryś pasuje do zadania.
-3. Jeśli znaleziono pasujący → EXIT, wejdź w ten workflow (Wariant 1 z CLAUDE.md).
+2. Pokaż użytkownikowi listę znalezionych workflow z nazwami.
+3. Dla każdego potencjalnie pasującego — przeczytaj outline (sekcja Outline na górze pliku).
+4. Przedstaw użytkownikowi kandydatów:
+   "Znalazłem te workflow które mogą pasować do zadania: [lista z nazwami].
+   Czy któryś z nich jest właściwy?"
+
+   → HANDOFF: human. STOP.
+     Mechanizm: czekaj na user input
+     Czekaj na: wskazanie workflow LUB potwierdzenie że żaden nie pasuje.
+     Nie przechodź dalej bez odpowiedzi.
+
+5. Użytkownik wskazał workflow → EXIT, wejdź w niego (Wariant 1).
+6. Użytkownik potwierdził brak pasującego → przejdź do Fazy 2.
+
+### Forbidden
+
+- Nie deklaruj "nie znalazłem workflow" bez faktycznego przeszukania i pokazania listy.
+- Nie oceniaj sam czy workflow pasuje — pokaż kandydatów użytkownikowi.
 
 ### Exit gate
 
-PASS: przeszukano workflows/, żaden nie pasuje do zadania.
-EXIT: znaleziono pasujący workflow → wejdź w Wariant 1.
+PASS: użytkownik potwierdził że żaden workflow nie pasuje.
+EXIT: użytkownik wskazał workflow → wejdź w Wariant 1.
 
 ---
 
-## Faza 2: Weryfikacja z użytkownikiem
+## Faza 2: Potwierdzenie trybu exploration
 
 **Owner:** agent + human
+
+Faza 1 potwierdziła brak pasującego workflow. Teraz agent pyta o zgodę na pracę w trybie exploration.
 
 ### Steps
 
 1. Powiedz użytkownikowi:
-   "Nie znalazłem workflow dla tego zadania: [opis zadania].
-   Potwierdzasz działanie w trybie exploration (bez formalnego workflow)?"
+   "Żaden istniejący workflow nie pasuje. Potwierdzasz działanie w trybie exploration?"
 
    → HANDOFF: human. STOP.
      Mechanizm: czekaj na user input
-     Czekaj na: potwierdzenie ("tak" / "rób") lub wskazanie istniejącego workflow
+     Czekaj na: potwierdzenie ("tak" / "rób") lub odmowę
      Nie przechodź do Fazy 3 bez odpowiedzi.
 
-2. Użytkownik wskazał istniejący workflow → EXIT, wejdź w niego.
-3. Użytkownik potwierdził → kontynuuj do Fazy 3.
-4. Użytkownik odmówił → STOP, nie wykonuj zadania.
+2. Użytkownik potwierdził → kontynuuj do Fazy 3.
+3. Użytkownik odmówił → STOP, nie wykonuj zadania.
 
 ### Exit gate
 
 PASS: użytkownik jawnie potwierdził działanie w trybie exploration.
-EXIT: użytkownik wskazał workflow → Wariant 1.
-BLOCKED: brak odpowiedzi użytkownika.
+BLOCKED: brak odpowiedzi lub odmowa użytkownika.
 
 ---
 
@@ -145,13 +160,20 @@ PASS: backlog item dodany, wiadomość do PE wysłana.
 
 ## Forbidden
 
-1. **Nie autoryzuj się sam.**
-   Agent NIE MOŻE pominąć Fazy 2 (weryfikację z użytkownikiem). Brak zgody = brak pracy.
+1. **Nie deklaruj braku workflow bez faktycznego przeszukania.**
+   Faza 1 wymaga: Glob → lista → pokazanie użytkownikowi. Bez tego kroku deklaracja
+   "nie znalazłem" jest fałszywa. Właśnie ten skrót powodował omijanie workflow gate.
 
-2. **Nie pomijaj logowania.**
+2. **Nie oceniaj sam czy workflow pasuje — pokaż listę użytkownikowi.**
+   Agent widzi nazwy plików; użytkownik zna kontekst. Decyzja o dopasowaniu należy do człowieka.
+
+3. **Nie autoryzuj się sam.**
+   Agent NIE MOŻE pominąć Fazy 2 (potwierdzenie exploration). Brak zgody = brak pracy.
+
+4. **Nie pomijaj logowania.**
    Każdy krok w Fazie 3 wymaga step-log. Praca bez logów nie ma audytowalności.
 
-3. **Nie pomijaj zgłoszenia do PE.**
+5. **Nie pomijaj zgłoszenia do PE.**
    Faza 4 jest obowiązkowa — bez niej workflow nie zostanie sformalizowany
    i ten sam problem powtórzy się.
 
@@ -159,7 +181,8 @@ PASS: backlog item dodany, wiadomość do PE wysłana.
 
 ## Self-check
 
-- [ ] Przeszukano workflows/ i żaden nie pasuje?
+- [ ] Wylistowano workflow (Glob) i pokazano użytkownikowi listę kandydatów?
+- [ ] Użytkownik potwierdził że żaden workflow nie pasuje?
 - [ ] Użytkownik jawnie potwierdził działanie w trybie exploration?
 - [ ] workflow-start zarejestrowany?
 - [ ] Każdy krok ma step-log?
@@ -173,4 +196,5 @@ PASS: backlog item dodany, wiadomość do PE wysłana.
 
 | Wersja | Data | Zmiany |
 |---|---|---|
+| 1.1 | 2026-03-27 | Faza 1 deterministyczna: wymuszenie Glob + pokazanie listy + HANDOFF do usera. Forbidden: zakaz deklaracji braku workflow bez faktycznego przeszukania. |
 | 1.0 | 2026-03-27 | Zamknięcie luki Wariantu 2 (CLAUDE.md). Agent musi uzyskać zgodę użytkownika i logować każdy krok. |

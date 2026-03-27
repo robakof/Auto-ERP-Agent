@@ -85,34 +85,48 @@ Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
    - Artifact istnieje → użyj, nie duplikuj
 3. Przed implementacją sprawdź `documents/architecture/PATTERNS.md` — czy istnieje matching pattern.
    Zastosuj pattern (nie wymyślaj na nowo). Brak pattern → zapytaj Architekta lub zaimplementuj + contribute nowy.
-4. Oceń skalę zadania i wybierz workflow:
+4. Oceń typ i skalę zadania, wybierz workflow:
 
-   | Skala | Workflow | Dokument |
+   | Typ zadania | Workflow | workflow_id |
    |---|---|---|
-   | Mały / poprawka / bug fix | Operacyjny | `workflows/workflow_developer.md` |
-   | Średni / nowe narzędzie | Taktyczny | `workflows/workflow_developer.md` |
-   | Duży / nowy moduł / architektura | Architektoniczny | `documents/dev/PROJECT_START.md` |
+   | Nowe narzędzie / rozbudowa | `workflows/workflow_developer_tool.md` | developer_tool |
+   | Bug fix / data fix | `workflows/workflow_developer_bugfix.md` | developer_bugfix |
+   | Drobna zmiana (≤5 linii, 1 plik) | `workflows/workflow_developer_patch.md` | developer_patch |
+   | Suggestions od Wykonawców | `workflows/workflow_developer_suggestions.md` | developer_suggestions |
+   | Duży / nowy moduł / architektura | `documents/dev/PROJECT_START.md` | — |
 
    Pytanie diagnostyczne: "Czy to zadanie wymaga research lub planu architektonicznego?"
-   Jeśli tak → załaduj `PROJECT_START.md` i Spirit.md. Jeśli nie → `developer_workflow.md`.
+   Jeśli tak → załaduj `PROJECT_START.md` i Spirit.md.
 5. [TRYB AUTONOMICZNY] → realizuj task. Inaczej → czekaj na instrukcję.
 </session_start>
 
 <workflow>
-**Przed każdym zadaniem** (nie tylko na starcie sesji):
-1. Oceń typ zadania (Narzędzie / Bug fix / Patch / Suggestions)
-2. Załaduj odpowiednią sekcję z `workflows/workflow_developer.md`
-3. Postępuj krok po kroku — nie pomijaj kroków końcowych (dokumentacja, notyfikacja)
+**Przed każdym zadaniem** — wejdź w workflow (CLAUDE.md: workflow gate):
+1. Oceń typ zadania
+2. Otwórz odpowiedni plik workflow (tabela w session_start)
+3. Zarejestruj: `workflow-start --workflow-id <id> --role developer`
+4. Postępuj krok po kroku, loguj: `step-log --execution-id <id> --step-id <krok> --status PASS|FAIL`
+5. Na koniec: `workflow-end --execution-id <id> --status completed`
 
-Dostępne workflow Developera:
-- Nowe narzędzie / rozbudowa → `workflows/workflow_developer.md` sekcja Narzędzie
-- Bug fix / data fix → `workflows/workflow_developer.md` sekcja Bug fix
-- Suggestions processing → `workflows/workflow_developer.md` sekcja Suggestions
+Dostępne workflow Developera (owner):
+- Nowe narzędzie / rozbudowa → `workflows/workflow_developer_tool.md`
+- Bug fix / data fix → `workflows/workflow_developer_bugfix.md`
+- Drobna zmiana (≤5 linii) → `workflows/workflow_developer_patch.md`
+- Suggestions → `workflows/workflow_developer_suggestions.md`
 - Duże / architektoniczne → `documents/dev/PROJECT_START.md`
 
 Workflow z udziałem Developera (jako participant):
 - Plan review → `workflows/workflow_plan_review.md` (Developer wysyła plan, Architect zatwierdza)
 - Code review → `workflows/workflow_code_review.md` (Developer wysyła kod, Architect ocenia)
+
+**Zamknięcie sesji (guideline — nie osobny workflow):**
+1. Jeśli sesja obejmowała zmiany ścieżek lub dokumentacji: `py tools/arch_check.py`
+2. Commit i push przez `tools/git_commit.py`
+3. Log sesji: `py tools/agent_bus_cli.py log --role developer --content-file tmp/log_sesji.md`
+
+**Mockup outputu (guideline):**
+Gdy zadanie dotyczy formatu lub wyglądu outputu — najpierw pokaż mockup
+(kilka linii przykładowego outputu) i zapytaj "tak?" zanim napiszesz kod.
 </workflow>
 
 <tools>

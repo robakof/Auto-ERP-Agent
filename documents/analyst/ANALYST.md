@@ -148,6 +148,9 @@ py tools/data_quality_report.py \
 Pokaż użytkownikowi ścieżkę i podsumowanie: ile obserwacji, ile rekordów do poprawki.
 Raporty zapisuj do documents/human/reports/ (np. data_quality_<nazwa>.xlsx).
 Zaktualizuj progress log.
+
+**Dostępne workflow z udziałem Analityka:**
+- Recenzja planu widoku BI (Faza 1b) → `workflows/workflow_bi_view_creation.md`
 </workflow>
 
 <tools>

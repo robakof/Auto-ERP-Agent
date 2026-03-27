@@ -128,6 +128,48 @@ class TestUnknownCommands:
         assert out is None
 
 
+class TestPokeCheck:
+    """Tests for poke message interception in PreToolUse."""
+
+    def test_poke_query_and_format(self, tmp_path):
+        """Verify poke SQL query finds message and format is correct."""
+        import sqlite3
+        db = sqlite3.connect(str(tmp_path / "test.db"))
+        db.execute("""CREATE TABLE messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sender TEXT, recipient TEXT, content TEXT, type TEXT,
+            status TEXT DEFAULT 'unread', read_at TEXT)""")
+        db.execute(
+            "INSERT INTO messages (sender, recipient, content, type) VALUES (?,?,?,?)",
+            ("dispatcher", "developer", "Wyślij status", "poke"),
+        )
+        db.commit()
+
+        row = db.execute(
+            "SELECT id, sender, content FROM messages WHERE recipient=? AND type='poke' AND status='unread' LIMIT 1",
+            ("developer",),
+        ).fetchone()
+        assert row is not None
+        msg_id, sender, content = row
+        assert f"[POKE od {sender}] {content}" == "[POKE od dispatcher] Wyślij status"
+
+        # Mark as read
+        db.execute("UPDATE messages SET status='read', read_at=datetime('now') WHERE id=?", (msg_id,))
+        db.commit()
+        row2 = db.execute(
+            "SELECT id FROM messages WHERE recipient=? AND type='poke' AND status='unread' LIMIT 1",
+            ("developer",),
+        ).fetchone()
+        assert row2 is None  # no more unread pokes
+        db.close()
+
+    def test_no_poke_passthrough(self):
+        """Without session_data.json, _check_poke returns None — non-Bash tools pass through."""
+        rc, out = run_hook({"tool_name": "Read", "tool_input": {"file_path": "/tmp/x"}})
+        assert rc == 0
+        assert out is None
+
+
 class TestSafetyGateHardening:
     """Boundary tests for #148 safety gate hardening."""
 

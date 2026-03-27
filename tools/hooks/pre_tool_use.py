@@ -207,11 +207,53 @@ def validate_segment(segment: str) -> Optional[str]:
     return None
 
 
+def _check_poke() -> Optional[str]:
+    """Check for unread poke messages for current agent. Returns deny reason or None.
+
+    Reads role from tmp/session_data.json, queries inbox for type='poke'.
+    Marks poke as read after retrieval. ~1-3ms overhead per call.
+    Known limitation: multi-agent session_data.json conflict (MVP accepts this).
+    """
+    from pathlib import Path
+    session_data_file = Path(__file__).parent.parent.parent / "tmp" / "session_data.json"
+    if not session_data_file.exists():
+        return None
+    try:
+        import sqlite3
+        sd = json.loads(session_data_file.read_text(encoding="utf-8"))
+        role = sd.get("role")
+        if not role:
+            return None
+        db_path = Path(__file__).parent.parent.parent / "mrowisko.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("PRAGMA busy_timeout=1000")
+        row = conn.execute(
+            "SELECT id, sender, content FROM messages WHERE recipient=? AND type='poke' AND status='unread' LIMIT 1",
+            (role,),
+        ).fetchone()
+        if not row:
+            conn.close()
+            return None
+        msg_id, sender, content = row
+        conn.execute("UPDATE messages SET status='read', read_at=datetime('now') WHERE id=?", (msg_id,))
+        conn.commit()
+        conn.close()
+        return f"[POKE od {sender}] {content}"
+    except Exception:
+        return None
+
+
 def main() -> None:
     try:
         data = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):
         sys.exit(0)
+
+    # Poke check — fires for ALL tool types (before Bash-only gate)
+    poke_reason = _check_poke()
+    if poke_reason:
+        deny_response(poke_reason)
+        return
 
     if data.get("tool_name") != "Bash":
         sys.exit(0)

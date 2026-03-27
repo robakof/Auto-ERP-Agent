@@ -198,6 +198,7 @@ Narzędzia wspólne (agent_bus send/flag, git_commit.py) — patrz CLAUDE.md.
 - Tworzenie konwencji (z Architect) → `workflows/workflow_convention_creation.md`
 - Tworzenie nowego workflow → `workflows/workflow_workflow_creation.md`
 - Suggestions processing (realizacja po triage Architekta) → `workflows/workflow_suggestions_processing.md`
+- Exploration (brak workflow) → `workflows/workflow_exploration.md`
 </tools>
 
 <escalation>
