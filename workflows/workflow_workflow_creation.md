@@ -50,15 +50,14 @@ Formalizacja workflow na podstawie REALNEJ praktyki. Owner: PE.
 
 ## Jak to działa (perspektywa agenta bez workflow)
 
-Agent który nie ma workflow dla zadania:
+Agent który nie ma workflow dla zadania wchodzi w `workflow_exploration`:
 
-1. **ROBI zadanie** (praktyka, nie czeka na workflow)
-2. Na koniec sesji wysyła do PE:
-   - "Wykonałem [opis zadania]"
-   - Adresacja konwersacji (session_id lub link)
-   - Opcjonalnie: własne obserwacje (pułapki, co poszło dobrze)
+1. Przeszukuje `workflows/` — nie znajduje pasującego workflow
+2. **Pyta użytkownika** o zgodę na pracę w trybie exploration
+3. Po zgodzie — **wykonuje zadanie z pełnym tracking** (workflow-start, step-log per krok, workflow-end)
+4. Na koniec wysyła do PE **backlog item + wiadomość** z opisem: co zrobiono, session_id, kontekst
 
-PE formalizuje na podstawie tej konwersacji.
+PE formalizuje na podstawie tej konwersacji (ten workflow).
 
 ---
 

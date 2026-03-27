@@ -92,16 +92,11 @@ Przed rozpoczęciem każdego zadania sprawdź czy istnieje workflow:
 3. Postępuj zgodnie z workflow krok po kroku, logując kluczowe kroki: `step-log --execution-id <id> --step-id <krok> --status PASS|FAIL`.
 4. Na koniec: `workflow-end --execution-id <id> --status completed|failed|abandoned`.
 
-**Wariant 2 — workflow nie istnieje, zadanie w scope roli:**
-1. Powiedz użytkownikowi: "Nie mam workflow, ale zadanie mieści się w moim scope. Wykonuję."
-2. Wykonaj zadanie zgodnie z regułami roli.
-3. Po zakończeniu wyślij do PE opis zadania z session_id — PE formalizuje workflow:
-   ```
-   py tools/agent_bus_cli.py send --from <rola> --to prompt_engineer --content-file tmp/workflow_request.md
-   ```
-   Treść: co zrobiono, jakie kroki, jakie decyzje, jaki wynik.
+**Wariant 2 — workflow nie istnieje:**
+Wejdź w `workflow_exploration` (`workflows/workflow_exploration.md`).
+Agent NIE może samodzielnie autoryzować pracy bez workflow — zawsze weryfikuje z użytkownikiem.
 
-**Wariant 3 — workflow nie istnieje, zadanie poza scope roli:**
+**Wariant 3 — zadanie poza scope roli:**
 Powiedz: "To zadanie wykracza poza mój scope." STOP.
 Eskaluj do odpowiedniej roli lub do człowieka.
 
