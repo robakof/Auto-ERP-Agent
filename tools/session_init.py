@@ -25,6 +25,18 @@ SESSION_ID_FILE = Path("tmp/session_id.txt")  # legacy
 SESSION_DATA_FILE = Path("tmp/session_data.json")
 CONFIG_FILE = Path("config/session_init_config.json")
 
+BACKLOG_META_KEYS = ("id", "title", "area", "value", "effort", "status", "depends_on", "created_at")
+INBOX_SNIPPET_LEN = 200
+LOG_SNIPPET_LEN = 300
+
+
+def _snippet(text: str, max_len: int) -> tuple[str, bool]:
+    """Return (truncated_text, was_truncated)."""
+    if not text or len(text) <= max_len:
+        return text, False
+    return text[:max_len], True
+
+
 ROLE_DOCUMENTS = {
     "erp_specialist": "documents/erp_specialist/ERP_SPECIALIST.md",
     "analyst":        "documents/analyst/ANALYST.md",
@@ -86,6 +98,12 @@ def get_context(role: str, config: dict, bus: AgentBus) -> dict:
             status=inbox_config.get("status", "unread"),
             limit=inbox_config.get("limit", 10)
         )
+        # Truncate content to snippet
+        for msg in messages:
+            if "content" in msg:
+                msg["content"], truncated = _snippet(msg["content"], INBOX_SNIPPET_LEN)
+                if truncated:
+                    msg["truncated"] = True
         context["inbox"] = {
             "messages": messages,
             "count": len(messages)
@@ -119,22 +137,30 @@ def get_context(role: str, config: dict, bus: AgentBus) -> dict:
         # Sort by created_at DESC (newest first) and apply limit
         items = sorted(items, key=lambda x: x.get("created_at", ""), reverse=True)[:limit]
 
+        # Strip content — agent fetches details per item via backlog --id X
+        slim_items = [{k: item[k] for k in BACKLOG_META_KEYS if k in item} for item in items]
+
         context["backlog"] = {
-            "items": items,
-            "count": len(items)
+            "items": slim_items,
+            "count": len(slim_items)
         }
 
     # Session logs
     if config.get("session_logs", {}).get("own_full", {}).get("enabled", False):
         logs_config = config["session_logs"]
 
-        # Own full
+        # Own full (with snippet)
         own_full_config = logs_config.get("own_full", {})
         own_full = bus.get_session_logs(
             role=role,
             limit=own_full_config.get("limit", 3),
             metadata_only=False
         )
+        for log in own_full:
+            if "content" in log:
+                log["content"], truncated = _snippet(log["content"], LOG_SNIPPET_LEN)
+                if truncated:
+                    log["truncated"] = True
 
         # Own metadata (optional)
         own_metadata = []

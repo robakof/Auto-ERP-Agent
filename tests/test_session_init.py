@@ -229,3 +229,53 @@ class TestSessionInitContext:
         assert "flags_human" in context
         assert context["flags_human"]["count"] == 1
         assert context["flags_human"]["items"][0]["content"] == "Flag for human"
+
+    def test_backlog_items_have_no_content(self, tmp_path):
+        """Backlog items should contain only metadata, no content field."""
+        bus = AgentBus(db_path=str(tmp_path / "test.db"))
+        bus.add_backlog_item(title="Task", content="Long description here", area="Dev")
+
+        result = self.run_session_init(tmp_path, "developer")
+        items = result["context"]["backlog"]["items"]
+
+        assert len(items) == 1
+        assert items[0]["title"] == "Task"
+        assert "content" not in items[0]
+        assert "id" in items[0]
+
+    def test_inbox_long_content_truncated(self, tmp_path):
+        """Inbox messages with content > 200 chars should be truncated."""
+        bus = AgentBus(db_path=str(tmp_path / "test.db"))
+        long_content = "A" * 500
+        bus.send_message(sender="architect", recipient="developer", content=long_content, type="task")
+
+        result = self.run_session_init(tmp_path, "developer")
+        msg = result["context"]["inbox"]["messages"][0]
+
+        assert len(msg["content"]) == 200
+        assert msg["truncated"] is True
+
+    def test_inbox_short_content_not_truncated(self, tmp_path):
+        """Inbox messages with short content should not have truncated flag."""
+        bus = AgentBus(db_path=str(tmp_path / "test.db"))
+        bus.send_message(sender="architect", recipient="developer", content="Short", type="task")
+
+        result = self.run_session_init(tmp_path, "developer")
+        msg = result["context"]["inbox"]["messages"][0]
+
+        assert msg["content"] == "Short"
+        assert "truncated" not in msg
+
+    def test_session_logs_content_truncated(self, tmp_path):
+        """Session logs with content > 300 chars should be truncated."""
+        bus = AgentBus(db_path=str(tmp_path / "test.db"))
+        long_log = "B" * 600
+        bus.add_session_log(role="developer", content=long_log, title="Big log")
+
+        result = self.run_session_init(tmp_path, "developer")
+        own_full = result["context"]["session_logs"]["own_full"]
+
+        # Find the log with truncated content (not the "session started" one)
+        big = [l for l in own_full if l.get("truncated")]
+        assert len(big) == 1
+        assert len(big[0]["content"]) == 300

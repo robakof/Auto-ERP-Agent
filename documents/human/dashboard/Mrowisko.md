@@ -1,21 +1,22 @@
-27 . 03                                                                                                   **14:52**
+27 . 03                                                                                                   **15:07**
 
 **Sesje**                    3
-Workflow             8
+Workflow             7
 
 | **Sesje** | **Status** | **Kontekst** |
 | --------------- | ------------- | ------------ |
-| architect | Z czlowiekiem |  |
-| architect | Stoi | Handoff #428: Zaprojektuj workflow enforcement (state machine pattern). Przeczytaj inbox i research. Wynik: ADR   plan implementacji. |
-| developer | Stoi | P1 stabilizacja: naprawa dashboardu. Szczegoly w tmp/task_p1_dashboard_fix.md |
+| developer | Z czlowiekiem |  |
+| dispatcher | Z czlowiekiem |  |
+| architect | Stoi |  |
 
 | Zadania | Wiadomosci |
 | :-----: | :--------: |
-| **29** | **22** |
+| **30** | **28** |
 
 | **Rola** | Nieprzeczytane |
 | --------------- | -------------: |
 | prompt_engineer | 11 |
+| developer | 7 |
 | metodolog | 7 |
-| developer | 3 |
-| dispatcher | 1 |
+| dispatcher | 2 |
+| architect | 1 |
