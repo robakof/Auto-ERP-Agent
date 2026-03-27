@@ -18,6 +18,7 @@ from datetime import date
 from pathlib import Path
 
 import openpyxl
+from openpyxl.drawing.image import Image as XlImage
 from openpyxl.styles import Alignment, Font, PatternFill
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -179,6 +180,12 @@ def _read_excel_codes(path: str) -> list[str]:
     return kody
 
 
+IMG_HEIGHT_PX = 75   # wysokość miniatury w pikselach
+IMG_WIDTH_PX  = 75   # szerokość miniatury w pikselach
+ROW_HEIGHT_PT = 58   # wysokość wiersza w punktach (~77px, z marginesem)
+COL_PHOTO_IDX = COLUMNS_ORDER.index("Zdjęcie") + 1  # nr kolumny (1-based)
+
+
 def _export_excel(rows: list[dict], output_path: str) -> None:
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -194,16 +201,34 @@ def _export_excel(rows: list[dict], output_path: str) -> None:
         cell.fill = header_fill
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-    # Dane
+    # Dane + obrazki
     for row_idx, row in enumerate(rows, start=2):
         for col_idx, col_name in enumerate(COLUMNS_ORDER, start=1):
+            # Kolumna Zdjęcie: nie wpisujemy tekstu — bedzie obrazek
+            if col_name == "Zdjęcie":
+                continue
             val = row.get(col_name)
             cell = ws.cell(row=row_idx, column=col_idx, value=val)
             cell.alignment = Alignment(vertical="top")
 
-    # Szerokości kolumn (przybliżone)
+        # Obrazek
+        photo_filename = row.get("Zdjecie")
+        if photo_filename:
+            photo_path = os.path.join(PHOTOS_DIR, photo_filename)
+            if os.path.exists(photo_path):
+                try:
+                    img = XlImage(photo_path)
+                    img.height = IMG_HEIGHT_PX
+                    img.width  = IMG_WIDTH_PX
+                    cell_addr = f"{openpyxl.utils.get_column_letter(COL_PHOTO_IDX)}{row_idx}"
+                    ws.add_image(img, cell_addr)
+                    ws.row_dimensions[row_idx].height = ROW_HEIGHT_PT
+                except Exception:
+                    pass  # uszkodzony plik — pomijamy, nie crashujemy
+
+    # Szerokości kolumn
     col_widths = {
-        "Kod": 14, "Zdjęcie": 18, "Nazwa": 45, "Kod EAN": 16,
+        "Kod": 14, "Zdjęcie": 12, "Nazwa": 45, "Kod EAN": 16,
         "ZAKUP": 10, "CZAS PALENIA / DZIAŁANIA": 14, "GRAMATURA WKŁADU": 14,
         "SZEROKOŚĆ NETTO PRODUKTU": 14, "WYSOKOŚĆ NETTO PRODUKTU": 14,
         "SZEROKOŚĆ BRUTTO OPAKOWANIA": 14, "warstwa": 10, "opak.": 10,
