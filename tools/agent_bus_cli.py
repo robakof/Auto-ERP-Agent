@@ -491,7 +491,7 @@ def cmd_spawn(args: argparse.Namespace, bus: AgentBus) -> dict:
     import subprocess
     from pathlib import Path
 
-    sender = args.sender or _detect_role()
+    sender = args.sender or get_session_role()
     project_root = Path(__file__).parent.parent
     vscode_uri = project_root / "tools" / "vscode_uri.py"
 
@@ -539,7 +539,7 @@ def cmd_spawn(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 def cmd_spawn_request(args: argparse.Namespace, bus: AgentBus) -> dict:
     """Request agent spawn — inserts as 'pending' for human approval via wtyczka."""
-    sender = args.sender or _detect_role()
+    sender = args.sender or get_session_role()
     conn = bus._conn
     conn.execute(
         """INSERT INTO invocations (invoker_type, invoker_id, target_role, task, status)
