@@ -33,6 +33,7 @@ st.markdown(
 )
 st.markdown("<hr style='border:2px solid #FAA400; margin-top:0;'>", unsafe_allow_html=True)
 
+st.info("Z ERP: wybierz rok i klienta. Z pliku Excel: plik musi zawierać kolumnę **'Kod'** z kodami produktów (pierwszy wiersz = nagłówek). Pobierz Word.")
 
 # --- Ładowanie grup z ERP (cache 5 min) ---
 @st.cache_data(ttl=300, show_spinner="Ładowanie listy klientów z ERP…")

@@ -52,13 +52,15 @@ APPS = [
     {
         "name": "Oferta Katalogowa 3×3",
         "desc": "Generator PDF oferty katalogowej w siatce 3×3",
+        "tip": "Excel: kolumny 'Akronim produktu' i 'Cena sprzedaży' w pierwszym wierszu. Wybierz język, logo i nagłówek — kliknij Generuj PDF.",
         "icon": "📄",
         "page": "pages/oferta_katalogowa_3x3.py",
         "active": True,
     },
     {
-        "name": "Etykiety Wysyłkowe",
-        "desc": "Generowanie etykiet wysyłkowych z ERP",
+        "name": "Etykiety Próbek",
+        "desc": "Generowanie etykiet próbek ofertowych",
+        "tip": "Z ERP: wybierz rok i klienta. Z pliku Excel: kolumna 'Kod' z kodami produktów (pierwszy wiersz = nagłówek). Pobierz Word.",
         "icon": "🏷️",
         "page": "pages/etykiety_wysylkowe.py",
         "active": True,

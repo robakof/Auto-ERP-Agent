@@ -19,8 +19,6 @@ from tools.offer_pdf_3x3 import generate_pdf
 _DEFAULT_INPUT = _ROOT / "documents" / "Wzory plików" / "OFerta katalogowa.xlsx"
 _DEFAULT_OUTPUT = _ROOT / "output" / "oferta_katalogowa_3x3.pdf"
 
-LANGUAGES = {"Polski": "pl", "English": "en", "Română": "ro"}
-
 st.set_page_config(page_title="Oferta Katalogowa 3×3", layout="centered")
 
 st.markdown("""
@@ -42,64 +40,41 @@ st.markdown(
 )
 st.markdown("<hr style='border:2px solid #FAA400; margin-top:0;'>", unsafe_allow_html=True)
 
+st.info("Excel musi zawierać kolumny **'Akronim produktu'** i **'Cena sprzedaży'** w pierwszym wierszu. Wybierz logo i nagłówek — kliknij Generuj PDF.")
+
 # --- Plik wejściowy ---
 st.subheader("Plik produktów (Excel)")
-use_upload = st.radio(
-    "Źródło:",
-    ["Domyślny plik projektu", "Wgraj własny plik"],
-    horizontal=True,
-    label_visibility="collapsed",
-)
-
-excel_bytes = None
-
-if use_upload == "Wgraj własny plik":
-    uploaded = st.file_uploader("Wybierz plik .xlsx", type=["xlsx", "xls"])
-    if uploaded:
-        excel_bytes = uploaded.read()
-else:
-    if _DEFAULT_INPUT.exists():
-        st.caption(f"Używa: `{_DEFAULT_INPUT}`")
-    else:
-        st.warning(f"Domyślny plik nie istnieje: `{_DEFAULT_INPUT}`")
+uploaded = st.file_uploader("Wybierz plik .xlsx", type=["xlsx", "xls"])
+excel_bytes = uploaded.read() if uploaded else None
 
 st.divider()
 
 # --- Parametry ---
-col1, col2 = st.columns(2)
-with col1:
-    lang_label = st.selectbox("Język", list(LANGUAGES.keys()))
-    lang = LANGUAGES[lang_label]
-with col2:
-    logo = st.radio("Logo", ["CEiM", "KERTI"], horizontal=True).lower()
+logo = st.radio("Logo", ["CEiM", "KERTI"], horizontal=True).lower()
 
-header_text = st.text_input("Nagłówek", value="Wkłady zniczowe CEiM")
+header_text = st.text_input("Nagłówek", placeholder="Wkłady zniczowe CEiM")
 
 st.divider()
 
 # --- Generowanie ---
 if st.button("Generuj PDF", type="primary", use_container_width=True):
 
-    has_input = (use_upload == "Domyślny plik projektu" and _DEFAULT_INPUT.exists()) or (excel_bytes is not None)
-    if not has_input:
-        st.error("Brak pliku wejściowego.")
+    if not excel_bytes:
+        st.error("Wgraj plik Excel przed generowaniem.")
         st.stop()
 
     with st.spinner("Generowanie PDF…"):
         try:
-            if excel_bytes is not None:
-                with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
-                    tmp.write(excel_bytes)
-                    input_path = tmp.name
-            else:
-                input_path = str(_DEFAULT_INPUT)
+            with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+                tmp.write(excel_bytes)
+                input_path = tmp.name
 
             _DEFAULT_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-            products = load_products(input_path, lang=lang)
+            products = load_products(input_path, lang="pl")
             generate_pdf(
                 products,
                 str(_DEFAULT_OUTPUT),
-                lang=lang,
+                lang="pl",
                 header_text=header_text.strip() or None,
                 logo=logo,
             )
