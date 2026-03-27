@@ -194,6 +194,25 @@ def main():
     doc_content = doc_path.read_text(encoding="utf-8") if doc_exists else ""
 
     bus = AgentBus(db_path=args.db)
+
+    # Register in live_agents so dashboard sees every session (manual + spawned).
+    # Spawned sessions have a pre-existing row (from agent_launcher_db) with a different
+    # session_id (full UUID vs our 12-char hex). Stop that row — we take over identity.
+    bus._conn.execute(
+        """UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now')
+           WHERE role = ? AND status IN ('starting', 'active') AND session_id != ?""",
+        (args.role, session_id),
+    )
+    bus._conn.execute(
+        """INSERT INTO live_agents (session_id, role, status, spawned_by, last_activity)
+           VALUES (?, ?, 'active', 'manual', datetime('now'))
+           ON CONFLICT(session_id) DO UPDATE SET
+             status = 'active',
+             last_activity = datetime('now')""",
+        (session_id, args.role),
+    )
+    bus._conn.commit()
+
     bus.add_session_log(
         role=args.role,
         content="session started",

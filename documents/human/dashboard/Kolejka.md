@@ -1,6 +1,6 @@
-**Zaplanowane**      28
+**Zaplanowane**      29
 Odlozone            28
-Sugestie            266
+Sugestie            267
 
 | **Numer** | **Zadanie w kolejce** | **Pkt** |
 | --------- | --------------------------------------------- | ------- |
@@ -10,7 +10,7 @@ Sugestie            266
 | 176 | [CONV] P1: CONVENTION_SQL — reformat | 10 |
 | 132 | METHODOLOGY.md — migration best practices ... | 8 |
 | 139 | Architect audit — config-driven architectu... | 8 |
+| 158 | CLI-API sync guard: test + docelowo single... | 8 |
 | 166 | convention_init.py — scaffolding tool for ... | 8 |
 | 168 | Tryb nasluchu — agent refresh kontekstu w ... | 8 |
 | 173 | [CONV] P1: CONVENTION_TESTING — nowa | 8 |
-| 175 | [CONV] P1: CONVENTION_FILE_STRUCTURE — nowa | 8 |

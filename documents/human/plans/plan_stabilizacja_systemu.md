@@ -72,12 +72,24 @@ błędna interpretacja handoff point).
 - Backlog #153 (workflow tracking w DB): zaprojektowany, niezaplanowany
 - Arch Uplift Faza 7 (strict enforcement): zależna od Fazy 4 (Dyspozytor) — Faza 4 w trakcie
 
-**Naprawa (wieloetapowa):**
-1. **Natychmiast (PE):** Wzmocnić workflow gate w CLAUDE.md — dodać sankcję za pominięcie
-   (np. "jeśli nie wywołałeś workflow-start, twój commit zostanie odrzucony").
-2. **Krótkoterminowo (Developer):** Zrealizować backlog #153 — workflow tracking w DB.
-3. **Średnioterminowo:** Wykonać research enforcement (prompt gotowy, wystarczy zlecić).
-4. **Docelowo (Faza 7):** Strict enforcement — hook blokujący commit bez aktywnego workflow.
+**Timeline wątku (z wczorajszej sesji 2026-03-26):**
+1. PE (#405) udokumentował 6 nieudanych prób wzmocnienia promptów → klasyfikacja: `outside_prompt_layer`
+2. Architect wybrał opcję 2 (git_commit.py gate) → **człowiek odrzucił**: "gate na końcu jest za późno,
+   agent zrobi 2h pracy bez workflow, potem backfilluje step-logi byle jak"
+3. Architect zgodził się: "facade compliance, zero value" → **anulował opcje 1-2**
+4. Wspólna decyzja: **potrzeba research enforcement (opcja 3)** — jak wymusić compliance
+   tak żeby nie było: za wcześnie (blok narzędzi), za późno (blok commitu), fasadowo (agent loguje PASS byle jak)
+5. PE utworzył prompt: `documents/researcher/prompts/research_workflow_enforcement.md`
+6. **Research NIE ZOSTAŁ WYKONANY** — brak pliku wynikowego, nikt nie spawał Researchera
+
+**Dodatkowe research prompts (też niewykonane):**
+- `research_mission_control.md` (msg #412) — interfejsy kontroli swarmu AI
+- prompt z msg #413 — "czego nie wiemy że nie wiemy" (complex systems, cybernetics, HRO)
+
+**Naprawa:**
+1. **Teraz:** Spawać Researchera z `research_workflow_enforcement.md` (kluczowy blocker)
+2. **Po researchu:** Architect/Developer budują rozwiązanie programistyczne na podstawie wyników
+3. Prompt-level enforcement się nie sprawdził — nie powtarzać (6 prób, 6 porażek)
 
 **Effort:** duzy | **Value:** krytyczna (bez tego system nie jest wiarygodny)
 
@@ -87,14 +99,13 @@ błędna interpretacja handoff point).
 
 | ID | Tytuł | Area | Od kiedy | Rekomendacja |
 |----|-------|------|----------|--------------|
-| 115 | Domain Model Refactor (ADR-001) | Arch | 22 mar | M1-M4 ukończone, 67 testów OK → **done** |
-| 150 | Convention Registry META_CONVENTION | Arch | 24 mar | Folder istnieje, META napisana → weryfikacja, prawdopodobnie **done** |
-| 158 | CLI-API sync guard | Dev | 26 mar | Plan napisany, czeka na implementację → **planned** (cofnąć) |
-| 171 | CONVENTION_CODE rozszerzenie | Arch | 25 mar | W toku, częściowo → **deferred** lub zostawić |
-| 179 | CONVENTION_DB_SCHEMA | Arch | 26 mar | Zaczęte → **deferred** lub zostawić |
+| 115 | Domain Model Refactor (ADR-001) | Arch | 22 mar | ADR "Accepted", M1-M4 complete → **done** ✓ |
+| 150 | Convention Registry META_CONVENTION | Arch | 24 mar | 6 konwencji + META + README istnieje → **done** ✓ |
+| 158 | CLI-API sync guard | Dev | 26 mar | Plan napisany, brak implementacji → **planned** ✓ |
+| 171 | CONVENTION_CODE rozszerzenie | Arch | 25 mar | CONVENTION_PYTHON v1.3 pokrywa scope → **done** ✓ |
+| 179 | CONVENTION_DB_SCHEMA | Arch | 26 mar | Plik v1.0 istnieje, active → **done** ✓ |
 
-**Naprawa (Dyspozytor — ja, po zatwierdzeniu):**
-Zaktualizować statusy per tabela powyżej.
+**Status: ZREALIZOWANE** — backlog zaktualizowany 2026-03-27.
 
 ---
 

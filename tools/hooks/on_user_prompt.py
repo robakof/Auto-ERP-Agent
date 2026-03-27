@@ -53,6 +53,14 @@ def main():
             raw_payload=raw[:4000],
         )
 
+        # Heartbeat: update last_activity in live_agents
+        if session_id:
+            bus._conn.execute(
+                "UPDATE live_agents SET last_activity = datetime('now') WHERE session_id = ?",
+                (session_id,),
+            )
+            bus._conn.commit()
+
         # Refresh dashboard (fire-and-forget, skip if already rendering)
         import os
         if not os.environ.get("MROWISKO_DASHBOARD_RENDERING"):
