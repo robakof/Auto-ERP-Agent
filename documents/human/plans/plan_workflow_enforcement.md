@@ -144,19 +144,28 @@ WHERE execution_id = ? ORDER BY timestamp DESC LIMIT 1
    - `get_allowed_tools()` zwraca tylko `agent_bus_cli` (send/flag)
    - Przejście do następnego kroku zablokowane do odblokowania
 
-2.5. **Cache** — `WorkflowDefinition` parsowana raz per sesję, nie per tool call.
+2.5. **Exploratory workflow** — `workflow-start --workflow-id exploratory`:
+   - Tworzy execution bez WorkflowDefinition (steps=empty)
+   - `can_transition()` → zawsze True (brak grafu = brak ograniczeń)
+   - `get_allowed_tools()` → ALL (brak step-level restrictions)
+   - `step-log` akceptuje dowolne `step_id` (agent loguje co robi, freeform)
+   - Na `workflow-end`: zebrane step_ids → materiał do formalizacji przez PE
+   - Cel: tracking + audit trail bez enforcement (research, spike, pierwsze wykonanie)
 
-2.6. **Integracja z istniejącym CLI:**
+2.6. **Cache** — `WorkflowDefinition` parsowana raz per sesję, nie per tool call.
+
+2.7. **Integracja z istniejącym CLI:**
    - `workflow-start` → deleguje do `WorkflowEngine.start()`
    - `step-log` → deleguje do `WorkflowEngine.complete_step()`
    - `workflow-end` → deleguje do `WorkflowEngine.end()`
 
-2.7. **Testy:**
+2.8. **Testy:**
    - Happy path: start → step1 PASS → step2 PASS → end completed
    - Blocked: step1 FAIL → nie można przejść do step2
    - HANDOFF: krok handoff blokuje przejście
    - Resume: interrupted workflow → get_current_state zwraca ostatni PASS
    - Invalid transition: step1 → step3 (skip step2) → rejected
+   - Exploratory: start exploratory → dowolne step-log → end → lista kroków
 
 ### Exit gate
 

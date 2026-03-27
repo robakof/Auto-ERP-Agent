@@ -159,6 +159,36 @@ Jeśli weryfikacja fails → `step-log` zwraca error, krok pozostaje `IN_PROGRES
 2. Jeśli user podaje task → match do workflow definition
 3. Ustaw `execution_id` w zmiennej środowiskowej sesji
 
+**D7: Exploratory workflow (workflow-envelope)**
+
+Nie każde zadanie ma zdefiniowany workflow. Niektóre są eksploracyjne (research, prototyp,
+pierwsze wykonanie nowego typu zadania). Zamiast Wariantu 2 z CLAUDE.md ("brak workflow,
+ale w scope roli") agent rejestruje **exploratory workflow** — pustą kopertę:
+
+```
+py tools/agent_bus_cli.py workflow-start --workflow-id exploratory --role <rola>
+```
+
+Exploratory workflow:
+- Ma `execution_id` → audit trail istnieje, tool calls powiązane z sesją
+- Nie ma zdefiniowanych kroków → state machine nie blokuje przejść
+- Agent loguje kroki które wykonuje (`step-log` z dowolnym `step_id`)
+- Hook widzi aktywny workflow → nie generuje WARNING/DENY
+- Na zakończenie: agent wysyła opis kroków do PE → PE formalizuje workflow
+
+Efekt: **tracking bez enforcement** — zachowujemy elastyczność dla nowych/eksploracyjnych
+zadań, ale nie tracimy visibility. Każdy tool call ma execution_id, każdy krok jest
+zalogowany, PE dostaje materiał do formalizacji.
+
+Kiedy używać:
+- Zadanie wykonywane pierwszy raz (nie ma jeszcze workflow)
+- Zadanie eksploracyjne (research, spike, prototyp)
+- Zadanie o nieznanej strukturze (debugging złożonego problemu)
+
+Kiedy NIE używać:
+- Istnieje workflow strict (04R) dla tego typu zadania → użyj go
+- Agent "nie chce się trzymać" istniejącego workflow → to violation, nie eksploracja
+
 **D6: HANDOFF_POINT = hard stop w state machine**
 
 Krok oznaczony jako HANDOFF_POINT w workflow definition:
@@ -225,8 +255,10 @@ Semantyczna jakość artefaktów wymaga review (Warstwa 3, typ `manual`).
    *Mitygacja:* parser + gradualny rollout (najpierw 2-3 critical workflows).
 
 2. **Rigidity vs creativity trade-off** — agent w state machine nie może "improwizować".
-   *Mitygacja:* Wariant 2 z CLAUDE.md ("nie mam workflow, ale w scope roli") pozostaje
-   dla zadań bez zdefiniowanego workflow. Enforcement dotyczy TYLKO zadań z workflow.
+   *Mitygacja:* Exploratory workflow (D7) — pusta koperta z tracking bez enforcement.
+   Agent rejestruje `workflow-start --workflow-id exploratory`, ma audit trail i visibility,
+   ale state machine nie blokuje przejść. Dla zadań eksploracyjnych / pierwszego wykonania.
+   PE formalizuje workflow post-factum na podstawie zalogowanych kroków.
 
 3. **Maintenance cost** — każda zmiana procesu wymaga aktualizacji workflow definition.
    *Mitygacja:* PE jest ownerem workflow definitions, ma dedykowany workflow do tworzenia/edycji.

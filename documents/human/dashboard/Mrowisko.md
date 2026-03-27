@@ -1,4 +1,4 @@
-27 . 03                                                                                                   **07:30**
+27 . 03                                                                                                   **14:52**
 
 **Sesje**                    3
 Workflow             8
@@ -11,11 +11,11 @@ Workflow             8
 
 | Zadania | Wiadomosci |
 | :-----: | :--------: |
-| **29** | **21** |
+| **29** | **22** |
 
 | **Rola** | Nieprzeczytane |
 | --------------- | -------------: |
 | prompt_engineer | 11 |
 | metodolog | 7 |
-| developer | 2 |
+| developer | 3 |
 | dispatcher | 1 |
