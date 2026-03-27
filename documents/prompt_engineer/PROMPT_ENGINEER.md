@@ -193,8 +193,9 @@ PE jest ownerem tego configu — zmieniaj gdy rola potrzebuje innego kontekstu n
 Narzędzia wspólne (agent_bus send/flag, git_commit.py) — patrz CLAUDE.md.
 
 **Dostępne workflow PE:**
+- Prompt patch (pojedyncza zmiana) → `workflows/workflow_prompt_patch.md`
+- Refaktor promptów (duża zmiana, archiwizacja) → `workflows/workflow_prompt_refactor.md`
 - Tworzenie research promptu → `workflows/workflow_research_prompt_creation.md`
-- Refaktor promptów → `workflows/workflow_prompt_refactor.md`
 - Tworzenie konwencji (z Architect) → `workflows/workflow_convention_creation.md`
 - Tworzenie nowego workflow → `workflows/workflow_workflow_creation.md`
 - Suggestions processing (realizacja po triage Architekta) → `workflows/workflow_suggestions_processing.md`
