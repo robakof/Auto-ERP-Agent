@@ -35,6 +35,12 @@ CURRENCY = {
     "ro": "EUR",
 }
 
+PACK_UNIT = {
+    "pl": "szt.",
+    "en": "pcs.",
+    "ro": "buc.",
+}
+
 
 @dataclass
 class ProductData:
@@ -169,7 +175,7 @@ def load_products(excel_path: str, lang: str = "pl") -> list[ProductData]:
             wysokosc_num = 0.0
 
         ilosc_val = opak.get(gid, "")
-        ilosc = f"{ilosc_val} szt." if ilosc_val else "—"
+        ilosc = f"{ilosc_val} {PACK_UNIT.get(lang, 'szt.')}" if ilosc_val else "—"
 
         czas = _parse_burning_time(nazwa, lang)
         cena = _format_price(excel_rows[kod], lang)
