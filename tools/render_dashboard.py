@@ -23,15 +23,14 @@ from tools.lib.output import print_json
 DB_PATH = "mrowisko.db"
 DEFAULT_OUTPUT = "documents/human/dashboard"
 CONFIG_PATH = Path(__file__).parent.parent / "config" / "dashboard_config.json"
-SESSION_DATA = Path(__file__).parent.parent / "tmp" / "session_data.json"
 
-SCORE_SQL = """
-ROUND(
-  (CASE value WHEN 'wysoka' THEN 3 WHEN 'srednia' THEN 2 ELSE 1 END +
-   CASE effort WHEN 'mala' THEN 3 WHEN 'srednia' THEN 2 ELSE 1 END - 2
-  ) * 9.0 / 4 + 1
-)
-"""
+DISPLAY_STATUS_LABELS = {
+    "working": "Praca",
+    "stale": "Stoi",
+    "dead": "Martwy",
+    "starting": "Startuje",
+    "stopped": "Stop",
+}
 
 
 def _load_config() -> dict:
@@ -65,43 +64,15 @@ def _trunc(text: str, max_len: int) -> str:
     return text[: max_len - 3] + "..."
 
 
-def _current_session_id() -> str | None:
-    if SESSION_DATA.exists():
-        try:
-            data = json.loads(SESSION_DATA.read_text(encoding="utf-8"))
-            return data.get("session_id")
-        except Exception:
-            pass
-    return None
-
-
-def _session_status(conn: sqlite3.Connection, session_id: str, status: str) -> str:
-    current_sid = _current_session_id()
-    if current_sid and session_id == current_sid:
-        return "Z czlowiekiem"
-    if status == "starting":
-        return "Startuje"
-    # active — check last_activity to distinguish live vs idle
-    row = conn.execute(
-        "SELECT last_activity FROM live_agents WHERE session_id = ?",
-        (session_id,),
-    ).fetchone()
-    if row and row["last_activity"]:
-        # Activity within last 5 minutes = working with human
-        fresh = conn.execute(
-            "SELECT ? > datetime('now', '-5 minutes') as is_fresh",
-            (row["last_activity"],),
-        ).fetchone()
-        if fresh and fresh["is_fresh"]:
-            return "Z czlowiekiem"
-    return "Stoi"
+def _display_status_label(display_status: str) -> str:
+    return DISPLAY_STATUS_LABELS.get(display_status, display_status)
 
 
 def _render_status(conn: sqlite3.Connection, cfg: dict) -> str:
     now = datetime.now()
     c = lambda sql: conn.execute(sql).fetchone()[0]
     L = lambda k: _l(cfg, k)
-    sess_n = c("SELECT COUNT(*) FROM live_agents WHERE status IN ('starting', 'active')")
+    sess_n = c("SELECT COUNT(*) FROM v_agent_status")
     wf_n = c("SELECT COUNT(*) FROM workflow_execution WHERE status='running'")
     planned = c("SELECT COUNT(*) FROM backlog WHERE status='planned'")
     unread = c("SELECT COUNT(*) FROM messages WHERE status='unread'")
@@ -111,11 +82,10 @@ def _render_status(conn: sqlite3.Connection, cfg: dict) -> str:
         f"**{L('sessions')}**                    {sess_n}",
         f"{L('workflow')}             {wf_n}",
     ]
-    # Sessions table — from live_agents (starting/active only)
+    # Sessions table — from v_agent_status view
     sessions = conn.execute(
-        """SELECT role, session_id, status, task, created_at
-           FROM live_agents
-           WHERE status IN ('starting', 'active')
+        """SELECT role, session_id, display_status, task, created_at
+           FROM v_agent_status
            ORDER BY created_at DESC"""
     ).fetchall()
     if sessions:
@@ -123,7 +93,7 @@ def _render_status(conn: sqlite3.Connection, cfg: dict) -> str:
         lines.append(f"| **{L('sessions')}** | **Status** | **Kontekst** |")
         lines.append("| --------------- | ------------- | ------------ |")
         for s in sessions:
-            status = _session_status(conn, s["session_id"], s["status"])
+            status = _display_status_label(s["display_status"])
             task = s["task"] or ""
             lines.append(f"| {s['role']} | {status} | {task} |")
     # Tasks / Messages mini table
@@ -202,10 +172,10 @@ def _render_backlog(conn: sqlite3.Connection, cfg: dict) -> str:
         f"{L('deferred')}            {total_deferred}",
         f"{L('suggestions')}            {open_suggestions}",
     ]
-    # Top N planned
-    rows = conn.execute(f"""
-        SELECT id, title, {SCORE_SQL} as score
-        FROM backlog WHERE status='planned'
+    # Top N planned — uses v_backlog_scored view
+    rows = conn.execute("""
+        SELECT id, title, score
+        FROM v_backlog_scored WHERE status='planned'
         ORDER BY score DESC, id
         LIMIT ?
     """, (top_n,)).fetchall()

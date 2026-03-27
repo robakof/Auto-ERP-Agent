@@ -255,6 +255,40 @@ _MIGRATE_SQL = [
     "CREATE INDEX IF NOT EXISTS idx_invocations_session ON invocations(session_id)",
     # live_agents: claude_uuid for reliable session_end matching
     "ALTER TABLE live_agents ADD COLUMN claude_uuid TEXT",
+    # SQL Views: single interpretation layer (Dashboard = Dispatcher) — backlog #201
+    """CREATE VIEW IF NOT EXISTS v_agent_status AS
+    SELECT
+        session_id,
+        role,
+        task,
+        status AS raw_status,
+        last_activity,
+        claude_uuid,
+        terminal_name,
+        CASE
+            WHEN status = 'stopped' THEN 'stopped'
+            WHEN status = 'starting' THEN 'starting'
+            WHEN last_activity > datetime('now', '-5 minutes') THEN 'working'
+            WHEN last_activity > datetime('now', '-30 minutes') THEN 'stale'
+            ELSE 'dead'
+        END AS display_status,
+        created_at
+    FROM live_agents
+    WHERE status IN ('starting', 'active')""",
+    """CREATE VIEW IF NOT EXISTS v_backlog_scored AS
+    SELECT *,
+        ROUND(
+            (CASE value WHEN 'wysoka' THEN 3 WHEN 'srednia' THEN 2 ELSE 1 END +
+             CASE effort WHEN 'mala' THEN 3 WHEN 'srednia' THEN 2 ELSE 1 END - 2
+            ) * 9.0 / 4 + 1
+        ) AS score
+    FROM backlog""",
+    """CREATE VIEW IF NOT EXISTS v_handoffs_blocked AS
+    SELECT m.*
+    FROM messages m
+    LEFT JOIN live_agents la
+        ON la.role = m.recipient AND la.status IN ('starting', 'active')
+    WHERE m.type = 'handoff' AND m.status = 'unread' AND la.id IS NULL""",
 ]
 
 

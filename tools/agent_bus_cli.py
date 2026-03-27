@@ -657,12 +657,12 @@ def cmd_inbox_summary(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 
 def cmd_live_agents(args: argparse.Namespace, bus: AgentBus) -> dict:
-    """List agents with status starting or active."""
+    """List agents with status starting or active (uses v_agent_status view)."""
     conn = bus._conn
     rows = conn.execute(
-        """SELECT id, session_id, role, task, status, created_at, last_activity
-           FROM live_agents
-           WHERE status IN ('starting', 'active')
+        """SELECT session_id, role, task, raw_status, display_status,
+                  created_at, last_activity, claude_uuid
+           FROM v_agent_status
            ORDER BY created_at DESC"""
     ).fetchall()
     return {"ok": True, "data": [dict(r) for r in rows], "count": len(rows)}

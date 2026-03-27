@@ -1,4 +1,4 @@
-Zrealizowane workflow dzisiaj                11
+Zrealizowane workflow dzisiaj                13
 
 | **Workflow w toku** | **Ilosc** | **Etap** |
 | ---------------------- | ------------------- | -------- |
@@ -8,3 +8,7 @@ Zrealizowane workflow dzisiaj                11
 | prompt_patch | 1 (prompt_engineer) | 1 |
 | developer_tool | 1 (developer) | 2 |
 | Operacje deweloperskie | 1 (developer) | 6 |
+
+| **Obszar** | **Zadanie w toku** |
+| ---------- | --------------------------------------------- |
+| Dev | SQL Views: single interpretation layer (Da... |
