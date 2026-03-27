@@ -35,18 +35,30 @@ def _save_last_message(bus, last_msg: str, session_id: str | None, raw: str) -> 
     )
 
 
-def _update_live_agent(bus, session_id: str | None, transcript_path: str) -> None:
+def _update_live_agent(bus, session_id: str | None, transcript_path: str, claude_uuid: str = "") -> None:
     """Update last_activity and transcript_path in live_agents if agent is registered."""
-    if not session_id:
+    if not session_id and not claude_uuid:
         return
     try:
-        bus._conn.execute(
-            """UPDATE live_agents
-               SET last_activity = datetime('now'),
-                   transcript_path = COALESCE(?, transcript_path)
-               WHERE session_id = ? AND status = 'active'""",
-            (transcript_path or None, session_id),
-        )
+        # Try by session_id first, then by claude_uuid
+        updated = 0
+        if session_id:
+            cur = bus._conn.execute(
+                """UPDATE live_agents
+                   SET last_activity = datetime('now'),
+                       transcript_path = COALESCE(?, transcript_path)
+                   WHERE session_id = ? AND status = 'active'""",
+                (transcript_path or None, session_id),
+            )
+            updated = cur.rowcount
+        if updated == 0 and claude_uuid:
+            bus._conn.execute(
+                """UPDATE live_agents
+                   SET last_activity = datetime('now'),
+                       transcript_path = COALESCE(?, transcript_path)
+                   WHERE claude_uuid = ? AND status = 'active'""",
+                (transcript_path or None, claude_uuid),
+            )
         bus._conn.commit()
     except Exception:
         pass  # Table may not exist yet
@@ -89,9 +101,10 @@ def main():
         from tools.lib.agent_bus import AgentBus
         bus = AgentBus(db_path=str(PROJECT_ROOT / "mrowisko.db"))
 
+        claude_uuid = payload.get("session_id", "")
         _save_last_message(bus, payload.get("last_assistant_message", ""), session_id, raw)
         _parse_transcript(bus, transcript_path, session_id)
-        _update_live_agent(bus, session_id, transcript_path)
+        _update_live_agent(bus, session_id, transcript_path, claude_uuid=claude_uuid)
 
 
     except Exception as e:

@@ -253,6 +253,8 @@ _MIGRATE_SQL = [
     )""",
     "CREATE INDEX IF NOT EXISTS idx_invocations_status ON invocations(status)",
     "CREATE INDEX IF NOT EXISTS idx_invocations_session ON invocations(session_id)",
+    # live_agents: claude_uuid for reliable session_end matching
+    "ALTER TABLE live_agents ADD COLUMN claude_uuid TEXT",
 ]
 
 

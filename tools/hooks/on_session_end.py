@@ -36,21 +36,39 @@ def main():
         raw = sys.stdin.read()
         payload = json.loads(raw) if raw.strip() else {}
 
-        session_id = payload.get("session_id") or _read_session_id()
-        if not session_id:
+        claude_uuid = payload.get("session_id", "")
+        transcript_path = payload.get("transcript_path", "")
+        file_session_id = _read_session_id()
+
+        if not claude_uuid and not file_session_id:
             return
 
-        transcript_path = payload.get("transcript_path", "")
-
         conn = _connect()
-        conn.execute(
-            """UPDATE live_agents
-               SET status = 'stopped',
-                   stopped_at = datetime('now'),
-                   transcript_path = COALESCE(?, transcript_path)
-               WHERE session_id = ? AND status != 'stopped'""",
-            (transcript_path or None, session_id),
-        )
+
+        # Primary: match by claude_uuid (reliable for multi-session)
+        updated = 0
+        if claude_uuid:
+            cur = conn.execute(
+                """UPDATE live_agents
+                   SET status = 'stopped',
+                       stopped_at = datetime('now'),
+                       transcript_path = COALESCE(?, transcript_path)
+                   WHERE claude_uuid = ? AND status != 'stopped'""",
+                (transcript_path or None, claude_uuid),
+            )
+            updated = cur.rowcount
+
+        # Fallback: match by session_id from file (single-session compat)
+        if updated == 0 and file_session_id:
+            conn.execute(
+                """UPDATE live_agents
+                   SET status = 'stopped',
+                       stopped_at = datetime('now'),
+                       transcript_path = COALESCE(?, transcript_path)
+                   WHERE session_id = ? AND status != 'stopped'""",
+                (transcript_path or None, file_session_id),
+            )
+
         conn.commit()
         conn.close()
 

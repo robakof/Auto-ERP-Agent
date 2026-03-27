@@ -53,11 +53,15 @@ def main():
             raw_payload=raw[:4000],
         )
 
-        # Heartbeat: update last_activity in live_agents
+        # Heartbeat: update last_activity + store claude_uuid mapping in live_agents
         if session_id:
+            claude_uuid = payload.get("session_id") or ""
             bus._conn.execute(
-                "UPDATE live_agents SET last_activity = datetime('now') WHERE session_id = ?",
-                (session_id,),
+                """UPDATE live_agents
+                   SET last_activity = datetime('now'),
+                       claude_uuid = COALESCE(?, claude_uuid)
+                   WHERE session_id = ?""",
+                (claude_uuid or None, session_id),
             )
             bus._conn.commit()
 

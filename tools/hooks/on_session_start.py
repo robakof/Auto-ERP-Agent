@@ -37,7 +37,9 @@ def main():
         raw = sys.stdin.read()
         payload = json.loads(raw) if raw.strip() else {}
 
-        session_id = payload.get("session_id") or _read_session_id()
+        claude_uuid = payload.get("session_id", "")
+        file_session_id = _read_session_id()
+        session_id = file_session_id or claude_uuid
         if not session_id:
             return
 
@@ -52,8 +54,12 @@ def main():
 
         if row:
             conn.execute(
-                "UPDATE live_agents SET status = 'active', last_activity = datetime('now') WHERE session_id = ?",
-                (session_id,),
+                """UPDATE live_agents
+                   SET status = 'active',
+                       last_activity = datetime('now'),
+                       claude_uuid = COALESCE(?, claude_uuid)
+                   WHERE session_id = ?""",
+                (claude_uuid or None, session_id),
             )
             conn.commit()
 
