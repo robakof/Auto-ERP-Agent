@@ -1,4 +1,4 @@
-Zrealizowane workflow dzisiaj                2
+Zrealizowane workflow dzisiaj                0
 
 | **Workflow w toku** | **Ilosc** | **Etap** |
 | ---------------------- | ------------------- | -------- |

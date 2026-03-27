@@ -1,25 +1,12 @@
-27 . 03                                                                                                   **00:23**
+27 . 03                                                                                                   **06:45**
 
-**Sesje**                    4
+**Sesje**                    1
 Workflow             8
 
 | **Sesje** | **Status** | **Kontekst** |
 | --------------- | ------------- | ------------ |
-| dispatcher | Z czlowiekiem | |
-| developer | Praca | |
-| architect | Praca | |
-| prompt_engineer | Praca | |
+| developer | Stoi | P1 stabilizacja: naprawa dashboardu. Szczegoly w tmp/task_p1_dashboard_fix.md |
 
 | Zadania | Wiadomosci |
 | :-----: | :--------: |
-| **29** | **91** |
-
-| **Rola** | Nieprzeczytane |
-| --------------- | -------------: |
-| erp_specialist | 23 |
-| prompt_engineer | 22 |
-| analyst | 20 |
-| metodolog | 12 |
-| developer | 7 |
-| architect | 5 |
-| dispatcher | 2 |
+| **28** | **0** |

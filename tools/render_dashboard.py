@@ -75,24 +75,25 @@ def _current_session_id() -> str | None:
     return None
 
 
-def _session_status(conn: sqlite3.Connection, role: str, session_id: str) -> str:
+def _session_status(conn: sqlite3.Connection, session_id: str, status: str) -> str:
     current_sid = _current_session_id()
     if current_sid and session_id == current_sid:
         return "Z czlowiekiem"
-    conv = conn.execute(
-        """SELECT MAX(created_at) as last
-           FROM conversation
-           WHERE session_id = ? AND created_at > datetime('now', '-30 minutes')""",
+    if status == "starting":
+        return "Startuje"
+    # active — check last_activity to distinguish live vs idle
+    row = conn.execute(
+        "SELECT last_activity FROM live_agents WHERE session_id = ?",
         (session_id,),
     ).fetchone()
-    if conv and conv["last"]:
-        return "Z czlowiekiem"
-    wf = conn.execute(
-        "SELECT id FROM workflow_execution WHERE role = ? AND status = 'running' LIMIT 1",
-        (role,),
-    ).fetchone()
-    if wf:
-        return "Praca"
+    if row and row["last_activity"]:
+        # Activity within last 5 minutes = working with human
+        fresh = conn.execute(
+            "SELECT ? > datetime('now', '-5 minutes') as is_fresh",
+            (row["last_activity"],),
+        ).fetchone()
+        if fresh and fresh["is_fresh"]:
+            return "Z czlowiekiem"
     return "Stoi"
 
 
@@ -100,7 +101,7 @@ def _render_status(conn: sqlite3.Connection, cfg: dict) -> str:
     now = datetime.now()
     c = lambda sql: conn.execute(sql).fetchone()[0]
     L = lambda k: _l(cfg, k)
-    sess_n = c("SELECT COUNT(DISTINCT role) FROM session_log WHERE content LIKE '%session started%' AND created_at > datetime('now', '-24 hours')")
+    sess_n = c("SELECT COUNT(*) FROM live_agents WHERE status IN ('starting', 'active')")
     wf_n = c("SELECT COUNT(*) FROM workflow_execution WHERE status='running'")
     planned = c("SELECT COUNT(*) FROM backlog WHERE status='planned'")
     unread = c("SELECT COUNT(*) FROM messages WHERE status='unread'")
@@ -110,14 +111,11 @@ def _render_status(conn: sqlite3.Connection, cfg: dict) -> str:
         f"**{L('sessions')}**                    {sess_n}",
         f"{L('workflow')}             {wf_n}",
     ]
-    # Sessions table
+    # Sessions table — from live_agents (starting/active only)
     sessions = conn.execute(
-        """SELECT role, session_id, created_at
-           FROM session_log
-           WHERE content LIKE '%session started%'
-             AND created_at > datetime('now', '-24 hours')
-           GROUP BY role
-           HAVING created_at = MAX(created_at)
+        """SELECT role, session_id, status, task, created_at
+           FROM live_agents
+           WHERE status IN ('starting', 'active')
            ORDER BY created_at DESC"""
     ).fetchall()
     if sessions:
@@ -125,8 +123,9 @@ def _render_status(conn: sqlite3.Connection, cfg: dict) -> str:
         lines.append(f"| **{L('sessions')}** | **Status** | **Kontekst** |")
         lines.append("| --------------- | ------------- | ------------ |")
         for s in sessions:
-            status = _session_status(conn, s["role"], s["session_id"])
-            lines.append(f"| {s['role']} | {status} | |")
+            status = _session_status(conn, s["session_id"], s["status"])
+            task = s["task"] or ""
+            lines.append(f"| {s['role']} | {status} | {task} |")
     # Tasks / Messages mini table
     lines += [""]
     lines.append(f"| {L('tasks_label')} | {L('messages_label')} |")
