@@ -1,4 +1,4 @@
-27 . 03                                                                                                   **16:40**
+27 . 03                                                                                                   **16:43**
 
 **Sesje**                    4
 Workflow             9
@@ -12,11 +12,11 @@ Workflow             9
 
 | Zadania | Wiadomosci |
 | :-----: | :--------: |
-| **31** | **26** |
+| **31** | **27** |
 
 | **Rola** | Nieprzeczytane |
 | --------------- | -------------: |
-| architect | 8 |
+| architect | 9 |
 | developer | 7 |
 | metodolog | 7 |
 | dispatcher | 2 |

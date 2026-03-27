@@ -554,13 +554,14 @@ def cmd_poke(args: argparse.Namespace, bus: AgentBus) -> dict:
         (args.role,),
     ).fetchone()
 
-    if not row or not row[0]:
+    if not row or not row["terminal_name"]:
         return {
             "ok": False,
             "error": f"No active agent with terminal_name for role '{args.role}'",
         }
 
-    terminal_name, session_id = row
+    terminal_name = row["terminal_name"]
+    session_id = row["session_id"]
 
     # Read message from file or inline
     if args.message_file:

@@ -6,7 +6,7 @@ Zrealizowane workflow dzisiaj                13
 | Workflow deweloperski | 1 (developer) | 1 |
 | Tworzenie workflow | 1 (prompt_engineer) | 4 |
 | prompt_patch | 1 (prompt_engineer) | 1 |
-| developer_tool | 1 (developer) | 2 |
+| developer_tool | 1 (developer) | 4 |
 | Operacje deweloperskie | 1 (developer) | 6 |
 
 | **Obszar** | **Zadanie w toku** |
