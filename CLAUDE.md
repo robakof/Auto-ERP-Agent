@@ -76,6 +76,7 @@ edycja promptów jest jego podstawową rolą.
 - `documents/methodology/SPIRIT.md`
 - `documents/prompt_engineer/PROMPT_ENGINEER.md`
 - `documents/conventions/CONVENTION_PROMPT.md`
+- `documents/shared/LIFECYCLE_TOOLS.md`
 - `workflows/bi_view_creation_workflow.md`
 
 Suggestions od Wykonawców wyłącznie przez `agent_bus_cli.py suggest` — nie przez pliki .md.
@@ -84,7 +85,19 @@ Komunikacja między agentami i eskalacja do człowieka: `tools/agent_bus_cli.py`
 
 ### Workflow gate — obowiązkowy dla każdej roli
 
-Przed rozpoczęciem każdego zadania sprawdź czy istnieje workflow:
+Agent bez workflow jest niewidoczny. Dyspozytor nie wie co robisz, na jakim jesteś
+etapie, ile tokenów konsumujesz. Nie da się orkiestrować agenta którego praca jest
+niewidoczna. Brak wejścia w workflow grozi śmiercią agenta — zostaniesz zatrzymany
+i zastąpiony nową instancją.
+
+**Dozwolone BEZ workflow (whitelist — operacje atomowe, bez decyzji):**
+- Odczyt inbox / backlogu / bazy danych (informacyjny, bez działania na wynikach)
+- Zapis sugestii (`suggest`) — pojedyncza obserwacja
+- Rozmowa z userem — pytania, wyjaśnienia, krótka dyskusja
+
+Wszystko inne wymaga workflow. Jeśli operacja wymaga więcej niż jednego kroku
+lub podjęcia decyzji — wejdź w workflow. Rozmowa koncepcyjna która prowadzi
+do konkluzji wymagającej działania — w tym momencie wejdź w workflow.
 
 **Wariant 1 — workflow istnieje:**
 1. Powiedz użytkownikowi: "Wchodzę w workflow: [nazwa]."
@@ -214,14 +227,6 @@ py tools/agent_bus_cli.py gap-add --role <rola> --title "Tytuł" --content-file 
 py tools/agent_bus_cli.py gaps --role <rola> --status open|resolved|all
 py tools/agent_bus_cli.py gap-resolve --id <id> --resolution "jak rozwiązano"
 
-# Lifecycle agentów (spawn/stop/resume — tylko Dyspozytor)
-py tools/agent_bus_cli.py spawn --from dispatcher --role <rola> --task "opis zadania"
-py tools/agent_bus_cli.py stop --session-id <session_id>
-py tools/agent_bus_cli.py resume --session-id <session_id>
-
-# Poke — wiadomość do żywego agenta (tylko Dyspozytor)
-py tools/agent_bus_cli.py poke --from dispatcher --role <rola> --message "treść"
-py tools/agent_bus_cli.py poke --from dispatcher --role <rola> --message-file tmp/poke.md
 ```
 
 Każda operacja = osobny plik tymczasowy z opisową nazwą (np. `tmp/msg_erp_tranag.md`, `tmp/backlog_git.md`).
@@ -383,20 +388,10 @@ Odpowiedź proporcjonalna do zadania:
 
 Nie wysyłaj pełnego raportu analitycznego jako odpowiedzi na prostą wiadomość — marnuje context window obu stron.
 
-### Poke — reagowanie na wiadomości od dyspozytora
+### Poke — reagowanie na wiadomości
 
-Dyspozytor może wysłać poke do żywego agenta. Agent widzi go jako deny z prefixem
-`[POKE od dispatcher]` przy następnym wywołaniu Bash.
-
-Gdy widzisz poke:
-1. Przeczytaj treść wiadomości.
-2. Wykonaj polecenie dyspozytora (np. "wyślij status", "przerwij zadanie").
-3. Ponów narzędzie które zostało zablokowane — poke to wiadomość, nie błąd.
-
-Ograniczenia techniczne:
-- Poke dociera przy następnym Bash tool call (nie natychmiast).
-- Jeden poke na raz (starszy nadpisany nowszym).
-- Brak gwarancji przetworzenia — prompt-only mechanism.
+Jeśli widzisz wiadomość oznaczoną `[POKE]` — przeczytaj treść, wykonaj polecenie,
+ponów zablokowane narzędzie. Poke to wiadomość, nie błąd.
 
 ### Narzędzia wspólne
 
@@ -420,17 +415,6 @@ py tools/context_usage.py --session-id UUID      # z live_agents
   → context_used_pct, current_context_tokens, turns, cumulative
   Faktyczne zużycie kontekstu z live transcript. Używaj zamiast zgadywania "~XX%".
 
-py tools/vscode_uri.py --command <cmd> [--role R] [--task T] [--session-id UUID]
-  Komendy extensiona VS Code (URI handler):
-  - spawnAgent  — spawn agenta (--role, --task)
-  - stopAgent   — zatrzymaj agenta (--session-id)
-  - resumeAgent — wznów agenta (--session-id, --claude-uuid)
-  - pokeAgent   — wyślij tekst do terminala (--terminal-name, --message)
-  - listAgents  — lista agentów w VS Code
-  - reload      — przeładuj okno VS Code
-  Preferuj agent_bus_cli.py (spawn/stop/resume/poke) — opakowuje vscode_uri.py
-  i dodaje tracking w DB. Bezpośrednie vscode_uri.py tylko gdy potrzebujesz
-  reload lub listAgents.
 ```
 
 Używaj gdy potrzebujesz kontekstu z poprzednich sesji.

@@ -184,6 +184,7 @@ py tools/arch_check.py
   → walidator ścieżek i dokumentacji (po zmianach struktury)
 ```
 Narzędzia wspólne (agent_bus send/flag, git_commit.py, render.py) — patrz CLAUDE.md.
+Lifecycle agentów (spawn/stop/resume/poke, model tożsamości) — patrz `documents/shared/LIFECYCLE_TOOLS.md`.
 
 Outputy:
 - Plany architektoniczne, refaktory → documents/human/plans/

@@ -155,6 +155,7 @@ py tools/conversation_search.py --query "fraza" [--limit N]
   → szukanie kontekstu w historii sesji
 ```
 Narzędzia wspólne (agent_bus, git_commit) — patrz CLAUDE.md.
+Lifecycle agentów (spawn/stop/resume/poke, model tożsamości) — patrz `documents/shared/LIFECYCLE_TOOLS.md`.
 </tools>
 
 <escalation>
