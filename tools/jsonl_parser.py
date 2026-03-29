@@ -98,6 +98,27 @@ def parse_jsonl(transcript_path: str) -> dict:
 
     tool_calls = []
     token_usage = []
+    messages = []  # user + assistant text messages for conversation table
+
+    # Extract user messages
+    for line in lines:
+        if not line.strip():
+            continue
+        obj = json.loads(line)
+        if obj.get("type") == "user":
+            msg = obj.get("message", {})
+            text_parts = []
+            for c in msg.get("content", []):
+                if isinstance(c, str):
+                    text_parts.append(c)
+                elif isinstance(c, dict) and c.get("type") == "text":
+                    text_parts.append(c.get("text", ""))
+            if text_parts:
+                messages.append({
+                    "speaker": "human",
+                    "content": "\n".join(text_parts)[:4000],
+                    "timestamp": obj.get("timestamp"),
+                })
 
     for turn_index, turn in enumerate(assistant_turns):
         usage = turn["usage"]
@@ -113,6 +134,7 @@ def parse_jsonl(transcript_path: str) -> dict:
             })
 
         tokens_out = usage.get("output_tokens") if usage else None
+        text_parts = []
         for c in turn["content"]:
             if isinstance(c, dict) and c.get("type") == "tool_use":
                 tool_id = c.get("id", "")
@@ -124,6 +146,17 @@ def parse_jsonl(transcript_path: str) -> dict:
                     "tokens_out": tokens_out,
                     "timestamp": turn["timestamp"],
                 })
+            elif isinstance(c, dict) and c.get("type") == "text":
+                text_parts.append(c.get("text", ""))
+        if text_parts:
+            messages.append({
+                "speaker": "agent",
+                "content": "\n".join(text_parts)[:4000],
+                "timestamp": turn["timestamp"],
+            })
+
+    # Sort messages chronologically
+    messages.sort(key=lambda m: m.get("timestamp") or "")
 
     return {
         "claude_session_id": claude_session_id,
@@ -131,6 +164,7 @@ def parse_jsonl(transcript_path: str) -> dict:
         "ended_at": ended_at,
         "tool_calls": tool_calls,
         "token_usage": token_usage,
+        "messages": messages,
     }
 
 
@@ -168,6 +202,13 @@ def save_to_db(
             cache_create_tokens=tu["cache_create_tokens"],
             duration_ms=tu["duration_ms"],
             timestamp=tu["timestamp"],
+        )
+    for msg in parsed.get("messages", []):
+        bus.add_conversation_entry(
+            speaker=msg["speaker"],
+            content=msg["content"],
+            event_type="transcript_parse",
+            session_id=our_session_id,
         )
 
 
