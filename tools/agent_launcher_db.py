@@ -61,7 +61,7 @@ def cmd_mark_stopped(args):
 def cmd_cleanup(args):
     conn = _connect()
     cur = conn.execute(
-        "UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now') WHERE status IN ('starting', 'active') AND last_activity < datetime('now', '-1 hour')"
+        "UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now') WHERE status IN ('starting', 'active') AND last_activity IS NOT NULL AND last_activity < datetime('now', '-1 hour')"
     )
     conn.commit()
     conn.close()
