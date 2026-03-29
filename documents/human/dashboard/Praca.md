@@ -1,7 +1,7 @@
-Zrealizowane workflow dzisiaj                14
+Zrealizowane workflow dzisiaj                15
 
 | **Workflow w toku** | **Ilosc** | **Etap** |
 | ---------------------- | ------------------- | -------- |
 | Tworzenie konwencji | 4 | - |
 | developer_tool | 2 | - |
-| prompt_patch | 1 (prompt_engineer) | - |
+| workflow_workflow_creation | 1 (prompt_engineer) | - |

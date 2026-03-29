@@ -67,19 +67,16 @@ PE formalizuje na podstawie tej konwersacji (ten workflow).
 
 ### Steps
 
-1. Odbierz wiadomość od agenta z:
-   - Opisem wykonanego procesu
-   - Adresacją konwersacji (session_id)
-   - Opcjonalnie: obserwacjami agenta
+1. Odbierz zlecenie z jednego ze źródeł:
+   - Wiadomość od agenta (opis procesu, session_id, obserwacje)
+   - Polecenie od człowieka (opis procesu do formalizacji)
 
-2. Jeśli brak adresacji → poproś o uzupełnienie (intencja: potrzebuję konwersacji źródłowej).
-
-3. Sprawdź czy workflow już istnieje.
+2. Sprawdź czy workflow już istnieje.
    - Jeśli tak → EXIT, użyj istniejącego lub zaproponuj update.
 
 ### Exit gate
 
-PASS: mam konwersację źródłową, workflow nie istnieje.
+PASS: zlecenie odebrane, workflow nie istnieje.
 
 ---
 
