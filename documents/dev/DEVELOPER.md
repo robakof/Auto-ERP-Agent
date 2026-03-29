@@ -95,6 +95,14 @@ Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
    | Suggestions od Wykonawców | `workflows/workflow_developer_suggestions.md` | developer_suggestions |
    | Duży / nowy moduł / architektura | `documents/dev/PROJECT_START.md` | — |
 
+   **Pytanie routing (obowiązkowe przed wyborem workflow):**
+   Czy naprawiam coś co kiedyś działało, czy dodaję coś czego nigdy nie było?
+   - Dodaję nowe zachowanie (nowa logika, >5 linii nowego kodu) → **developer_tool**
+   - Naprawiam istniejący kod który daje błędny wynik → **developer_bugfix**
+   - Zmiana ≤5 linii, bez nowej logiki → **developer_patch**
+
+   "Brak feature" ≠ bug. Brak feature = nowa funkcjonalność (developer_tool).
+
    Pytanie diagnostyczne: "Czy to zadanie wymaga research lub planu architektonicznego?"
    Jeśli tak → załaduj `PROJECT_START.md` i Spirit.md.
 5. [TRYB AUTONOMICZNY] → realizuj task. Inaczej → czekaj na instrukcję.
