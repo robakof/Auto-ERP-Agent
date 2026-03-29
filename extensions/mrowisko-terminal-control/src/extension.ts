@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as crypto from "crypto";
 import * as path from "path";
 import { Registry } from "./registry";
 import { Spawner } from "./spawner";
@@ -100,6 +101,7 @@ export function activate(context: vscode.ExtensionContext): void {
           }
         } else if (command === "resumeAgent") {
           const terminalName = params.get("terminalName");
+          const spawnToken = params.get("spawnToken") || crypto.randomUUID();
           if (terminalName) {
             const existing = vscode.window.terminals.find(
               (t) => t.name === terminalName
@@ -122,6 +124,7 @@ export function activate(context: vscode.ExtensionContext): void {
               const newTerminal = vscode.window.createTerminal({
                 name: terminalName,
                 location,
+                env: { MROWISKO_SPAWN_TOKEN: spawnToken },
               });
               newTerminal.sendText("claude --resume");
               newTerminal.show();

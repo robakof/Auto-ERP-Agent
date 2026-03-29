@@ -85,16 +85,18 @@ async function listAgents(registry, terminals) {
         return;
     }
     const items = agents.map((a) => ({
-        label: `${a.role} [${a.status}]`,
+        label: `${a.role ?? "unknown"} [${a.status}]`,
         description: a.task || "",
-        detail: `session: ${a.sessionId.slice(0, 8)}... | ${a.createdAt}`,
-        sessionId: a.sessionId,
+        detail: `session: ${(a.sessionId ?? a.spawnToken ?? "?").slice(0, 8)}... | ${a.createdAt}`,
+        spawnToken: a.spawnToken ?? "",
+        sessionId: a.sessionId ?? "",
     }));
     const selected = await vscode.window.showQuickPick(items, {
         placeHolder: "Aktywni agenci (wybierz aby przejsc do terminala)",
     });
     if (selected) {
-        const terminal = terminals.get(selected.sessionId);
+        const key = selected.spawnToken || selected.sessionId;
+        const terminal = key ? terminals.get(key) : undefined;
         if (terminal) {
             terminal.show();
         }
@@ -110,10 +112,11 @@ async function stopAgent(registry, terminals) {
         return;
     }
     const items = agents.map((a) => ({
-        label: `${a.role} [${a.status}]`,
+        label: `${a.role ?? "unknown"} [${a.status}]`,
         description: a.task || "",
-        detail: `session: ${a.sessionId.slice(0, 8)}...`,
-        sessionId: a.sessionId,
+        detail: `session: ${(a.sessionId ?? a.spawnToken ?? "?").slice(0, 8)}...`,
+        spawnToken: a.spawnToken ?? "",
+        sessionId: a.sessionId ?? "",
     }));
     const selected = await vscode.window.showQuickPick(items, {
         placeHolder: "Wybierz agenta do zatrzymania",
@@ -121,12 +124,13 @@ async function stopAgent(registry, terminals) {
     if (!selected) {
         return;
     }
-    const terminal = terminals.get(selected.sessionId);
+    const key = selected.spawnToken || selected.sessionId;
+    const terminal = key ? terminals.get(key) : undefined;
     if (terminal) {
         terminal.dispose();
         // onDidCloseTerminal watcher handles DB cleanup
     }
-    else {
+    else if (selected.sessionId) {
         // Terminal not in this window — mark stopped directly
         registry.markStopped(selected.sessionId);
     }

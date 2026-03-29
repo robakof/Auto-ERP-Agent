@@ -2,14 +2,14 @@ import * as vscode from "vscode";
 
 export interface LiveAgent {
   id: number;
-  sessionId: string;
-  role: string;
+  sessionId: string | null;
+  claudeUuid: string | null;
+  role: string | null;
   task: string | null;
   terminalName: string | null;
-  windowId: string | null;
   status: "starting" | "active" | "stopped";
   spawnedBy: string | null;
-  permissionMode: string;
+  spawnToken: string | null;
   createdAt: string;
   lastActivity: string | null;
   stoppedAt: string | null;

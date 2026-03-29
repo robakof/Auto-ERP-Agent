@@ -14,8 +14,8 @@ export class Spawner {
   ) {}
 
   spawn(request: SpawnRequest): vscode.Terminal {
-    const sessionId = crypto.randomUUID();
     const terminalName = `Agent: ${request.role}`;
+    const spawnToken = crypto.randomUUID();
     const permissionMode =
       request.permissionMode ||
       vscode.workspace
@@ -24,11 +24,10 @@ export class Spawner {
 
     // Pre-register in DB before terminal exists
     this.registry.insert(
-      sessionId,
+      spawnToken,
       request.role,
       request.task,
       terminalName,
-      permissionMode,
       "human"
     );
 
@@ -44,6 +43,7 @@ export class Spawner {
     const terminal = vscode.window.createTerminal({
       name: terminalName,
       location,
+      env: { MROWISKO_SPAWN_TOKEN: spawnToken },
     });
 
     // Build claude command with task context in system prompt
@@ -57,7 +57,6 @@ export class Spawner {
     const cmd = [
       "claude",
       `--name "Agent-${request.role}"`,
-      `--session-id "${sessionId}"`,
       `--append-system-prompt "${extraPrompt.replace(/"/g, '\\"')}"`,
       `--permission-mode ${permissionMode}`,
     ].join(" ");
@@ -79,8 +78,8 @@ export class Spawner {
 
     terminal.show();
 
-    // Track terminal locally
-    this.terminals.set(sessionId, terminal);
+    // Track terminal locally (by spawn_token — session_id not known yet)
+    this.terminals.set(spawnToken, terminal);
 
     return terminal;
   }

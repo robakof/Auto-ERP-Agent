@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = activate;
 exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
+const crypto = __importStar(require("crypto"));
 const path = __importStar(require("path"));
 const registry_1 = require("./registry");
 const spawner_1 = require("./spawner");
@@ -127,6 +128,7 @@ function activate(context) {
             }
             else if (command === "resumeAgent") {
                 const terminalName = params.get("terminalName");
+                const spawnToken = params.get("spawnToken") || crypto.randomUUID();
                 if (terminalName) {
                     const existing = vscode.window.terminals.find((t) => t.name === terminalName);
                     if (existing) {
@@ -145,6 +147,7 @@ function activate(context) {
                         const newTerminal = vscode.window.createTerminal({
                             name: terminalName,
                             location,
+                            env: { MROWISKO_SPAWN_TOKEN: spawnToken },
                         });
                         newTerminal.sendText("claude --resume");
                         newTerminal.show();

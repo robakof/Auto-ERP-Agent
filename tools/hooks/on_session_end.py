@@ -1,11 +1,12 @@
 """Hook: SessionEnd — marks agent as stopped in live_agents table.
 
-Observability-only hook. Fires when a Claude Code session terminates.
-Only affects agents pre-registered by the launcher (spawned agents).
+Identity Redesign: matches by spawn_token (env) or claude_uuid (payload).
+No shared file fallback.
 """
 
 import io
 import json
+import os
 import sqlite3
 import sys
 from pathlib import Path
@@ -14,13 +15,6 @@ sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8")
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 DB_PATH = PROJECT_ROOT / "mrowisko.db"
-SESSION_ID_FILE = PROJECT_ROOT / "tmp" / "session_id.txt"
-
-
-def _read_session_id() -> str | None:
-    if SESSION_ID_FILE.exists():
-        return SESSION_ID_FILE.read_text(encoding="utf-8").strip() or None
-    return None
 
 
 def _connect() -> sqlite3.Connection:
@@ -38,35 +32,33 @@ def main():
 
         claude_uuid = payload.get("session_id", "")
         transcript_path = payload.get("transcript_path", "")
-        file_session_id = _read_session_id()
+        spawn_token = os.environ.get("MROWISKO_SPAWN_TOKEN", "")
 
-        if not claude_uuid and not file_session_id:
+        if not claude_uuid and not spawn_token:
             return
 
         conn = _connect()
 
-        # Primary: match by claude_uuid (reliable for multi-session)
         updated = 0
-        if claude_uuid:
+        if spawn_token:
             cur = conn.execute(
+                """UPDATE live_agents
+                   SET status = 'stopped',
+                       stopped_at = datetime('now'),
+                       transcript_path = COALESCE(?, transcript_path)
+                   WHERE spawn_token = ? AND status != 'stopped'""",
+                (transcript_path or None, spawn_token),
+            )
+            updated = cur.rowcount
+
+        if updated == 0 and claude_uuid:
+            conn.execute(
                 """UPDATE live_agents
                    SET status = 'stopped',
                        stopped_at = datetime('now'),
                        transcript_path = COALESCE(?, transcript_path)
                    WHERE claude_uuid = ? AND status != 'stopped'""",
                 (transcript_path or None, claude_uuid),
-            )
-            updated = cur.rowcount
-
-        # Fallback: match by session_id from file (single-session compat)
-        if updated == 0 and file_session_id:
-            conn.execute(
-                """UPDATE live_agents
-                   SET status = 'stopped',
-                       stopped_at = datetime('now'),
-                       transcript_path = COALESCE(?, transcript_path)
-                   WHERE session_id = ? AND status != 'stopped'""",
-                (transcript_path or None, file_session_id),
             )
 
         conn.commit()

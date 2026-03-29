@@ -1,12 +1,13 @@
-"""Hook: SessionStart — registers agent in live_agents table.
+"""Hook: SessionStart — links spawn_token to claude_uuid in live_agents.
 
-Observability-only hook. Fires when a Claude Code session starts.
-Updates live_agents status from 'starting' to 'active' if pre-registered,
-or skips for manually started sessions (only spawned agents are tracked).
+Identity Redesign: uses MROWISKO_SPAWN_TOKEN env var (set by spawner)
+to deterministically link the spawned record with the actual Claude Code session.
+Manual sessions (no spawn_token) get inserted directly with claude_uuid.
 """
 
 import io
 import json
+import os
 import sqlite3
 import sys
 from pathlib import Path
@@ -15,13 +16,6 @@ sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8")
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 DB_PATH = PROJECT_ROOT / "mrowisko.db"
-SESSION_ID_FILE = PROJECT_ROOT / "tmp" / "session_id.txt"
-
-
-def _read_session_id() -> str | None:
-    if SESSION_ID_FILE.exists():
-        return SESSION_ID_FILE.read_text(encoding="utf-8").strip() or None
-    return None
 
 
 def _connect() -> sqlite3.Connection:
@@ -38,41 +32,35 @@ def main():
         payload = json.loads(raw) if raw.strip() else {}
 
         claude_uuid = payload.get("session_id", "")
-
-        # Insert claude_uuid into uuid_bridge for session_init to claim atomically
-        if claude_uuid:
-            conn_bridge = _connect()
-            # Cleanup stale entries (>5 min unclaimed)
-            conn_bridge.execute("DELETE FROM uuid_bridge WHERE created_at < datetime('now', '-5 minutes')")
-            conn_bridge.execute("INSERT INTO uuid_bridge (claude_uuid) VALUES (?)", (claude_uuid,))
-            conn_bridge.commit()
-            conn_bridge.close()
-
-        file_session_id = _read_session_id()
-        session_id = file_session_id or claude_uuid
-        if not session_id:
+        if not claude_uuid:
             return
 
+        spawn_token = os.environ.get("MROWISKO_SPAWN_TOKEN", "")
         conn = _connect()
 
-        # Only update pre-registered agents (spawned by launcher, status='starting').
-        # Manual sessions (started by human typing `claude`) are not tracked in live_agents.
-        row = conn.execute(
-            "SELECT id FROM live_agents WHERE session_id = ?",
-            (session_id,),
-        ).fetchone()
-
-        if row:
+        if spawn_token:
+            # Spawned agent: link claude_uuid to pre-registered record
             conn.execute(
                 """UPDATE live_agents
-                   SET status = 'active',
-                       last_activity = datetime('now'),
-                       claude_uuid = COALESCE(?, claude_uuid)
-                   WHERE session_id = ?""",
-                (claude_uuid or None, session_id),
+                   SET claude_uuid = ?,
+                       status = 'active',
+                       last_activity = datetime('now')
+                   WHERE spawn_token = ? AND status = 'starting'""",
+                (claude_uuid, spawn_token),
             )
-            conn.commit()
+        else:
+            # Manual session: insert new record (or reactivate if claude_uuid exists)
+            conn.execute(
+                """INSERT INTO live_agents (claude_uuid, status, spawned_by, last_activity)
+                   VALUES (?, 'active', 'manual', datetime('now'))
+                   ON CONFLICT(claude_uuid) DO UPDATE SET
+                     status = 'active',
+                     last_activity = datetime('now'),
+                     stopped_at = NULL""",
+                (claude_uuid,),
+            )
 
+        conn.commit()
         conn.close()
 
     except Exception as e:

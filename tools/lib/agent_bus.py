@@ -296,6 +296,58 @@ _MIGRATE_SQL = [
         session_id  TEXT,
         created_at  TEXT NOT NULL DEFAULT (datetime('now'))
     )""",
+    # Identity Redesign: handled in _run_migrations() as conditional migration
+]
+
+# Conditional migration — only runs once (checks for spawn_token column)
+_IDENTITY_REDESIGN_SQL = [
+    "DROP TABLE IF EXISTS uuid_bridge",
+    "DROP VIEW IF EXISTS v_agent_status",
+    "DROP VIEW IF EXISTS v_handoffs_blocked",
+    "DROP TABLE IF EXISTS live_agents",
+    """CREATE TABLE live_agents (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        claude_uuid     TEXT UNIQUE,
+        session_id      TEXT UNIQUE,
+        role            TEXT,
+        terminal_name   TEXT,
+        task            TEXT,
+        status          TEXT NOT NULL DEFAULT 'starting',
+        spawned_by      TEXT,
+        spawn_token     TEXT UNIQUE,
+        last_activity   TEXT,
+        created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+        stopped_at      TEXT,
+        transcript_path TEXT,
+        CHECK (status IN ('starting', 'active', 'stopped'))
+    )""",
+    "CREATE INDEX IF NOT EXISTS idx_live_agents_status ON live_agents(status)",
+    "CREATE INDEX IF NOT EXISTS idx_live_agents_role ON live_agents(role)",
+    """CREATE VIEW IF NOT EXISTS v_agent_status AS
+    SELECT
+        session_id,
+        role,
+        task,
+        status AS raw_status,
+        last_activity,
+        claude_uuid,
+        terminal_name,
+        spawn_token,
+        CASE
+            WHEN status = 'starting' THEN 'starting'
+            WHEN last_activity > datetime('now', '-5 minutes') THEN 'working'
+            WHEN last_activity > datetime('now', '-30 minutes') THEN 'stale'
+            ELSE 'dead'
+        END AS display_status,
+        created_at
+    FROM live_agents
+    WHERE status IN ('starting', 'active')""",
+    """CREATE VIEW IF NOT EXISTS v_handoffs_blocked AS
+    SELECT m.*
+    FROM messages m
+    LEFT JOIN live_agents la
+        ON la.role = m.recipient AND la.status IN ('starting', 'active')
+    WHERE m.type = 'handoff' AND m.status = 'unread' AND la.id IS NULL""",
 ]
 
 
@@ -338,6 +390,18 @@ class AgentBus:
                 self._conn.execute(stmt)
             except Exception:
                 pass  # kolumna/tabela już istnieje
+
+        # Identity Redesign: one-time migration (check for spawn_token column)
+        try:
+            self._conn.execute("SELECT spawn_token FROM live_agents LIMIT 0")
+        except Exception:
+            # spawn_token column missing → run identity redesign migration
+            for stmt in _IDENTITY_REDESIGN_SQL:
+                try:
+                    self._conn.execute(stmt)
+                except Exception:
+                    pass
+            self._conn.commit()
 
     def _auto_commit(self) -> None:
         """Commit only if NOT in explicit transaction context."""

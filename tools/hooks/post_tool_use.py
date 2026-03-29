@@ -30,17 +30,9 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 _DB_PATH = os.environ.get("MROWISKO_DB") or str(PROJECT_ROOT / "mrowisko.db")
-_SESSION_DIR = Path(os.environ.get("MROWISKO_SESSION_DIR") or str(PROJECT_ROOT / "tmp"))
-SESSION_ID_FILE = _SESSION_DIR / "session_id.txt"
 DEBUG_FILE = PROJECT_ROOT / "tmp" / "hook_post_tool_use_debug.json"
 
 sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8")
-
-
-def _read_session_id() -> str | None:
-    if SESSION_ID_FILE.exists():
-        return SESSION_ID_FILE.read_text(encoding="utf-8").strip() or None
-    return None
 
 
 def _input_summary(tool_input: dict) -> str:
@@ -69,15 +61,22 @@ def main() -> None:
         is_error: int = int(bool(tool_response.get("is_error", False)))
 
         claude_uuid = payload.get("session_id") or ""
-        file_session_id = _read_session_id()
+        spawn_token = os.environ.get("MROWISKO_SPAWN_TOKEN", "")
 
         sys.path.insert(0, str(PROJECT_ROOT))
         from tools.lib.agent_bus import AgentBus
         bus = AgentBus(db_path=_DB_PATH)
 
-        # Resolve mrowisko session_id: prefer claude_uuid lookup, fallback to file
-        session_id = file_session_id
-        if claude_uuid:
+        # Resolve mrowisko session_id: spawn_token (deterministic) or claude_uuid
+        session_id = None
+        if spawn_token:
+            row = bus._conn.execute(
+                "SELECT session_id FROM live_agents WHERE spawn_token = ?",
+                (spawn_token,),
+            ).fetchone()
+            if row:
+                session_id = row[0]
+        if not session_id and claude_uuid:
             row = bus._conn.execute(
                 "SELECT session_id FROM live_agents WHERE claude_uuid = ? AND status != 'stopped'",
                 (claude_uuid,),

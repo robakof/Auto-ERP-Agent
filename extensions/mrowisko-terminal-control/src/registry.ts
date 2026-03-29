@@ -4,14 +4,14 @@ import { LiveAgent } from "./types";
 
 interface DbRow {
   id: number;
-  session_id: string;
-  role: string;
+  claude_uuid: string | null;
+  session_id: string | null;
+  role: string | null;
   task: string | null;
   terminal_name: string | null;
-  window_id: string | null;
   status: string;
   spawned_by: string | null;
-  permission_mode: string;
+  spawn_token: string | null;
   created_at: string;
   last_activity: string | null;
   stopped_at: string | null;
@@ -22,13 +22,13 @@ function rowToLiveAgent(row: DbRow): LiveAgent {
   return {
     id: row.id,
     sessionId: row.session_id,
+    claudeUuid: row.claude_uuid,
     role: row.role,
     task: row.task,
     terminalName: row.terminal_name,
-    windowId: row.window_id,
     status: row.status as LiveAgent["status"],
     spawnedBy: row.spawned_by,
-    permissionMode: row.permission_mode,
+    spawnToken: row.spawn_token,
     createdAt: row.created_at,
     lastActivity: row.last_activity,
     stoppedAt: row.stopped_at,
@@ -63,20 +63,18 @@ export class Registry {
   }
 
   insert(
-    sessionId: string,
+    spawnToken: string,
     role: string,
     task: string,
     terminalName: string,
-    permissionMode: string,
     spawnedBy: string
   ): void {
     this.run([
       "insert",
-      "--session-id", sessionId,
+      "--spawn-token", spawnToken,
       "--role", role,
       "--task", task,
       "--terminal-name", terminalName,
-      "--permission-mode", permissionMode,
       "--spawned-by", spawnedBy,
     ]);
   }

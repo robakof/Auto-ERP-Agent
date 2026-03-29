@@ -1,14 +1,13 @@
 """Hook: UserPromptSubmit — captures user messages to conversation table.
 
-Claude Code sends JSON on stdin:
-  {"prompt": "user message text", ...possibly more fields}
-
-Writes to mrowisko.db conversation table.
-Silently fails on any error (never blocks the agent).
+Identity Redesign: heartbeat uses MROWISKO_SPAWN_TOKEN env var (deterministic)
+or claude_uuid from payload (fallback for manual sessions). No shared files.
+Also runs inline GC to auto-stop dead sessions (>10 min no heartbeat).
 """
 
 import io
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -19,13 +18,6 @@ sys.path.insert(0, str(PROJECT_ROOT))
 sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8")
 
 DEBUG_FILE = PROJECT_ROOT / "tmp" / "hook_user_prompt_debug.json"
-SESSION_ID_FILE = PROJECT_ROOT / "tmp" / "session_id.txt"
-
-
-def read_session_id() -> str | None:
-    if SESSION_ID_FILE.exists():
-        return SESSION_ID_FILE.read_text(encoding="utf-8").strip() or None
-    return None
 
 
 def main():
@@ -33,7 +25,7 @@ def main():
         raw = sys.stdin.read()
         payload = json.loads(raw) if raw.strip() else {}
 
-        # Always dump for debugging (E2 experiment)
+        # Always dump for debugging
         DEBUG_FILE.parent.mkdir(parents=True, exist_ok=True)
         DEBUG_FILE.write_text(
             json.dumps(payload, ensure_ascii=False, indent=2),
@@ -42,31 +34,61 @@ def main():
 
         prompt_text = payload.get("prompt") or payload.get("message") or str(payload)
         claude_uuid = payload.get("session_id") or ""
-        file_session_id = read_session_id()
+        spawn_token = os.environ.get("MROWISKO_SPAWN_TOKEN", "")
 
         from tools.lib.agent_bus import AgentBus
         bus = AgentBus(db_path=str(PROJECT_ROOT / "mrowisko.db"))
+
+        # Resolve mrowisko session_id for conversation logging
+        session_id = None
+        if spawn_token:
+            row = bus._conn.execute(
+                "SELECT session_id FROM live_agents WHERE spawn_token = ?",
+                (spawn_token,),
+            ).fetchone()
+            if row:
+                session_id = row[0]
+        if not session_id and claude_uuid:
+            row = bus._conn.execute(
+                "SELECT session_id FROM live_agents WHERE claude_uuid = ? AND status != 'stopped'",
+                (claude_uuid,),
+            ).fetchone()
+            if row:
+                session_id = row[0]
+
         bus.add_conversation_entry(
             speaker="human",
-            content=prompt_text[:2000],  # cap at 2000 chars
+            content=prompt_text[:2000],
             event_type="user_prompt",
-            session_id=file_session_id,
+            session_id=session_id,
             raw_payload=raw[:4000],
         )
 
-        # Heartbeat: update last_activity via claude_uuid ONLY (no shared file fallback)
-        # Fallback removed — it caused identity theft in multi-session
-        if claude_uuid:
+        # Heartbeat: update last_activity — deterministic match
+        if spawn_token:
             bus._conn.execute(
-                """UPDATE live_agents
-                   SET last_activity = datetime('now')
+                """UPDATE live_agents SET last_activity = datetime('now')
+                   WHERE spawn_token = ? AND status != 'stopped'""",
+                (spawn_token,),
+            )
+        elif claude_uuid:
+            bus._conn.execute(
+                """UPDATE live_agents SET last_activity = datetime('now')
                    WHERE claude_uuid = ? AND status != 'stopped'""",
                 (claude_uuid,),
             )
-            bus._conn.commit()
+
+        # GC: auto-stop dead sessions (no heartbeat for >10 min)
+        bus._conn.execute(
+            """UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now')
+               WHERE status IN ('active', 'starting')
+                 AND last_activity IS NOT NULL
+                 AND last_activity < datetime('now', '-10 minutes')""",
+        )
+
+        bus._conn.commit()
 
         # Refresh dashboard (fire-and-forget, skip if already rendering)
-        import os
         if not os.environ.get("MROWISKO_DASHBOARD_RENDERING"):
             import subprocess
             env = os.environ.copy()

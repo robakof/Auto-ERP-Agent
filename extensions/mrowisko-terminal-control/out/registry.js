@@ -40,13 +40,13 @@ function rowToLiveAgent(row) {
     return {
         id: row.id,
         sessionId: row.session_id,
+        claudeUuid: row.claude_uuid,
         role: row.role,
         task: row.task,
         terminalName: row.terminal_name,
-        windowId: row.window_id,
         status: row.status,
         spawnedBy: row.spawned_by,
-        permissionMode: row.permission_mode,
+        spawnToken: row.spawn_token,
         createdAt: row.created_at,
         lastActivity: row.last_activity,
         stoppedAt: row.stopped_at,
@@ -73,14 +73,13 @@ class Registry {
         const output = this.run(args);
         return JSON.parse(output);
     }
-    insert(sessionId, role, task, terminalName, permissionMode, spawnedBy) {
+    insert(spawnToken, role, task, terminalName, spawnedBy) {
         this.run([
             "insert",
-            "--session-id", sessionId,
+            "--spawn-token", spawnToken,
             "--role", role,
             "--task", task,
             "--terminal-name", terminalName,
-            "--permission-mode", permissionMode,
             "--spawned-by", spawnedBy,
         ]);
     }

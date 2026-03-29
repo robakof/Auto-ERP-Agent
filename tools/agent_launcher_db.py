@@ -28,9 +28,9 @@ def _connect() -> sqlite3.Connection:
 def cmd_insert(args):
     conn = _connect()
     conn.execute(
-        """INSERT INTO live_agents (session_id, role, task, terminal_name, status, permission_mode, spawned_by)
-           VALUES (?, ?, ?, ?, 'starting', ?, ?)""",
-        (args.session_id, args.role, args.task, args.terminal_name, args.permission_mode, args.spawned_by),
+        """INSERT INTO live_agents (spawn_token, role, task, terminal_name, status, spawned_by)
+           VALUES (?, ?, ?, ?, 'starting', ?)""",
+        (args.spawn_token, args.role, args.task, args.terminal_name, args.spawned_by),
     )
     conn.commit()
     conn.close()
@@ -115,11 +115,10 @@ def main():
     sub = parser.add_subparsers(dest="command")
 
     p_insert = sub.add_parser("insert")
-    p_insert.add_argument("--session-id", required=True)
+    p_insert.add_argument("--spawn-token", required=True)
     p_insert.add_argument("--role", required=True)
     p_insert.add_argument("--task", required=True)
     p_insert.add_argument("--terminal-name", required=True)
-    p_insert.add_argument("--permission-mode", default="default")
     p_insert.add_argument("--spawned-by", default="human")
 
     sub.add_parser("list-active")

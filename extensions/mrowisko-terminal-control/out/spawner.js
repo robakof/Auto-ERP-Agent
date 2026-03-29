@@ -45,14 +45,14 @@ class Spawner {
         this.terminals = terminals;
     }
     spawn(request) {
-        const sessionId = crypto.randomUUID();
         const terminalName = `Agent: ${request.role}`;
+        const spawnToken = crypto.randomUUID();
         const permissionMode = request.permissionMode ||
             vscode.workspace
                 .getConfiguration("mrowisko")
                 .get("defaultPermissionMode", "default");
         // Pre-register in DB before terminal exists
-        this.registry.insert(sessionId, request.role, request.task, terminalName, permissionMode, "human");
+        this.registry.insert(spawnToken, request.role, request.task, terminalName, "human");
         // Determine terminal location
         const locationSetting = vscode.workspace
             .getConfiguration("mrowisko")
@@ -63,6 +63,7 @@ class Spawner {
         const terminal = vscode.window.createTerminal({
             name: terminalName,
             location,
+            env: { MROWISKO_SPAWN_TOKEN: spawnToken },
         });
         // Build claude command with task context in system prompt
         // TODO(phase-3): escape systemPrompt for PowerShell special chars
@@ -74,7 +75,6 @@ class Spawner {
         const cmd = [
             "claude",
             `--name "Agent-${request.role}"`,
-            `--session-id "${sessionId}"`,
             `--append-system-prompt "${extraPrompt.replace(/"/g, '\\"')}"`,
             `--permission-mode ${permissionMode}`,
         ].join(" ");
@@ -92,8 +92,8 @@ class Spawner {
             }, 500);
         }, delay);
         terminal.show();
-        // Track terminal locally
-        this.terminals.set(sessionId, terminal);
+        // Track terminal locally (by spawn_token — session_id not known yet)
+        this.terminals.set(spawnToken, terminal);
         return terminal;
     }
 }

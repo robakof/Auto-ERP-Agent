@@ -21,8 +21,6 @@ from tools.lib.agent_bus import AgentBus
 from tools.lib.output import print_json
 
 DB_PATH = "mrowisko.db"
-SESSION_ID_FILE = Path("tmp/session_id.txt")  # legacy
-SESSION_DATA_FILE = Path("tmp/session_data.json")
 CONFIG_FILE = Path("config/session_init_config.json")
 
 BACKLOG_META_KEYS = ("id", "title", "area", "value", "effort", "status", "depends_on", "created_at")
@@ -52,24 +50,6 @@ def generate_session_id() -> str:
     return uuid.uuid4().hex[:12]
 
 
-def write_session_id(session_id: str, role: str = None) -> None:
-    SESSION_ID_FILE.parent.mkdir(parents=True, exist_ok=True)
-    SESSION_ID_FILE.write_text(session_id, encoding="utf-8")
-    # Also write session_data.json with role for CLI session-awareness
-    if role:
-        import datetime
-        data = {
-            "session_id": session_id,
-            "role": role,
-            "created_at": datetime.datetime.now().isoformat()
-        }
-        SESSION_DATA_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
-
-
-def read_session_id() -> str | None:
-    if SESSION_ID_FILE.exists():
-        return SESSION_ID_FILE.read_text(encoding="utf-8").strip()
-    return None
 
 
 def load_config(role: str) -> dict:
@@ -211,83 +191,80 @@ def main():
 
     bus = AgentBus(db_path=args.db)
 
-    # Atomic claim: get claude_uuid from uuid_bridge (replaces shared pending file)
-    claude_uuid = None
-    bus._conn.execute("BEGIN IMMEDIATE")
-    bridge_row = bus._conn.execute(
-        "SELECT id, claude_uuid FROM uuid_bridge WHERE session_id IS NULL ORDER BY id DESC LIMIT 1"
-    ).fetchone()
-    if bridge_row:
-        claude_uuid = bridge_row["claude_uuid"]
-        bus._conn.execute("UPDATE uuid_bridge SET session_id = 'claiming' WHERE id = ?", (bridge_row["id"],))
-    bus._conn.commit()
-
-    # Resume detection: if claude_uuid already exists in live_agents, reuse session_id
+    # Identity Redesign: spawn_token from env → deterministic link to live_agents record
+    import os
+    spawn_token = os.environ.get("MROWISKO_SPAWN_TOKEN", "")
     resumed = False
-    existing_row = None
-    if claude_uuid:
+
+    if spawn_token:
+        # SPAWNED: find pre-registered record by spawn_token
         existing_row = bus._conn.execute(
-            "SELECT session_id, role FROM live_agents WHERE claude_uuid = ?",
-            (claude_uuid,),
+            "SELECT session_id, role, claude_uuid FROM live_agents WHERE spawn_token = ?",
+            (spawn_token,),
         ).fetchone()
 
-    if existing_row:
-        # RESUME: reuse session_id, reactivate
-        session_id = existing_row["session_id"]
-        bus._conn.execute(
-            """UPDATE live_agents SET status = 'active', last_activity = datetime('now')
-               WHERE session_id = ?""",
-            (session_id,),
-        )
-        bus._conn.commit()
-        write_session_id(session_id, role=args.role)
-        resumed = True
-        bus.add_session_log(
-            role=args.role,
-            content="session resumed",
-            session_id=session_id,
-        )
+        if existing_row and existing_row["session_id"]:
+            # RESUME: session_id already assigned (previous session_init ran)
+            session_id = existing_row["session_id"]
+            resumed = True
+            bus._conn.execute(
+                """UPDATE live_agents SET role = ?, status = 'active', last_activity = datetime('now')
+                   WHERE spawn_token = ?""",
+                (args.role, spawn_token),
+            )
+            bus._conn.commit()
+            bus.add_session_log(role=args.role, content="session resumed", session_id=session_id)
+        elif existing_row:
+            # FIRST START: assign session_id to spawned record
+            session_id = generate_session_id()
+            bus._conn.execute(
+                """UPDATE live_agents SET session_id = ?, role = ?, status = 'active', last_activity = datetime('now')
+                   WHERE spawn_token = ?""",
+                (session_id, args.role, spawn_token),
+            )
+            bus._conn.commit()
+            bus.add_session_log(role=args.role, content="session started", session_id=session_id)
+        else:
+            # spawn_token not found (stale?) — treat as manual
+            session_id = generate_session_id()
+            bus._conn.execute(
+                """INSERT INTO live_agents (session_id, role, status, spawned_by, last_activity, spawn_token)
+                   VALUES (?, ?, 'active', 'manual', datetime('now'), ?)""",
+                (session_id, args.role, spawn_token),
+            )
+            bus._conn.commit()
+            bus.add_session_log(role=args.role, content="session started", session_id=session_id)
     else:
-        # NEW SESSION: generate new session_id
-        session_id = generate_session_id()
-        write_session_id(session_id, role=args.role)
+        # MANUAL: no spawn_token — find by claude_uuid or create new
+        claude_uuid = os.environ.get("CLAUDE_SESSION_ID", "")
+        existing_row = None
+        if claude_uuid:
+            existing_row = bus._conn.execute(
+                "SELECT session_id FROM live_agents WHERE claude_uuid = ?",
+                (claude_uuid,),
+            ).fetchone()
 
-        # Register in live_agents so dashboard sees every session (manual + spawned).
-        # Inherit terminal_name from previous session of same role (spawner sets it).
-        prev = bus._conn.execute(
-            """SELECT terminal_name FROM live_agents
-               WHERE role = ? AND status IN ('starting', 'active') AND terminal_name IS NOT NULL
-               LIMIT 1""",
-            (args.role,),
-        ).fetchone()
-        terminal_name = prev["terminal_name"] if prev else None
-
-        # Stop previous sessions of same role — we take over identity.
-        bus._conn.execute(
-            """UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now')
-               WHERE role = ? AND status IN ('starting', 'active') AND session_id != ?""",
-            (args.role, session_id),
-        )
-        bus._conn.execute(
-            """INSERT INTO live_agents (session_id, role, status, spawned_by, last_activity, claude_uuid, terminal_name)
-               VALUES (?, ?, 'active', 'manual', datetime('now'), ?, ?)
-               ON CONFLICT(session_id) DO UPDATE SET
-                 status = 'active',
-                 last_activity = datetime('now'),
-                 claude_uuid = COALESCE(excluded.claude_uuid, live_agents.claude_uuid)""",
-            (session_id, args.role, claude_uuid, terminal_name),
-        )
-        bus._conn.commit()
-        bus.add_session_log(
-            role=args.role,
-            content="session started",
-            session_id=session_id,
-        )
-
-    # Finalize uuid_bridge with actual session_id
-    if bridge_row:
-        bus._conn.execute("UPDATE uuid_bridge SET session_id = ? WHERE id = ?", (session_id, bridge_row["id"]))
-        bus._conn.commit()
+        if existing_row and existing_row["session_id"]:
+            session_id = existing_row["session_id"]
+            resumed = True
+            bus._conn.execute(
+                """UPDATE live_agents SET role = ?, status = 'active', last_activity = datetime('now')
+                   WHERE claude_uuid = ?""",
+                (args.role, claude_uuid),
+            )
+            bus._conn.commit()
+            bus.add_session_log(role=args.role, content="session resumed", session_id=session_id)
+        else:
+            session_id = generate_session_id()
+            bus._conn.execute(
+                """INSERT INTO live_agents (session_id, role, status, spawned_by, last_activity)
+                   VALUES (?, ?, 'active', 'manual', datetime('now'))
+                   ON CONFLICT(session_id) DO UPDATE SET
+                     status = 'active', role = excluded.role, last_activity = datetime('now')""",
+                (session_id, args.role),
+            )
+            bus._conn.commit()
+            bus.add_session_log(role=args.role, content="session started", session_id=session_id)
 
     # Load config and gather context
     try:
