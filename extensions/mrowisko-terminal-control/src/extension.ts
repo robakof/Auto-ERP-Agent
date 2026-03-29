@@ -78,13 +78,52 @@ export function activate(context: vscode.ExtensionContext): void {
         } else if (command === "listAgents") {
           vscode.commands.executeCommand("mrowisko.listAgents");
         } else if (command === "stopAgent") {
+          const terminalName = params.get("terminalName");
           const sessionId = params.get("sessionId");
-          if (sessionId) {
-            const terminal = terminals.get(sessionId);
-            if (terminal) {
-              terminal.dispose();
+          // Prefer terminalName (works for all sessions), fallback to sessionId (spawned only)
+          let terminal: vscode.Terminal | undefined;
+          if (terminalName) {
+            terminal = vscode.window.terminals.find(
+              (t) => t.name === terminalName
+            );
+          } else if (sessionId) {
+            terminal = terminals.get(sessionId);
+          }
+          if (terminal) {
+            terminal.sendText("/exit");
+          } else if (sessionId) {
+            registry?.markStopped(sessionId);
+          }
+        } else if (command === "resumeAgent") {
+          const terminalName = params.get("terminalName");
+          if (terminalName) {
+            const existing = vscode.window.terminals.find(
+              (t) => t.name === terminalName
+            );
+            if (existing) {
+              // Terminal exists — send /resume
+              existing.sendText("/resume");
+              vscode.window.showInformationMessage(
+                `Resume wysłany do: ${terminalName}`
+              );
             } else {
-              registry?.markStopped(sessionId);
+              // Terminal gone — create new and start claude --resume
+              const locationSetting = vscode.workspace
+                .getConfiguration("mrowisko")
+                .get<string>("terminalLocation", "editor");
+              const location =
+                locationSetting === "editor"
+                  ? vscode.TerminalLocation.Editor
+                  : vscode.TerminalLocation.Panel;
+              const newTerminal = vscode.window.createTerminal({
+                name: terminalName,
+                location,
+              });
+              newTerminal.sendText("claude --resume");
+              newTerminal.show();
+              vscode.window.showInformationMessage(
+                `Agent wznowiony w nowym terminalu: ${terminalName}`
+              );
             }
           }
         }

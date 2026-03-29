@@ -537,6 +537,74 @@ def cmd_spawn(args: argparse.Namespace, bus: AgentBus) -> dict:
     }
 
 
+def _lookup_terminal_name(bus: AgentBus, session_id: str) -> tuple[str | None, str | None]:
+    """Lookup terminal_name from live_agents by session_id. Returns (terminal_name, role)."""
+    row = bus._conn.execute(
+        "SELECT terminal_name, role FROM live_agents WHERE session_id = ?",
+        (session_id,),
+    ).fetchone()
+    if not row:
+        return None, None
+    return row["terminal_name"], row["role"]
+
+
+def _call_vscode(command: str, **params: str) -> dict:
+    """Call vscode_uri.py with given command and params. Returns parsed JSON result."""
+    import subprocess
+    from pathlib import Path
+    vscode_uri = Path(__file__).parent.parent / "tools" / "vscode_uri.py"
+    cmd = [sys.executable, str(vscode_uri), "--command", command]
+    for key, value in params.items():
+        if value:
+            cmd.extend([f"--{key.replace('_', '-')}", value])
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+    if result.stdout.strip():
+        try:
+            return json.loads(result.stdout)
+        except json.JSONDecodeError:
+            pass
+    return {"ok": False, "error": "no output from vscode_uri.py"}
+
+
+def cmd_stop(args: argparse.Namespace, bus: AgentBus) -> dict:
+    """Stop a live agent — sends /exit to its terminal and marks stopped in DB."""
+    terminal_name, role = _lookup_terminal_name(bus, args.session_id)
+    if not terminal_name:
+        return {"ok": False, "error": f"No terminal_name for session '{args.session_id}'"}
+
+    uri_result = _call_vscode("stopAgent", terminal_name=terminal_name)
+
+    # Mark stopped in DB
+    bus._conn.execute(
+        "UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now') WHERE session_id = ?",
+        (args.session_id,),
+    )
+    bus._conn.commit()
+
+    return {
+        "ok": uri_result.get("ok", False),
+        "session_id": args.session_id,
+        "role": role,
+        "terminal_name": terminal_name,
+    }
+
+
+def cmd_resume(args: argparse.Namespace, bus: AgentBus) -> dict:
+    """Resume a stopped agent — sends /resume or creates new terminal with claude --resume."""
+    terminal_name, role = _lookup_terminal_name(bus, args.session_id)
+    if not terminal_name:
+        return {"ok": False, "error": f"No terminal_name for session '{args.session_id}'"}
+
+    uri_result = _call_vscode("resumeAgent", terminal_name=terminal_name)
+
+    return {
+        "ok": uri_result.get("ok", False),
+        "session_id": args.session_id,
+        "role": role,
+        "terminal_name": terminal_name,
+    }
+
+
 def cmd_poke(args: argparse.Namespace, bus: AgentBus) -> dict:
     """Poke a live agent — send text to its VS Code terminal via extension."""
     import subprocess
@@ -923,6 +991,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_gap_res.add_argument("--backlog-id", dest="backlog_id", type=int, required=True)
 
     # poke — send text to live agent's terminal
+    # stop — stop a live agent
+    p_stop = subparsers.add_parser("stop", help="Stop a live agent — sends /exit to terminal")
+    p_stop.add_argument("--session-id", dest="session_id", required=True, help="Agent session_id")
+
+    # resume — resume a stopped agent
+    p_resume = subparsers.add_parser("resume", help="Resume a stopped agent — sends /resume or creates new terminal")
+    p_resume.add_argument("--session-id", dest="session_id", required=True, help="Agent session_id")
+
+    # poke — send text to live agent's terminal
     p_poke = subparsers.add_parser("poke", help="Poke a live agent — send text to its VS Code terminal")
     p_poke.add_argument("--from", dest="sender", help="Sender role")
     p_poke.add_argument("--role", required=True, help="Target agent role")
@@ -994,6 +1071,8 @@ def main():
         "gap-add": cmd_gap_add,
         "gaps": cmd_gaps,
         "gap-resolve": cmd_gap_resolve,
+        "stop": cmd_stop,
+        "resume": cmd_resume,
         "poke": cmd_poke,
         "spawn": cmd_spawn,
         "spawn-request": cmd_spawn_request,
