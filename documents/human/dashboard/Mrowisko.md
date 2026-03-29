@@ -1,22 +1,20 @@
-29 . 03                                                                                                   **23:40**
+30 . 03                                                                                                   **00:12**
 
-**Sesje**                    3
+**Sesje**                    2
 Workflow             7
 
 | **Sesje** | **Status** | **Kontekst** |
 | --------------- | ------------- | ------------ |
-| architect | Stoi | Podnieś się. Przeczytaj wiadomość #522 w inbox. Zaprojektuj mechanizm nasłuchu dispatchera — event-driven monitoring zamiast pollingu. Diagnoza kontekstu w documents/human/reports/dispatcher_startup_diagnosis_2026_03_29.md |
-| developer | Praca | Podnieś się. Bug fix: agent_bus_cli.py spawn powinien wykrywać duplikaty (ta sama rola w ciagu 30s) i wyswietlac warning. Diagnoza w documents/human/reports/dispatcher_startup_diagnosis_2026_03_29.md akcja A4. |
+| developer | Praca | Podnieś się. Spawn guard DONE (commit a54c634). Nowe zadanie: terminal layout (msg #523 w inbox). UWAGA: NIE zapisuj do .claude/memory/ — użyj suggest. Przeczytaj inbox #529 (redirect instruction). |
 | dispatcher | Praca | Podnieś się |
 
 | Zadania | Wiadomosci |
 | :-----: | :--------: |
-| **37** | **30** |
+| **42** | **28** |
 
 | **Rola** | Nieprzeczytane |
 | --------------- | -------------: |
-| developer | 11 |
+| developer | 12 |
+| prompt_engineer | 8 |
 | metodolog | 7 |
-| prompt_engineer | 7 |
-| architect | 4 |
-| dispatcher | 1 |
+| architect | 1 |

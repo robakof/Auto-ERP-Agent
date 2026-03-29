@@ -38,6 +38,7 @@ REPAIR_MSG_PROTECTED = "Ścieżka chroniona. Dozwolone tylko: tmp/, documents/hu
 REPAIR_MSG_EXECUTION = "Komenda execution zablokowana. Dozwolone: start ."
 REPAIR_MSG_PIPE = "Pipe z curl/wget zablokowany (execution risk). Użyj -o file."
 REPAIR_MSG_MV = "mv/move: target lub source musi być w tmp/ lub documents/human/tmp/"
+REPAIR_MSG_MEMORY = "Użyj agent_bus_cli.py suggest zamiast .claude/memory/. Reguła: CLAUDE.md sekcja Refleksja."
 
 SAFE_PREFIXES = [
     "py", "python", "python3",
@@ -84,6 +85,12 @@ DANGEROUS_PATTERNS = [
     r"TRUNCATE\s+TABLE",
     r"DELETE\s+FROM\s+\w+\s*;?\s*$",
 ]
+
+
+def _is_memory_path(path: str) -> bool:
+    """Check if path targets Claude memory directory (.claude/memory/ or .claude/projects/*/memory/)."""
+    n = path.replace("\\", "/").lower()
+    return ".claude/memory/" in n or (".claude/projects/" in n and "/memory/" in n)
 
 
 def split_chain(cmd: str) -> list[str]:
@@ -254,6 +261,13 @@ def main() -> None:
     if poke_reason:
         deny_response(poke_reason)
         return
+
+    # Memory redirect — block Write/Edit to .claude/memory/
+    if data.get("tool_name") in ("Write", "Edit"):
+        file_path = data.get("tool_input", {}).get("file_path", "")
+        if _is_memory_path(file_path):
+            deny_response(REPAIR_MSG_MEMORY)
+            return
 
     if data.get("tool_name") != "Bash":
         sys.exit(0)
