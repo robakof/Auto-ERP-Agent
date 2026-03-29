@@ -121,6 +121,8 @@ function activate(context) {
                 }
                 if (terminal) {
                     terminal.sendText("/exit");
+                    // Close terminal after Claude Code exits gracefully
+                    setTimeout(() => terminal.dispose(), 3000);
                 }
                 else if (sessionId) {
                     registry?.markStopped(sessionId);
