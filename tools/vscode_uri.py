@@ -61,6 +61,7 @@ def main():
     parser.add_argument("--permission-mode", help="Permission mode override")
     parser.add_argument("--terminal-name", help="Terminal name (for pokeAgent)")
     parser.add_argument("--message", help="Message text (for pokeAgent)")
+    parser.add_argument("--claude-uuid", help="Claude session UUID (for resumeAgent)")
 
     args = parser.parse_args()
 
@@ -85,6 +86,8 @@ def main():
             params["terminalName"] = args.terminal_name
         if args.message:
             params["message"] = args.message
+        if args.claude_uuid:
+            params["claudeUuid"] = args.claude_uuid
         uri = _build_uri(args.command, **params)
 
     # Find Code.exe

@@ -101,6 +101,7 @@ export function activate(context: vscode.ExtensionContext): void {
           }
         } else if (command === "resumeAgent") {
           const terminalName = params.get("terminalName");
+          const claudeUuid = params.get("claudeUuid") || "";
           const spawnToken = params.get("spawnToken") || crypto.randomUUID();
           if (terminalName) {
             const existing = vscode.window.terminals.find(
@@ -113,7 +114,7 @@ export function activate(context: vscode.ExtensionContext): void {
                 `Resume wysłany do: ${terminalName}`
               );
             } else {
-              // Terminal gone — create new and start claude --resume
+              // Terminal gone — create new and start claude --resume <uuid>
               const locationSetting = vscode.workspace
                 .getConfiguration("mrowisko")
                 .get<string>("terminalLocation", "editor");
@@ -126,7 +127,10 @@ export function activate(context: vscode.ExtensionContext): void {
                 location,
                 env: { MROWISKO_SPAWN_TOKEN: spawnToken },
               });
-              newTerminal.sendText("claude --resume");
+              const resumeCmd = claudeUuid
+                ? `claude --resume "${claudeUuid}"`
+                : "claude --resume";
+              newTerminal.sendText(resumeCmd);
               newTerminal.show();
               vscode.window.showInformationMessage(
                 `Agent wznowiony w nowym terminalu: ${terminalName}`

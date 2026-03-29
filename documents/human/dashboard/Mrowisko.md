@@ -1,20 +1,19 @@
-29 . 03                                                                                                   **16:54**
+29 . 03                                                                                                   **17:03**
 
-**Sesje**                    2
-Workflow             7
+**Sesje**                    1
+Workflow             6
 
 | **Sesje** | **Status** | **Kontekst** |
 | --------------- | ------------- | ------------ |
-| architect | Praca | podnieś się |
 | None | Praca |  |
 
 | Zadania | Wiadomosci |
 | :-----: | :--------: |
-| **35** | **22** |
+| **36** | **23** |
 
 | **Rola** | Nieprzeczytane |
 | --------------- | -------------: |
 | dispatcher | 7 |
 | metodolog | 7 |
 | prompt_engineer | 5 |
-| developer | 3 |
+| developer | 4 |

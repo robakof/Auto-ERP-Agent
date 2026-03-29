@@ -590,18 +590,26 @@ def cmd_stop(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 
 def cmd_resume(args: argparse.Namespace, bus: AgentBus) -> dict:
-    """Resume a stopped agent — sends /resume or creates new terminal with claude --resume."""
+    """Resume a stopped agent — sends /resume or creates new terminal with claude --resume <uuid>."""
     terminal_name, role = _lookup_terminal_name(bus, args.session_id)
     if not terminal_name:
         return {"ok": False, "error": f"No terminal_name for session '{args.session_id}'"}
 
-    uri_result = _call_vscode("resumeAgent", terminal_name=terminal_name)
+    # Lookup claude_uuid for --resume flag
+    row = bus._conn.execute(
+        "SELECT claude_uuid FROM live_agents WHERE session_id = ?",
+        (args.session_id,),
+    ).fetchone()
+    claude_uuid = row["claude_uuid"] if row and row["claude_uuid"] else ""
+
+    uri_result = _call_vscode("resumeAgent", terminal_name=terminal_name, claude_uuid=claude_uuid)
 
     return {
         "ok": uri_result.get("ok", False),
         "session_id": args.session_id,
         "role": role,
         "terminal_name": terminal_name,
+        "claude_uuid": claude_uuid,
     }
 
 
