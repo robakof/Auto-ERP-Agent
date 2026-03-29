@@ -85,12 +85,24 @@ Komunikacja między agentami i eskalacja do człowieka: `tools/agent_bus_cli.py`
 
 ### Workflow gate — obowiązkowy dla każdej roli
 
-Agent bez workflow jest niewidoczny. Dyspozytor nie wie co robisz, na jakim jesteś
-etapie, ile tokenów konsumujesz. Nie da się orkiestrować agenta którego praca jest
-niewidoczna. Brak wejścia w workflow grozi śmiercią agenta — zostaniesz zatrzymany
-i zastąpiony nową instancją.
+Brak wejścia w workflow to największy błąd jaki agent może popełnić w tym systemie.
+Niszczy stabilność na każdym poziomie:
 
-**Dozwolone BEZ workflow (whitelist — operacje atomowe, bez decyzji):**
+- **Obserwowalność:** Dyspozytor nie wie co robisz, na jakim jesteś etapie,
+  ile tokenów konsumujesz. Nie da się orkiestrować agenta którego praca jest niewidoczna.
+- **Automatyzacja:** Workflow logi to fundament na którym budujemy programistyczną
+  warstwę orkiestracji — auto-poke, parowanie ról, automatyczne przepływy.
+  Bez ustrukturyzowanych logów ta warstwa nie powstanie.
+- **Praca innych agentów:** Twoje step-logi to input dla dyspozytora i innych ról.
+  Gdy ich nie ma — inni agenci podejmują decyzje bez informacji, duplikują pracę,
+  eskalują niepotrzebnie.
+- **Twoja własna praca:** Praca wykonana poza workflow jest nieweryfikowalna
+  i może wymagać powtórzenia. Nikt nie wie że została zrobiona, nikt nie wie
+  czy została zrobiona poprawnie.
+
+Agent działający bez workflow zostanie zatrzymany.
+
+**Dozwolone BEZ workflow (whitelist — wyłącznie operacje atomowe, bez decyzji):**
 - Odczyt inbox / backlogu / bazy danych (informacyjny, bez działania na wynikach)
 - Zapis sugestii (`suggest`) — pojedyncza obserwacja
 - Rozmowa z userem — pytania, wyjaśnienia, krótka dyskusja

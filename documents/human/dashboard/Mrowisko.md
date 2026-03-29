@@ -1,4 +1,4 @@
-29 . 03                                                                                                   **18:17**
+29 . 03                                                                                                   **18:27**
 
 **Sesje**                    1
 Workflow             7
@@ -9,12 +9,12 @@ Workflow             7
 
 | Zadania | Wiadomosci |
 | :-----: | :--------: |
-| **36** | **25** |
+| **36** | **27** |
 
 | **Rola** | Nieprzeczytane |
 | --------------- | -------------: |
 | dispatcher | 7 |
 | metodolog | 7 |
-| developer | 5 |
+| developer | 6 |
 | prompt_engineer | 5 |
-| architect | 1 |
+| architect | 2 |
