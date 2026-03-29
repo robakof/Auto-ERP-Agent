@@ -1,8 +1,8 @@
-Zrealizowane workflow dzisiaj                20
+Zrealizowane workflow dzisiaj                21
 
 | **Workflow w toku** | **Ilosc** | **Etap** |
 | ---------------------- | ------------------- | -------- |
-| workflow_prompt_patch | 3 | - |
+| workflow_prompt_patch | 2 | - |
 | developer_bugfix | 2 | - |
 | workflow_exploration | 1 (dispatcher) | - |
 | session_end | 1 (architect) | 3 |
