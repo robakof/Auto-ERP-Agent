@@ -37,22 +37,42 @@ def _get_all_roles() -> list[str]:
 
 
 def _get_session_data() -> dict:
-    """Read session data from tmp/session_data.json."""
-    if not SESSION_DATA_FILE.exists():
+    """Read session data from live_agents by spawn_token or claude_uuid env var."""
+    import os
+    import sqlite3
+    spawn_token = os.environ.get("MROWISKO_SPAWN_TOKEN", "")
+    claude_uuid = os.environ.get("CLAUDE_SESSION_ID", "")
+    if not spawn_token and not claude_uuid:
         return {}
     try:
-        return json.loads(SESSION_DATA_FILE.read_text(encoding="utf-8"))
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        row = None
+        if spawn_token:
+            row = conn.execute(
+                "SELECT session_id, role FROM live_agents WHERE spawn_token = ?",
+                (spawn_token,),
+            ).fetchone()
+        if not row and claude_uuid:
+            row = conn.execute(
+                "SELECT session_id, role FROM live_agents WHERE claude_uuid = ? AND status != 'stopped'",
+                (claude_uuid,),
+            ).fetchone()
+        conn.close()
+        if row:
+            return {"session_id": row["session_id"], "role": row["role"]}
+        return {}
     except Exception:
         return {}
 
 
 def get_session_role() -> str | None:
-    """Read current session role from tmp/session_data.json."""
+    """Read current session role from live_agents DB."""
     return _get_session_data().get("role")
 
 
 def get_session_id() -> str | None:
-    """Read current session_id from tmp/session_data.json."""
+    """Read current session_id from live_agents DB."""
     return _get_session_data().get("session_id")
 
 

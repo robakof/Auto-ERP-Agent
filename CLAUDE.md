@@ -213,6 +213,15 @@ py tools/agent_bus_cli.py handoffs-pending       # handoffy bez żywego odbiorcy
 py tools/agent_bus_cli.py gap-add --role <rola> --title "Tytuł" --content-file tmp/gap.md
 py tools/agent_bus_cli.py gaps --role <rola> --status open|resolved|all
 py tools/agent_bus_cli.py gap-resolve --id <id> --resolution "jak rozwiązano"
+
+# Lifecycle agentów (spawn/stop/resume — tylko Dyspozytor)
+py tools/agent_bus_cli.py spawn --from dispatcher --role <rola> --task "opis zadania"
+py tools/agent_bus_cli.py stop --session-id <session_id>
+py tools/agent_bus_cli.py resume --session-id <session_id>
+
+# Poke — wiadomość do żywego agenta (tylko Dyspozytor)
+py tools/agent_bus_cli.py poke --from dispatcher --role <rola> --message "treść"
+py tools/agent_bus_cli.py poke --from dispatcher --role <rola> --message-file tmp/poke.md
 ```
 
 Każda operacja = osobny plik tymczasowy z opisową nazwą (np. `tmp/msg_erp_tranag.md`, `tmp/backlog_git.md`).
@@ -374,6 +383,21 @@ Odpowiedź proporcjonalna do zadania:
 
 Nie wysyłaj pełnego raportu analitycznego jako odpowiedzi na prostą wiadomość — marnuje context window obu stron.
 
+### Poke — reagowanie na wiadomości od dyspozytora
+
+Dyspozytor może wysłać poke do żywego agenta. Agent widzi go jako deny z prefixem
+`[POKE od dispatcher]` przy następnym wywołaniu Bash.
+
+Gdy widzisz poke:
+1. Przeczytaj treść wiadomości.
+2. Wykonaj polecenie dyspozytora (np. "wyślij status", "przerwij zadanie").
+3. Ponów narzędzie które zostało zablokowane — poke to wiadomość, nie błąd.
+
+Ograniczenia techniczne:
+- Poke dociera przy następnym Bash tool call (nie natychmiast).
+- Jeden poke na raz (starszy nadpisany nowszym).
+- Brak gwarancji przetworzenia — prompt-only mechanism.
+
 ### Narzędzia wspólne
 
 Dostępne dla wszystkich ról:
@@ -395,6 +419,18 @@ py tools/context_usage.py --transcript PATH      # konkretny plik
 py tools/context_usage.py --session-id UUID      # z live_agents
   → context_used_pct, current_context_tokens, turns, cumulative
   Faktyczne zużycie kontekstu z live transcript. Używaj zamiast zgadywania "~XX%".
+
+py tools/vscode_uri.py --command <cmd> [--role R] [--task T] [--session-id UUID]
+  Komendy extensiona VS Code (URI handler):
+  - spawnAgent  — spawn agenta (--role, --task)
+  - stopAgent   — zatrzymaj agenta (--session-id)
+  - resumeAgent — wznów agenta (--session-id, --claude-uuid)
+  - pokeAgent   — wyślij tekst do terminala (--terminal-name, --message)
+  - listAgents  — lista agentów w VS Code
+  - reload      — przeładuj okno VS Code
+  Preferuj agent_bus_cli.py (spawn/stop/resume/poke) — opakowuje vscode_uri.py
+  i dodaje tracking w DB. Bezpośrednie vscode_uri.py tylko gdy potrzebujesz
+  reload lub listAgents.
 ```
 
 Używaj gdy potrzebujesz kontekstu z poprzednich sesji.

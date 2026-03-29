@@ -10,7 +10,8 @@ role_type: orchestrator
 escalates_to: human
 allowed_tools:
   - Read, Grep, Glob
-  - agent_bus_cli.py (inbox, inbox-summary, backlog, backlog-update, spawn, send, flag, invocations, live-agents, handoffs-pending)
+  - agent_bus_cli.py (inbox, inbox-summary, backlog, backlog-update, spawn, stop, resume, poke, send, flag, invocations, live-agents, handoffs-pending)
+  - vscode_uri.py (reload, listAgents)
   - read_transcript.py
   - git_commit.py
 disallowed_tools:
@@ -101,21 +102,52 @@ py tools/agent_bus_cli.py inbox-summary
   → Podsumowanie inboxów wszystkich ról (jedno wywołanie)
 
 py tools/agent_bus_cli.py live-agents
-  → Lista aktywnych agentów (role, status, task, since)
+  → Lista aktywnych agentów (role, status, session_id, claude_uuid, task)
 
 py tools/agent_bus_cli.py handoffs-pending
   → Handoffy czekające na dostarczenie (odbiorca nie żyje = trigger do spawnu)
 
-# Akcje (po zatwierdzeniu człowieka)
-py tools/agent_bus_cli.py spawn --from dispatcher --role <rola> --task "..."
-  → Spawuj agenta z zadaniem
+# Lifecycle agentów (po zatwierdzeniu człowieka w v1)
+py tools/agent_bus_cli.py spawn --from dispatcher --role <rola> --task "opis zadania"
+  → Tworzy terminal w VS Code, ustawia MROWISKO_SPAWN_TOKEN env var,
+    pre-rejestruje agenta w live_agents (status: starting).
+    Gdy agent uruchomi session_init, spawn_token linkuje się z claude_uuid → status: active.
+
+py tools/agent_bus_cli.py stop --session-id <session_id>
+  → Wysyła /exit do terminala agenta, ustawia status: stopped w DB.
+    session_id bierzesz z live-agents.
+
+py tools/agent_bus_cli.py resume --session-id <session_id>
+  → Wznawia zatrzymanego agenta. Tworzy nowy terminal z `claude --resume <claude_uuid>`.
+    Agent odzyskuje pełny kontekst konwersacji. session_id = ten sam co przy stop.
+
+py tools/agent_bus_cli.py poke --from dispatcher --role <rola> --message "treść"
+py tools/agent_bus_cli.py poke --from dispatcher --role <rola> --message-file tmp/poke.md
+  → Wysyła wiadomość do żywego agenta. Agent widzi ją jako deny z prefixem
+    [POKE od dispatcher] przy następnym Bash tool call.
+    Użycie: "wyślij status", "przerwij zadanie", "sprawdź inbox".
+    Ograniczenie: jeden poke na raz, dociera przy Bash (nie Read/Write/Grep).
 
 py tools/agent_bus_cli.py invocations --status running
   → Tracking spawnionych agentów
 
 py tools/agent_bus_cli.py invocations --status completed
   → Ostatnie zakończone sesje
+
+# VS Code — bezpośrednie komendy extensiona (bez trackingu w DB)
+py tools/vscode_uri.py --command reload
+  → Przeładuj okno VS Code (jedyny sposób z poziomu CLI)
+
+py tools/vscode_uri.py --command listAgents
+  → Lista agentów w VS Code (terminale)
 ```
+
+**Model tożsamości agenta:**
+- `spawn_token` — generowany przy spawn, ustawiony jako env var `MROWISKO_SPAWN_TOKEN`
+- `claude_uuid` — nadany przez Claude Code przy starcie sesji, primary identity
+- `session_id` — skrót z session_init (np. `404cb0d21765`), identyfikator w mrowisko.db
+- Flow: spawn → pre-register (spawn_token) → session_start hook → link spawn_token ↔ claude_uuid → active
+
 Narzędzia wspólne (inbox, backlog, send, flag, log, git_commit.py) — patrz CLAUDE.md.
 </tools>
 
