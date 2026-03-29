@@ -63,7 +63,11 @@ export function activate(context: vscode.ExtensionContext): void {
               (t) => t.name === terminalName
             );
             if (terminal) {
-              terminal.sendText(message);
+              // Workaround: Claude Code 2.1.83 "/" artifact in input
+              terminal.sendText("", true);
+              setTimeout(() => {
+                terminal.sendText(message);
+              }, 300);
               vscode.window.showInformationMessage(
                 `Poke wysłany do: ${terminalName}`
               );

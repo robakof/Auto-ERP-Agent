@@ -69,7 +69,12 @@ export class Spawner {
     // This message triggers session_init via CLAUDE.md routing.
     const delay = getConfig("startupDelayMs", 12000);
     setTimeout(() => {
-      terminal.sendText(`${request.role}, ${request.task}`);
+      // Workaround: Claude Code 2.1.83 injects "/" into input after startup.
+      // First empty sendText clears the artifact, then actual message follows.
+      terminal.sendText("", true);
+      setTimeout(() => {
+        terminal.sendText(`${request.role}, ${request.task}`);
+      }, 500);
     }, delay);
 
     terminal.show();
