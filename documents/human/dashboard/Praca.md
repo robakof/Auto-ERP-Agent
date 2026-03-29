@@ -1,4 +1,4 @@
-Zrealizowane workflow dzisiaj                1
+Zrealizowane workflow dzisiaj                3
 
 | **Workflow w toku** | **Ilosc** | **Etap** |
 | ---------------------- | ------------------- | -------- |
@@ -6,9 +6,9 @@ Zrealizowane workflow dzisiaj                1
 | Workflow deweloperski | 1 (developer) | 1 |
 | Tworzenie workflow | 1 (prompt_engineer) | 4 |
 | prompt_patch | 1 (prompt_engineer) | 1 |
-| developer_tool | 1 (developer) | 4 |
 | Operacje deweloperskie | 1 (developer) | 6 |
+| developer_bugfix | 1 (developer) | 1 |
 
 | **Obszar** | **Zadanie w toku** |
 | ---------- | --------------------------------------------- |
-| Dev | SQL Views: single interpretation layer (Da... |
+| Dev | Session status: heartbeat, role w sessions... |

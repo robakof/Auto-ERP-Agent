@@ -1,4 +1,4 @@
-**Zaplanowane**      32
+**Zaplanowane**      31
 Odlozone            28
 Sugestie            269
 

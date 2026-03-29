@@ -41,7 +41,8 @@ def main():
         )
 
         prompt_text = payload.get("prompt") or payload.get("message") or str(payload)
-        session_id = read_session_id()
+        claude_uuid = payload.get("session_id") or ""
+        file_session_id = read_session_id()
 
         from tools.lib.agent_bus import AgentBus
         bus = AgentBus(db_path=str(PROJECT_ROOT / "mrowisko.db"))
@@ -49,21 +50,32 @@ def main():
             speaker="human",
             content=prompt_text[:2000],  # cap at 2000 chars
             event_type="user_prompt",
-            session_id=session_id,
+            session_id=file_session_id,
             raw_payload=raw[:4000],
         )
 
-        # Heartbeat: update last_activity + store claude_uuid mapping in live_agents
-        if session_id:
-            claude_uuid = payload.get("session_id") or ""
+        # Heartbeat: update last_activity via claude_uuid (reliable multi-session)
+        # Primary: match by claude_uuid from payload (unique per session)
+        # Fallback: match by session_id from file (single-session compat)
+        updated = 0
+        if claude_uuid:
+            cur = bus._conn.execute(
+                """UPDATE live_agents
+                   SET last_activity = datetime('now'),
+                       claude_uuid = COALESCE(?, claude_uuid)
+                   WHERE claude_uuid = ? AND status != 'stopped'""",
+                (claude_uuid, claude_uuid),
+            )
+            updated = cur.rowcount
+        if updated == 0 and file_session_id:
             bus._conn.execute(
                 """UPDATE live_agents
                    SET last_activity = datetime('now'),
                        claude_uuid = COALESCE(?, claude_uuid)
-                   WHERE session_id = ?""",
-                (claude_uuid or None, session_id),
+                   WHERE session_id = ? AND status != 'stopped'""",
+                (claude_uuid or None, file_session_id),
             )
-            bus._conn.commit()
+        bus._conn.commit()
 
         # Refresh dashboard (fire-and-forget, skip if already rendering)
         import os

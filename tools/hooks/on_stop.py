@@ -40,24 +40,24 @@ def _update_live_agent(bus, session_id: str | None, transcript_path: str, claude
     if not session_id and not claude_uuid:
         return
     try:
-        # Try by session_id first, then by claude_uuid
+        # Primary: claude_uuid (reliable multi-session). Fallback: session_id from file.
         updated = 0
-        if session_id:
+        if claude_uuid:
             cur = bus._conn.execute(
-                """UPDATE live_agents
-                   SET last_activity = datetime('now'),
-                       transcript_path = COALESCE(?, transcript_path)
-                   WHERE session_id = ? AND status = 'active'""",
-                (transcript_path or None, session_id),
-            )
-            updated = cur.rowcount
-        if updated == 0 and claude_uuid:
-            bus._conn.execute(
                 """UPDATE live_agents
                    SET last_activity = datetime('now'),
                        transcript_path = COALESCE(?, transcript_path)
                    WHERE claude_uuid = ? AND status = 'active'""",
                 (transcript_path or None, claude_uuid),
+            )
+            updated = cur.rowcount
+        if updated == 0 and session_id:
+            bus._conn.execute(
+                """UPDATE live_agents
+                   SET last_activity = datetime('now'),
+                       transcript_path = COALESCE(?, transcript_path)
+                   WHERE session_id = ? AND status = 'active'""",
+                (transcript_path or None, session_id),
             )
         bus._conn.commit()
     except Exception:

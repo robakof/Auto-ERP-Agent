@@ -68,11 +68,23 @@ def main() -> None:
         tool_response: dict = payload.get("tool_response") or {}
         is_error: int = int(bool(tool_response.get("is_error", False)))
 
-        session_id = _read_session_id()
+        claude_uuid = payload.get("session_id") or ""
+        file_session_id = _read_session_id()
 
         sys.path.insert(0, str(PROJECT_ROOT))
         from tools.lib.agent_bus import AgentBus
         bus = AgentBus(db_path=_DB_PATH)
+
+        # Resolve mrowisko session_id: prefer claude_uuid lookup, fallback to file
+        session_id = file_session_id
+        if claude_uuid:
+            row = bus._conn.execute(
+                "SELECT session_id FROM live_agents WHERE claude_uuid = ? AND status != 'stopped'",
+                (claude_uuid,),
+            ).fetchone()
+            if row:
+                session_id = row[0]
+
         bus.add_tool_call(
             session_id=session_id,
             tool_name=tool_name,
