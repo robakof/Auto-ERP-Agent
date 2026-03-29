@@ -1,12 +1,11 @@
-29 . 03                                                                                                   **17:22**
+29 . 03                                                                                                   **17:44**
 
-**Sesje**                    2
-Workflow             6
+**Sesje**                    1
+Workflow             7
 
 | **Sesje** | **Status** | **Kontekst** |
 | --------------- | ------------- | ------------ |
-| architect | Stoi | podnieś się |
-| developer | Praca |  |
+| prompt_engineer | Praca | Zaktualizuj prompty ról (CLAUDE.md, DISPATCHER.md) o nowe narzędzia lifecycle: spawn/stop/resume/poke przez agent_bus_cli.py   vscode_uri.py. Kluczowe: MROWISKO_SPAWN_TOKEN env var, claude_uuid jako primary identity, resume z --session-id. Sprawdź inbox — msg #500 od developera z listą URI commands. |
 
 | Zadania | Wiadomosci |
 | :-----: | :--------: |

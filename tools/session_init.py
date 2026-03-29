@@ -185,10 +185,6 @@ def main():
     parser.add_argument("--db", default=DB_PATH)
     args = parser.parse_args()
 
-    doc_path = Path(ROLE_DOCUMENTS[args.role])
-    doc_exists = doc_path.exists()
-    doc_content = doc_path.read_text(encoding="utf-8") if doc_exists else ""
-
     bus = AgentBus(db_path=args.db)
 
     # Identity Redesign: spawn_token from env → deterministic link to live_agents record
@@ -204,13 +200,16 @@ def main():
         ).fetchone()
 
         if existing_row and existing_row["session_id"]:
-            # RESUME: session_id already assigned (previous session_init ran)
+            # RESUME: session_id already assigned — keep role from DB (agent may guess wrong)
             session_id = existing_row["session_id"]
+            db_role = existing_row["role"]
+            if db_role:
+                args.role = db_role
             resumed = True
             bus._conn.execute(
-                """UPDATE live_agents SET role = ?, status = 'active', last_activity = datetime('now')
+                """UPDATE live_agents SET status = 'active', last_activity = datetime('now')
                    WHERE spawn_token = ?""",
-                (args.role, spawn_token),
+                (spawn_token,),
             )
             bus._conn.commit()
             bus.add_session_log(role=args.role, content="session resumed", session_id=session_id)
@@ -246,11 +245,17 @@ def main():
 
         if existing_row and existing_row["session_id"]:
             session_id = existing_row["session_id"]
+            # Keep role from DB on resume (agent may guess wrong after context compression)
+            db_role = bus._conn.execute(
+                "SELECT role FROM live_agents WHERE claude_uuid = ?", (claude_uuid,)
+            ).fetchone()
+            if db_role and db_role["role"]:
+                args.role = db_role["role"]
             resumed = True
             bus._conn.execute(
-                """UPDATE live_agents SET role = ?, status = 'active', last_activity = datetime('now')
+                """UPDATE live_agents SET status = 'active', last_activity = datetime('now')
                    WHERE claude_uuid = ?""",
-                (args.role, claude_uuid),
+                (claude_uuid,),
             )
             bus._conn.commit()
             bus.add_session_log(role=args.role, content="session resumed", session_id=session_id)
@@ -265,6 +270,11 @@ def main():
             )
             bus._conn.commit()
             bus.add_session_log(role=args.role, content="session started", session_id=session_id)
+
+    # Load role document (after resume detection which may override args.role)
+    doc_path = Path(ROLE_DOCUMENTS.get(args.role, ""))
+    doc_exists = doc_path.exists()
+    doc_content = doc_path.read_text(encoding="utf-8") if doc_exists else ""
 
     # Load config and gather context
     try:
