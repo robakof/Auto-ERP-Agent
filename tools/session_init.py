@@ -203,17 +203,7 @@ def main():
     parser = argparse.ArgumentParser(description="Initialize agent session with full context")
     parser.add_argument("--role", required=True, choices=list(ROLE_DOCUMENTS.keys()))
     parser.add_argument("--db", default=DB_PATH)
-    parser.add_argument("--resume", action="store_true", help="Resume existing session if tmp/session_id.txt exists")
     args = parser.parse_args()
-
-    if args.resume:
-        existing = read_session_id()
-        if existing:
-            print_json({"ok": True, "session_id": existing, "role": args.role, "resumed": True})
-            return
-
-    session_id = generate_session_id()
-    write_session_id(session_id, role=args.role)
 
     doc_path = Path(ROLE_DOCUMENTS[args.role])
     doc_exists = doc_path.exists()
@@ -227,30 +217,58 @@ def main():
     if pending_uuid_file.exists():
         claude_uuid = pending_uuid_file.read_text(encoding="utf-8").strip() or None
 
-    # Register in live_agents so dashboard sees every session (manual + spawned).
-    # Spawned sessions have a pre-existing row (from agent_launcher_db) with a different
-    # session_id (full UUID vs our 12-char hex). Stop that row — we take over identity.
-    bus._conn.execute(
-        """UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now')
-           WHERE role = ? AND status IN ('starting', 'active') AND session_id != ?""",
-        (args.role, session_id),
-    )
-    bus._conn.execute(
-        """INSERT INTO live_agents (session_id, role, status, spawned_by, last_activity, claude_uuid)
-           VALUES (?, ?, 'active', 'manual', datetime('now'), ?)
-           ON CONFLICT(session_id) DO UPDATE SET
-             status = 'active',
-             last_activity = datetime('now'),
-             claude_uuid = COALESCE(excluded.claude_uuid, live_agents.claude_uuid)""",
-        (session_id, args.role, claude_uuid),
-    )
-    bus._conn.commit()
+    # Resume detection: if claude_uuid already exists in live_agents, reuse session_id
+    resumed = False
+    existing_row = None
+    if claude_uuid:
+        existing_row = bus._conn.execute(
+            "SELECT session_id, role FROM live_agents WHERE claude_uuid = ?",
+            (claude_uuid,),
+        ).fetchone()
 
-    bus.add_session_log(
-        role=args.role,
-        content="session started",
-        session_id=session_id,
-    )
+    if existing_row:
+        # RESUME: reuse session_id, reactivate
+        session_id = existing_row[0]
+        bus._conn.execute(
+            """UPDATE live_agents SET status = 'active', last_activity = datetime('now')
+               WHERE session_id = ?""",
+            (session_id,),
+        )
+        bus._conn.commit()
+        write_session_id(session_id, role=args.role)
+        resumed = True
+        bus.add_session_log(
+            role=args.role,
+            content="session resumed",
+            session_id=session_id,
+        )
+    else:
+        # NEW SESSION: generate new session_id
+        session_id = generate_session_id()
+        write_session_id(session_id, role=args.role)
+
+        # Register in live_agents so dashboard sees every session (manual + spawned).
+        # Stop previous sessions of same role — we take over identity.
+        bus._conn.execute(
+            """UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now')
+               WHERE role = ? AND status IN ('starting', 'active') AND session_id != ?""",
+            (args.role, session_id),
+        )
+        bus._conn.execute(
+            """INSERT INTO live_agents (session_id, role, status, spawned_by, last_activity, claude_uuid)
+               VALUES (?, ?, 'active', 'manual', datetime('now'), ?)
+               ON CONFLICT(session_id) DO UPDATE SET
+                 status = 'active',
+                 last_activity = datetime('now'),
+                 claude_uuid = COALESCE(excluded.claude_uuid, live_agents.claude_uuid)""",
+            (session_id, args.role, claude_uuid),
+        )
+        bus._conn.commit()
+        bus.add_session_log(
+            role=args.role,
+            content="session started",
+            session_id=session_id,
+        )
 
     # Load config and gather context
     try:
@@ -268,7 +286,7 @@ def main():
         "doc_exists": doc_exists,
         "doc_content": doc_content,
         "context": context,
-        "resumed": False,
+        "resumed": resumed,
     })
 
 
