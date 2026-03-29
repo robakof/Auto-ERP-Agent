@@ -1,6 +1,6 @@
 **Zaplanowane**      32
 Odlozone            28
-Sugestie            270
+Sugestie            271
 
 | **Numer** | **Zadanie w kolejce** | **Pkt** |
 | --------- | --------------------------------------------- | ------- |

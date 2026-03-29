@@ -1,7 +1,7 @@
-29 . 03                                                                                                   **10:21**
+29 . 03                                                                                                   **10:47**
 
 **Sesje**                    2
-Workflow             5
+Workflow             6
 
 | **Sesje** | **Status** | **Kontekst** |
 | --------------- | ------------- | ------------ |
@@ -10,12 +10,12 @@ Workflow             5
 
 | Zadania | Wiadomosci |
 | :-----: | :--------: |
-| **32** | **23** |
+| **32** | **26** |
 
 | **Rola** | Nieprzeczytane |
 | --------------- | -------------: |
-| developer | 10 |
+| developer | 11 |
 | metodolog | 7 |
-| architect | 2 |
+| architect | 3 |
+| prompt_engineer | 3 |
 | dispatcher | 2 |
-| prompt_engineer | 2 |
