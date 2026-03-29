@@ -1,14 +1,12 @@
-29 . 03                                                                                                   **09:15**
+29 . 03                                                                                                   **10:01**
 
-**Sesje**                    4
-Workflow             9
+**Sesje**                    2
+Workflow             4
 
 | **Sesje** | **Status** | **Kontekst** |
 | --------------- | ------------- | ------------ |
-| architect | Praca |  |
-| prompt_engineer | Martwy |  |
-| developer | Martwy |  |
-| dispatcher | Martwy |  |
+| prompt_engineer | Praca |  |
+| developer | Stoi |  |
 
 | Zadania | Wiadomosci |
 | :-----: | :--------: |

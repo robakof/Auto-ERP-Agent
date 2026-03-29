@@ -221,6 +221,12 @@ def main():
 
     bus = AgentBus(db_path=args.db)
 
+    # Read claude_uuid written by on_session_start hook (bootstrap bridge)
+    pending_uuid_file = Path("tmp/pending_claude_uuid.txt")
+    claude_uuid = None
+    if pending_uuid_file.exists():
+        claude_uuid = pending_uuid_file.read_text(encoding="utf-8").strip() or None
+
     # Register in live_agents so dashboard sees every session (manual + spawned).
     # Spawned sessions have a pre-existing row (from agent_launcher_db) with a different
     # session_id (full UUID vs our 12-char hex). Stop that row — we take over identity.
@@ -230,12 +236,13 @@ def main():
         (args.role, session_id),
     )
     bus._conn.execute(
-        """INSERT INTO live_agents (session_id, role, status, spawned_by, last_activity)
-           VALUES (?, ?, 'active', 'manual', datetime('now'))
+        """INSERT INTO live_agents (session_id, role, status, spawned_by, last_activity, claude_uuid)
+           VALUES (?, ?, 'active', 'manual', datetime('now'), ?)
            ON CONFLICT(session_id) DO UPDATE SET
              status = 'active',
-             last_activity = datetime('now')""",
-        (session_id, args.role),
+             last_activity = datetime('now'),
+             claude_uuid = COALESCE(excluded.claude_uuid, live_agents.claude_uuid)""",
+        (session_id, args.role, claude_uuid),
     )
     bus._conn.commit()
 
