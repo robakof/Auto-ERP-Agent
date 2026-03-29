@@ -228,7 +228,7 @@ def main():
 
     if existing_row:
         # RESUME: reuse session_id, reactivate
-        session_id = existing_row[0]
+        session_id = existing_row["session_id"]
         bus._conn.execute(
             """UPDATE live_agents SET status = 'active', last_activity = datetime('now')
                WHERE session_id = ?""",
