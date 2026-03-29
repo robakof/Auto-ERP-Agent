@@ -253,6 +253,15 @@ def main():
         write_session_id(session_id, role=args.role)
 
         # Register in live_agents so dashboard sees every session (manual + spawned).
+        # Inherit terminal_name from previous session of same role (spawner sets it).
+        prev = bus._conn.execute(
+            """SELECT terminal_name FROM live_agents
+               WHERE role = ? AND status IN ('starting', 'active') AND terminal_name IS NOT NULL
+               LIMIT 1""",
+            (args.role,),
+        ).fetchone()
+        terminal_name = prev["terminal_name"] if prev else None
+
         # Stop previous sessions of same role — we take over identity.
         bus._conn.execute(
             """UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now')
@@ -260,13 +269,13 @@ def main():
             (args.role, session_id),
         )
         bus._conn.execute(
-            """INSERT INTO live_agents (session_id, role, status, spawned_by, last_activity, claude_uuid)
-               VALUES (?, ?, 'active', 'manual', datetime('now'), ?)
+            """INSERT INTO live_agents (session_id, role, status, spawned_by, last_activity, claude_uuid, terminal_name)
+               VALUES (?, ?, 'active', 'manual', datetime('now'), ?, ?)
                ON CONFLICT(session_id) DO UPDATE SET
                  status = 'active',
                  last_activity = datetime('now'),
                  claude_uuid = COALESCE(excluded.claude_uuid, live_agents.claude_uuid)""",
-            (session_id, args.role, claude_uuid),
+            (session_id, args.role, claude_uuid, terminal_name),
         )
         bus._conn.commit()
         bus.add_session_log(
