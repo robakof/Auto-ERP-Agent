@@ -1,6 +1,14 @@
-Zrealizowane workflow dzisiaj                18
+Zrealizowane workflow dzisiaj                20
 
 | **Workflow w toku** | **Ilosc** | **Etap** |
 | ---------------------- | ------------------- | -------- |
-| Tworzenie konwencji | 4 | - |
-| developer_tool | 1 (developer) | 9 |
+| workflow_prompt_patch | 3 | - |
+| developer_bugfix | 2 | - |
+| workflow_exploration | 1 (dispatcher) | - |
+| session_end | 1 (architect) | 3 |
+| developer_tool | 1 (developer) | - |
+
+| **Obszar** | **Zadanie w toku** |
+| ---------- | --------------------------------------------- |
+| Dev | Identity redesign cleanup — W1-W7 z code r... |
+| Prompt | Audyt i fix workflow gate — agenci pomijają |

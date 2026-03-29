@@ -848,3 +848,79 @@ class TestCliBacklogSummary:
         result = run_cli(["backlog-summary"], db)
         assert result["data"]["Dev"]["planned"] == 1
         assert result["data"]["Dev"]["in_progress"] == 1
+
+
+class TestSpawnDuplicateGuard:
+    """Tests for _check_spawn_duplicate — duplicate spawn detection."""
+
+    @pytest.fixture
+    def bus(self, db):
+        sys.path.insert(0, str(Path(__file__).parent.parent / "tools" / "lib"))
+        from agent_bus import AgentBus
+        return AgentBus(db)
+
+    def test_no_duplicate_returns_none(self, bus):
+        sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
+        from agent_bus_cli import _check_spawn_duplicate
+        result = _check_spawn_duplicate(bus._conn, "developer")
+        assert result is None
+
+    def test_recent_invocation_detected(self, bus):
+        sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
+        from agent_bus_cli import _check_spawn_duplicate
+        bus._conn.execute(
+            """INSERT INTO invocations (invoker_type, invoker_id, target_role, task, status)
+               VALUES ('agent', 'dispatcher', 'developer', 'test task', 'running')"""
+        )
+        bus._conn.commit()
+        result = _check_spawn_duplicate(bus._conn, "developer")
+        assert result is not None
+        assert "developer" in result
+        assert "--force" in result
+
+    def test_different_role_not_detected(self, bus):
+        sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
+        from agent_bus_cli import _check_spawn_duplicate
+        bus._conn.execute(
+            """INSERT INTO invocations (invoker_type, invoker_id, target_role, task, status)
+               VALUES ('agent', 'dispatcher', 'prompt_engineer', 'test', 'running')"""
+        )
+        bus._conn.commit()
+        result = _check_spawn_duplicate(bus._conn, "developer")
+        assert result is None
+
+    def test_old_invocation_not_detected(self, bus):
+        sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
+        from agent_bus_cli import _check_spawn_duplicate
+        bus._conn.execute(
+            """INSERT INTO invocations (invoker_type, invoker_id, target_role, task, status,
+               created_at) VALUES ('agent', 'dispatcher', 'developer', 'test', 'running',
+               datetime('now', '-60 seconds'))"""
+        )
+        bus._conn.commit()
+        result = _check_spawn_duplicate(bus._conn, "developer")
+        assert result is None
+
+    def test_active_live_agent_detected(self, bus):
+        sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
+        from agent_bus_cli import _check_spawn_duplicate
+        bus._conn.execute(
+            """INSERT INTO live_agents (session_id, role, status)
+               VALUES ('abc123', 'developer', 'active')"""
+        )
+        bus._conn.commit()
+        result = _check_spawn_duplicate(bus._conn, "developer")
+        assert result is not None
+        assert "active" in result
+        assert "--force" in result
+
+    def test_stopped_agent_not_detected(self, bus):
+        sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
+        from agent_bus_cli import _check_spawn_duplicate
+        bus._conn.execute(
+            """INSERT INTO live_agents (session_id, role, status)
+               VALUES ('abc123', 'developer', 'stopped')"""
+        )
+        bus._conn.commit()
+        result = _check_spawn_duplicate(bus._conn, "developer")
+        assert result is None

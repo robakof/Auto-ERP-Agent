@@ -506,6 +506,41 @@ def cmd_gap_resolve(args: argparse.Namespace, bus: AgentBus) -> dict:
     return result
 
 
+def _check_spawn_duplicate(conn, role: str, window_seconds: int = 30) -> str | None:
+    """Check if the same role was spawned recently or is already active.
+
+    Returns a warning message if duplicate detected, None otherwise.
+    """
+    # Check invocations table — same role spawned within window
+    recent = conn.execute(
+        """SELECT id, created_at FROM invocations
+           WHERE target_role = ? AND status IN ('approved', 'running')
+             AND created_at > datetime('now', ?)""",
+        (role, f"-{window_seconds} seconds"),
+    ).fetchone()
+    if recent:
+        return (
+            f"Role '{role}' was already spawned {window_seconds}s ago "
+            f"(invocation #{recent['id']}, {recent['created_at']}). "
+            f"Use --force to override."
+        )
+
+    # Check live_agents — same role already starting or active
+    active = conn.execute(
+        """SELECT session_id, status, created_at FROM live_agents
+           WHERE role = ? AND status IN ('starting', 'active')""",
+        (role,),
+    ).fetchone()
+    if active:
+        return (
+            f"Role '{role}' already has an {active['status']} agent "
+            f"(session {active['session_id']}, since {active['created_at']}). "
+            f"Use --force to override."
+        )
+
+    return None
+
+
 def cmd_spawn(args: argparse.Namespace, bus: AgentBus) -> dict:
     """Spawn another agent via VS Code URI handler + record invocation."""
     import subprocess
@@ -514,6 +549,12 @@ def cmd_spawn(args: argparse.Namespace, bus: AgentBus) -> dict:
     sender = args.sender or get_session_role()
     project_root = Path(__file__).parent.parent
     vscode_uri = project_root / "tools" / "vscode_uri.py"
+
+    # Duplicate guard — warn if same role spawned recently
+    if not getattr(args, "force", False):
+        warning = _check_spawn_duplicate(bus._conn, args.role)
+        if warning:
+            return {"ok": False, "warning": warning}
 
     # Record invocation in DB
     conn = bus._conn
@@ -1040,6 +1081,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_spawn.add_argument("--role", required=True, help="Target agent role")
     p_spawn.add_argument("--task", required=True, help="Task for the agent")
     p_spawn.add_argument("--permission-mode", dest="permission_mode", help="Permission mode override")
+    p_spawn.add_argument("--force", action="store_true", help="Skip duplicate detection guard")
 
     # spawn-request — request spawn with approval gate (M2, wariant B)
     p_spawn_req = subparsers.add_parser("spawn-request", help="Request agent spawn (pending approval)")
