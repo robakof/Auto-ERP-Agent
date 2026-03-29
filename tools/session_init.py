@@ -211,11 +211,16 @@ def main():
 
     bus = AgentBus(db_path=args.db)
 
-    # Read claude_uuid written by on_session_start hook (bootstrap bridge)
-    pending_uuid_file = Path("tmp/pending_claude_uuid.txt")
+    # Atomic claim: get claude_uuid from uuid_bridge (replaces shared pending file)
     claude_uuid = None
-    if pending_uuid_file.exists():
-        claude_uuid = pending_uuid_file.read_text(encoding="utf-8").strip() or None
+    bus._conn.execute("BEGIN IMMEDIATE")
+    bridge_row = bus._conn.execute(
+        "SELECT id, claude_uuid FROM uuid_bridge WHERE session_id IS NULL ORDER BY id DESC LIMIT 1"
+    ).fetchone()
+    if bridge_row:
+        claude_uuid = bridge_row["claude_uuid"]
+        bus._conn.execute("UPDATE uuid_bridge SET session_id = 'claiming' WHERE id = ?", (bridge_row["id"],))
+    bus._conn.commit()
 
     # Resume detection: if claude_uuid already exists in live_agents, reuse session_id
     resumed = False
@@ -269,6 +274,11 @@ def main():
             content="session started",
             session_id=session_id,
         )
+
+    # Finalize uuid_bridge with actual session_id
+    if bridge_row:
+        bus._conn.execute("UPDATE uuid_bridge SET session_id = ? WHERE id = ?", (session_id, bridge_row["id"]))
+        bus._conn.commit()
 
     # Load config and gather context
     try:

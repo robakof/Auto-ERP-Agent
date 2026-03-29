@@ -39,11 +39,14 @@ def main():
 
         claude_uuid = payload.get("session_id", "")
 
-        # Write claude_uuid for session_init to pick up (bootstrap bridge)
+        # Insert claude_uuid into uuid_bridge for session_init to claim atomically
         if claude_uuid:
-            pending_file = PROJECT_ROOT / "tmp" / "pending_claude_uuid.txt"
-            pending_file.parent.mkdir(parents=True, exist_ok=True)
-            pending_file.write_text(claude_uuid, encoding="utf-8")
+            conn_bridge = _connect()
+            # Cleanup stale entries (>5 min unclaimed)
+            conn_bridge.execute("DELETE FROM uuid_bridge WHERE created_at < datetime('now', '-5 minutes')")
+            conn_bridge.execute("INSERT INTO uuid_bridge (claude_uuid) VALUES (?)", (claude_uuid,))
+            conn_bridge.commit()
+            conn_bridge.close()
 
         file_session_id = _read_session_id()
         session_id = file_session_id or claude_uuid

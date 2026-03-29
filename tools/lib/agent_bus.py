@@ -289,6 +289,13 @@ _MIGRATE_SQL = [
     LEFT JOIN live_agents la
         ON la.role = m.recipient AND la.status IN ('starting', 'active')
     WHERE m.type = 'handoff' AND m.status = 'unread' AND la.id IS NULL""",
+    # uuid_bridge: atomic mapping claude_uuid ↔ session_id (replaces shared pending file)
+    """CREATE TABLE IF NOT EXISTS uuid_bridge (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        claude_uuid TEXT NOT NULL,
+        session_id  TEXT,
+        created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    )""",
 ]
 
 

@@ -302,27 +302,20 @@ class TestResumeDetection:
 
     def test_resume_reuses_session_id(self, tmp_path):
         """When claude_uuid exists in DB, session_init reuses session_id."""
-        # Step 1: create initial session with claude_uuid
         bus = AgentBus(db_path=str(tmp_path / "test.db"))
+        # Step 1: create initial session with claude_uuid
         bus._conn.execute(
             """INSERT INTO live_agents (session_id, role, status, spawned_by, last_activity, claude_uuid)
                VALUES ('orig123', 'developer', 'stopped', 'manual', datetime('now'), 'test-uuid-abc')""",
         )
+        # Step 2: insert into uuid_bridge (simulates on_session_start)
+        bus._conn.execute("INSERT INTO uuid_bridge (claude_uuid) VALUES ('test-uuid-abc')")
         bus._conn.commit()
 
-        # Step 2: write pending_claude_uuid.txt with same UUID (simulates on_session_start)
-        pending = PROJECT_ROOT / "tmp" / "pending_claude_uuid.txt"
-        pending.write_text("test-uuid-abc", encoding="utf-8")
-
-        try:
-            result = self.run_session_init(tmp_path, "developer")
-            assert result["ok"] is True
-            assert result["resumed"] is True
-            assert result["session_id"] == "orig123"  # reused, not new
-        finally:
-            # Cleanup pending file
-            if pending.exists():
-                pending.unlink()
+        result = self.run_session_init(tmp_path, "developer")
+        assert result["ok"] is True
+        assert result["resumed"] is True
+        assert result["session_id"] == "orig123"  # reused, not new
 
     def test_resume_reactivates_stopped_session(self, tmp_path):
         """Resume should set status back to 'active'."""
@@ -331,20 +324,14 @@ class TestResumeDetection:
             """INSERT INTO live_agents (session_id, role, status, spawned_by, last_activity, claude_uuid)
                VALUES ('stopped1', 'developer', 'stopped', 'manual', datetime('now'), 'uuid-stopped')""",
         )
+        bus._conn.execute("INSERT INTO uuid_bridge (claude_uuid) VALUES ('uuid-stopped')")
         bus._conn.commit()
 
-        pending = PROJECT_ROOT / "tmp" / "pending_claude_uuid.txt"
-        pending.write_text("uuid-stopped", encoding="utf-8")
-
-        try:
-            self.run_session_init(tmp_path, "developer")
-            row = bus._conn.execute(
-                "SELECT status FROM live_agents WHERE session_id='stopped1'"
-            ).fetchone()
-            assert row[0] == "active"
-        finally:
-            if pending.exists():
-                pending.unlink()
+        self.run_session_init(tmp_path, "developer")
+        row = bus._conn.execute(
+            "SELECT status FROM live_agents WHERE session_id='stopped1'"
+        ).fetchone()
+        assert row[0] == "active"
 
     def test_different_uuid_creates_new_session(self, tmp_path):
         """Unknown claude_uuid → new session, not resume."""
@@ -353,16 +340,10 @@ class TestResumeDetection:
             """INSERT INTO live_agents (session_id, role, status, spawned_by, last_activity, claude_uuid)
                VALUES ('old1', 'developer', 'stopped', 'manual', datetime('now'), 'uuid-old')""",
         )
+        bus._conn.execute("INSERT INTO uuid_bridge (claude_uuid) VALUES ('uuid-completely-new')")
         bus._conn.commit()
 
-        pending = PROJECT_ROOT / "tmp" / "pending_claude_uuid.txt"
-        pending.write_text("uuid-completely-new", encoding="utf-8")
-
-        try:
-            result = self.run_session_init(tmp_path, "developer")
-            assert result["ok"] is True
-            assert result["resumed"] is False
-            assert result["session_id"] != "old1"  # new session_id
-        finally:
-            if pending.exists():
-                pending.unlink()
+        result = self.run_session_init(tmp_path, "developer")
+        assert result["ok"] is True
+        assert result["resumed"] is False
+        assert result["session_id"] != "old1"  # new session_id
