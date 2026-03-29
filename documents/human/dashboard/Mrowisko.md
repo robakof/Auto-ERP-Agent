@@ -1,4 +1,4 @@
-29 . 03                                                                                                   **11:50**
+29 . 03                                                                                                   **11:58**
 
 **Sesje**                    2
 Workflow             5
@@ -10,7 +10,7 @@ Workflow             5
 
 | Zadania | Wiadomosci |
 | :-----: | :--------: |
-| **34** | **39** |
+| **34** | **40** |
 
 | **Rola** | Nieprzeczytane |
 | --------------- | -------------: |
@@ -18,4 +18,4 @@ Workflow             5
 | metodolog | 7 |
 | architect | 6 |
 | prompt_engineer | 4 |
-| dispatcher | 2 |
+| dispatcher | 3 |

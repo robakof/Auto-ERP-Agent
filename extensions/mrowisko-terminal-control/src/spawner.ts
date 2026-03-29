@@ -67,7 +67,7 @@ export class Spawner {
     // Delay first user message — Claude Code needs time to start and accept stdin.
     // The system prompt already contains the task context, so Claude knows what to do.
     // This message triggers session_init via CLAUDE.md routing.
-    const delay = getConfig("startupDelayMs", 4000);
+    const delay = getConfig("startupDelayMs", 12000);
     setTimeout(() => {
       terminal.sendText(`${request.role}, ${request.task}`);
     }, delay);
