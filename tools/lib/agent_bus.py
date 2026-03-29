@@ -256,6 +256,7 @@ _MIGRATE_SQL = [
     # live_agents: claude_uuid for reliable session_end matching
     "ALTER TABLE live_agents ADD COLUMN claude_uuid TEXT",
     # SQL Views: single interpretation layer (Dashboard = Dispatcher) — backlog #201
+    "DROP VIEW IF EXISTS v_agent_status",
     """CREATE VIEW IF NOT EXISTS v_agent_status AS
     SELECT
         session_id,
@@ -266,7 +267,6 @@ _MIGRATE_SQL = [
         claude_uuid,
         terminal_name,
         CASE
-            WHEN status = 'stopped' THEN 'stopped'
             WHEN status = 'starting' THEN 'starting'
             WHEN last_activity > datetime('now', '-5 minutes') THEN 'working'
             WHEN last_activity > datetime('now', '-30 minutes') THEN 'stale'
