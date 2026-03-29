@@ -136,9 +136,13 @@ Dla każdej warstwy — jeśli są obserwacje, zapisz:
 
 Jeśli brak obserwacji na danej warstwie — pomiń (nie wymuszaj pustych sugestii).
 
+Po zapisie — **pokaż użytkownikowi** listę sugestii które wrzuciłeś (tytuł + krótki opis).
+Użytkownik chce się zapoznać, zweryfikować, ewentualnie dodać swoje przemyślenia.
+Czekaj na reakcję użytkownika przed przejściem dalej.
+
 ### Exit gate
 
-PASS: trzy warstwy przejrzane, obserwacje zapisane lub świadomie pominięte.
+PASS: trzy warstwy przejrzane, obserwacje zapisane lub świadomie pominięte, użytkownik zapoznany.
 
 ---
 
