@@ -40,7 +40,7 @@ def main():
 
         if spawn_token:
             # Spawned agent: link claude_uuid to pre-registered record
-            conn.execute(
+            cur = conn.execute(
                 """UPDATE live_agents
                    SET claude_uuid = ?,
                        status = 'active',
@@ -48,6 +48,25 @@ def main():
                    WHERE spawn_token = ? AND status = 'starting'""",
                 (claude_uuid, spawn_token),
             )
+            if cur.rowcount == 0:
+                # Fallback for resume: spawn_token not pre-registered, but claude_uuid may exist
+                # (e.g. resumeAgent created terminal with new spawn_token for existing conversation)
+                cur2 = conn.execute(
+                    """UPDATE live_agents
+                       SET status = 'active',
+                           last_activity = datetime('now'),
+                           spawn_token = ?,
+                           stopped_at = NULL
+                       WHERE claude_uuid = ?""",
+                    (spawn_token, claude_uuid),
+                )
+                if cur2.rowcount == 0:
+                    # Completely new — insert
+                    conn.execute(
+                        """INSERT INTO live_agents (claude_uuid, spawn_token, status, spawned_by, last_activity)
+                           VALUES (?, ?, 'active', 'manual', datetime('now'))""",
+                        (claude_uuid, spawn_token),
+                    )
         else:
             # Manual session: insert new record (or reactivate if claude_uuid exists)
             conn.execute(
