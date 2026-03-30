@@ -1,9 +1,9 @@
 """
-planowanie_produkcji.py — Eksport zamówień niepotwierdzonych CZNI do Excel.
+planowanie_produkcji.py — Planowanie produkcji CZNI: zamówienia + gap analysis.
 
 CLI:
-    python tools/planowanie_produkcji.py --year 2026
-    python tools/planowanie_produkcji.py --year 2026 --output output/planowanie/wynik.xlsx
+    python tools/planowanie_produkcji.py --year 2025
+    python tools/planowanie_produkcji.py --year 2025 --output output/planowanie/wynik.xlsx
 """
 
 import argparse
@@ -13,33 +13,21 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from tools.lib.sql_client import SqlClient
+from tools.lib.pp_demand import fetch_demand
+from tools.lib.pp_supply import fetch_supply
 from tools.lib.excel_writer import ExcelWriter
 
 _PROJECT_ROOT = Path(__file__).parent.parent
-_SQL_PATH = _PROJECT_ROOT / "solutions/erp_specialist/planowanie_produkcji_zamowienia_niepotwierdzone.sql"
 _OUTPUT_DIR = _PROJECT_ROOT / "output/planowanie"
 
-COLUMNS = [
-    "ID_Zamowienia", "Nr_Zamowienia", "Data_Wystawienia", "Data_Realizacji",
-    "Kontrahent_Kod", "Kontrahent_Nazwa",
-    "Nr_Pozycji", "Towar_Kod", "Towar_Nazwa", "Ilosc", "Jednostka", "Opis",
+# Faza 2: kolumny arkusza 1 (zamówienia)
+_COLS_ORDERS = [
+    "Nr_Zamowienia", "Data_Realizacji", "Kontrahent_Kod", "Kontrahent_Nazwa",
+    "Towar_Kod", "Towar_Nazwa", "Ilosc", "Jednostka", "Opis",
 ]
 
-
-def _strip_comments(sql: str) -> str:
-    """Usuwa linie komentarzy -- (polskie znaki w komentarzach blokują pyodbc)."""
-    lines = [ln for ln in sql.splitlines() if not ln.lstrip().startswith("--")]
-    return "\n".join(lines)
-
-
-def _fetch_all() -> list[dict]:
-    sql = _strip_comments(_SQL_PATH.read_text(encoding="utf-8"))
-    result = SqlClient().execute(sql, inject_top=None)
-    if not result["ok"]:
-        raise RuntimeError(result["error"]["message"])
-    cols = result["columns"]
-    return [dict(zip(cols, row)) for row in result["rows"]]
+# Re-eksport dla testów (filter_rows używane w test suite)
+from tools.lib.pp_demand import _year_of
 
 
 def filter_rows(rows: list[dict], year: int) -> list[dict]:
@@ -51,21 +39,10 @@ def filter_rows(rows: list[dict], year: int) -> list[dict]:
     ]
 
 
-def _year_of(d) -> int:
-    """Pobiera rok z datetime.date lub datetime.datetime."""
-    if hasattr(d, "year"):
-        return d.year
-    raise TypeError(f"Nieoczekiwany typ daty: {type(d)}")
-
-
-def _to_rows(rows: list[dict]) -> list[list]:
-    return [[r.get(c) for c in COLUMNS] for r in rows]
-
-
-def _export(rows: list[dict], output_path: Path) -> None:
-    data_rows = _to_rows(rows)
+def _export_orders(rows: list[dict], output_path: Path) -> None:
+    data_rows = [[r.get(c) for c in _COLS_ORDERS] for r in rows]
     writer = ExcelWriter()
-    writer.add_sheet("Zamówienia CZNI", COLUMNS, data_rows)
+    writer.add_sheet("Zamówienia CZNI", _COLS_ORDERS, data_rows)
     try:
         writer.save(output_path)
     except PermissionError:
@@ -77,10 +54,10 @@ def main() -> None:
         sys.stdout.reconfigure(encoding="utf-8")
 
     parser = argparse.ArgumentParser(
-        description="Eksport zamówień niepotwierdzonych CZNI do Excel."
+        description="Planowanie produkcji CZNI — zamówienia + gap analysis."
     )
     parser.add_argument("--year", type=int, required=True,
-                        help="Rok Data_Realizacji (np. 2026)")
+                        help="Rok Data_Realizacji (np. 2025)")
     parser.add_argument("--output", default=None,
                         help="Ścieżka pliku xlsx (domyślnie: output/planowanie/)")
     args = parser.parse_args()
@@ -89,18 +66,19 @@ def main() -> None:
     default_name = f"planowanie_CZNI_{args.year}_{today}.xlsx"
     output_path = Path(args.output) if args.output else _OUTPUT_DIR / default_name
 
-    print(f"Pobieranie danych z ERP...")
-    rows = _fetch_all()
-    print(f"  Pobrano {len(rows)} pozycji łącznie.")
+    print("Pobieranie zamówień z ERP...")
+    demand = fetch_demand(args.year)
+    print(f"  Zamówienia CZNI rok {args.year}: {len(demand)} pozycji.")
 
-    filtered = filter_rows(rows, args.year)
-    print(f"  Po filtrach (CZNI, Zamówienie*, rok {args.year}): {len(filtered)} pozycji.")
+    print("Pobieranie stanów OTOR_SUR...")
+    supply = fetch_supply()
+    print(f"  Surowce OTOR_SUR: {len(supply)} pozycji.")
 
-    if not filtered:
-        print("Brak danych do eksportu.")
+    if not demand:
+        print("Brak zamówień do eksportu.")
         sys.exit(0)
 
-    _export(filtered, output_path)
+    _export_orders(demand, output_path)
     print(f"OK: {output_path.resolve()}")
 
 
