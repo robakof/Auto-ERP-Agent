@@ -66,6 +66,13 @@ APPS = [
         "active": True,
     },
     {
+        "name": "Ofertowanie",
+        "desc": "Eksport produktów ERP do Excel ze zdjęciami i parametrami",
+        "icon": "📦",
+        "page": "pages/ofertowanie.py",
+        "active": True,
+    },
+    {
         "name": "Wycena Produkcji",
         "desc": "Kalkulator wyceny produkcji CZNI",
         "icon": "🧮",

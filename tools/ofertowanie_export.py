@@ -110,18 +110,19 @@ LEFT JOIN (
 ORDER BY tk.Twr_Kod
 """
 
-_SQL_GROUP = f"""
+def _sql_group(group_numer=GROUP_NUMER, group_typ=GROUP_TYP):
+    return f"""
 WITH GroupTree AS (
     SELECT TwG_GIDNumer, TwG_GIDTyp
     FROM CDN.TwrGrupy
-    WHERE TwG_GIDNumer = {GROUP_NUMER} AND TwG_GIDTyp = {GROUP_TYP}
+    WHERE TwG_GIDNumer = {group_numer} AND TwG_GIDTyp = {group_typ}
     UNION ALL
     SELECT g.TwG_GIDNumer, g.TwG_GIDTyp
     FROM CDN.TwrGrupy g
     INNER JOIN GroupTree gt
         ON g.TwG_GrONumer = gt.TwG_GIDNumer
         AND g.TwG_GrOTyp  = gt.TwG_GIDTyp
-        AND g.TwG_GIDTyp  = {GROUP_TYP}
+        AND g.TwG_GIDTyp  = {group_typ}
 ),
 Produkty AS (
     SELECT DISTINCT tk.Twr_GIDNumer, tk.Twr_GIDTyp
@@ -212,7 +213,7 @@ def _export_excel(rows: list[dict], output_path: str) -> None:
             cell.alignment = Alignment(vertical="top")
 
         # Obrazek
-        photo_filename = row.get("Zdjecie")
+        photo_filename = row.get("Zdjęcie")
         if photo_filename:
             photo_path = os.path.join(PHOTOS_DIR, photo_filename)
             if os.path.exists(photo_path):
@@ -271,7 +272,7 @@ def main() -> None:
         sql = _sql_excel(kody)
     else:
         print("Tryb: Grupa 10_OFERTY")
-        sql = _SQL_GROUP
+        sql = _sql_group()
 
     # Zapytanie ERP
     print("Odpytuje ERP...")
