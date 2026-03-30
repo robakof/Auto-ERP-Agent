@@ -18,8 +18,8 @@ interface GcPolicy {
 }
 
 const DEFAULT_POLICY: GcPolicy = {
-  staleThresholdMinutes: 30,
-  graceMinutes: 10,
+  staleThresholdMinutes: 60,
+  graceMinutes: 15,
   intervalMinutes: 5,
 };
 

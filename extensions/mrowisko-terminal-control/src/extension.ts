@@ -164,13 +164,7 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
-  // 7. Cleanup orphaned agents
-  try {
-    db.cleanup();
-  } catch (e) {
-    log.warn("Cleanup failed", { error: String(e) });
-  }
-
+  // 7. Cleanup handled by GC (autopoke + grace period)
   log.info("Extension activated", { workspaceRoot, dbPath });
 
   // 8. Register disposables — order matters (reverse teardown)
