@@ -23,5 +23,19 @@ export interface SpawnRequest {
   systemPrompt?: string;
 }
 
+export interface PendingInvocation {
+  id: number;
+  invoker_type: string | null;
+  invoker_id: string | null;
+  target_role: string;
+  task: string;
+  session_id: string | null;
+  status: string;
+  created_at: string;
+  ended_at: string | null;
+  action: string | null;
+  target_session_id: string | null;
+}
+
 /** Map of session_id → vscode.Terminal for local window tracking. */
 export type TerminalMap = Map<string, vscode.Terminal>;

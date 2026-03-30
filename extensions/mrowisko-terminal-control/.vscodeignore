@@ -1,7 +1,17 @@
 .vscode/**
 .vscode-test/**
 src/**
+out/**
+test-fixtures/**
+node_modules/**
+!node_modules/better-sqlite3/**
+!node_modules/better-sqlite3/build/**
+documents/**
 .gitignore
 tsconfig.json
+tsconfig.test.json
+esbuild.js
 *.map
 *.vsix
+*.md
+!README.md

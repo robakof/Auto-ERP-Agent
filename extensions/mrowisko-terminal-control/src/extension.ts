@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import * as crypto from "crypto";
 import * as path from "path";
+import * as fs from "fs";
+import { MrowiskoDB } from "./db";
 import { Registry } from "./registry";
 import { Spawner } from "./spawner";
 import { Watcher } from "./watcher";
@@ -9,31 +11,64 @@ import { RoleLayout } from "./layout";
 import { registerCommands } from "./commands";
 import { TerminalMap } from "./types";
 
-let registry: Registry | undefined;
-let watcher: Watcher | undefined;
-let approver: Approver | undefined;
+function resolveWorkspaceRoot(): string {
+  const folders = vscode.workspace.workspaceFolders;
+  if (!folders || folders.length === 0) {
+    throw new Error("Mrowisko requires an open workspace folder.");
+  }
+  return folders[0].uri.fsPath;
+}
 
 export function activate(context: vscode.ExtensionContext): void {
-  const dbPath = resolveDbPath();
+  const log = vscode.window.createOutputChannel("Mrowisko", { log: true });
+
+  // 1. Resolve workspace — fail-fast
+  let workspaceRoot: string;
+  try {
+    workspaceRoot = resolveWorkspaceRoot();
+  } catch {
+    log.error("No workspace folder open. Extension inactive.");
+    vscode.window.showErrorMessage("Mrowisko: otwórz folder projektu.");
+    return;
+  }
+
+  // 2. Resolve DB — absolute path
+  const dbPath = path.join(workspaceRoot, "mrowisko.db");
+  if (!fs.existsSync(dbPath)) {
+    log.warn(`mrowisko.db not found at ${dbPath}. Extension inactive.`);
+    return;
+  }
+
+  // 3. Initialize DB
+  let db: MrowiskoDB;
+  try {
+    db = new MrowiskoDB(dbPath);
+    log.info("Database connected", { dbPath });
+  } catch (e) {
+    log.error("Failed to open database", { dbPath, error: String(e) });
+    vscode.window.showErrorMessage(`Mrowisko: nie można otworzyć bazy danych: ${dbPath}`);
+    return;
+  }
+
+  // 4. Initialize components
+  const registry = new Registry(db);
   const terminals: TerminalMap = new Map();
   const layout = new RoleLayout();
-
-  registry = new Registry(dbPath);
   const spawner = new Spawner(registry, terminals, layout);
-  watcher = new Watcher(registry, terminals, layout);
-  approver = new Approver(dbPath, spawner);
+  const watcher = new Watcher(registry, terminals, layout);
+  // Approver still uses Python proxy (Faza 1 — will be rewritten in Faza 2)
+  const approver = new Approver(dbPath, spawner);
 
+  // 5. Activate components
   watcher.activate();
   registerCommands(context, registry, spawner, terminals, layout);
 
-  // Poll for pending invocations (approval gate)
   const pollInterval = vscode.workspace
     .getConfiguration("mrowisko")
     .get<number>("pollIntervalMs", 5000);
   approver.start(pollInterval);
 
-  // URI handler: allows spawning agents from CLI via
-  // code --open-url "vscode://mrowisko.mrowisko-terminal-control?command=spawnAgent&role=developer&task=check+backlog"
+  // 6. URI handler
   context.subscriptions.push(
     vscode.window.registerUriHandler({
       handleUri(uri: vscode.Uri): void {
@@ -66,7 +101,6 @@ export function activate(context: vscode.ExtensionContext): void {
               (t) => t.name === terminalName
             );
             if (terminal) {
-              // Workaround: Claude Code 2.1.83 "/" artifact in input
               terminal.sendText("", true);
               setTimeout(() => {
                 terminal.sendText(message);
@@ -102,7 +136,6 @@ export function activate(context: vscode.ExtensionContext): void {
         } else if (command === "stopAgent") {
           const terminalName = params.get("terminalName");
           const sessionId = params.get("sessionId");
-          // Prefer terminalName (works for all sessions), fallback to sessionId (spawned only)
           let terminal: vscode.Terminal | undefined;
           if (terminalName) {
             terminal = vscode.window.terminals.find(
@@ -113,10 +146,9 @@ export function activate(context: vscode.ExtensionContext): void {
           }
           if (terminal) {
             terminal.sendText("/exit");
-            // Close terminal after Claude Code exits gracefully
             setTimeout(() => terminal!.dispose(), 3000);
           } else if (sessionId) {
-            registry?.markStopped(sessionId);
+            registry.markStopped(sessionId);
           }
         } else if (command === "resumeAgent") {
           const terminalName = params.get("terminalName");
@@ -127,14 +159,11 @@ export function activate(context: vscode.ExtensionContext): void {
               (t) => t.name === terminalName
             );
             if (existing) {
-              // Terminal exists — send /resume
               existing.sendText("/resume");
               vscode.window.showInformationMessage(
                 `Resume wysłany do: ${terminalName}`
               );
             } else {
-              // Terminal gone — create new and start claude --resume <uuid>
-              // Extract role from terminal name "Agent: <role>"
               const roleMatch = terminalName.match(/^Agent:\s*(.+)$/);
               const resumeRole = roleMatch ? roleMatch[1] : "";
               const locationSetting = vscode.workspace
@@ -167,30 +196,24 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
-  // Cleanup orphaned agents on startup
-  try { registry.cleanup(); } catch {}
+  // 7. Cleanup orphaned agents
+  try {
+    db.cleanup();
+  } catch (e) {
+    log.warn("Cleanup failed", { error: String(e) });
+  }
+
+  log.info("Extension activated", { workspaceRoot, dbPath });
+
+  // 8. Register disposables — order matters (reverse teardown)
+  context.subscriptions.push(
+    { dispose: () => approver.dispose() },
+    { dispose: () => watcher.dispose() },
+    { dispose: () => db.dispose() },
+    log
+  );
 }
 
 export function deactivate(): void {
-  approver?.dispose();
-  watcher?.dispose();
-  registry?.dispose();
-}
-
-function resolveDbPath(): string {
-  const configured = vscode.workspace
-    .getConfiguration("mrowisko")
-    .get<string>("dbPath", "mrowisko.db");
-
-  if (path.isAbsolute(configured)) {
-    return configured;
-  }
-
-  // Resolve relative to workspace root
-  const folders = vscode.workspace.workspaceFolders;
-  if (folders && folders.length > 0) {
-    return path.join(folders[0].uri.fsPath, configured);
-  }
-
-  return configured;
+  // Cleanup handled by context.subscriptions disposables
 }

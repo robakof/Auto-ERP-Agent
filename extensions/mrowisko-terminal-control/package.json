@@ -11,9 +11,9 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "workspaceContains:mrowisko.db"
   ],
-  "main": "./out/extension.js",
+  "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
@@ -89,14 +89,20 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run build",
+    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:better-sqlite3 --platform=node --format=cjs",
+    "watch": "npm run build -- --watch --sourcemap",
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
     "@types/node": "^18.0.0",
     "@types/vscode": "^1.80.0",
+    "esbuild": "^0.27.0",
     "typescript": "^5.0.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "better-sqlite3": "^11.0.0"
+  }
 }
