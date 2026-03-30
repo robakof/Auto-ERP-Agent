@@ -79,7 +79,9 @@ if st.button("Generuj raport", type="primary", use_container_width=True):
             supply = fetch_supply()
 
         with st.spinner("Obliczanie gap analysis…"):
-            gaps, _ = compute_gap(demand, bom, supply)
+            gaps, warns = compute_gap(demand, bom, supply)
+        for w in warns:
+            st.warning(w)
 
         supply_rows = [
             {"Towar_Kod": k, "Towar_Nazwa": "", "Jednostka": "", "Stan": v}

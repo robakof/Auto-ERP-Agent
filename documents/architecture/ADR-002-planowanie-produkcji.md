@@ -181,6 +181,7 @@ Arkusz 4: "Gap Analysis"
    Stabilna lokalizacja do ustalenia z użytkownikiem.
 
 2. Co z produktami CZNI z zamówień które NIE mają BOM w pliku wyceny?
-   **Decyzja: error + stop.**
-   Komunikat: "Brak BOM dla [CZNI_KOD] w pliku wyceny — uzupełnij plik przed uruchomieniem."
-   Uzasadnienie: niekompletny BOM → niekompletny gap analysis → błędna decyzja zakupowa.
+   **Decyzja: warning + kontynuuj.**
+   Komunikat stderr: "[WARN] Brak BOM dla [CZNI_KOD] — pominięto w gap analysis."
+   Produkt pojawia się w Arkuszu 1 (Zamówienia) ale nie w Arkuszach 2/4 (gap analysis).
+   Uzasadnienie: stop blokuje workflow zanim użytkownik może zweryfikować/uzupełnić BOM.

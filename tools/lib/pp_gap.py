@@ -38,10 +38,10 @@ def compute_gap(
         if not czni_kod or ilosc == 0:
             continue
         if czni_kod not in bom:
-            raise RuntimeError(
-                f"Brak BOM dla {czni_kod} w pliku wyceny — "
-                "uzupełnij plik przed uruchomieniem."
+            warnings_out.append(
+                f"[WARN] Brak BOM dla {czni_kod} — pominięto w gap analysis."
             )
+            continue
         for entry in bom[czni_kod]:
             needed = ilosc / entry.mianownik
             total_needed[entry.surowiec_kod] += needed

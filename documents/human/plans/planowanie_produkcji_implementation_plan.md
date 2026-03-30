@@ -152,9 +152,10 @@ def compute_gap(
 ) -> tuple[list[GapRow], list[str]]:  # (gaps, warnings)
 ```
 
-Uwaga: produkty CZNI z zamówień bez BOM w słowniku → **RuntimeError + stop**.
-Komunikat musi być jasny: "Brak BOM dla CZNI99999 w pliku wyceny — uzupełnij plik przed uruchomieniem."
-Uzasadnienie: niekompletny BOM → błędna decyzja zakupowa → lepiej zatrzymać niż puścić zły wynik.
+Uwaga: produkty CZNI z zamówień bez BOM w słowniku → **warning + kontynuuj**.
+Komunikat stderr: "[WARN] Brak BOM dla CZNI99999 — pominięto w gap analysis."
+Produkt pojawia się w Arkuszu 1 (Zamówienia), ale jest pomijany w Arkuszach 2 i 4.
+Uzasadnienie: stop blokuje workflow zanim użytkownik może uzupełnić BOM.
 
 **tools/lib/pp_export.py — 4 arkusze:**
 
@@ -216,7 +217,7 @@ py tools/planowanie_produkcji.py --year 2026 --mode orders-only
 **Ścieżka pliku wyceny:** przekazywana z UI — Developer decyduje o mechanizmie
 (file picker, pole tekstowe, itp.). Nie ma stałej ani .env.
 
-**Brak BOM dla CZNI:** RuntimeError + stop z komunikatem.
+**Brak BOM dla CZNI:** warning + kontynuuj (pomiń w gap analysis, zostaw w Arkuszu 1).
 Uzasadnienie: niekompletny gap analysis → błędna decyzja zakupowa.
 
 ---

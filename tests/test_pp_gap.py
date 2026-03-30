@@ -2,8 +2,6 @@
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.lib.pp_bom import BomEntry
@@ -49,10 +47,11 @@ def test_compute_gap_sortowanie_brak_desc():
     assert braki == sorted(braki, reverse=True)
 
 
-def test_compute_gap_brak_bom_runtime_error():
+def test_compute_gap_brak_bom_warning_i_pominięcie():
     demand = [{"Towar_Kod": "CZNI999", "Ilosc": 100}]
-    with pytest.raises(RuntimeError, match="Brak BOM dla CZNI999"):
-        compute_gap(demand, _BOM, _SUPPLY)
+    gaps, warns = compute_gap(demand, _BOM, _SUPPLY)
+    assert gaps == [], "Produkt bez BOM nie trafia do gap analysis"
+    assert any("CZNI999" in w for w in warns), "Powinien być warning o braku BOM"
 
 
 def test_compute_gap_surowiec_bez_stanu():
