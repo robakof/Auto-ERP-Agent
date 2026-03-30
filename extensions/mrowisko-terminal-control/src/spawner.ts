@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as crypto from "crypto";
-import { Registry } from "./registry";
+import { MrowiskoDB } from "./db";
 import { RoleLayout } from "./layout";
 import { SpawnRequest, TerminalMap } from "./types";
 
@@ -10,9 +10,10 @@ function getConfig<T>(key: string, fallback: T): T {
 
 export class Spawner {
   constructor(
-    private registry: Registry,
+    private db: MrowiskoDB,
     private terminals: TerminalMap,
-    private layout: RoleLayout
+    private layout: RoleLayout,
+    private log: vscode.LogOutputChannel
   ) {}
 
   spawn(request: SpawnRequest): vscode.Terminal {
@@ -20,12 +21,10 @@ export class Spawner {
     const spawnToken = crypto.randomUUID();
     const permissionMode =
       request.permissionMode ||
-      vscode.workspace
-        .getConfiguration("mrowisko")
-        .get<string>("defaultPermissionMode", "default");
+      getConfig("defaultPermissionMode", "default");
 
     // Pre-register in DB before terminal exists
-    this.registry.insert(
+    this.db.insertAgent(
       spawnToken,
       request.role,
       request.task,
@@ -68,7 +67,7 @@ export class Spawner {
     // This message triggers session_init via CLAUDE.md routing.
     const delay = getConfig("startupDelayMs", 12000);
     setTimeout(() => {
-      // Workaround: Claude Code 2.1.83 injects "/" into input after startup.
+      // Workaround W1: Claude Code 2.1.83 injects "/" into input after startup.
       // First empty sendText clears the artifact, then actual message follows.
       terminal.sendText("", true);
       setTimeout(() => {
@@ -82,6 +81,64 @@ export class Spawner {
     this.terminals.set(spawnToken, terminal);
     this.layout.addTerminal(request.role, terminal);
 
+    this.log.info("Agent spawned", { role: request.role, spawnToken, terminalName });
     return terminal;
+  }
+
+  resume(terminalName: string, claudeUuid: string, spawnToken: string): void {
+    // W4: Resume requires new terminal — dead shell won't accept input
+    const existing = vscode.window.terminals.find((t) => t.name === terminalName);
+    if (existing) {
+      existing.dispose();
+    }
+
+    const roleMatch = terminalName.match(/^Agent:\s*(.+)$/);
+    const resumeRole = roleMatch ? roleMatch[1] : "";
+    const locationSetting = getConfig("terminalLocation", "editor");
+    const location =
+      locationSetting === "editor" && resumeRole
+        ? { viewColumn: this.layout.getViewColumn(resumeRole) }
+        : vscode.TerminalLocation.Panel;
+
+    const newTerminal = vscode.window.createTerminal({
+      name: terminalName,
+      location,
+      env: { MROWISKO_SPAWN_TOKEN: spawnToken },
+    });
+
+    if (resumeRole) {
+      this.layout.addTerminal(resumeRole, newTerminal);
+    }
+
+    const resumeCmd = claudeUuid
+      ? `claude --resume "${claudeUuid}"`
+      : "claude --resume";
+    newTerminal.sendText(resumeCmd);
+    newTerminal.show();
+
+    this.log.info("Agent resumed", { terminalName, claudeUuid });
+  }
+
+  stop(sessionId: string): void {
+    const terminal = this.terminals.get(sessionId);
+    if (terminal) {
+      // W3: /exit + dispose after timeout
+      terminal.sendText("/exit");
+      setTimeout(() => terminal.dispose(), 3000);
+      this.log.info("Agent stop sent", { sessionId });
+    } else {
+      // Terminal not in this window — mark stopped directly
+      this.db.markStopped(sessionId);
+      this.log.info("Agent marked stopped (no terminal)", { sessionId });
+    }
+  }
+
+  kill(sessionId: string): void {
+    const terminal = this.terminals.get(sessionId);
+    if (terminal) {
+      terminal.dispose();
+      this.log.info("Agent killed", { sessionId });
+    }
+    this.db.markStopped(sessionId);
   }
 }

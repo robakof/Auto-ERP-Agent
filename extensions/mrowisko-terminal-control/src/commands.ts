@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
+import { MrowiskoDB } from "./db";
 import { RoleLayout } from "./layout";
-import { Registry } from "./registry";
 import { Spawner } from "./spawner";
 import { TerminalMap } from "./types";
 
@@ -29,7 +29,7 @@ function loadRoles(): vscode.QuickPickItem[] {
 
 export function registerCommands(
   context: vscode.ExtensionContext,
-  registry: Registry,
+  db: MrowiskoDB,
   spawner: Spawner,
   terminals: TerminalMap,
   layout: RoleLayout
@@ -39,10 +39,10 @@ export function registerCommands(
       spawnAgent(spawner)
     ),
     vscode.commands.registerCommand("mrowisko.listAgents", () =>
-      listAgents(registry, terminals)
+      listAgents(db, terminals)
     ),
     vscode.commands.registerCommand("mrowisko.stopAgent", () =>
-      stopAgent(registry, terminals)
+      stopAgent(db, spawner, terminals)
     ),
     vscode.commands.registerCommand("mrowisko.focusAgent", () =>
       focusAgent(layout)
@@ -76,10 +76,10 @@ async function spawnAgent(spawner: Spawner): Promise<void> {
 }
 
 async function listAgents(
-  registry: Registry,
+  db: MrowiskoDB,
   terminals: TerminalMap
 ): Promise<void> {
-  const agents = registry.getActiveAgents();
+  const agents = db.getActiveAgents();
 
   if (agents.length === 0) {
     vscode.window.showInformationMessage("Brak aktywnych agentow.");
@@ -112,10 +112,11 @@ async function listAgents(
 }
 
 async function stopAgent(
-  registry: Registry,
+  db: MrowiskoDB,
+  spawner: Spawner,
   terminals: TerminalMap
 ): Promise<void> {
-  const agents = registry.getActiveAgents();
+  const agents = db.getActiveAgents();
 
   if (agents.length === 0) {
     vscode.window.showInformationMessage("Brak aktywnych agentow do zatrzymania.");
@@ -138,14 +139,9 @@ async function stopAgent(
     return;
   }
 
-  const key = selected.spawnToken || selected.sessionId;
-  const terminal = key ? terminals.get(key) : undefined;
-  if (terminal) {
-    terminal.dispose();
-    // onDidCloseTerminal watcher handles DB cleanup
-  } else if (selected.sessionId) {
-    // Terminal not in this window — mark stopped directly
-    registry.markStopped(selected.sessionId);
+  const sessionId = selected.sessionId || selected.spawnToken;
+  if (sessionId) {
+    spawner.stop(sessionId);
   }
 
   vscode.window.showInformationMessage(

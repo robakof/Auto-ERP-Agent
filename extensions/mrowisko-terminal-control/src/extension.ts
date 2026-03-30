@@ -3,7 +3,6 @@ import * as crypto from "crypto";
 import * as path from "path";
 import * as fs from "fs";
 import { MrowiskoDB } from "./db";
-import { Registry } from "./registry";
 import { Spawner } from "./spawner";
 import { Watcher } from "./watcher";
 import { Approver } from "./approver";
@@ -51,24 +50,21 @@ export function activate(context: vscode.ExtensionContext): void {
   }
 
   // 4. Initialize components
-  const registry = new Registry(db);
   const terminals: TerminalMap = new Map();
   const layout = new RoleLayout();
-  const spawner = new Spawner(registry, terminals, layout);
-  const watcher = new Watcher(registry, terminals, layout);
-  // Approver still uses Python proxy (Faza 1 — will be rewritten in Faza 2)
-  const approver = new Approver(dbPath, spawner);
+  const policyFile = path.join(workspaceRoot, "config", "spawn_policy.json");
+  const spawner = new Spawner(db, terminals, layout, log);
+  const watcher = new Watcher(db, terminals, layout, log);
+  const approver = new Approver(db, spawner, log, policyFile);
 
   // 5. Activate components
   watcher.activate();
-  registerCommands(context, registry, spawner, terminals, layout);
+  registerCommands(context, db, spawner, terminals, layout);
 
-  // Approver polling disabled in Faza 1 — Python proxy crashes with CWD issues.
-  // Will be enabled in Faza 2 after Approver rewrite to use MrowiskoDB directly.
-  // const pollInterval = vscode.workspace
-  //   .getConfiguration("mrowisko")
-  //   .get<number>("pollIntervalMs", 5000);
-  // approver.start(pollInterval);
+  const pollInterval = vscode.workspace
+    .getConfiguration("mrowisko")
+    .get<number>("pollIntervalMs", 5000);
+  approver.start(pollInterval);
 
   // 6. URI handler
   context.subscriptions.push(
@@ -136,63 +132,16 @@ export function activate(context: vscode.ExtensionContext): void {
         } else if (command === "listAgents") {
           vscode.commands.executeCommand("mrowisko.listAgents");
         } else if (command === "stopAgent") {
-          const terminalName = params.get("terminalName");
           const sessionId = params.get("sessionId");
-          let terminal: vscode.Terminal | undefined;
-          if (terminalName) {
-            terminal = vscode.window.terminals.find(
-              (t) => t.name === terminalName
-            );
-          } else if (sessionId) {
-            terminal = terminals.get(sessionId);
-          }
-          if (terminal) {
-            terminal.sendText("/exit");
-            setTimeout(() => terminal!.dispose(), 3000);
-          } else if (sessionId) {
-            registry.markStopped(sessionId);
+          if (sessionId) {
+            spawner.stop(sessionId);
           }
         } else if (command === "resumeAgent") {
           const terminalName = params.get("terminalName");
           const claudeUuid = params.get("claudeUuid") || "";
           const spawnToken = params.get("spawnToken") || crypto.randomUUID();
           if (terminalName) {
-            const existing = vscode.window.terminals.find(
-              (t) => t.name === terminalName
-            );
-            if (existing) {
-              // BUG: see EXTENSION_KNOWN_ISSUES W4 — sendText to dead terminal does nothing
-              existing.sendText("/resume");
-              vscode.window.showInformationMessage(
-                `Resume wysłany do: ${terminalName}`
-              );
-            } else {
-              const roleMatch = terminalName.match(/^Agent:\s*(.+)$/);
-              const resumeRole = roleMatch ? roleMatch[1] : "";
-              const locationSetting = vscode.workspace
-                .getConfiguration("mrowisko")
-                .get<string>("terminalLocation", "editor");
-              const location =
-                locationSetting === "editor" && resumeRole
-                  ? { viewColumn: layout.getViewColumn(resumeRole) }
-                  : vscode.TerminalLocation.Panel;
-              const newTerminal = vscode.window.createTerminal({
-                name: terminalName,
-                location,
-                env: { MROWISKO_SPAWN_TOKEN: spawnToken },
-              });
-              if (resumeRole) {
-                layout.addTerminal(resumeRole, newTerminal);
-              }
-              const resumeCmd = claudeUuid
-                ? `claude --resume "${claudeUuid}"`
-                : "claude --resume";
-              newTerminal.sendText(resumeCmd);
-              newTerminal.show();
-              vscode.window.showInformationMessage(
-                `Agent wznowiony w nowym terminalu: ${terminalName}`
-              );
-            }
+            spawner.resume(terminalName, claudeUuid, spawnToken);
           }
         }
       },

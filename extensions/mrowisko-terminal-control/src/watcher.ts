@@ -1,15 +1,16 @@
 import * as vscode from "vscode";
+import { MrowiskoDB } from "./db";
 import { RoleLayout } from "./layout";
-import { Registry } from "./registry";
 import { TerminalMap } from "./types";
 
 export class Watcher {
   private disposables: vscode.Disposable[] = [];
 
   constructor(
-    private registry: Registry,
+    private db: MrowiskoDB,
     private terminals: TerminalMap,
-    private layout: RoleLayout
+    private layout: RoleLayout,
+    private log: vscode.LogOutputChannel
   ) {}
 
   activate(): void {
@@ -25,8 +26,9 @@ export class Watcher {
     // Find session_id for this terminal
     for (const [sessionId, tracked] of this.terminals) {
       if (tracked === terminal) {
-        this.registry.markStopped(sessionId);
+        this.db.markStopped(sessionId);
         this.terminals.delete(sessionId);
+        this.log.info("Terminal closed, agent marked stopped", { sessionId });
         return;
       }
     }
