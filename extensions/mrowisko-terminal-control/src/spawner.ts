@@ -116,7 +116,10 @@ export class Spawner {
     newTerminal.sendText(resumeCmd);
     newTerminal.show();
 
-    this.log.info("Agent resumed", { terminalName, claudeUuid });
+    // Track resumed terminal in Map (by spawnToken — same as spawn)
+    this.terminals.set(spawnToken, newTerminal);
+
+    this.log.info("Agent resumed", { terminalName, claudeUuid, spawnToken });
   }
 
   private findTerminal(sessionId: string): vscode.Terminal | undefined {
