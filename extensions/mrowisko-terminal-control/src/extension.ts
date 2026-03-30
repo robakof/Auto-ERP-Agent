@@ -63,10 +63,12 @@ export function activate(context: vscode.ExtensionContext): void {
   watcher.activate();
   registerCommands(context, registry, spawner, terminals, layout);
 
-  const pollInterval = vscode.workspace
-    .getConfiguration("mrowisko")
-    .get<number>("pollIntervalMs", 5000);
-  approver.start(pollInterval);
+  // Approver polling disabled in Faza 1 — Python proxy crashes with CWD issues.
+  // Will be enabled in Faza 2 after Approver rewrite to use MrowiskoDB directly.
+  // const pollInterval = vscode.workspace
+  //   .getConfiguration("mrowisko")
+  //   .get<number>("pollIntervalMs", 5000);
+  // approver.start(pollInterval);
 
   // 6. URI handler
   context.subscriptions.push(
@@ -159,6 +161,7 @@ export function activate(context: vscode.ExtensionContext): void {
               (t) => t.name === terminalName
             );
             if (existing) {
+              // BUG: see EXTENSION_KNOWN_ISSUES W4 — sendText to dead terminal does nothing
               existing.sendText("/resume");
               vscode.window.showInformationMessage(
                 `Resume wysłany do: ${terminalName}`
