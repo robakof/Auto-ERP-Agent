@@ -73,6 +73,21 @@ export class MrowiskoDB {
     ).run(id);
   }
 
+  insertInvocation(
+    invokerType: string,
+    invokerId: string,
+    targetRole: string,
+    task: string,
+    action: string = "spawn",
+    targetSessionId?: string
+  ): number {
+    const result = this.db.prepare(
+      `INSERT INTO invocations (invoker_type, invoker_id, target_role, task, action, target_session_id)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    ).run(invokerType, invokerId, targetRole, task, action, targetSessionId || null);
+    return Number(result.lastInsertRowid);
+  }
+
   insertAgent(
     spawnToken: string,
     role: string,

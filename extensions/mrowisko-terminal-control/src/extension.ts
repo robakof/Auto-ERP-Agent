@@ -77,10 +77,9 @@ export function activate(context: vscode.ExtensionContext): void {
           const role = params.get("role");
           const task = params.get("task");
           if (role && task) {
-            spawner.spawn({ role, task });
-            vscode.window.showInformationMessage(
-              `Agent ${role} uruchomiony via URI: ${task}`
-            );
+            const invoker = params.get("invoker") || "human";
+            db.insertInvocation("human", invoker, role, task, "spawn");
+            log.info("Invocation created via URI", { role, task, invoker });
           }
         } else if (command === "sendText") {
           const sessionId = params.get("sessionId");

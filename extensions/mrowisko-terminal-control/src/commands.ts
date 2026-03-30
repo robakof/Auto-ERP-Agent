@@ -36,7 +36,7 @@ export function registerCommands(
 ): void {
   context.subscriptions.push(
     vscode.commands.registerCommand("mrowisko.spawnAgent", () =>
-      spawnAgent(spawner)
+      spawnAgent(db)
     ),
     vscode.commands.registerCommand("mrowisko.listAgents", () =>
       listAgents(db, terminals)
@@ -53,7 +53,7 @@ export function registerCommands(
   );
 }
 
-async function spawnAgent(spawner: Spawner): Promise<void> {
+async function spawnAgent(db: MrowiskoDB): Promise<void> {
   const role = await vscode.window.showQuickPick(loadRoles(), {
     placeHolder: "Wybierz role agenta",
   });
@@ -69,9 +69,9 @@ async function spawnAgent(spawner: Spawner): Promise<void> {
     return;
   }
 
-  spawner.spawn({ role: role.label, task });
+  db.insertInvocation("human", "human", role.label, task, "spawn");
   vscode.window.showInformationMessage(
-    `Agent ${role.label} uruchomiony: ${task}`
+    `Invocation created: ${role.label} — czeka na approval`
   );
 }
 
