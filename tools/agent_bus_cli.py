@@ -1228,6 +1228,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_spawn_req = subparsers.add_parser("spawn-request", help="Request agent spawn (pending approval)")
     p_spawn_req.add_argument("--from", dest="sender", help="Invoker role")
     p_spawn_req.add_argument("--role", required=True, help="Target agent role")
+    p_spawn_req.add_argument("--task", required=True, help="Task for the agent")
 
     # stop-request — request stop with approval gate (#219)
     p_stop_req = subparsers.add_parser("stop-request", help="Request agent stop (pending approval)")
@@ -1238,7 +1239,6 @@ def build_parser() -> argparse.ArgumentParser:
     p_resume_req = subparsers.add_parser("resume-request", help="Request agent resume (pending approval)")
     p_resume_req.add_argument("--from", dest="sender", help="Invoker role")
     p_resume_req.add_argument("--session-id", dest="session_id", required=True, help="Agent session_id to resume")
-    p_spawn_req.add_argument("--task", required=True, help="Task for the agent")
 
     # invocations — list invocations
     p_invocations = subparsers.add_parser("invocations", help="List invocations")

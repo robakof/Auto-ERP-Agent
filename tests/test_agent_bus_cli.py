@@ -956,6 +956,36 @@ class TestDashboard:
         assert data["backlog"]["planned_by_area"]["Dev"] == 1
         assert data["backlog"]["planned_by_area"]["Arch"] == 1
 
+    def test_dashboard_with_live_agents(self, db):
+        """Dashboard shows active and stale agents from v_agent_status."""
+        import sqlite3
+        # Ensure schema exists by triggering AgentBus init
+        run_cli(["inbox", "--role", "nobody"], db)
+        conn = sqlite3.connect(db)
+        conn.execute(
+            """INSERT INTO live_agents (session_id, role, status, last_activity, created_at)
+               VALUES ('sess-active', 'developer', 'active', datetime('now', '-1 minutes'), datetime('now'))"""
+        )
+        conn.execute(
+            """INSERT INTO live_agents (session_id, role, status, last_activity, created_at)
+               VALUES ('sess-stale', 'analyst', 'active', datetime('now', '-20 minutes'), datetime('now', '-30 minutes'))"""
+        )
+        conn.execute(
+            """INSERT INTO live_agents (session_id, role, status, created_at)
+               VALUES ('sess-stopped', 'architect', 'stopped', datetime('now', '-1 hour'))"""
+        )
+        conn.commit()
+        conn.close()
+
+        result = run_cli(["dashboard"], db)
+        data = result["data"]
+        assert len(data["agents"]["active"]) == 1
+        assert data["agents"]["active"][0]["role"] == "developer"
+        assert len(data["agents"]["stale"]) == 1
+        assert data["agents"]["stale"][0]["role"] == "analyst"
+        assert data["agents"]["stopped_count"] == 1
+        assert len(data["alerts"]) >= 1
+
 
 class TestCliStopRequest:
     """Tests for stop-request command (#219 bezpiecznik)."""

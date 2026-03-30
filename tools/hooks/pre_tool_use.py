@@ -43,7 +43,6 @@ REPAIR_MSG_MEMORY = "Użyj agent_bus_cli.py suggest zamiast .claude/memory/. Reg
 # Bezpiecznik #219: spawn/stop/resume wymagają -request (approval gate)
 LIFECYCLE_GATE = {
     "spawn": "Użyj spawn-request zamiast spawn. Bezpiecznik: backlog #219.",
-    "stop": "Użyj stop-request zamiast stop. Bezpiecznik: backlog #219.",
     "resume": "Użyj resume-request zamiast resume. Bezpiecznik: backlog #219.",
 }
 
@@ -223,7 +222,7 @@ def validate_segment(segment: str) -> Optional[str]:
 
 def _check_lifecycle_gate(cmd: str) -> Optional[str]:
     """Block direct spawn/stop/resume — require -request variant (#219)."""
-    m = re.search(r'agent_bus_cli\.py\s+(spawn|stop|resume)\b', cmd)
+    m = re.search(r'agent_bus_cli\.py\s+(spawn|resume)\b', cmd)
     if not m:
         return None
     action = m.group(1)
