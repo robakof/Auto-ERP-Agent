@@ -192,6 +192,25 @@ class TestSaveToDb:
         assert len(trace["tool_calls"]) == 2
         assert trace["tool_calls"][1]["is_error"] == 1
 
+    def test_no_duplicate_conversation_on_reparse(self, tmp_path):
+        bus = AgentBus(db_path=str(tmp_path / "test.db"))
+        bus.upsert_session("sess1", role="developer")
+        parsed = {
+            "claude_session_id": "uuid-xyz",
+            "started_at": "2026-03-15T10:00:00Z",
+            "ended_at": "2026-03-15T11:00:00Z",
+            "tool_calls": [],
+            "token_usage": [],
+            "messages": [
+                {"speaker": "human", "content": "hello"},
+                {"speaker": "assistant", "content": "hi there"},
+            ],
+        }
+        save_to_db(bus, "sess1", parsed)
+        save_to_db(bus, "sess1", parsed)  # second parse — should NOT duplicate
+        entries = bus.get_conversation("sess1")
+        assert len(entries) == 2  # not 4
+
     def test_saves_token_usage(self, tmp_path):
         bus = AgentBus(db_path=str(tmp_path / "test.db"))
         bus.upsert_session("sess1", role="developer")

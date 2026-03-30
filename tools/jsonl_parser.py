@@ -203,13 +203,19 @@ def save_to_db(
             duration_ms=tu["duration_ms"],
             timestamp=tu["timestamp"],
         )
-    for msg in parsed.get("messages", []):
-        bus.add_conversation_entry(
-            speaker=msg["speaker"],
-            content=msg["content"],
-            event_type="transcript_parse",
-            session_id=our_session_id,
-        )
+    # Skip conversation insert if entries already exist for this session (prevent duplicates on re-parse)
+    existing = bus._conn.execute(
+        "SELECT COUNT(*) FROM conversation WHERE session_id = ? AND event_type = 'transcript_parse'",
+        (our_session_id,),
+    ).fetchone()[0]
+    if existing == 0:
+        for msg in parsed.get("messages", []):
+            bus.add_conversation_entry(
+                speaker=msg["speaker"],
+                content=msg["content"],
+                event_type="transcript_parse",
+                session_id=our_session_id,
+            )
 
 
 def main():
