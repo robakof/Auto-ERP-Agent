@@ -31,9 +31,9 @@ JOIN CDN.KntKarty k
 LEFT JOIN CDN.ZaNOpisy op
     ON op.ZnO_ZamNumer = zn.ZaN_GIDNumer
 WHERE zn.ZaN_Stan = 2
-  AND YEAR(CAST(DATEADD(d, zn.ZaN_DataRealizacji, '18001228') AS DATE)) = --year
+  -- AND YEAR(CAST(DATEADD(d, zn.ZaN_DataRealizacji, '18001228') AS DATE)) = --year   -- filtr roku: po stronie Developera
   AND ze.ZaE_TwrKod LIKE 'CZNI%'
-  -- AND CAST(op.ZnO_Opis AS NVARCHAR(500)) ...   -- filtr opisu: czekamy na decyzję
+  AND CAST(op.ZnO_Opis AS NVARCHAR(500)) LIKE 'Zamówienie%'
 ORDER BY
     zn.ZaN_DataRealizacji,
     zn.ZaN_GIDNumer,

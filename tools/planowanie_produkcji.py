@@ -27,8 +27,14 @@ COLUMNS = [
 ]
 
 
+def _strip_comments(sql: str) -> str:
+    """Usuwa linie komentarzy -- (polskie znaki w komentarzach blokują pyodbc)."""
+    lines = [ln for ln in sql.splitlines() if not ln.lstrip().startswith("--")]
+    return "\n".join(lines)
+
+
 def _fetch_all() -> list[dict]:
-    sql = _SQL_PATH.read_text(encoding="utf-8")
+    sql = _strip_comments(_SQL_PATH.read_text(encoding="utf-8"))
     result = SqlClient().execute(sql, inject_top=None)
     if not result["ok"]:
         raise RuntimeError(result["error"]["message"])
