@@ -11,7 +11,8 @@
     "Other"
   ],
   "activationEvents": [
-    "workspaceContains:mrowisko.db"
+    "workspaceContains:mrowisko.db",
+    "onStartupFinished"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -54,13 +55,20 @@
         },
         "mrowisko.defaultPermissionMode": {
           "type": "string",
-          "enum": ["default", "acceptEdits", "plan", "bypassPermissions"],
+          "enum": [
+            "default",
+            "acceptEdits",
+            "plan",
+            "bypassPermissions"
+          ],
           "default": "default",
           "description": "Default permission mode for spawned agents"
         },
         "mrowisko.trustedPairs": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": [],
           "description": "Trusted invoker>target pairs for auto-approve (e.g. developer>erp_specialist)"
         },
@@ -81,7 +89,10 @@
         },
         "mrowisko.terminalLocation": {
           "type": "string",
-          "enum": ["editor", "panel"],
+          "enum": [
+            "editor",
+            "panel"
+          ],
           "default": "editor",
           "description": "Where to open agent terminals"
         }
@@ -103,6 +114,6 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "better-sqlite3": "^12.0.0"
+    "better-sqlite3": "^12.8.0"
   }
 }
