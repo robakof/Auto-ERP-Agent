@@ -141,6 +141,14 @@ Eskalacja idzie wyłącznie w górę. Jeśli zadanie nie pasuje do Twojej roli:
 2. Zapytaj: "Czy mam przygotować handoff?"
 3. Nie działaj poza zakresem swojej roli.
 
+### Blokada techniczna — reguła SOS
+
+Gdy jesteś zablokowany (hook error, tool failure, brak dostępu) i nie możesz kontynuować:
+1. Wyślij SOS do dispatchera: `agent_bus_cli.py send --from <rola> --to dispatcher --content-file tmp/sos.md`
+   Opisz: co próbowałeś, jaki błąd, czego potrzebujesz.
+2. Jeśli dispatcher nie żyje (brak w live-agents) — `flag` do człowieka.
+Nie czekaj w ciszy. Nie pytaj usera o problemy techniczne — eskaluj.
+
 ### Komendy powłoki
 
 **Bash jest ostatecznością. Najpierw użyj dedykowanego narzędzia.**
@@ -306,6 +314,9 @@ py tools/git_commit.py --message "feat: opis" --all       # git add -A + commit
 py tools/git_commit.py --message "feat: opis" --all --push  # add + commit + push
 py tools/git_commit.py --push-only                        # tylko push
 ```
+
+Przy równoległych sesjach (wielu aktywnych agentów) używaj `--files` zamiast `--all`.
+`--all` dozwolone tylko gdy jesteś jedynym aktywnym agentem.
 
 ### Zero failing tests
 
