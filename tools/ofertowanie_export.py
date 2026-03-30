@@ -33,6 +33,7 @@ COLUMNS_ORDER = [
     "Kod",
     "Zdjęcie",
     "Nazwa",
+    "Grupa kartoteki",
     "Kod EAN",
     "ZAKUP",
     "CZAS PALENIA / DZIAŁANIA",
@@ -56,6 +57,7 @@ _SQL_BODY = """
 SELECT
     tk.Twr_Kod                                AS [Kod],
     tk.Twr_Nazwa                              AS [Nazwa],
+    tg_nazwa.[Grupa kartoteki]                AS [Grupa kartoteki],
     tk.Twr_Ean                                AS [Kod EAN],
     a9.Atr_Wartosc                            AS [CZAS PALENIA / DZIAŁANIA],
     a10.Atr_Wartosc                           AS [GRAMATURA WKŁADU],
@@ -107,6 +109,14 @@ LEFT JOIN (
     WHERE TwC_TcnId = 1 AND TwC_KntNumer = 0
     GROUP BY TwC_TwrNumer, TwC_TwrTyp
 ) tc100 ON tc100.TwC_TwrNumer = tk.Twr_GIDNumer AND tc100.TwC_TwrTyp = tk.Twr_GIDTyp
+LEFT JOIN (
+    SELECT br.TwG_GIDNumer, MIN(RTRIM(grp.TwG_Nazwa)) AS [Grupa kartoteki]
+    FROM CDN.TwrGrupy br
+    LEFT JOIN CDN.TwrGrupy grp
+        ON grp.TwG_GIDTyp = -16 AND grp.TwG_GIDNumer = br.TwG_GrONumer
+    WHERE br.TwG_GIDTyp = 16
+    GROUP BY br.TwG_GIDNumer
+) tg_nazwa ON tg_nazwa.TwG_GIDNumer = tk.Twr_GIDNumer
 ORDER BY tk.Twr_Kod
 """
 
@@ -229,7 +239,7 @@ def _export_excel(rows: list[dict], output_path: str) -> None:
 
     # Szerokości kolumn
     col_widths = {
-        "Kod": 14, "Zdjęcie": 12, "Nazwa": 45, "Kod EAN": 16,
+        "Kod": 14, "Zdjęcie": 12, "Nazwa": 45, "Grupa kartoteki": 20, "Kod EAN": 16,
         "ZAKUP": 10, "CZAS PALENIA / DZIAŁANIA": 14, "GRAMATURA WKŁADU": 14,
         "SZEROKOŚĆ NETTO PRODUKTU": 14, "WYSOKOŚĆ NETTO PRODUKTU": 14,
         "SZEROKOŚĆ BRUTTO OPAKOWANIA": 14, "warstwa": 10, "opak.": 10,
