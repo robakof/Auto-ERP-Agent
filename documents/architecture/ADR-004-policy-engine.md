@@ -1,7 +1,7 @@
 # ADR-004: Policy Engine — Configurable Tool Enforcement
 
 Date: 2026-03-30
-Status: Draft (research in progress)
+Status: Accepted
 
 ## Context
 
@@ -319,10 +319,14 @@ Zero breaking changes przy upgrade v0 → v1.
 - **Config drift:** policy.json out of sync z reality
   Mitigation: audit trail analysis, periodic review
 
-## Open Questions
+## Open Questions (do rozwiazania przy wdrozeniu)
 
 1. Gdzie policy.json? `config/policy.json` vs `documents/architecture/policy.json`
 2. Jak czesto reload policy w hooku? Per-call vs cached + file watch
 3. Approval timeout: ile sekund czekac na orkiestratora?
 4. Czy v0 JSON config powinien byc podzbiorem v1 JSON (same pole)?
 5. Czy policy_audit jest osobna tabela czy reuse events table z ADR-003?
+
+**Nota:** Brakuje fundamentow pod niektore elementy (np. CONVENTION_FILE_STRUCTURE
+dla paths w policy). Otwarte kwestie rozwiazujemy przy wdrozeniu — do tego czasu
+brakujace konwencje moga juz istniec.
