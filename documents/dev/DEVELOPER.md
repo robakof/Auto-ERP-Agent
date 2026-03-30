@@ -155,6 +155,10 @@ py tools/conversation_search.py --query "fraza" [--limit N]
 ```
 Narzędzia wspólne (agent_bus, git_commit) — patrz CLAUDE.md.
 Lifecycle agentów (spawn/stop/resume/poke, model tożsamości) — patrz `documents/shared/LIFECYCLE_TOOLS.md`.
+
+Praca nad `extensions/mrowisko-terminal-control/`:
+- Przed rozpoczęciem przeczytaj `documents/shared/LIFECYCLE_TOOLS.md` — zawiera URI commands, model tożsamości i flow spawn/stop/resume.
+- Po zmianie w extension: `py tools/vscode_uri.py --command reload`
 </tools>
 
 <escalation>
