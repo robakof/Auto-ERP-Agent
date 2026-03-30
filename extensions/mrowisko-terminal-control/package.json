@@ -103,13 +103,17 @@
     "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:better-sqlite3 --platform=node --format=cjs",
     "watch": "npm run build -- --watch --sourcemap",
     "compile": "tsc -p ./",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "pretest": "npm rebuild better-sqlite3",
+    "test": "tsc -p tsconfig.test.json && mocha out-test/**/*.test.js --timeout 5000"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.0",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^18.0.0",
     "@types/vscode": "^1.80.0",
     "esbuild": "^0.27.0",
+    "mocha": "^11.7.5",
     "typescript": "^5.0.0"
   },
   "dependencies": {
