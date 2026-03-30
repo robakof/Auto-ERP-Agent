@@ -70,10 +70,13 @@ PASS jeśli:
 
 1. Architect czyta zgłoszenie i identyfikuje zakres plików.
 2. Architect czyta kod — każdy zmieniony plik.
-3. Architect ocenia per wymiar:
+3. Zidentyfikuj tech stack kodu (ścieżka → tabela w `<code_maturity_levels>` ARCHITECT.md).
+4. Architect ocenia per wymiar:
    - **Poprawność** — czy kod robi to co ma robić
    - **Czytelność** — naming, struktura, komentarze
    - **Bezpieczeństwo** — injection, XSS, secrets, OWASP top 10
+   - **Niezawodność** — wymiary bazowe + stack-specific per `<code_maturity_levels>` w ARCHITECT.md.
+     L1 w wymiarze stack-specific = Critical Issue.
    - **Dojrzałość** — code maturity level (Junior / Mid / Senior) per `<code_maturity_levels>` w ARCHITECT.md
    - **Zgodność z architekturą** — PATTERNS.md, ADR, konwencje
 4. Architect pisze raport code review do pliku:
