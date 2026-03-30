@@ -64,17 +64,17 @@ def main():
             raw_payload=raw[:4000],
         )
 
-        # Heartbeat: update last_activity — deterministic match
+        # Heartbeat: update last_activity + revive if GC stopped prematurely
         if spawn_token:
             bus._conn.execute(
-                """UPDATE live_agents SET last_activity = datetime('now')
-                   WHERE spawn_token = ? AND status != 'stopped'""",
+                """UPDATE live_agents SET last_activity = datetime('now'), status = 'active'
+                   WHERE spawn_token = ? AND status IN ('starting', 'active', 'stopped')""",
                 (spawn_token,),
             )
         elif claude_uuid:
             bus._conn.execute(
-                """UPDATE live_agents SET last_activity = datetime('now')
-                   WHERE claude_uuid = ? AND status != 'stopped'""",
+                """UPDATE live_agents SET last_activity = datetime('now'), status = 'active'
+                   WHERE claude_uuid = ? AND status IN ('starting', 'active', 'stopped')""",
                 (claude_uuid,),
             )
 

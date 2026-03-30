@@ -216,6 +216,40 @@ def validate_segment(segment: str) -> Optional[str]:
 
 
 
+_last_heartbeat: float = 0.0
+HEARTBEAT_INTERVAL = 60  # seconds — throttle DB writes
+
+
+def _heartbeat() -> None:
+    """Update last_activity + revive agent if GC stopped it. Throttled to once per 60s."""
+    global _last_heartbeat
+    import time
+    now = time.monotonic()
+    if now - _last_heartbeat < HEARTBEAT_INTERVAL:
+        return
+    _last_heartbeat = now
+
+    from pathlib import Path
+    import os
+    spawn_token = os.environ.get("MROWISKO_SPAWN_TOKEN", "")
+    if not spawn_token:
+        return
+    try:
+        import sqlite3
+        db_path = Path(__file__).parent.parent.parent / "mrowisko.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("PRAGMA busy_timeout=1000")
+        conn.execute(
+            "UPDATE live_agents SET last_activity = datetime('now'), status = 'active' "
+            "WHERE spawn_token = ? AND status IN ('starting', 'active', 'stopped')",
+            (spawn_token,),
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
 def _check_poke() -> Optional[str]:
     """Check for unread poke messages for current agent. Returns deny reason or None.
 
@@ -257,6 +291,9 @@ def main() -> None:
         data = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):
         sys.exit(0)
+
+    # Heartbeat — fires for ALL tool types, throttled to 60s
+    _heartbeat()
 
     # Poke check — fires for ALL tool types (before Bash-only gate)
     poke_reason = _check_poke()
