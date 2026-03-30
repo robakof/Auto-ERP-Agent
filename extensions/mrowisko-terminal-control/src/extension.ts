@@ -132,8 +132,17 @@ export function activate(context: vscode.ExtensionContext): void {
         } else if (command === "listAgents") {
           vscode.commands.executeCommand("mrowisko.listAgents");
         } else if (command === "stopAgent") {
+          const terminalName = params.get("terminalName");
           const sessionId = params.get("sessionId");
-          if (sessionId) {
+          if (terminalName) {
+            const terminal = vscode.window.terminals.find(
+              (t) => t.name === terminalName
+            );
+            if (terminal) {
+              terminal.sendText("/exit");
+              setTimeout(() => terminal.dispose(), 3000);
+            }
+          } else if (sessionId) {
             spawner.stop(sessionId);
           }
         } else if (command === "resumeAgent") {
