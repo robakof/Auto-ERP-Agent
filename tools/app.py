@@ -73,11 +73,12 @@ APPS = [
         "active": True,
     },
     {
-        "name": "Wycena Produkcji",
-        "desc": "Kalkulator wyceny produkcji CZNI",
-        "icon": "🧮",
-        "page": None,
-        "active": False,
+        "name": "Planowanie Produkcji",
+        "desc": "Zamówienia CZNI + BOM + gap analysis surowców",
+        "tip": "Wybierz rok realizacji i załaduj plik Wycena PQ.xlsm. Generuje Excel z 4 arkuszami.",
+        "icon": "🏭",
+        "page": "pages/planowanie_produkcji.py",
+        "active": True,
     },
     {
         "name": "Preprocessing Zdjęć",
