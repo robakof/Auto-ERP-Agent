@@ -14,7 +14,21 @@ let watcher: Watcher | undefined;
 let approver: Approver | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
-  const dbPath = resolveDbPath();
+  let dbPath: string;
+  try {
+    dbPath = resolveDbPath();
+  } catch (e) {
+    vscode.window.showWarningMessage(`Mrowisko: resolveDbPath error: ${e}`);
+    return;
+  }
+  // Log dbPath for debugging
+  const fs = require("fs");
+  try {
+    fs.appendFileSync(
+      path.join(path.dirname(dbPath) || ".", "tmp", "extension_debug.log"),
+      `[${new Date().toISOString()}] activate dbPath=${dbPath}\n`
+    );
+  } catch {}
   const terminals: TerminalMap = new Map();
   const layout = new RoleLayout();
 
@@ -22,6 +36,9 @@ export function activate(context: vscode.ExtensionContext): void {
   const spawner = new Spawner(registry, terminals, layout);
   watcher = new Watcher(registry, terminals, layout);
   approver = new Approver(dbPath, spawner, layout);
+
+  // Cleanup may fail if DB path is unresolved — don't crash extension
+  try { registry.cleanup(); } catch {}
 
   watcher.activate();
   registerCommands(context, registry, spawner, terminals, layout);
@@ -162,8 +179,6 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
-  // Cleanup orphaned agents on startup
-  registry.cleanup();
 }
 
 export function deactivate(): void {

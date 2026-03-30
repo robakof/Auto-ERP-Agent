@@ -1,6 +1,6 @@
 {
   "spawn": "approval",
   "stop": "auto",
-  "resume": "approval",
+  "resume": "auto",
   "kill": "approval"
 }

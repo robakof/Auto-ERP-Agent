@@ -62,6 +62,7 @@ def main():
     parser.add_argument("--terminal-name", help="Terminal name (for pokeAgent)")
     parser.add_argument("--message", help="Message text (for pokeAgent)")
     parser.add_argument("--claude-uuid", help="Claude session UUID (for resumeAgent)")
+    parser.add_argument("--spawn-token", help="Spawn token (for resumeAgent)")
 
     args = parser.parse_args()
 
@@ -88,6 +89,8 @@ def main():
             params["message"] = args.message
         if args.claude_uuid:
             params["claudeUuid"] = args.claude_uuid
+        if args.spawn_token:
+            params["spawnToken"] = args.spawn_token
         uri = _build_uri(args.command, **params)
 
     # Find Code.exe
