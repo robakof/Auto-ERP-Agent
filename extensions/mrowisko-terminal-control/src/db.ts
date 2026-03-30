@@ -121,6 +121,30 @@ export class MrowiskoDB {
     return row?.spawn_token ?? null;
   }
 
+  getStaleAgents(thresholdMinutes: number): LiveAgent[] {
+    const rows = this.db.prepare(
+      `SELECT * FROM live_agents
+       WHERE status IN ('starting', 'active')
+       AND last_activity < datetime('now', '-' || ? || ' minutes')`
+    ).all(thresholdMinutes) as DbRow[];
+    return rows.map(rowToLiveAgent);
+  }
+
+  getWarnedAgents(graceMinutes: number): LiveAgent[] {
+    const rows = this.db.prepare(
+      `SELECT * FROM live_agents
+       WHERE status = 'warned'
+       AND last_activity < datetime('now', '-' || ? || ' minutes')`
+    ).all(graceMinutes) as DbRow[];
+    return rows.map(rowToLiveAgent);
+  }
+
+  markWarned(sessionId: string): void {
+    this.db.prepare(
+      "UPDATE live_agents SET status = 'warned' WHERE session_id = ?"
+    ).run(sessionId);
+  }
+
   cleanup(thresholdMinutes: number = 60): void {
     this.db.prepare(
       `UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now')

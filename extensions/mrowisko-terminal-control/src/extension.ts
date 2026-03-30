@@ -7,6 +7,7 @@ import { Spawner } from "./spawner";
 import { Watcher } from "./watcher";
 import { Approver } from "./approver";
 import { RoleLayout } from "./layout";
+import { GarbageCollector } from "./gc";
 import { registerCommands } from "./commands";
 import { TerminalMap } from "./types";
 
@@ -53,9 +54,11 @@ export function activate(context: vscode.ExtensionContext): void {
   const terminals: TerminalMap = new Map();
   const layout = new RoleLayout();
   const policyFile = path.join(workspaceRoot, "config", "spawn_policy.json");
+  const gcPolicyFile = path.join(workspaceRoot, "config", "gc_policy.json");
   const spawner = new Spawner(db, terminals, layout, log);
   const watcher = new Watcher(db, terminals, layout, log);
   const approver = new Approver(db, spawner, log, policyFile);
+  const gc = new GarbageCollector(db, log, gcPolicyFile);
 
   // 5. Activate components
   watcher.activate();
@@ -65,6 +68,7 @@ export function activate(context: vscode.ExtensionContext): void {
     .getConfiguration("mrowisko")
     .get<number>("pollIntervalMs", 5000);
   approver.start(pollInterval);
+  gc.start();
 
   // 6. URI handler
   context.subscriptions.push(
@@ -171,6 +175,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // 8. Register disposables — order matters (reverse teardown)
   context.subscriptions.push(
+    { dispose: () => gc.dispose() },
     { dispose: () => approver.dispose() },
     { dispose: () => watcher.dispose() },
     { dispose: () => db.dispose() },
