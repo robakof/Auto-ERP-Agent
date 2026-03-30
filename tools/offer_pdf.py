@@ -54,6 +54,7 @@ TRANSLATIONS = {
         "label_wysokosc":     "Wysokość",
         "label_czas_palenia": "Czas palenia",
         "label_opakowanie":   "Opakowanie",
+        "label_grupa":        "Grupa",
         "price_suffix":       "zł / szt.",
         "no_photo":           "brak zdjęcia",
     },
@@ -62,6 +63,7 @@ TRANSLATIONS = {
         "label_wysokosc":     "Height",
         "label_czas_palenia": "Burning time",
         "label_opakowanie":   "Pack size",
+        "label_grupa":        "Group",
         "price_suffix":       "EUR / pcs.",
         "no_photo":           "no photo",
     },
@@ -70,6 +72,7 @@ TRANSLATIONS = {
         "label_wysokosc":     "Înălțime",
         "label_czas_palenia": "Timp de ardere",
         "label_opakowanie":   "Ambalaj",
+        "label_grupa":        "Grup",
         "price_suffix":       "EUR / buc.",
         "no_photo":           "fără fotografie",
     },
@@ -252,7 +255,7 @@ def _draw_product_card(
     name_sz = 11
     # Wyśrodkowanie pionowe: wyrównanie odstępu nad i pod blokiem tekstowym
     avail_h  = photo_area_y - cy - PAD
-    block_h  = 7 * mm + name_sz + 6 * mm + 3 * (5.5 * mm)
+    block_h  = 7 * mm + name_sz + 6 * mm + 4 * (5.0 * mm)
     top_marg = max(4 * mm, (avail_h - block_h) / 2)
     name_y   = photo_area_y - top_marg
     c.setFillColor(COLOR_BLACK)
@@ -288,11 +291,12 @@ def _draw_product_card(
         (tr["label_wysokosc"],     product.wysokosc),
         (tr["label_czas_palenia"], product.czas_palenia),
         (tr["label_opakowanie"],   product.ilosc_opak),
+        (tr["label_grupa"],        product.grupa or "—"),
     ]
 
     label_sz = 8.5
     value_sz = 8.5
-    row_h    = 5.5 * mm
+    row_h    = 5.0 * mm   # 5.0mm zamiast 5.5mm — miejsce na 4. parametr
     param_y  = price_y - 6 * mm
     param_x  = max(cx + 1 * mm, inner_x - 5 * mm)
 

@@ -52,6 +52,7 @@ class ProductData:
     ilosc_opak: str
     cena: str
     zdjecie_path: Optional[str]
+    grupa: str = ""  # Nazwa grupy kartoteki z CDN.TwrGrupy
 
 
 def _parse_burning_time(nazwa: str, lang: str) -> str:
@@ -158,6 +159,21 @@ def load_products(excel_path: str, lang: str = "pl") -> list[ProductData]:
         for row in result_atr["data"]["rows"]:
             wysokosci[row[0]] = row[1]
 
+    # Grupy kartoteki (TwrGrupy bridge GIDTyp=16 → definicja GIDTyp=-16)
+    sql_grupy = f"""
+        SELECT br.TwG_GIDNumer, MIN(RTRIM(grp.TwG_Nazwa)) AS Nazwa_Grupy
+        FROM CDN.TwrGrupy br
+        LEFT JOIN CDN.TwrGrupy grp
+            ON grp.TwG_GIDTyp = -16 AND grp.TwG_GIDNumer = br.TwG_GrONumer
+        WHERE br.TwG_GIDTyp = 16 AND br.TwG_GIDNumer IN ({gid_list})
+        GROUP BY br.TwG_GIDNumer
+    """
+    result_grupy = run_query(sql_grupy, inject_top=None)
+    grupy = {}
+    if result_grupy["ok"]:
+        for row in result_grupy["data"]["rows"]:
+            grupy[row[0]] = row[1] or ""
+
     # --- 3. Składanie ProductData ---
     products = []
     for kod in kody:
@@ -190,6 +206,7 @@ def load_products(excel_path: str, lang: str = "pl") -> list[ProductData]:
             ilosc_opak=ilosc,
             cena=cena,
             zdjecie_path=zdjecie,
+            grupa=grupy.get(gid, ""),
         ))
 
     return products
