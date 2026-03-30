@@ -148,7 +148,7 @@ def _add_schedule(writer: ExcelWriter, schedule: list[ScheduleSlot]) -> None:
             s.czni_nazwa,
             round(s.qty, 2),
             round(s.hours_needed, 2),
-            ", ".join(s.order_numbers),
+            ", ".join(str(n) for n in s.order_numbers),
             s.deadline,
             "1" if s.priority else "",
         ]

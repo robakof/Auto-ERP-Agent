@@ -99,9 +99,10 @@ def _group_by_week(
             g["deadline"] = deadline
 
         nr = row.get("Nr_Zamowienia")
-        if nr and nr not in g["order_numbers"]:
-            g["order_numbers"].append(nr)
-        if nr and nr in priorities:
+        nr_str = str(nr) if nr is not None else None
+        if nr_str and nr_str not in g["order_numbers"]:
+            g["order_numbers"].append(nr_str)
+        if nr_str and nr_str in priorities:
             g["priority"] = True
 
     # Pogrupuj per czni_kod, posortuj po deadline (FIFO dla odjęcia produced)
@@ -151,6 +152,13 @@ def _assign_slots(
         hours_left = task["qty"] / uph
 
         while hours_left > 1e-6:
+            if current_date is None:
+                warnings.warn(
+                    f"[SCHEDULE] Brak mocy produkcyjnych dla {czni_kod} "
+                    f"(deadline {task['deadline']}) — pominięto resztę",
+                    stacklevel=2,
+                )
+                break
             current_date, remaining_today = _advance_to_working_day(
                 capacity, current_date, remaining_today, start_date
             )
