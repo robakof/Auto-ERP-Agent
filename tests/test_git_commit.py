@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from tools.git_commit import git_commit, _parse_status_files
+from tools.git_commit import git_commit, _parse_status_files, _count_active_agents
 
 
 def make_result(returncode=0, stdout="", stderr=""):
@@ -64,7 +64,8 @@ def test_commit_with_all_flag_includes_warning():
     commit_ok = make_result(stdout="[main abc] feat: test")
     diff_tree_ok = make_result(stdout="a.py\nb.py\n")
 
-    with patch("subprocess.run", side_effect=[add_ok, commit_ok, diff_tree_ok]):
+    with patch("subprocess.run", side_effect=[add_ok, commit_ok, diff_tree_ok]), \
+         patch("tools.git_commit._count_active_agents", return_value=1):
         result = git_commit(message="feat: test", add_all=True)
 
     assert result["ok"] is True
@@ -104,7 +105,8 @@ def test_commit_all_and_push():
     diff_tree_ok = make_result(stdout="a.py\n")
     push_ok = make_result()
 
-    with patch("subprocess.run", side_effect=[add_ok, commit_ok, diff_tree_ok, push_ok]) as mock_run:
+    with patch("subprocess.run", side_effect=[add_ok, commit_ok, diff_tree_ok, push_ok]) as mock_run, \
+         patch("tools.git_commit._count_active_agents", return_value=1):
         result = git_commit(message="feat: test", add_all=True, push=True)
 
     assert result["ok"] is True
@@ -199,7 +201,8 @@ def test_commit_git_error_propagates():
 
 def test_add_error_stops_before_commit():
     add_fail = make_result(returncode=1, stderr="pathspec error")
-    with patch("subprocess.run", return_value=add_fail) as mock_run:
+    with patch("subprocess.run", return_value=add_fail) as mock_run, \
+         patch("tools.git_commit._count_active_agents", return_value=1):
         result = git_commit(message="feat: test", add_all=True)
     assert result["ok"] is False
     assert mock_run.call_count == 1
@@ -243,3 +246,56 @@ def test_push_only_error():
         result = git_commit(push_only=True)
     assert result["ok"] is False
     assert "rejected" in result["error"]["message"]
+
+
+# --- multi-agent guard ---
+
+class TestMultiAgentGuard:
+    """Tests for --all blocked when multiple agents are active (#217)."""
+
+    def test_all_blocked_when_multiple_agents(self):
+        with patch("tools.git_commit._count_active_agents", return_value=3):
+            result = git_commit(message="feat: test", add_all=True)
+        assert result["ok"] is False
+        assert "Wielu aktywnych" in result["error"]["message"]
+        assert "--files" in result["error"]["message"]
+
+    def test_all_allowed_when_single_agent(self):
+        add_ok = make_result()
+        commit_ok = make_result(stdout="[main abc] feat: test")
+        diff_tree_ok = make_result(stdout="a.py\n")
+
+        with patch("subprocess.run", side_effect=[add_ok, commit_ok, diff_tree_ok]), \
+             patch("tools.git_commit._count_active_agents", return_value=1):
+            result = git_commit(message="feat: test", add_all=True)
+        assert result["ok"] is True
+
+    def test_all_allowed_when_zero_agents(self):
+        """Zero agents = DB error or no sessions — allow (fallback)."""
+        add_ok = make_result()
+        commit_ok = make_result(stdout="[main abc] feat: test")
+        diff_tree_ok = make_result(stdout="a.py\n")
+
+        with patch("subprocess.run", side_effect=[add_ok, commit_ok, diff_tree_ok]), \
+             patch("tools.git_commit._count_active_agents", return_value=0):
+            result = git_commit(message="feat: test", add_all=True)
+        assert result["ok"] is True
+
+    def test_files_not_affected_by_guard(self):
+        """--files mode should not check agent count."""
+        add_ok = make_result()
+        commit_ok = make_result(stdout="[main abc] feat: test")
+        diff_tree_ok = make_result(stdout="a.py\n")
+
+        with patch("subprocess.run", side_effect=[add_ok, commit_ok, diff_tree_ok]), \
+             patch("tools.git_commit._count_active_agents", return_value=5):
+            result = git_commit(message="feat: test", files=["a.py"])
+        assert result["ok"] is True
+
+    def test_dry_run_not_affected_by_guard(self):
+        """dry-run should not check agent count."""
+        status_ok = make_result(stdout=" M a.py\n")
+        with patch("subprocess.run", return_value=status_ok), \
+             patch("tools.git_commit._count_active_agents", return_value=5):
+            result = git_commit(add_all=True, dry_run=True)
+        assert result["ok"] is True

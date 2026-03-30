@@ -924,3 +924,104 @@ class TestSpawnDuplicateGuard:
         bus._conn.commit()
         result = _check_spawn_duplicate(bus._conn, "developer")
         assert result is None
+
+
+class TestDashboard:
+    """Integration tests for dashboard command."""
+
+    def test_dashboard_empty_db(self, db):
+        result = run_cli(["dashboard"], db)
+        assert result["ok"] is True
+        data = result["data"]
+        assert "timestamp" in data
+        assert data["agents"]["active"] == []
+        assert data["agents"]["stale"] == []
+        assert data["agents"]["stopped_count"] == 0
+        assert data["inbox"]["unread_by_role"] == {}
+        assert data["handoffs"]["pending"] == []
+        assert data["backlog"]["planned_by_area"] == {}
+        assert data["backlog"]["in_progress"] == 0
+        assert data["alerts"] == []
+
+    def test_dashboard_with_data(self, db):
+        # Seed agents
+        run_cli(["send", "--from", "developer", "--to", "architect", "--content", "review please"], db)
+        run_cli(["backlog-add", "--title", "Task A", "--content", "x", "--area", "Dev"], db)
+        run_cli(["backlog-add", "--title", "Task B", "--content", "y", "--area", "Arch"], db)
+
+        result = run_cli(["dashboard"], db)
+        assert result["ok"] is True
+        data = result["data"]
+        assert data["inbox"]["unread_by_role"]["architect"] == 1
+        assert data["backlog"]["planned_by_area"]["Dev"] == 1
+        assert data["backlog"]["planned_by_area"]["Arch"] == 1
+
+
+class TestCliStopRequest:
+    """Tests for stop-request command (#219 bezpiecznik)."""
+
+    def _insert_live_agent(self, db, session_id="sess-abc", role="developer"):
+        """Insert a live agent directly for testing."""
+        import sqlite3
+        # Init DB schema by triggering any CLI command first
+        run_cli(["send", "--from", "test", "--to", role, "--content", "setup"], db)
+        conn = sqlite3.connect(db)
+        conn.row_factory = sqlite3.Row
+        conn.execute(
+            """INSERT OR IGNORE INTO live_agents (session_id, role, terminal_name, status)
+               VALUES (?, ?, ?, 'active')""",
+            (session_id, role, f"Agent: {role}"),
+        )
+        conn.commit()
+        conn.close()
+
+    def test_creates_pending_invocation(self, db):
+        self._insert_live_agent(db)
+        result = run_cli([
+            "stop-request", "--from", "dispatcher", "--session-id", "sess-abc"
+        ], db)
+        assert result["ok"] is True
+        assert result["status"] == "pending"
+        assert result["action"] == "stop"
+        assert result["session_id"] == "sess-abc"
+
+    def test_returns_error_for_unknown_session(self, db):
+        run_cli(["send", "--from", "test", "--to", "test", "--content", "init"], db)
+        result = run_cli([
+            "stop-request", "--from", "dispatcher", "--session-id", "nonexistent"
+        ], db)
+        assert result["ok"] is False
+
+
+class TestCliResumeRequest:
+    """Tests for resume-request command (#219 bezpiecznik)."""
+
+    def _insert_live_agent(self, db, session_id="sess-xyz", role="architect"):
+        import sqlite3
+        run_cli(["send", "--from", "test", "--to", role, "--content", "setup"], db)
+        conn = sqlite3.connect(db)
+        conn.row_factory = sqlite3.Row
+        conn.execute(
+            """INSERT OR IGNORE INTO live_agents (session_id, role, terminal_name, status)
+               VALUES (?, ?, ?, 'stopped')""",
+            (session_id, role, f"Agent: {role}"),
+        )
+        conn.commit()
+        conn.close()
+
+    def test_creates_pending_invocation(self, db):
+        self._insert_live_agent(db)
+        result = run_cli([
+            "resume-request", "--from", "dispatcher", "--session-id", "sess-xyz"
+        ], db)
+        assert result["ok"] is True
+        assert result["status"] == "pending"
+        assert result["action"] == "resume"
+        assert result["session_id"] == "sess-xyz"
+
+    def test_returns_error_for_unknown_session(self, db):
+        run_cli(["send", "--from", "test", "--to", "test", "--content", "init"], db)
+        result = run_cli([
+            "resume-request", "--from", "dispatcher", "--session-id", "nonexistent"
+        ], db)
+        assert result["ok"] is False

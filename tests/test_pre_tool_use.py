@@ -312,3 +312,35 @@ class TestSafetyGateHardening:
         """start .something should be denied (not exact match)."""
         rc, out = run_hook(make_bash("start .something"))
         assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
+class TestLifecycleGate:
+    """Tests for spawn/stop/resume → -request enforcement (#219)."""
+
+    def test_spawn_denied(self):
+        rc, out = run_hook(make_bash("py tools/agent_bus_cli.py spawn --role erp_specialist"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "spawn-request" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_spawn_request_allowed(self):
+        rc, out = run_hook(make_bash("py tools/agent_bus_cli.py spawn-request --role erp_specialist"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "allow"
+
+    def test_stop_denied(self):
+        rc, out = run_hook(make_bash("py tools/agent_bus_cli.py stop --session abc123"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "stop-request" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_resume_denied(self):
+        rc, out = run_hook(make_bash("py tools/agent_bus_cli.py resume --session abc123"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert "resume-request" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_resume_request_allowed(self):
+        rc, out = run_hook(make_bash("py tools/agent_bus_cli.py resume-request --session abc123"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "allow"
+
+    def test_other_commands_not_blocked(self):
+        """inbox, send, log etc. should not be blocked by lifecycle gate."""
+        rc, out = run_hook(make_bash("py tools/agent_bus_cli.py inbox --role developer"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "allow"

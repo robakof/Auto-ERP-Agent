@@ -13,6 +13,7 @@ Output: JSON na stdout.
 """
 
 import argparse
+import sqlite3
 import subprocess
 import sys
 import time
@@ -20,6 +21,22 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from tools.lib.output import print_json
+
+DB_PATH = Path(__file__).parent.parent / "mrowisko.db"
+
+
+def _count_active_agents() -> int:
+    """Count live agents with status starting or active."""
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.execute("PRAGMA busy_timeout=1000")
+        row = conn.execute(
+            "SELECT COUNT(*) FROM live_agents WHERE status IN ('starting', 'active')"
+        ).fetchone()
+        conn.close()
+        return row[0] if row else 0
+    except Exception:
+        return 0
 
 
 def _run(cmd: list[str], cwd: str) -> subprocess.CompletedProcess:
@@ -119,6 +136,12 @@ def git_commit(
 
     # git add
     if add_all:
+        active = _count_active_agents()
+        if active > 1:
+            return error_result(
+                f"Wielu aktywnych agentów ({active}). "
+                "Użyj --files [lista plików] zamiast --all."
+            )
         result = _run(["git", "add", "-A"], cwd=path)
         if result.returncode != 0:
             return error_result(result.stderr.strip() or result.stdout.strip())

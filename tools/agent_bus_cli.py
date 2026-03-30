@@ -742,8 +742,8 @@ def cmd_spawn_request(args: argparse.Namespace, bus: AgentBus) -> dict:
     sender = args.sender or get_session_role()
     conn = bus._conn
     conn.execute(
-        """INSERT INTO invocations (invoker_type, invoker_id, target_role, task, status)
-           VALUES ('agent', ?, ?, ?, 'pending')""",
+        """INSERT INTO invocations (invoker_type, invoker_id, target_role, task, status, action)
+           VALUES ('agent', ?, ?, ?, 'pending', 'spawn')""",
         (sender, args.role, args.task),
     )
     conn.commit()
@@ -755,6 +755,56 @@ def cmd_spawn_request(args: argparse.Namespace, bus: AgentBus) -> dict:
         "target_role": args.role,
         "task": args.task,
         "message": "Spawn request created. Awaiting human approval in VS Code.",
+    }
+
+
+def cmd_stop_request(args: argparse.Namespace, bus: AgentBus) -> dict:
+    """Request agent stop — inserts as 'pending' for human approval via wtyczka."""
+    sender = args.sender or get_session_role()
+    terminal_name, role = _lookup_terminal_name(bus, args.session_id)
+    if not terminal_name:
+        return {"ok": False, "error": f"No terminal_name for session '{args.session_id}'"}
+    conn = bus._conn
+    conn.execute(
+        """INSERT INTO invocations (invoker_type, invoker_id, target_role, task, status, action, target_session_id)
+           VALUES ('agent', ?, ?, ?, 'pending', 'stop', ?)""",
+        (sender, role, f"Stop agent {role}", args.session_id),
+    )
+    conn.commit()
+    inv_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+    return {
+        "ok": True,
+        "invocation_id": inv_id,
+        "status": "pending",
+        "action": "stop",
+        "target_role": role,
+        "session_id": args.session_id,
+        "message": "Stop request created. Awaiting human approval in VS Code.",
+    }
+
+
+def cmd_resume_request(args: argparse.Namespace, bus: AgentBus) -> dict:
+    """Request agent resume — inserts as 'pending' for human approval via wtyczka."""
+    sender = args.sender or get_session_role()
+    terminal_name, role = _lookup_terminal_name(bus, args.session_id)
+    if not terminal_name:
+        return {"ok": False, "error": f"No terminal_name for session '{args.session_id}'"}
+    conn = bus._conn
+    conn.execute(
+        """INSERT INTO invocations (invoker_type, invoker_id, target_role, task, status, action, target_session_id)
+           VALUES ('agent', ?, ?, ?, 'pending', 'resume', ?)""",
+        (sender, role, f"Resume agent {role}", args.session_id),
+    )
+    conn.commit()
+    inv_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+    return {
+        "ok": True,
+        "invocation_id": inv_id,
+        "status": "pending",
+        "action": "resume",
+        "target_role": role,
+        "session_id": args.session_id,
+        "message": "Resume request created. Awaiting human approval in VS Code.",
     }
 
 
@@ -838,6 +888,97 @@ def cmd_handoffs_pending(args: argparse.Namespace, bus: AgentBus) -> dict:
            ORDER BY m.created_at DESC"""
     ).fetchall()
     return {"ok": True, "data": [dict(r) for r in rows], "count": len(rows)}
+
+
+def cmd_dashboard(args: argparse.Namespace, bus: AgentBus) -> dict:
+    """Single JSON overview of the entire swarm state."""
+    from datetime import datetime, timezone
+    conn = bus._conn
+
+    # 1. Agents — from v_agent_status view
+    agent_rows = conn.execute(
+        """SELECT session_id, role, task, display_status, last_activity, created_at
+           FROM v_agent_status ORDER BY created_at DESC"""
+    ).fetchall()
+    agents_active = []
+    agents_stale = []
+    for r in agent_rows:
+        entry = {"role": r["role"], "session_id": r["session_id"],
+                 "task": r["task"], "last_activity": r["last_activity"]}
+        if r["display_status"] in ("starting", "working"):
+            agents_active.append(entry)
+        else:
+            entry["display_status"] = r["display_status"]
+            agents_stale.append(entry)
+    stopped_count = conn.execute(
+        "SELECT COUNT(*) FROM live_agents WHERE status = 'stopped'"
+    ).fetchone()[0]
+
+    # 2. Inbox — unread per role
+    inbox_rows = conn.execute(
+        """SELECT recipient, COUNT(*) as cnt FROM messages
+           WHERE status = 'unread' GROUP BY recipient"""
+    ).fetchall()
+    unread_by_role = {r["recipient"]: r["cnt"] for r in inbox_rows}
+
+    # 3. Handoffs pending (no live recipient)
+    handoff_rows = conn.execute(
+        """SELECT m.id, m.sender, m.recipient, m.title, m.created_at
+           FROM messages m
+           LEFT JOIN live_agents la
+             ON la.role = m.recipient AND la.status IN ('starting', 'active')
+           WHERE m.type = 'handoff' AND m.status = 'unread' AND la.id IS NULL
+           ORDER BY m.created_at DESC"""
+    ).fetchall()
+    handoffs = [dict(r) for r in handoff_rows]
+
+    # 4. Backlog summary
+    backlog_rows = conn.execute(
+        """SELECT area, status, COUNT(*) as cnt FROM backlog
+           GROUP BY area, status"""
+    ).fetchall()
+    planned_by_area: dict[str, int] = {}
+    in_progress_count = 0
+    for r in backlog_rows:
+        area = r["area"] or "unknown"
+        if r["status"] == "planned":
+            planned_by_area[area] = planned_by_area.get(area, 0) + r["cnt"]
+        elif r["status"] == "in_progress":
+            in_progress_count += r["cnt"]
+
+    # 5. Alerts
+    alerts: list[str] = []
+    for a in agents_stale:
+        alerts.append(f"Agent {a['role']} {a['display_status']} (last_activity: {a['last_activity']})")
+    for h in handoffs:
+        alerts.append(f"Handoff {h['sender']}→{h['recipient']} czeka na odbiorcę")
+
+    # 6. Flags pending
+    flag_count = conn.execute(
+        "SELECT COUNT(*) FROM messages WHERE type = 'flag' AND status = 'unread'"
+    ).fetchone()[0]
+    if flag_count > 0:
+        alerts.append(f"{flag_count} flag(s) czeka na człowieka")
+
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return {
+        "ok": True,
+        "data": {
+            "timestamp": timestamp,
+            "agents": {
+                "active": agents_active,
+                "stale": agents_stale,
+                "stopped_count": stopped_count,
+            },
+            "inbox": {"unread_by_role": unread_by_role},
+            "handoffs": {"pending": handoffs},
+            "backlog": {
+                "planned_by_area": planned_by_area,
+                "in_progress": in_progress_count,
+            },
+            "alerts": alerts,
+        },
+    }
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1087,6 +1228,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_spawn_req = subparsers.add_parser("spawn-request", help="Request agent spawn (pending approval)")
     p_spawn_req.add_argument("--from", dest="sender", help="Invoker role")
     p_spawn_req.add_argument("--role", required=True, help="Target agent role")
+
+    # stop-request — request stop with approval gate (#219)
+    p_stop_req = subparsers.add_parser("stop-request", help="Request agent stop (pending approval)")
+    p_stop_req.add_argument("--from", dest="sender", help="Invoker role")
+    p_stop_req.add_argument("--session-id", dest="session_id", required=True, help="Agent session_id to stop")
+
+    # resume-request — request resume with approval gate (#219)
+    p_resume_req = subparsers.add_parser("resume-request", help="Request agent resume (pending approval)")
+    p_resume_req.add_argument("--from", dest="sender", help="Invoker role")
+    p_resume_req.add_argument("--session-id", dest="session_id", required=True, help="Agent session_id to resume")
     p_spawn_req.add_argument("--task", required=True, help="Task for the agent")
 
     # invocations — list invocations
@@ -1104,6 +1255,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     # handoffs-pending — unread handoffs with no live recipient (PM tool)
     subparsers.add_parser("handoffs-pending", help="Handoffs awaiting delivery")
+
+    # dashboard — single JSON overview (dispatcher tool)
+    subparsers.add_parser("dashboard", help="Single JSON overview of swarm state")
 
     return parser
 
@@ -1146,11 +1300,14 @@ def main():
         "poke": cmd_poke,
         "spawn": cmd_spawn,
         "spawn-request": cmd_spawn_request,
+        "stop-request": cmd_stop_request,
+        "resume-request": cmd_resume_request,
         "invocations": cmd_invocations,
         "backlog-summary": cmd_backlog_summary,
         "inbox-summary": cmd_inbox_summary,
         "live-agents": cmd_live_agents,
         "handoffs-pending": cmd_handoffs_pending,
+        "dashboard": cmd_dashboard,
     }
     try:
         result = commands[args.command](args, bus)
