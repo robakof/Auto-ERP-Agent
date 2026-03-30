@@ -3,7 +3,6 @@ import * as fs from "fs";
 import * as path from "path";
 import { MrowiskoDB } from "./db";
 import { RoleLayout } from "./layout";
-import { Spawner } from "./spawner";
 import { TerminalMap } from "./types";
 
 function loadRoles(): vscode.QuickPickItem[] {
@@ -30,7 +29,6 @@ function loadRoles(): vscode.QuickPickItem[] {
 export function registerCommands(
   context: vscode.ExtensionContext,
   db: MrowiskoDB,
-  spawner: Spawner,
   terminals: TerminalMap,
   layout: RoleLayout
 ): void {
@@ -42,7 +40,13 @@ export function registerCommands(
       listAgents(db, terminals)
     ),
     vscode.commands.registerCommand("mrowisko.stopAgent", () =>
-      stopAgent(db, spawner, terminals)
+      lifecycleAction(db, "stop", "Wybierz agenta do zatrzymania")
+    ),
+    vscode.commands.registerCommand("mrowisko.killAgent", () =>
+      lifecycleAction(db, "kill", "Wybierz agenta do zabicia (force)")
+    ),
+    vscode.commands.registerCommand("mrowisko.resumeAgent", () =>
+      lifecycleAction(db, "resume", "Wybierz agenta do wznowienia")
     ),
     vscode.commands.registerCommand("mrowisko.focusAgent", () =>
       focusAgent(layout)
@@ -111,15 +115,15 @@ async function listAgents(
   }
 }
 
-async function stopAgent(
+async function lifecycleAction(
   db: MrowiskoDB,
-  spawner: Spawner,
-  terminals: TerminalMap
+  action: string,
+  placeholder: string
 ): Promise<void> {
   const agents = db.getActiveAgents();
 
   if (agents.length === 0) {
-    vscode.window.showInformationMessage("Brak aktywnych agentow do zatrzymania.");
+    vscode.window.showInformationMessage("Brak aktywnych agentow.");
     return;
   }
 
@@ -127,25 +131,18 @@ async function stopAgent(
     label: `${a.role ?? "unknown"} [${a.status}]`,
     description: a.task || "",
     detail: `session: ${(a.sessionId ?? a.spawnToken ?? "?").slice(0, 8)}...`,
-    spawnToken: a.spawnToken ?? "",
-    sessionId: a.sessionId ?? "",
+    role: a.role ?? "unknown",
+    sessionId: a.sessionId ?? a.spawnToken ?? "",
   }));
 
-  const selected = await vscode.window.showQuickPick(items, {
-    placeHolder: "Wybierz agenta do zatrzymania",
-  });
-
+  const selected = await vscode.window.showQuickPick(items, { placeHolder: placeholder });
   if (!selected) {
     return;
   }
 
-  const sessionId = selected.sessionId || selected.spawnToken;
-  if (sessionId) {
-    spawner.stop(sessionId);
-  }
-
+  db.insertInvocation("human", "human", selected.role, action, action, selected.sessionId);
   vscode.window.showInformationMessage(
-    `Agent ${selected.label} zatrzymany.`
+    `Invocation ${action} created: ${selected.label}`
   );
 }
 

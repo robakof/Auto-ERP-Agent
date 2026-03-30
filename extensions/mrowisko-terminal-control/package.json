@@ -29,6 +29,14 @@
         "title": "Mrowisko: Stop Agent"
       },
       {
+        "command": "mrowisko.killAgent",
+        "title": "Mrowisko: Kill Agent (force)"
+      },
+      {
+        "command": "mrowisko.resumeAgent",
+        "title": "Mrowisko: Resume Agent"
+      },
+      {
         "command": "mrowisko.focusAgent",
         "title": "Mrowisko: Focus Agent Role"
       },

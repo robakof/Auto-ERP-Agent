@@ -59,7 +59,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // 5. Activate components
   watcher.activate();
-  registerCommands(context, db, spawner, terminals, layout);
+  registerCommands(context, db, terminals, layout);
 
   const pollInterval = vscode.workspace
     .getConfiguration("mrowisko")
