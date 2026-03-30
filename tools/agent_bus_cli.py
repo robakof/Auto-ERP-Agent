@@ -746,6 +746,51 @@ def cmd_resume(args: argparse.Namespace, bus: AgentBus) -> dict:
     }
 
 
+def cmd_kill(args: argparse.Namespace, bus: AgentBus) -> dict:
+    """Kill a live agent — force dispose terminal and mark stopped in DB."""
+    terminal_name, role = _lookup_terminal_name(bus, args.session_id)
+    if not terminal_name:
+        return {"ok": False, "error": f"No terminal_name for session '{args.session_id}'"}
+
+    policy = _get_spawn_policy("kill")
+    if policy == "approval":
+        sender = getattr(args, "sender", None) or get_session_role()
+        conn = bus._conn
+        conn.execute(
+            """INSERT INTO invocations (invoker_type, invoker_id, target_role, task, status, action, target_session_id)
+               VALUES ('agent', ?, ?, ?, 'pending', 'kill', ?)""",
+            (sender, role, f"Kill agent {role}", args.session_id),
+        )
+        conn.commit()
+        inv_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        return {
+            "ok": True,
+            "invocation_id": inv_id,
+            "status": "pending",
+            "policy": "approval",
+            "session_id": args.session_id,
+            "role": role,
+            "message": "Kill request created. Awaiting human approval in VS Code.",
+        }
+
+    # policy == "auto"
+    uri_result = _call_vscode("killAgent", session_id=args.session_id, role=role or "")
+
+    bus._conn.execute(
+        "UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now') WHERE session_id = ?",
+        (args.session_id,),
+    )
+    bus._conn.commit()
+
+    return {
+        "ok": uri_result.get("ok", False),
+        "policy": "auto",
+        "session_id": args.session_id,
+        "role": role,
+        "terminal_name": terminal_name,
+    }
+
+
 def cmd_poke(args: argparse.Namespace, bus: AgentBus) -> dict:
     """Poke a live agent — send text to its VS Code terminal via extension."""
     import subprocess
@@ -1277,6 +1322,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_stop = subparsers.add_parser("stop", help="Stop a live agent — sends /exit to terminal")
     p_stop.add_argument("--session-id", dest="session_id", required=True, help="Agent session_id")
 
+    p_kill = subparsers.add_parser("kill", help="Kill a live agent — force dispose terminal (policy-routed)")
+    p_kill.add_argument("--from", dest="sender", help="Invoker role")
+    p_kill.add_argument("--session-id", dest="session_id", required=True, help="Agent session_id")
+
     # resume — resume a stopped agent
     p_resume = subparsers.add_parser("resume", help="Resume a stopped agent — sends /resume or creates new terminal")
     p_resume.add_argument("--from", dest="sender", help="Invoker role")
@@ -1369,6 +1418,7 @@ def main():
         "gaps": cmd_gaps,
         "gap-resolve": cmd_gap_resolve,
         "stop": cmd_stop,
+        "kill": cmd_kill,
         "resume": cmd_resume,
         "poke": cmd_poke,
         "spawn": cmd_spawn,
