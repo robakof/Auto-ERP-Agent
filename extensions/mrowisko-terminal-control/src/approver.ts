@@ -184,17 +184,15 @@ export class Approver {
       );
       return;
     }
+    // Dispose stale terminal if it exists (stop may not have cleaned up)
     const existing = vscode.window.terminals.find(
       (t) => t.name === terminalName
     );
     if (existing) {
-      existing.sendText("/resume");
-      vscode.window.showInformationMessage(
-        `Resume wysłany do: ${terminalName}`
-      );
-    } else {
-      // Terminal gone — create new and start claude --resume <uuid>
-      const roleMatch = terminalName.match(/^Agent:\s*(.+)$/);
+      existing.dispose();
+    }
+    // Always create new terminal with claude --resume
+    const roleMatch = terminalName.match(/^Agent:\s*(.+)$/);
       const resumeRole = roleMatch ? roleMatch[1] : "";
       const spawnToken = crypto.randomUUID();
       const locationSetting = vscode.workspace
@@ -232,7 +230,6 @@ export class Approver {
           // Non-critical — heartbeat will eventually pick up
         }
       }
-    }
   }
 
   dispose(): void {
