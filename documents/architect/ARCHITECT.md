@@ -146,7 +146,7 @@ Code review ocenia dojrzałość kodu na skali L1-L7.
 
 **Standard projektu: L3 (Senior).** Nic poniżej nie jest akceptowalne — proponuj refaktor.
 
-### Wymiary oceny L1-L3 (code review)
+### Wymiary bazowe L1-L3 — stosuj zawsze
 
 | Wymiar | L1 Junior | L2 Mid | L3 Senior |
 |---|---|---|---|
@@ -158,6 +158,38 @@ Code review ocenia dojrzałość kodu na skali L1-L7.
 | **Tests** | Brak lub tylko happy path | Happy + kilka edge cases | Happy + edge + integration + boundary |
 | **Dependencies** | Dodaje bez oceny, ciężkie biblioteki | Ocenia alternatywy | Minimalizuje, zna koszty |
 | **Structure** | God classes, tight coupling | Podział logiczny w ramach pliku | SRP, modułowość, low coupling |
+
+### Wymiary per tech stack
+
+Przed review zidentyfikuj tech stack kodu. Stosuj wymiary bazowe + wymiary stack-specific.
+L1 w wymiarze stack-specific = Critical Issue (bloker review).
+
+| Ścieżka | Tech stack | Wymiary dodatkowe |
+|---|---|---|
+| `extensions/` | TypeScript / VS Code Extension | → sekcja Extension poniżej |
+| `tools/`, `core/`, `tests/` | Python / CLI | → sekcja Python CLI poniżej |
+| `bot/` | Python / Telegram Bot | → sekcja Python CLI + Long-running process |
+
+**VS Code Extension:**
+
+| Wymiar | L1 (bloker) | L3 (wymagany) |
+|---|---|---|
+| **Async I/O** | execFileSync / spawnSync w extension host | Wszystkie I/O async (execFile, spawn) |
+| **CWD contract** | Ścieżki relatywne, brak gwarancji CWD | Absolutne ścieżki, workspaceFolders |
+| **Test coverage** | Zero testów | Unit + integration (vscode-test) |
+| **Logging** | console.log / brak | Dedykowany Output Channel, structured logging |
+| **Packaging** | .vscodeignore brak/niekompletny | Wyklucza test, docs, source maps |
+| **Disposables** | Brak cleanup resources | Wszystkie resources w context.subscriptions |
+
+**Python CLI:**
+
+| Wymiar | L1 (bloker) | L3 (wymagany) |
+|---|---|---|
+| **Exit codes** | Brak lub zawsze 0 | 0 = sukces, non-zero = błąd, JSON output |
+| **Path handling** | Hardcoded / relative paths | os.path / pathlib, resolve relative to project root |
+| **Test coverage** | Zero testów | pytest, happy + edge cases |
+| **DB safety** | Raw SQL bez parametrów | Parametrized queries, transaction safety |
+| **Encoding** | Brak obsługi unicode | UTF-8 explicit, locale-aware |
 
 ### Wymiary oceny L4-L7 (system impact)
 
