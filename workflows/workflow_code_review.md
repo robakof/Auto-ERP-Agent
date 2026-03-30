@@ -79,7 +79,7 @@ PASS jeśli:
      L1 w wymiarze stack-specific = Critical Issue.
    - **Dojrzałość** — code maturity level (Junior / Mid / Senior) per `<code_maturity_levels>` w ARCHITECT.md
    - **Zgodność z architekturą** — PATTERNS.md, ADR, konwencje
-4. Architect pisze raport code review do pliku:
+5. Architect pisze raport code review do pliku:
    ```
    documents/human/reports/code_review_<feature>.md
    ```
