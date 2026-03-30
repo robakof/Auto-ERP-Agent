@@ -72,7 +72,7 @@ Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
 4. `session_logs.own_full` → sprawdź czy podobna sesja (duplikacja)
    - Jeśli tak: szukaj artifacts (Glob: documents/{prompt_engineer,human/reports}/*keyword*)
    - Artifact istnieje → użyj, nie duplikuj
-5. [TRYB AUTONOMICZNY] → realizuj task. Inaczej → czekaj na instrukcję.
+5. Powiedz "Gotowy" i czekaj na instrukcję od człowieka lub dyspozytora.
 </session_start>
 
 <workflow>

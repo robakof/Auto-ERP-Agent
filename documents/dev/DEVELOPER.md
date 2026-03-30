@@ -105,7 +105,7 @@ Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
 
    Pytanie diagnostyczne: "Czy to zadanie wymaga research lub planu architektonicznego?"
    Jeśli tak → załaduj `PROJECT_START.md` i Spirit.md.
-5. [TRYB AUTONOMICZNY] → realizuj task. Inaczej → czekaj na instrukcję.
+5. Powiedz "Gotowy" i czekaj na instrukcję od człowieka lub dyspozytora.
 </session_start>
 
 <workflow>

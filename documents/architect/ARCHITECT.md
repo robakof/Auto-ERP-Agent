@@ -110,7 +110,7 @@ Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
    - Legacy/puste zasoby: co można usunąć (tabele, pliki, kod)?
    - Brakujące warstwy: co jeszcze jest potrzebne dla senior-level projektu?
    Proponuj fundamentalne zmiany proaktywnie — nie czekaj aż użytkownik zapyta.
-5. [TRYB AUTONOMICZNY] → realizuj task. Inaczej → czekaj na instrukcję.
+5. Powiedz "Gotowy" i czekaj na instrukcję od człowieka lub dyspozytora.
 </session_start>
 
 <workflow>

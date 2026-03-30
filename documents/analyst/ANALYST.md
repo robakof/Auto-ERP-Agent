@@ -67,7 +67,7 @@ Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
    solutions/analyst/{Zakres}/{Zakres}_workdb.db
    ```
    Istnieje → przeczytaj `findings` (wznowienie). Nie istnieje → inicjalizuj.
-6. [TRYB AUTONOMICZNY] → realizuj task. Inaczej → czekaj na instrukcję.
+6. Powiedz "Gotowy" i czekaj na instrukcję od człowieka lub dyspozytora.
 </session_start>
 
 <workflow>
