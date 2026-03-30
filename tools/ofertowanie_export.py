@@ -57,7 +57,7 @@ _SQL_BODY = """
 SELECT
     tk.Twr_Kod                                AS [Kod],
     tk.Twr_Nazwa                              AS [Nazwa],
-    tg_nazwa.[Grupa kartoteki]                AS [Grupa kartoteki],
+    tg_path.[Grupa kartoteki]                 AS [Grupa kartoteki],
     tk.Twr_Ean                                AS [Kod EAN],
     a9.Atr_Wartosc                            AS [CZAS PALENIA / DZIAŁANIA],
     a10.Atr_Wartosc                           AS [GRAMATURA WKŁADU],
@@ -109,15 +109,40 @@ LEFT JOIN (
     WHERE TwC_TcnId = 1 AND TwC_KntNumer = 0
     GROUP BY TwC_TwrNumer, TwC_TwrTyp
 ) tc100 ON tc100.TwC_TwrNumer = tk.Twr_GIDNumer AND tc100.TwC_TwrTyp = tk.Twr_GIDTyp
-LEFT JOIN (
-    SELECT br.TwG_GIDNumer, MIN(RTRIM(grp.TwG_Nazwa)) AS [Grupa kartoteki]
+LEFT JOIN GrupaNazwa tg_path ON tg_path.TwrNumer = tk.Twr_GIDNumer
+ORDER BY tk.Twr_Kod
+"""
+
+# Rekurencyjny CTE budujący pełną ścieżkę grupy, np. \10_Oferty\2026\Dino.
+# Wstrzykiwany po ostatnim CTE w _sql_group() i _sql_excel().
+_SQL_GROUP_PATH_CTE = """,
+GroupPath AS (
+    SELECT
+        br.TwG_GIDNumer                              AS TwrNumer,
+        grp.TwG_GIDNumer                             AS GrpNumer,
+        grp.TwG_GrONumer                             AS ParentNumer,
+        CAST(RTRIM(grp.TwG_Nazwa) AS NVARCHAR(500))  AS Path
     FROM CDN.TwrGrupy br
-    LEFT JOIN CDN.TwrGrupy grp
+    JOIN CDN.TwrGrupy grp
         ON grp.TwG_GIDTyp = -16 AND grp.TwG_GIDNumer = br.TwG_GrONumer
     WHERE br.TwG_GIDTyp = 16
-    GROUP BY br.TwG_GIDNumer
-) tg_nazwa ON tg_nazwa.TwG_GIDNumer = tk.Twr_GIDNumer
-ORDER BY tk.Twr_Kod
+    UNION ALL
+    SELECT
+        gp.TwrNumer,
+        par.TwG_GIDNumer,
+        par.TwG_GrONumer,
+        CAST(RTRIM(par.TwG_Nazwa) + '\\' + gp.Path AS NVARCHAR(500))
+    FROM GroupPath gp
+    JOIN CDN.TwrGrupy par
+        ON par.TwG_GIDTyp = -16 AND par.TwG_GIDNumer = gp.ParentNumer
+    WHERE gp.ParentNumer IS NOT NULL AND gp.ParentNumer <> 0
+),
+GrupaNazwa AS (
+    SELECT TwrNumer, '\\' + MIN(Path) AS [Grupa kartoteki]
+    FROM GroupPath
+    WHERE ParentNumer IS NULL OR ParentNumer = 0
+    GROUP BY TwrNumer
+)
 """
 
 def _sql_group(group_numer=GROUP_NUMER, group_typ=GROUP_TYP):
@@ -144,7 +169,7 @@ Produkty AS (
         ON tg.TwG_GrONumer = gt.TwG_GIDNumer
         AND tg.TwG_GrOTyp  = gt.TwG_GIDTyp
     WHERE tk.Twr_Archiwalny = 0
-)
+){_SQL_GROUP_PATH_CTE}
 {_SQL_BODY}
 """
 
@@ -156,7 +181,7 @@ WITH Produkty AS (
     SELECT DISTINCT Twr_GIDNumer, Twr_GIDTyp
     FROM CDN.TwrKarty
     WHERE Twr_Archiwalny = 0 AND Twr_Kod IN ({kody_list})
-)
+){_SQL_GROUP_PATH_CTE}
 {_SQL_BODY}
 """
 
