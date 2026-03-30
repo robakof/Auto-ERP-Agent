@@ -117,21 +117,18 @@ ORDER BY tk.Twr_Kod
 # Wstrzykiwany po ostatnim CTE w _sql_group() i _sql_excel().
 _SQL_GROUP_PATH_CTE = """,
 GroupPath AS (
-    -- Anchor: grupa domyślna produktu (Twr_GrupaPod → TwG_Kod bridge → definicja grupy)
+    -- Anchor: wszystkie grupy produktu (bridge GIDTyp=16)
     SELECT
-        tk2.Twr_GIDNumer                             AS TwrNumer,
+        br.TwG_GIDNumer                              AS TwrNumer,
         grp.TwG_GIDNumer                             AS GrpNumer,
         grp.TwG_GrONumer                             AS ParentNumer,
         CAST(RTRIM(grp.TwG_Nazwa) AS NVARCHAR(500))  AS Path
-    FROM Produkty p
-    JOIN CDN.TwrKarty tk2
-        ON tk2.Twr_GIDNumer = p.Twr_GIDNumer AND tk2.Twr_GIDTyp = p.Twr_GIDTyp
-    JOIN CDN.TwrGrupy br
-        ON br.TwG_GIDTyp = 16 AND br.TwG_Kod = tk2.Twr_GrupaPod
+    FROM CDN.TwrGrupy br
     JOIN CDN.TwrGrupy grp
         ON grp.TwG_GIDTyp = -16 AND grp.TwG_GIDNumer = br.TwG_GrONumer
+    WHERE br.TwG_GIDTyp = 16
     UNION ALL
-    -- Rekurencja: idź w górę hierarchii grup
+    -- Rekurencja: idź w górę hierarchii
     SELECT
         gp.TwrNumer,
         par.TwG_GIDNumer,
@@ -143,9 +140,12 @@ GroupPath AS (
     WHERE gp.ParentNumer IS NOT NULL AND gp.ParentNumer <> 0
 ),
 GrupaNazwa AS (
-    SELECT TwrNumer, '\\' + Path AS [Grupa kartoteki]
+    -- Tylko ścieżki zawierające 'Cmentarz' (kategorie cmentarne)
+    SELECT TwrNumer, '\\' + MIN(Path) AS [Grupa kartoteki]
     FROM GroupPath
-    WHERE ParentNumer IS NULL OR ParentNumer = 0
+    WHERE (ParentNumer IS NULL OR ParentNumer = 0)
+      AND Path LIKE '%Cmentarz%'
+    GROUP BY TwrNumer
 )
 """
 
