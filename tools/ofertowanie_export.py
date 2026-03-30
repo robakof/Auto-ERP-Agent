@@ -116,6 +116,17 @@ ORDER BY tk.Twr_Kod
 # Rekurencyjny CTE budujący pełną ścieżkę grupy, np. \10_Oferty\2026\Dino.
 # Wstrzykiwany po ostatnim CTE w _sql_group() i _sql_excel().
 _SQL_GROUP_PATH_CTE = """,
+OfferingTree AS (
+    -- Wyklucz gałąź 10_Oferty — szukamy kategorii klasyfikacyjnych (rozmiar, typ)
+    SELECT TwG_GIDNumer
+    FROM CDN.TwrGrupy
+    WHERE TwG_GIDTyp = -16 AND TwG_GIDNumer = 9139
+    UNION ALL
+    SELECT g.TwG_GIDNumer
+    FROM CDN.TwrGrupy g
+    INNER JOIN OfferingTree ot
+        ON g.TwG_GrONumer = ot.TwG_GIDNumer AND g.TwG_GIDTyp = -16
+),
 GroupPath AS (
     SELECT
         br.TwG_GIDNumer                              AS TwrNumer,
@@ -126,6 +137,7 @@ GroupPath AS (
     JOIN CDN.TwrGrupy grp
         ON grp.TwG_GIDTyp = -16 AND grp.TwG_GIDNumer = br.TwG_GrONumer
     WHERE br.TwG_GIDTyp = 16
+      AND grp.TwG_GIDNumer NOT IN (SELECT TwG_GIDNumer FROM OfferingTree)
     UNION ALL
     SELECT
         gp.TwrNumer,
