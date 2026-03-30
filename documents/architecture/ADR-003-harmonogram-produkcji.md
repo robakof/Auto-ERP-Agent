@@ -100,9 +100,14 @@ class EfficiencyEntry:
 def load_efficiency(xlsm_path: Path) -> dict[str, EfficiencyEntry]:
     """
     Z arkusza 'Wycena Zniczy' wyciąga wiersze gdzie:
-    - col F zawiera 'Roboczogodzina Otorowo'
+    - col F = 'Robocizna' (nie 'Roboczogodzina Otorowo' — faktyczna wartość w pliku)
     - col B = czni_kod, col J = units_per_hour
     Klucz: czni_kod
+
+    Uwaga: per CZNI są 2 wiersze Robocizna:
+      J=1      → stawka kosztowa (ignoruj)
+      J=30-70  → właściwa wydajność szt/h
+    Implementacja bierze max(J) per CZNI — eliminuje J=1.
     """
 ```
 
