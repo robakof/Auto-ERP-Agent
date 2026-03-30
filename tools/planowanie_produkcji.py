@@ -43,19 +43,12 @@ def _fetch_all() -> list[dict]:
 
 
 def filter_rows(rows: list[dict], year: int) -> list[dict]:
-    """Filtruje po: Towar_Kod CZNI*, Opis startswith 'Zamówienie', rok Data_Realizacji."""
-    out = []
-    for r in rows:
-        if not (r.get("Towar_Kod") or "").startswith("CZNI"):
-            continue
-        opis = r.get("Opis") or ""
-        if not opis.startswith("Zamówienie"):
-            continue
-        dr = r.get("Data_Realizacji")
-        if dr is None or _year_of(dr) != year:
-            continue
-        out.append(r)
-    return out
+    """Filtruje po roku Data_Realizacji. Filtry CZNI/Opis już w SQL."""
+    return [
+        r for r in rows
+        if r.get("Data_Realizacji") is not None
+        and _year_of(r["Data_Realizacji"]) == year
+    ]
 
 
 def _year_of(d) -> int:
