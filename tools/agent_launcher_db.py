@@ -71,7 +71,12 @@ def cmd_cleanup(args):
 def cmd_pending_invocations(args):
     conn = _connect()
     rows = conn.execute(
-        "SELECT * FROM invocations WHERE status = 'pending' ORDER BY created_at ASC"
+        """SELECT i.*, la.terminal_name AS agent_terminal_name,
+                  la.claude_uuid AS agent_claude_uuid
+           FROM invocations i
+           LEFT JOIN live_agents la ON i.target_session_id = la.session_id
+           WHERE i.status = 'pending'
+           ORDER BY i.created_at ASC"""
     ).fetchall()
     conn.close()
     print(json.dumps({"ok": True, "data": [dict(r) for r in rows]}))

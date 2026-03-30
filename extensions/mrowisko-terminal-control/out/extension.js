@@ -54,7 +54,7 @@ function activate(context) {
     registry = new registry_1.Registry(dbPath);
     const spawner = new spawner_1.Spawner(registry, terminals, layout);
     watcher = new watcher_1.Watcher(registry, terminals, layout);
-    approver = new approver_1.Approver(dbPath, spawner);
+    approver = new approver_1.Approver(dbPath, spawner, layout);
     watcher.activate();
     (0, commands_1.registerCommands)(context, registry, spawner, terminals, layout);
     // Poll for pending invocations (approval gate)

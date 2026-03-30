@@ -21,7 +21,7 @@ export function activate(context: vscode.ExtensionContext): void {
   registry = new Registry(dbPath);
   const spawner = new Spawner(registry, terminals, layout);
   watcher = new Watcher(registry, terminals, layout);
-  approver = new Approver(dbPath, spawner);
+  approver = new Approver(dbPath, spawner, layout);
 
   watcher.activate();
   registerCommands(context, registry, spawner, terminals, layout);

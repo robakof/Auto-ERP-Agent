@@ -252,6 +252,9 @@ _MIGRATE_SQL = [
         CHECK (status IN ('pending', 'approved', 'running', 'completed', 'failed', 'rejected'))
     )""",
     "CREATE INDEX IF NOT EXISTS idx_invocations_status ON invocations(status)",
+    # Bezpiecznik #219: action type + target_session_id for stop/resume requests
+    "ALTER TABLE invocations ADD COLUMN action TEXT NOT NULL DEFAULT 'spawn'",
+    "ALTER TABLE invocations ADD COLUMN target_session_id TEXT",
     "CREATE INDEX IF NOT EXISTS idx_invocations_session ON invocations(session_id)",
     # live_agents: claude_uuid for reliable session_end matching
     "ALTER TABLE live_agents ADD COLUMN claude_uuid TEXT",
