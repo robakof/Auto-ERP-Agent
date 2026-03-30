@@ -119,8 +119,17 @@ export class Spawner {
     this.log.info("Agent resumed", { terminalName, claudeUuid });
   }
 
+  private findTerminal(sessionId: string): vscode.Terminal | undefined {
+    // Try sessionId first, then fallback to spawnToken (Map keyed by spawnToken at spawn time)
+    return this.terminals.get(sessionId)
+      || (() => {
+        const spawnToken = this.db.getSpawnTokenBySessionId(sessionId);
+        return spawnToken ? this.terminals.get(spawnToken) : undefined;
+      })();
+  }
+
   stop(sessionId: string): void {
-    const terminal = this.terminals.get(sessionId);
+    const terminal = this.findTerminal(sessionId);
     if (terminal) {
       // W3: /exit + dispose after timeout
       terminal.sendText("/exit");
@@ -134,7 +143,7 @@ export class Spawner {
   }
 
   kill(sessionId: string): void {
-    const terminal = this.terminals.get(sessionId);
+    const terminal = this.findTerminal(sessionId);
     if (terminal) {
       terminal.dispose();
       this.log.info("Agent killed", { sessionId });

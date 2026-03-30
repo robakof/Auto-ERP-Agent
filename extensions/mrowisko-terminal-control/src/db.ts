@@ -92,6 +92,13 @@ export class MrowiskoDB {
     ).run(sessionId);
   }
 
+  getSpawnTokenBySessionId(sessionId: string): string | null {
+    const row = this.db.prepare(
+      "SELECT spawn_token FROM live_agents WHERE session_id = ?"
+    ).get(sessionId) as { spawn_token: string } | undefined;
+    return row?.spawn_token ?? null;
+  }
+
   cleanup(thresholdMinutes: number = 60): void {
     this.db.prepare(
       `UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now')
