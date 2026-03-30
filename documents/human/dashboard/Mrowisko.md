@@ -1,20 +1,19 @@
-30 . 03                                                                                                   **00:12**
+30 . 03                                                                                                   **12:02**
 
-**Sesje**                    2
-Workflow             7
+**Sesje**                    1
+Workflow             10
 
 | **Sesje** | **Status** | **Kontekst** |
 | --------------- | ------------- | ------------ |
-| developer | Praca | Podnieś się. Spawn guard DONE (commit a54c634). Nowe zadanie: terminal layout (msg #523 w inbox). UWAGA: NIE zapisuj do .claude/memory/ — użyj suggest. Przeczytaj inbox #529 (redirect instruction). |
-| dispatcher | Praca | Podnieś się |
+| dispatcher | Praca | Podnieś się i czekaj na instrukcję |
 
 | Zadania | Wiadomosci |
 | :-----: | :--------: |
-| **42** | **28** |
+| **49** | **19** |
 
 | **Rola** | Nieprzeczytane |
 | --------------- | -------------: |
-| developer | 12 |
-| prompt_engineer | 8 |
+| prompt_engineer | 9 |
 | metodolog | 7 |
-| architect | 1 |
+| dispatcher | 2 |
+| developer | 1 |

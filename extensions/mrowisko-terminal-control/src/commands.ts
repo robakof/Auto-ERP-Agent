@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
+import { RoleLayout } from "./layout";
 import { Registry } from "./registry";
 import { Spawner } from "./spawner";
 import { TerminalMap } from "./types";
@@ -30,7 +31,8 @@ export function registerCommands(
   context: vscode.ExtensionContext,
   registry: Registry,
   spawner: Spawner,
-  terminals: TerminalMap
+  terminals: TerminalMap,
+  layout: RoleLayout
 ): void {
   context.subscriptions.push(
     vscode.commands.registerCommand("mrowisko.spawnAgent", () =>
@@ -41,6 +43,12 @@ export function registerCommands(
     ),
     vscode.commands.registerCommand("mrowisko.stopAgent", () =>
       stopAgent(registry, terminals)
+    ),
+    vscode.commands.registerCommand("mrowisko.focusAgent", () =>
+      focusAgent(layout)
+    ),
+    vscode.commands.registerCommand("mrowisko.rotateTab", () =>
+      rotateTab(layout)
     )
   );
 }
@@ -143,4 +151,27 @@ async function stopAgent(
   vscode.window.showInformationMessage(
     `Agent ${selected.label} zatrzymany.`
   );
+}
+
+async function focusAgent(layout: RoleLayout): Promise<void> {
+  const roles = loadRoles();
+  const selected = await vscode.window.showQuickPick(roles, {
+    placeHolder: "Wybierz rolę do sfokusowania",
+  });
+  if (!selected) {
+    return;
+  }
+  const found = layout.focusRole(selected.label);
+  if (!found) {
+    vscode.window.showWarningMessage(
+      `Brak aktywnego terminala dla roli: ${selected.label}`
+    );
+  }
+}
+
+function rotateTab(layout: RoleLayout): void {
+  const role = layout.rotateNext();
+  if (!role) {
+    vscode.window.showWarningMessage("Brak aktywnych terminali.");
+  }
 }

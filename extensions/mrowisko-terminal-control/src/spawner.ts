@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as crypto from "crypto";
 import { Registry } from "./registry";
+import { RoleLayout } from "./layout";
 import { SpawnRequest, TerminalMap } from "./types";
 
 function getConfig<T>(key: string, fallback: T): T {
@@ -10,7 +11,8 @@ function getConfig<T>(key: string, fallback: T): T {
 export class Spawner {
   constructor(
     private registry: Registry,
-    private terminals: TerminalMap
+    private terminals: TerminalMap,
+    private layout: RoleLayout
   ) {}
 
   spawn(request: SpawnRequest): vscode.Terminal {
@@ -31,13 +33,11 @@ export class Spawner {
       "human"
     );
 
-    // Determine terminal location
-    const locationSetting = vscode.workspace
-      .getConfiguration("mrowisko")
-      .get<string>("terminalLocation", "editor");
+    // Determine terminal location — editor mode uses per-role ViewColumn
+    const locationSetting = getConfig("terminalLocation", "editor");
     const location =
       locationSetting === "editor"
-        ? vscode.TerminalLocation.Editor
+        ? { viewColumn: this.layout.getViewColumn(request.role) }
         : vscode.TerminalLocation.Panel;
 
     const terminal = vscode.window.createTerminal({
@@ -80,6 +80,7 @@ export class Spawner {
 
     // Track terminal locally (by spawn_token — session_id not known yet)
     this.terminals.set(spawnToken, terminal);
+    this.layout.addTerminal(request.role, terminal);
 
     return terminal;
   }

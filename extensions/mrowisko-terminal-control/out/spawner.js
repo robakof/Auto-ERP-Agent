@@ -40,9 +40,10 @@ function getConfig(key, fallback) {
     return vscode.workspace.getConfiguration("mrowisko").get(key, fallback);
 }
 class Spawner {
-    constructor(registry, terminals) {
+    constructor(registry, terminals, layout) {
         this.registry = registry;
         this.terminals = terminals;
+        this.layout = layout;
     }
     spawn(request) {
         const terminalName = `Agent: ${request.role}`;
@@ -53,12 +54,10 @@ class Spawner {
                 .get("defaultPermissionMode", "default");
         // Pre-register in DB before terminal exists
         this.registry.insert(spawnToken, request.role, request.task, terminalName, "human");
-        // Determine terminal location
-        const locationSetting = vscode.workspace
-            .getConfiguration("mrowisko")
-            .get("terminalLocation", "editor");
+        // Determine terminal location — editor mode uses per-role ViewColumn
+        const locationSetting = getConfig("terminalLocation", "editor");
         const location = locationSetting === "editor"
-            ? vscode.TerminalLocation.Editor
+            ? { viewColumn: this.layout.getViewColumn(request.role) }
             : vscode.TerminalLocation.Panel;
         const terminal = vscode.window.createTerminal({
             name: terminalName,
@@ -94,6 +93,7 @@ class Spawner {
         terminal.show();
         // Track terminal locally (by spawn_token — session_id not known yet)
         this.terminals.set(spawnToken, terminal);
+        this.layout.addTerminal(request.role, terminal);
         return terminal;
     }
 }

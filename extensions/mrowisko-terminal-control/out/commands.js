@@ -58,8 +58,8 @@ function loadRoles() {
         ];
     }
 }
-function registerCommands(context, registry, spawner, terminals) {
-    context.subscriptions.push(vscode.commands.registerCommand("mrowisko.spawnAgent", () => spawnAgent(spawner)), vscode.commands.registerCommand("mrowisko.listAgents", () => listAgents(registry, terminals)), vscode.commands.registerCommand("mrowisko.stopAgent", () => stopAgent(registry, terminals)));
+function registerCommands(context, registry, spawner, terminals, layout) {
+    context.subscriptions.push(vscode.commands.registerCommand("mrowisko.spawnAgent", () => spawnAgent(spawner)), vscode.commands.registerCommand("mrowisko.listAgents", () => listAgents(registry, terminals)), vscode.commands.registerCommand("mrowisko.stopAgent", () => stopAgent(registry, terminals)), vscode.commands.registerCommand("mrowisko.focusAgent", () => focusAgent(layout)), vscode.commands.registerCommand("mrowisko.rotateTab", () => rotateTab(layout)));
 }
 async function spawnAgent(spawner) {
     const role = await vscode.window.showQuickPick(loadRoles(), {
@@ -135,5 +135,24 @@ async function stopAgent(registry, terminals) {
         registry.markStopped(selected.sessionId);
     }
     vscode.window.showInformationMessage(`Agent ${selected.label} zatrzymany.`);
+}
+async function focusAgent(layout) {
+    const roles = loadRoles();
+    const selected = await vscode.window.showQuickPick(roles, {
+        placeHolder: "Wybierz rolę do sfokusowania",
+    });
+    if (!selected) {
+        return;
+    }
+    const found = layout.focusRole(selected.label);
+    if (!found) {
+        vscode.window.showWarningMessage(`Brak aktywnego terminala dla roli: ${selected.label}`);
+    }
+}
+function rotateTab(layout) {
+    const role = layout.rotateNext();
+    if (!role) {
+        vscode.window.showWarningMessage("Brak aktywnych terminali.");
+    }
 }
 //# sourceMappingURL=commands.js.map

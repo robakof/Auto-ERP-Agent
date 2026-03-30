@@ -27,6 +27,21 @@
       {
         "command": "mrowisko.stopAgent",
         "title": "Mrowisko: Stop Agent"
+      },
+      {
+        "command": "mrowisko.focusAgent",
+        "title": "Mrowisko: Focus Agent Role"
+      },
+      {
+        "command": "mrowisko.rotateTab",
+        "title": "Mrowisko: Rotate Agent Tab"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "mrowisko.rotateTab",
+        "key": "ctrl+alt+]",
+        "when": "terminalFocus"
       }
     ],
     "configuration": {

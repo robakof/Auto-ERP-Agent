@@ -1,16 +1,16 @@
-Zrealizowane workflow dzisiaj                23
+Zrealizowane workflow dzisiaj                1
 
 | **Workflow w toku** | **Ilosc** | **Etap** |
 | ---------------------- | ------------------- | -------- |
+| developer_tool | 4 | - |
 | workflow_prompt_patch | 2 | - |
-| workflow_exploration | 1 (dispatcher) | - |
+| workflow_exploration | 1 (dispatcher) | 1 |
 | session_end | 1 (architect) | 3 |
-| developer_tool | 1 (developer) | - |
-| developer_patch | 1 (developer) | - |
+| exploration | 1 (architect) | - |
 | developer_bugfix | 1 (developer) | - |
 
 | **Obszar** | **Zadanie w toku** |
 | ---------- | --------------------------------------------- |
+| Arch | ADR-004 Policy Engine — research + design |
 | Dev | Identity redesign cleanup — W1-W7 z code r... |
-| Dev | Hook: blokuj Write do .claude/memory/ z re... |
 | Prompt | Audyt i fix workflow gate — agenci pomijają |

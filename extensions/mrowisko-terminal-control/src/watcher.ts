@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { RoleLayout } from "./layout";
 import { Registry } from "./registry";
 import { TerminalMap } from "./types";
 
@@ -7,7 +8,8 @@ export class Watcher {
 
   constructor(
     private registry: Registry,
-    private terminals: TerminalMap
+    private terminals: TerminalMap,
+    private layout: RoleLayout
   ) {}
 
   activate(): void {
@@ -19,6 +21,7 @@ export class Watcher {
   }
 
   private onTerminalClosed(terminal: vscode.Terminal): void {
+    this.layout.removeTerminal(terminal);
     // Find session_id for this terminal
     for (const [sessionId, tracked] of this.terminals) {
       if (tracked === terminal) {

@@ -36,15 +36,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Watcher = void 0;
 const vscode = __importStar(require("vscode"));
 class Watcher {
-    constructor(registry, terminals) {
+    constructor(registry, terminals, layout) {
         this.registry = registry;
         this.terminals = terminals;
+        this.layout = layout;
         this.disposables = [];
     }
     activate() {
         this.disposables.push(vscode.window.onDidCloseTerminal((terminal) => this.onTerminalClosed(terminal)));
     }
     onTerminalClosed(terminal) {
+        this.layout.removeTerminal(terminal);
         // Find session_id for this terminal
         for (const [sessionId, tracked] of this.terminals) {
             if (tracked === terminal) {

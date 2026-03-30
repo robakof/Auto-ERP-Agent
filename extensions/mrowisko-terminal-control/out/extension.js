@@ -42,6 +42,7 @@ const registry_1 = require("./registry");
 const spawner_1 = require("./spawner");
 const watcher_1 = require("./watcher");
 const approver_1 = require("./approver");
+const layout_1 = require("./layout");
 const commands_1 = require("./commands");
 let registry;
 let watcher;
@@ -49,12 +50,13 @@ let approver;
 function activate(context) {
     const dbPath = resolveDbPath();
     const terminals = new Map();
+    const layout = new layout_1.RoleLayout();
     registry = new registry_1.Registry(dbPath);
-    const spawner = new spawner_1.Spawner(registry, terminals);
-    watcher = new watcher_1.Watcher(registry, terminals);
+    const spawner = new spawner_1.Spawner(registry, terminals, layout);
+    watcher = new watcher_1.Watcher(registry, terminals, layout);
     approver = new approver_1.Approver(dbPath, spawner);
     watcher.activate();
-    (0, commands_1.registerCommands)(context, registry, spawner, terminals);
+    (0, commands_1.registerCommands)(context, registry, spawner, terminals, layout);
     // Poll for pending invocations (approval gate)
     const pollInterval = vscode.workspace
         .getConfiguration("mrowisko")
@@ -102,6 +104,21 @@ function activate(context) {
                     }
                 }
             }
+            else if (command === "focusAgent") {
+                const role = params.get("role");
+                if (role) {
+                    const found = layout.focusRole(role);
+                    if (!found) {
+                        vscode.window.showWarningMessage(`Brak aktywnego terminala dla roli: ${role}`);
+                    }
+                }
+            }
+            else if (command === "rotateTab") {
+                const role = layout.rotateNext();
+                if (!role) {
+                    vscode.window.showWarningMessage("Brak aktywnych terminali.");
+                }
+            }
             else if (command === "reload") {
                 vscode.commands.executeCommand("workbench.action.reloadWindow");
             }
@@ -141,17 +158,23 @@ function activate(context) {
                     }
                     else {
                         // Terminal gone — create new and start claude --resume <uuid>
+                        // Extract role from terminal name "Agent: <role>"
+                        const roleMatch = terminalName.match(/^Agent:\s*(.+)$/);
+                        const resumeRole = roleMatch ? roleMatch[1] : "";
                         const locationSetting = vscode.workspace
                             .getConfiguration("mrowisko")
                             .get("terminalLocation", "editor");
-                        const location = locationSetting === "editor"
-                            ? vscode.TerminalLocation.Editor
+                        const location = locationSetting === "editor" && resumeRole
+                            ? { viewColumn: layout.getViewColumn(resumeRole) }
                             : vscode.TerminalLocation.Panel;
                         const newTerminal = vscode.window.createTerminal({
                             name: terminalName,
                             location,
                             env: { MROWISKO_SPAWN_TOKEN: spawnToken },
                         });
+                        if (resumeRole) {
+                            layout.addTerminal(resumeRole, newTerminal);
+                        }
                         const resumeCmd = claudeUuid
                             ? `claude --resume "${claudeUuid}"`
                             : "claude --resume";

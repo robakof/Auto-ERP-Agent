@@ -54,7 +54,7 @@ def _build_uri(command: str, **params: str) -> str:
 def main():
     parser = argparse.ArgumentParser(description="VS Code URI helper")
     parser.add_argument("--uri", help="Full URI to open")
-    parser.add_argument("--command", help="Extension command (spawnAgent, listAgents, stopAgent, pokeAgent)")
+    parser.add_argument("--command", help="Extension command (spawnAgent, listAgents, stopAgent, pokeAgent, focusAgent, rotateTab)")
     parser.add_argument("--role", help="Agent role")
     parser.add_argument("--task", help="Agent task")
     parser.add_argument("--session-id", help="Session ID (for stopAgent)")

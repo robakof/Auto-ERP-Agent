@@ -1,6 +1,6 @@
-**Zaplanowane**      42
+**Zaplanowane**      49
 Odlozone            29
-Sugestie            305
+Sugestie            313
 
 | **Numer** | **Zadanie w kolejce** | **Pkt** |
 | --------- | --------------------------------------------- | ------- |
@@ -10,7 +10,7 @@ Sugestie            305
 | 176 | [CONV] P1: CONVENTION_SQL — reformat | 10 |
 | 200 | Poke: instrukcje promptowe dla agentów (ty... | 10 |
 | 219 | Bezpiecznik: spawn/stop/resume wymagają po... | 10 |
+| 220 | Backlog budżetowanie: status needs_estimat... | 10 |
+| 223 | Regula SOS w promptach — agent eskaluje do... | 10 |
 | 132 | METHODOLOGY.md — migration best practices ... | 8 |
 | 139 | Architect audit — config-driven architectu... | 8 |
-| 158 | CLI-API sync guard: test + docelowo single... | 8 |
-| 166 | convention_init.py — scaffolding tool for ... | 8 |
