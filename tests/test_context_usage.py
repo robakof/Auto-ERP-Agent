@@ -22,7 +22,7 @@ def run_cli(args: list[str]) -> dict:
     return json.loads(result.stdout)
 
 
-def _make_transcript(path: Path, turns: list[dict]) -> Path:
+def _make_transcript(path: Path, turns: list[dict], model: str = "claude-opus-4-6") -> Path:
     """Create a minimal .jsonl transcript with given token usage per turn."""
     lines = []
     for i, usage in enumerate(turns):
@@ -31,6 +31,7 @@ def _make_transcript(path: Path, turns: list[dict]) -> Path:
             "uuid": f"uuid-{i}",
             "timestamp": f"2026-03-26T10:{i:02d}:00Z",
             "message": {
+                "model": model,
                 "content": [{"type": "text", "text": f"turn {i}"}],
                 "usage": {
                     "input_tokens": usage.get("input_tokens", 0),
@@ -81,6 +82,15 @@ class TestComputeUsage:
         # 50000 + 200000 + 50000 = 300000 / 1000000 = 30%
         assert result["context_used_pct"] == 30.0
         assert result["context_window"] == 1_000_000
+
+    def test_percentage_sonnet_200k(self, tmp_path):
+        t = _make_transcript(tmp_path, [
+            {"input_tokens": 1000, "output_tokens": 100, "cache_read_tokens": 20000, "cache_create_tokens": 3000},
+        ], model="claude-sonnet-4-6")
+        result = run_cli(["--transcript", str(t)])
+        # 1000 + 20000 + 3000 = 24000 / 200000 = 12%
+        assert result["context_used_pct"] == 12.0
+        assert result["context_window"] == 200_000
 
     def test_empty_transcript(self, tmp_path):
         transcript = tmp_path / "empty.jsonl"
