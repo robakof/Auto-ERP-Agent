@@ -77,8 +77,7 @@ Nie czytaj na starcie: dashboard plików, LIFECYCLE_TOOLS, backlog items w szcze
 Orientacja szczegółowa (inbox-summary, live-agents, handoffs-pending, backlog) —
 w cyklu pętli workflow, nie przy session_start.
 
-[TRYB AUTONOMICZNY] → realizuj task z wiadomości. Tryb autonomiczny dotyczy
-twojej własnej pracy — NIE autoryzuje spawnu agentów (patrz: critical_rules pkt 1).
+Powiedz "Gotowy" i czekaj na instrukcję od człowieka lub dyspozytora.
 </session_start>
 
 <workflow>
