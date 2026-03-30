@@ -131,25 +131,25 @@ export function activate(context: vscode.ExtensionContext): void {
         } else if (command === "listAgents") {
           vscode.commands.executeCommand("mrowisko.listAgents");
         } else if (command === "stopAgent") {
-          const terminalName = params.get("terminalName");
           const sessionId = params.get("sessionId");
-          if (terminalName) {
-            const terminal = vscode.window.terminals.find(
-              (t) => t.name === terminalName
-            );
-            if (terminal) {
-              terminal.sendText("/exit");
-              setTimeout(() => terminal.dispose(), 3000);
-            }
-          } else if (sessionId) {
-            spawner.stop(sessionId);
+          const role = params.get("role") || "unknown";
+          if (sessionId) {
+            db.insertInvocation("human", "human", role, "stop", "stop", sessionId);
+            log.info("Stop invocation created", { sessionId });
+          }
+        } else if (command === "killAgent") {
+          const sessionId = params.get("sessionId");
+          const role = params.get("role") || "unknown";
+          if (sessionId) {
+            db.insertInvocation("human", "human", role, "kill", "kill", sessionId);
+            log.info("Kill invocation created", { sessionId });
           }
         } else if (command === "resumeAgent") {
-          const terminalName = params.get("terminalName");
-          const claudeUuid = params.get("claudeUuid") || "";
-          const spawnToken = params.get("spawnToken") || crypto.randomUUID();
-          if (terminalName) {
-            spawner.resume(terminalName, claudeUuid, spawnToken);
+          const sessionId = params.get("sessionId");
+          const role = params.get("role") || "unknown";
+          if (sessionId) {
+            db.insertInvocation("human", "human", role, "resume", "resume", sessionId);
+            log.info("Resume invocation created", { sessionId });
           }
         }
       },
