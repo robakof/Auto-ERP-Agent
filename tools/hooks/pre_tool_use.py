@@ -40,12 +40,6 @@ REPAIR_MSG_PIPE = "Pipe z curl/wget zablokowany (execution risk). Użyj -o file.
 REPAIR_MSG_MV = "mv/move: target lub source musi być w tmp/ lub documents/human/tmp/"
 REPAIR_MSG_MEMORY = "Użyj agent_bus_cli.py suggest zamiast .claude/memory/. Reguła: CLAUDE.md sekcja Refleksja."
 
-# Bezpiecznik #219: spawn/stop/resume wymagają -request (approval gate)
-LIFECYCLE_GATE = {
-    "spawn": "Użyj spawn-request zamiast spawn. Bezpiecznik: backlog #219.",
-    "resume": "Użyj resume-request zamiast resume. Bezpiecznik: backlog #219.",
-}
-
 SAFE_PREFIXES = [
     "py", "python", "python3",
     "git",
@@ -220,17 +214,6 @@ def validate_segment(segment: str) -> Optional[str]:
     return None
 
 
-def _check_lifecycle_gate(cmd: str) -> Optional[str]:
-    """Block direct spawn/stop/resume — require -request variant (#219)."""
-    m = re.search(r'agent_bus_cli\.py\s+(spawn|resume)\b', cmd)
-    if not m:
-        return None
-    action = m.group(1)
-    # Allow if followed by -request (spawn-request, stop-request, resume-request)
-    after = cmd[m.end():]
-    if after.startswith("-request"):
-        return None
-    return LIFECYCLE_GATE.get(action)
 
 
 def _check_poke() -> Optional[str]:
@@ -306,12 +289,6 @@ def main() -> None:
                 }
             }))
             return
-
-    # Bezpiecznik #219: block direct spawn/stop/resume
-    lifecycle_deny = _check_lifecycle_gate(normalized)
-    if lifecycle_deny:
-        deny_response(lifecycle_deny)
-        return
 
     cmd_lower = normalized.lower()
 

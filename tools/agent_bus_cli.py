@@ -25,6 +25,16 @@ from tools.lib.output import print_json
 DB_PATH = "mrowisko.db"
 SESSION_DATA_FILE = Path("tmp/session_data.json")
 SESSION_INIT_CONFIG = Path("config/session_init_config.json")
+SPAWN_POLICY_FILE = Path(__file__).parent.parent / "config" / "spawn_policy.json"
+
+
+def _get_spawn_policy(action: str) -> str:
+    """Read spawn policy for action. Returns 'auto' or 'approval'. Default: approval (fail-safe)."""
+    try:
+        config = json.loads(SPAWN_POLICY_FILE.read_text(encoding="utf-8"))
+        return config.get(action, "approval")
+    except Exception:
+        return "approval"
 
 
 def _get_all_roles() -> list[str]:
@@ -542,13 +552,11 @@ def _check_spawn_duplicate(conn, role: str, window_seconds: int = 30) -> str | N
 
 
 def cmd_spawn(args: argparse.Namespace, bus: AgentBus) -> dict:
-    """Spawn another agent via VS Code URI handler + record invocation."""
+    """Spawn another agent — routes via spawn_policy.json (auto or approval)."""
     import subprocess
     from pathlib import Path
 
     sender = args.sender or get_session_role()
-    project_root = Path(__file__).parent.parent
-    vscode_uri = project_root / "tools" / "vscode_uri.py"
 
     # Duplicate guard — warn if same role spawned recently
     if not getattr(args, "force", False):
@@ -556,17 +564,40 @@ def cmd_spawn(args: argparse.Namespace, bus: AgentBus) -> dict:
         if warning:
             return {"ok": False, "warning": warning}
 
-    # Record invocation in DB
+    # Policy routing
+    policy = _get_spawn_policy("spawn")
+    if policy == "approval":
+        conn = bus._conn
+        conn.execute(
+            """INSERT INTO invocations (invoker_type, invoker_id, target_role, task, status, action)
+               VALUES ('agent', ?, ?, ?, 'pending', 'spawn')""",
+            (sender, args.role, args.task),
+        )
+        conn.commit()
+        inv_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        return {
+            "ok": True,
+            "invocation_id": inv_id,
+            "status": "pending",
+            "policy": "approval",
+            "target_role": args.role,
+            "task": args.task,
+            "message": "Spawn request created. Awaiting human approval in VS Code.",
+        }
+
+    # policy == "auto" — execute directly
+    project_root = Path(__file__).parent.parent
+    vscode_uri = project_root / "tools" / "vscode_uri.py"
+
     conn = bus._conn
     conn.execute(
-        """INSERT INTO invocations (invoker_type, invoker_id, target_role, task, status)
-           VALUES ('agent', ?, ?, ?, 'approved')""",
+        """INSERT INTO invocations (invoker_type, invoker_id, target_role, task, status, action)
+           VALUES ('agent', ?, ?, ?, 'approved', 'spawn')""",
         (sender, args.role, args.task),
     )
     conn.commit()
     inv_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
 
-    # Call vscode_uri.py to trigger spawn
     cmd = [sys.executable, str(vscode_uri), "--command", "spawnAgent", "--role", args.role, "--task", args.task]
     if args.permission_mode:
         cmd.extend(["--permission-mode", args.permission_mode])
@@ -580,8 +611,6 @@ def cmd_spawn(args: argparse.Namespace, bus: AgentBus) -> dict:
             pass
 
     ok = uri_result.get("ok", False)
-
-    # Update invocation status
     new_status = "running" if ok else "failed"
     conn.execute(
         "UPDATE invocations SET status = ? WHERE id = ?",
@@ -592,6 +621,7 @@ def cmd_spawn(args: argparse.Namespace, bus: AgentBus) -> dict:
     return {
         "ok": ok,
         "invocation_id": inv_id,
+        "policy": "auto",
         "target_role": args.role,
         "task": args.task,
         "uri": uri_result.get("uri", ""),
@@ -651,12 +681,34 @@ def cmd_stop(args: argparse.Namespace, bus: AgentBus) -> dict:
 
 
 def cmd_resume(args: argparse.Namespace, bus: AgentBus) -> dict:
-    """Resume a stopped agent — sends /resume or creates new terminal with claude --resume <uuid>."""
+    """Resume a stopped agent — routes via spawn_policy.json (auto or approval)."""
     terminal_name, role = _lookup_terminal_name(bus, args.session_id)
     if not terminal_name:
         return {"ok": False, "error": f"No terminal_name for session '{args.session_id}'"}
 
-    # Lookup claude_uuid for --resume flag
+    # Policy routing
+    policy = _get_spawn_policy("resume")
+    if policy == "approval":
+        sender = getattr(args, "sender", None) or get_session_role()
+        conn = bus._conn
+        conn.execute(
+            """INSERT INTO invocations (invoker_type, invoker_id, target_role, task, status, action, target_session_id)
+               VALUES ('agent', ?, ?, ?, 'pending', 'resume', ?)""",
+            (sender, role, f"Resume agent {role}", args.session_id),
+        )
+        conn.commit()
+        inv_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        return {
+            "ok": True,
+            "invocation_id": inv_id,
+            "status": "pending",
+            "policy": "approval",
+            "session_id": args.session_id,
+            "role": role,
+            "message": "Resume request created. Awaiting human approval in VS Code.",
+        }
+
+    # policy == "auto" — execute directly
     row = bus._conn.execute(
         "SELECT claude_uuid FROM live_agents WHERE session_id = ?",
         (args.session_id,),
@@ -667,6 +719,7 @@ def cmd_resume(args: argparse.Namespace, bus: AgentBus) -> dict:
 
     return {
         "ok": uri_result.get("ok", False),
+        "policy": "auto",
         "session_id": args.session_id,
         "role": role,
         "terminal_name": terminal_name,
@@ -1207,6 +1260,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # resume — resume a stopped agent
     p_resume = subparsers.add_parser("resume", help="Resume a stopped agent — sends /resume or creates new terminal")
+    p_resume.add_argument("--from", dest="sender", help="Invoker role")
     p_resume.add_argument("--session-id", dest="session_id", required=True, help="Agent session_id")
 
     # poke — send text to live agent's terminal
