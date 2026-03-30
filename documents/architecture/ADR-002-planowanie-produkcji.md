@@ -24,6 +24,9 @@ Kolumny:
 - H: Akronim surowca (kod surowca z ERP, np. SZ0324, DK0003)
 - J: Mianownik przeliczenia
 
+**Jednostka zamówień:** `ZaE_Ilosc` jest zawsze w sztukach (szt.) — bez wyjątków.
+Brak przelicznika jednostek — `ZaE_JmZ` można ignorować w gap analysis.
+
 **Semantyka mianownika:**
 ```
 zapotrzebowanie_na_surowiec = ilosc_czni / mianownik
