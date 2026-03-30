@@ -107,6 +107,13 @@ export class MrowiskoDB {
     ).run(sessionId);
   }
 
+  getClaudeUuidBySessionId(sessionId: string): string | null {
+    const row = this.db.prepare(
+      "SELECT claude_uuid FROM live_agents WHERE session_id = ?"
+    ).get(sessionId) as { claude_uuid: string } | undefined;
+    return row?.claude_uuid ?? null;
+  }
+
   getSpawnTokenBySessionId(sessionId: string): string | null {
     const row = this.db.prepare(
       "SELECT spawn_token FROM live_agents WHERE session_id = ?"

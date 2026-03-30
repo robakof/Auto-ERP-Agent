@@ -94,7 +94,12 @@ export class Approver {
       this.spawner.spawn({ role: inv.target_role, task: inv.task });
     } else if (action === "resume") {
       const terminalName = `Agent: ${inv.target_role}`;
-      this.spawner.resume(terminalName, inv.target_session_id || "", inv.session_id || "");
+      // Lookup claude_uuid from DB — Claude Code needs its UUID, not our session_id
+      const claudeUuid = inv.target_session_id
+        ? this.db.getClaudeUuidBySessionId(inv.target_session_id) || ""
+        : "";
+      const spawnToken = `resume-${Date.now()}`;
+      this.spawner.resume(terminalName, claudeUuid, spawnToken);
     } else if (action === "stop") {
       if (inv.target_session_id) {
         this.spawner.stop(inv.target_session_id);
