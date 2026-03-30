@@ -1,4 +1,4 @@
-"""Tests for read_transcript.py — session_id → claude_uuid resolution."""
+"""Tests for read_transcript.py — resolve + message type parsing."""
 
 import json
 import sqlite3
@@ -40,12 +40,14 @@ def tmp_env(tmp_path):
     conn.commit()
     conn.close()
 
-    # Create transcript file named after claude_uuid
+    # Create transcript file named after claude_uuid — mixed message types
     transcript = transcripts_dir / "uuid-123.jsonl"
-    transcript.write_text(
-        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "hello"}]}}) + "\n",
-        encoding="utf-8",
-    )
+    lines = [
+        json.dumps({"type": "user", "message": {"role": "user", "content": "do something"}}),
+        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "hello"}]}}),
+        json.dumps({"type": "user", "message": {"role": "user", "content": [{"type": "text", "text": "next task"}]}}),
+    ]
+    transcript.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     return db_path, transcripts_dir
 
@@ -75,13 +77,33 @@ def test_read_transcript_uses_claude_uuid(tmp_env, capsys):
         out = json.loads(capsys.readouterr().out)
         assert out["ok"] is True
         assert out["session_id"] == "sess-abc"
-        assert len(out["messages"]) == 1
-        assert out["messages"][0]["text"] == "hello"
+        assert len(out["messages"]) == 3
 
 
-def test_read_transcript_not_found_without_resolve(tmp_env, capsys):
+def test_read_transcript_parses_user_messages(tmp_env, capsys):
+    """Transcript uses type='user', not type='human'."""
+    db_path, transcripts_dir = tmp_env
+    with patch.object(rt, "DB_PATH", db_path), patch.object(rt, "TRANSCRIPTS_DIR", transcripts_dir):
+        rt.read_transcript("sess-abc", lines=10)
+        out = json.loads(capsys.readouterr().out)
+        human_msgs = [m for m in out["messages"] if m["role"] == "human"]
+        assert len(human_msgs) == 2
+        assert human_msgs[0]["text"] == "do something"
+        assert human_msgs[1]["text"] == "next task"
+
+
+def test_read_transcript_parses_assistant_messages(tmp_env, capsys):
+    db_path, transcripts_dir = tmp_env
+    with patch.object(rt, "DB_PATH", db_path), patch.object(rt, "TRANSCRIPTS_DIR", transcripts_dir):
+        rt.read_transcript("sess-abc", lines=10)
+        out = json.loads(capsys.readouterr().out)
+        agent_msgs = [m for m in out["messages"] if m["role"] == "agent"]
+        assert len(agent_msgs) == 1
+        assert agent_msgs[0]["text"] == "hello"
+
+
+def test_read_transcript_not_found_without_resolve(tmp_env):
     """Without resolve, session_id file doesn't exist."""
     _, transcripts_dir = tmp_env
-    # sess-abc.jsonl doesn't exist, only uuid-123.jsonl
     assert not (transcripts_dir / "sess-abc.jsonl").exists()
     assert (transcripts_dir / "uuid-123.jsonl").exists()

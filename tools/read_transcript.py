@@ -59,7 +59,7 @@ def read_transcript(session_id: str, lines: int = 20):
             for block in d.get("message", {}).get("content", []):
                 if block.get("type") == "text":
                     messages.append({"role": "agent", "text": block["text"][:500]})
-        elif t == "human":
+        elif t == "user":
             msg = d.get("message", {}).get("content", "")
             if isinstance(msg, str) and msg.strip():
                 messages.append({"role": "human", "text": msg[:300]})
@@ -97,7 +97,7 @@ def main():
                 for block in d.get("message", {}).get("content", []):
                     if block.get("type") == "text":
                         print(f"AGENT: {block['text'][:500]}")
-            elif t == "human":
+            elif t == "user":
                 msg = d.get("message", {}).get("content", "")
                 if isinstance(msg, str) and msg.strip():
                     print(f"HUMAN: {msg[:300]}")
