@@ -8,7 +8,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from tools.lib.pp_bom import load_bom, BomEntry, _is_valid_number
+from tools.lib.pp_bom import load_bom, load_efficiency, BomEntry, EfficiencyEntry, _is_valid_number
 
 _REAL_XLSM = Path(__file__).parent.parent / "documents/human/ar/dokumenty/Wycena 2026 Otorowo PQ.xlsm"
 
@@ -134,3 +134,89 @@ def test_load_bom_integration():
     assert isinstance(entry, BomEntry)
     assert entry.czni_kod.startswith("CZNI")
     assert entry.mianownik > 0
+
+
+# ── Testy load_efficiency z mockiem ──────────────────────────────────────────
+
+def _row_eff(czni, grupa, mianownik):
+    """Buduje tuple wiersza dla load_efficiency: 10 pól, B=czni, F=grupa, J=mianownik."""
+    r = [None] * 10
+    r[1] = czni
+    r[5] = grupa
+    r[9] = mianownik
+    return tuple(r)
+
+
+def _patched_load_eff(rows, tmp_path):
+    dummy = tmp_path / "dummy.xlsm"
+    dummy.write_bytes(b"dummy")
+    wb = _make_wb_mock(rows)
+    with patch("tools.lib.pp_bom.openpyxl.load_workbook", return_value=wb):
+        return load_efficiency(dummy)
+
+
+def test_load_efficiency_podstawowy(tmp_path):
+    rows = [
+        _row_eff("CZNI001", "Robocizna", 30),
+    ]
+    eff = _patched_load_eff(rows, tmp_path)
+    assert "CZNI001" in eff
+    assert eff["CZNI001"].units_per_hour == 30.0
+
+
+def test_load_efficiency_pomija_inne_grupy(tmp_path):
+    rows = [
+        _row_eff("CZNI001", "Podstawowa", 1),
+        _row_eff("CZNI001", "Robocizna", 30),
+        _row_eff("CZNI002", "Koszt robocizny", 10),
+    ]
+    eff = _patched_load_eff(rows, tmp_path)
+    assert "CZNI001" in eff
+    assert "CZNI002" not in eff
+
+
+def test_load_efficiency_pomija_brak_czni(tmp_path):
+    rows = [
+        _row_eff(None, "Robocizna", 30),
+    ]
+    eff = _patched_load_eff(rows, tmp_path)
+    assert len(eff) == 0
+
+
+def test_load_efficiency_warn_zly_mianownik(tmp_path):
+    rows = [
+        _row_eff("CZNI001", "Robocizna", "#VALUE!"),
+        _row_eff("CZNI002", "Robocizna", 25),
+    ]
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        eff = _patched_load_eff(rows, tmp_path)
+    assert "CZNI001" not in eff
+    assert "CZNI002" in eff
+    assert any("units_per_hour" in str(x.message) for x in w)
+
+
+def test_load_efficiency_file_not_found(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        load_efficiency(tmp_path / "nieistniejacy.xlsm")
+
+
+def test_load_efficiency_dwa_wiersze_bierze_max(tmp_path):
+    """Symuluje realny plik: J=1 (stawka kosztu) + J=30 (wydajność). Max wygrywa."""
+    rows = [
+        _row_eff("CZNI001", "Robocizna", 1),
+        _row_eff("CZNI001", "Robocizna", 30),
+    ]
+    eff = _patched_load_eff(rows, tmp_path)
+    assert eff["CZNI001"].units_per_hour == 30.0
+
+
+# ── Integration test load_efficiency ─────────────────────────────────────────
+
+@pytest.mark.skipif(not _REAL_XLSM.exists(), reason="Brak pliku Wycena PQ.xlsm")
+def test_load_efficiency_integration():
+    eff = load_efficiency(_REAL_XLSM)
+    assert len(eff) > 0, "Oczekiwano wierszy Roboczogodzina Otorowo"
+    sample = next(iter(eff.values()))
+    assert isinstance(sample, EfficiencyEntry)
+    assert sample.units_per_hour > 0
