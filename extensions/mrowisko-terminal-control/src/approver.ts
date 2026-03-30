@@ -218,6 +218,20 @@ export class Approver {
         : "claude --resume";
       newTerminal.sendText(resumeCmd);
       newTerminal.show();
+      // Sync DB: update spawn_token + status for heartbeat matching
+      if (inv.target_session_id) {
+        try {
+          this.run([
+            "mark-resumed",
+            "--session-id",
+            inv.target_session_id,
+            "--spawn-token",
+            spawnToken,
+          ]);
+        } catch {
+          // Non-critical — heartbeat will eventually pick up
+        }
+      }
     }
   }
 

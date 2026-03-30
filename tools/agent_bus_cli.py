@@ -709,21 +709,40 @@ def cmd_resume(args: argparse.Namespace, bus: AgentBus) -> dict:
         }
 
     # policy == "auto" — execute directly
+    import uuid as _uuid
     row = bus._conn.execute(
         "SELECT claude_uuid FROM live_agents WHERE session_id = ?",
         (args.session_id,),
     ).fetchone()
     claude_uuid = row["claude_uuid"] if row and row["claude_uuid"] else ""
 
-    uri_result = _call_vscode("resumeAgent", terminal_name=terminal_name, claude_uuid=claude_uuid)
+    # Generate new spawnToken and pass to extension (sync DB ↔ terminal env)
+    new_spawn_token = str(_uuid.uuid4())
+    uri_result = _call_vscode(
+        "resumeAgent",
+        terminal_name=terminal_name,
+        claude_uuid=claude_uuid,
+        spawn_token=new_spawn_token,
+    )
+
+    ok = uri_result.get("ok", False)
+    if ok:
+        bus._conn.execute(
+            "UPDATE live_agents SET status = 'active', spawn_token = ?, "
+            "stopped_at = NULL, last_activity = datetime('now') "
+            "WHERE session_id = ?",
+            (new_spawn_token, args.session_id),
+        )
+        bus._conn.commit()
 
     return {
-        "ok": uri_result.get("ok", False),
+        "ok": ok,
         "policy": "auto",
         "session_id": args.session_id,
         "role": role,
         "terminal_name": terminal_name,
         "claude_uuid": claude_uuid,
+        "spawn_token": new_spawn_token,
     }
 
 
