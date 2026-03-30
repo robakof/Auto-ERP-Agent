@@ -116,29 +116,22 @@ ORDER BY tk.Twr_Kod
 # Rekurencyjny CTE budujący pełną ścieżkę grupy, np. \10_Oferty\2026\Dino.
 # Wstrzykiwany po ostatnim CTE w _sql_group() i _sql_excel().
 _SQL_GROUP_PATH_CTE = """,
-OfferingTree AS (
-    -- Wyklucz gałąź 10_Oferty — szukamy kategorii klasyfikacyjnych (rozmiar, typ)
-    SELECT TwG_GIDNumer
-    FROM CDN.TwrGrupy
-    WHERE TwG_GIDTyp = -16 AND TwG_GIDNumer = 9139
-    UNION ALL
-    SELECT g.TwG_GIDNumer
-    FROM CDN.TwrGrupy g
-    INNER JOIN OfferingTree ot
-        ON g.TwG_GrONumer = ot.TwG_GIDNumer AND g.TwG_GIDTyp = -16
-),
 GroupPath AS (
+    -- Anchor: grupa domyślna produktu (Twr_GrupaPod → TwG_Kod bridge → definicja grupy)
     SELECT
-        br.TwG_GIDNumer                              AS TwrNumer,
+        tk2.Twr_GIDNumer                             AS TwrNumer,
         grp.TwG_GIDNumer                             AS GrpNumer,
         grp.TwG_GrONumer                             AS ParentNumer,
         CAST(RTRIM(grp.TwG_Nazwa) AS NVARCHAR(500))  AS Path
-    FROM CDN.TwrGrupy br
+    FROM Produkty p
+    JOIN CDN.TwrKarty tk2
+        ON tk2.Twr_GIDNumer = p.Twr_GIDNumer AND tk2.Twr_GIDTyp = p.Twr_GIDTyp
+    JOIN CDN.TwrGrupy br
+        ON br.TwG_GIDTyp = 16 AND br.TwG_Kod = tk2.Twr_GrupaPod
     JOIN CDN.TwrGrupy grp
         ON grp.TwG_GIDTyp = -16 AND grp.TwG_GIDNumer = br.TwG_GrONumer
-    WHERE br.TwG_GIDTyp = 16
-      AND grp.TwG_GIDNumer NOT IN (SELECT TwG_GIDNumer FROM OfferingTree)
     UNION ALL
+    -- Rekurencja: idź w górę hierarchii grup
     SELECT
         gp.TwrNumer,
         par.TwG_GIDNumer,
@@ -150,10 +143,9 @@ GroupPath AS (
     WHERE gp.ParentNumer IS NOT NULL AND gp.ParentNumer <> 0
 ),
 GrupaNazwa AS (
-    SELECT TwrNumer, '\\' + MIN(Path) AS [Grupa kartoteki]
+    SELECT TwrNumer, '\\' + Path AS [Grupa kartoteki]
     FROM GroupPath
     WHERE ParentNumer IS NULL OR ParentNumer = 0
-    GROUP BY TwrNumer
 )
 """
 
