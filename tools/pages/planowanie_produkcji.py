@@ -21,6 +21,7 @@ from tools.lib.pp_capacity import load_capacity
 from tools.lib.pp_gap import compute_gap
 from tools.lib.pp_export import export_plan
 from tools.lib.pp_schedule import build_schedule
+from tools.lib.pp_produced import fetch_produced
 
 _OUTPUT_DIR = _ROOT / "output/planowanie"
 
@@ -145,9 +146,17 @@ if st.button("Generuj raport", type="primary", use_container_width=True):
                 priorities = _load_priorities(prio_path)
                 st.info(f"Zamówienia z priorytetem: {len(priorities)}")
 
+            with st.spinner("Pobieranie przyjętej produkcji PW Otorowo…"):
+                try:
+                    produced = fetch_produced(int(year))
+                    st.caption(f"Wyprodukowane kody CZNI: {len(produced)}")
+                except RuntimeError as e:
+                    st.warning(f"Brak danych PW Otorowo: {e} — harmonogram bez odjęcia produkcji.")
+                    produced = {}
+
             with st.spinner("Budowanie harmonogramu (EDF + priorytet)…"):
                 schedule = build_schedule(
-                    demand, efficiency, {}, capacity, priorities, start_date
+                    demand, efficiency, produced, capacity, priorities, start_date
                 )
 
         _OUTPUT_DIR.mkdir(parents=True, exist_ok=True)

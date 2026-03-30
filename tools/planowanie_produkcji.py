@@ -22,6 +22,7 @@ from tools.lib.pp_capacity import load_capacity
 from tools.lib.pp_gap import compute_gap
 from tools.lib.pp_export import export_plan
 from tools.lib.pp_schedule import build_schedule
+from tools.lib.pp_produced import fetch_produced
 from tools.lib.excel_writer import ExcelWriter
 
 _PROJECT_ROOT = Path(__file__).parent.parent
@@ -140,8 +141,16 @@ def main() -> None:
             priorities = _load_priorities(Path(args.priority_file))
             print(f"  Zamówienia z priorytetem: {len(priorities)}")
 
+        print("Pobieranie przyjętej produkcji PW Otorowo...")
+        try:
+            produced = fetch_produced(args.year)
+            print(f"  Wyprodukowane kody CZNI: {len(produced)}")
+        except RuntimeError as e:
+            print(f"  [WARN] Brak danych PW: {e} — harmonogram bez odjęcia produkcji.")
+            produced = {}
+
         print("Budowanie harmonogramu (EDF + priorytet)...")
-        schedule = build_schedule(demand, efficiency, {}, capacity, priorities, start_date)
+        schedule = build_schedule(demand, efficiency, produced, capacity, priorities, start_date)
         print(f"  Sloty harmonogramu: {len(schedule)}")
 
     export_plan(demand, supply, gaps, supply_rows, output_path,
