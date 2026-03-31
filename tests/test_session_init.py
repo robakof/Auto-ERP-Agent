@@ -347,3 +347,49 @@ class TestResumeDetection:
         assert result["ok"] is True
         assert result["resumed"] is False
         assert result["session_id"] != "old1"  # new session_id
+
+
+# --- Boundary tests: session_init → session_data.json → hook (F3) ---
+
+class TestSessionDataContract:
+    """Boundary tests for session_init → session_data.json contract (msg #632)."""
+
+    def run_session_init(self, tmp_path, role):
+        cmd = [
+            sys.executable, str(PROJECT_ROOT / "tools" / "session_init.py"),
+            "--role", role,
+            "--db", str(tmp_path / "test.db"),
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", cwd=str(PROJECT_ROOT))
+        return json.loads(result.stdout)
+
+    def test_session_data_json_created(self, tmp_path):
+        """session_init creates tmp/session_data.json."""
+        self.run_session_init(tmp_path, "architect")
+        sd_path = PROJECT_ROOT / "tmp" / "session_data.json"
+        assert sd_path.exists()
+
+    def test_session_data_contains_session_id(self, tmp_path):
+        """session_data.json has matching session_id."""
+        result = self.run_session_init(tmp_path, "architect")
+        sd_path = PROJECT_ROOT / "tmp" / "session_data.json"
+        sd = json.loads(sd_path.read_text(encoding="utf-8"))
+        assert sd["session_id"] == result["session_id"]
+        assert len(sd["session_id"]) == 12
+
+    def test_session_data_contains_role(self, tmp_path):
+        """session_data.json has matching role."""
+        self.run_session_init(tmp_path, "architect")
+        sd = json.loads((PROJECT_ROOT / "tmp" / "session_data.json").read_text(encoding="utf-8"))
+        assert sd["role"] == "architect"
+
+    def test_session_data_updated_on_new_session(self, tmp_path):
+        """Stale session_data.json is overwritten by new session_init."""
+        sd_path = PROJECT_ROOT / "tmp" / "session_data.json"
+        sd_path.write_text('{"session_id": "stale_old_id", "role": "old"}', encoding="utf-8")
+
+        result = self.run_session_init(tmp_path, "developer")
+        sd = json.loads(sd_path.read_text(encoding="utf-8"))
+        assert sd["session_id"] == result["session_id"]
+        assert sd["session_id"] != "stale_old_id"
+        assert sd["role"] == "developer"
