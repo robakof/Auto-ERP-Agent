@@ -216,9 +216,9 @@ def validate_segment(segment: str) -> Optional[str]:
 
 
 
-# --- Workflow awareness (Faza 3 — soft mode) ---
+# --- Workflow awareness (Faza 3 — nudge mode) ---
 
-# Tools exempt from workflow enforcement — always allowed
+# Tools exempt from workflow enforcement — never checked
 EXEMPT_TOOLS = frozenset([
     "Read", "Glob", "Grep",           # read-only
     "Agent", "AskUserQuestion",        # delegation / user interaction
@@ -226,20 +226,28 @@ EXEMPT_TOOLS = frozenset([
 
 # Bash commands exempt from workflow enforcement
 EXEMPT_BASH_PREFIXES = (
-    "py tools/agent_bus_cli.py",       # communication
+    "py tools/agent_bus_cli.py",       # communication + workflow-start
     "py tools/context_usage.py",       # monitoring
     "py tools/session_init.py",        # session setup
-    "py tools/git_commit.py",          # git ops
-    "git ",                            # git ops
+    "py tools/render.py",             # view rendering
+    "py tools/conversation_search.py", # history search
+    "git status", "git log", "git diff", "git branch",  # git read-only
     "which ", "where ",                # discovery
 )
 
-def _check_workflow_awareness(tool_name: str, tool_input: dict, claude_uuid: str) -> bool:
-    """Soft mode: warn if agent works outside workflow. Returns True if deny was issued.
+# Workflow nudge config
+WF_NUDGE_EVERY = 5     # warn every Nth non-exempt tool call
+WF_HARD_BLOCK_AFTER = 10  # hard block after N warnings (= N * WF_NUDGE_EVERY calls)
 
-    Uses claude_uuid → live_agents lookup (multi-agent safe, same pattern as heartbeat).
+def _check_workflow_awareness(tool_name: str, tool_input: dict, claude_uuid: str) -> bool:
+    """Nudge mode: periodic deny when agent works outside workflow.
+
+    Every WF_NUDGE_EVERY non-exempt tool calls → deny with counter.
+    After WF_HARD_BLOCK_AFTER warnings → hard block (dispatcher must unblock).
+    Agent should retry after seeing nudge — next call goes through.
+    Returns True if deny was issued (main must stop).
     """
-    # Exempt tools — no check needed
+    # Exempt tools — never checked
     if tool_name in EXEMPT_TOOLS:
         return False
     if tool_name == "Bash":
@@ -274,12 +282,6 @@ def _check_workflow_awareness(tool_name: str, tool_input: dict, claude_uuid: str
             if sess:
                 session_id = sess[0]
                 role = sess[1]
-            if session_id and not role:
-                sd_file = Path(__file__).parent.parent.parent / "tmp" / "session_data.json"
-                if sd_file.exists():
-                    sd = json.loads(sd_file.read_text(encoding="utf-8"))
-                    if sd.get("session_id") == session_id:
-                        role = sd.get("role")
 
         if not session_id:
             conn.close()
@@ -291,33 +293,53 @@ def _check_workflow_awareness(tool_name: str, tool_input: dict, claude_uuid: str
             "WHERE session_id=? AND status='running' ORDER BY started_at DESC LIMIT 1",
             (session_id,),
         ).fetchone()
-        if not row:
-            # Track untracked tool call (sentinel execution_id=0)
-            conn.execute(
-                "INSERT OR IGNORE INTO workflow_execution (id, workflow_id, role, session_id, status) "
-                "VALUES (0, 'untracked', 'system', '', 'running')"
-            )
-            conn.execute(
-                "INSERT INTO step_log (execution_id, step_id, status, output_summary) "
-                "VALUES (0, ?, 'SKIPPED', ?)",
-                (f"untracked:tool:{tool_name}", f"session={session_id} role={role}"),
-            )
-            conn.commit()
+        if row:
             conn.close()
+            return False  # has workflow — all good
 
-            # Visible warning via deny (once per session — use flag file)
-            flag = Path(__file__).parent.parent.parent / "tmp" / f"wf_warned_{session_id}.flag"
-            if not flag.exists():
-                flag.write_text("1", encoding="utf-8")
-                deny_response(
-                    f"[workflow-warning] Brak aktywnego workflow (session={session_id}). "
-                    f"Wywołaj: py tools/agent_bus_cli.py workflow-start --workflow-id <ID> --role <rola>. "
-                    f"Ponów komendę po workflow-start."
-                )
-                return True  # deny issued — main() must stop
-            return False
+        # No workflow — track + nudge
+        conn.execute(
+            "INSERT OR IGNORE INTO workflow_execution (id, workflow_id, role, session_id, status) "
+            "VALUES (0, 'untracked', 'system', '', 'running')"
+        )
+        conn.execute(
+            "INSERT INTO step_log (execution_id, step_id, status, output_summary) "
+            "VALUES (0, ?, 'SKIPPED', ?)",
+            (f"untracked:tool:{tool_name}", f"session={session_id} role={role}"),
+        )
+        conn.commit()
+
+        # Count untracked calls for THIS session
+        count = conn.execute(
+            "SELECT COUNT(*) FROM step_log WHERE execution_id=0 "
+            "AND output_summary LIKE ?",
+            (f"session={session_id}%",),
+        ).fetchone()[0]
         conn.close()
-        return False
+
+        warning_number = count // WF_NUDGE_EVERY
+        is_nudge = count % WF_NUDGE_EVERY == 0 and count > 0
+
+        if warning_number >= WF_HARD_BLOCK_AFTER:
+            deny_response(
+                f"[workflow-BLOCK #{warning_number}] Agent {role or '?'} zablokowany — "
+                f"{count} tool calls bez workflow. "
+                f"Wymagana inspekcja dispatchera. "
+                f"Dispatcher: py tools/agent_bus_cli.py workflow-resume lub workflow-start."
+            )
+            return True
+
+        if is_nudge:
+            deny_response(
+                f"[workflow-warning #{warning_number}/{WF_HARD_BLOCK_AFTER}] "
+                f"Pracujesz bez workflow ({count} calls). "
+                f"Wejdź w workflow: py tools/agent_bus_cli.py workflow-start --workflow-id <ID> --role {role or '<rola>'}. "
+                f"PONÓW komendę — to tylko przypomnienie."
+            )
+            return True
+
+        return False  # not a nudge call — allow silently
+
     except Exception as e:
         from pathlib import Path as _P
         try:
