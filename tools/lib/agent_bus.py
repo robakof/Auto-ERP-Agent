@@ -352,13 +352,6 @@ _MIGRATE_SQL = [
     LEFT JOIN live_agents la
         ON la.role = m.recipient AND la.status IN ('starting', 'active')
     WHERE m.type = 'handoff' AND m.status = 'unread' AND la.id IS NULL""",
-    # uuid_bridge: atomic mapping claude_uuid ↔ session_id (replaces shared pending file)
-    """CREATE TABLE IF NOT EXISTS uuid_bridge (
-        id          INTEGER PRIMARY KEY AUTOINCREMENT,
-        claude_uuid TEXT NOT NULL,
-        session_id  TEXT,
-        created_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
-    )""",
     # Identity Redesign: handled in _run_migrations() as conditional migration
 ]
 
@@ -696,6 +689,26 @@ class AgentBus:
         result = self._messages.mark_all_read(role)
         self._auto_commit()
         return result
+
+    # --- Session identity ---
+
+    def resolve_session_id(self, spawn_token: str = "", claude_uuid: str = "") -> str | None:
+        """Resolve mrowisko session_id from spawn_token or claude_uuid via live_agents."""
+        if spawn_token:
+            row = self._conn.execute(
+                "SELECT session_id FROM live_agents WHERE spawn_token = ?",
+                (spawn_token,),
+            ).fetchone()
+            if row:
+                return row[0] if isinstance(row, tuple) else row["session_id"]
+        if claude_uuid:
+            row = self._conn.execute(
+                "SELECT session_id FROM live_agents WHERE claude_uuid = ?",
+                (claude_uuid,),
+            ).fetchone()
+            if row:
+                return row[0] if isinstance(row, tuple) else row["session_id"]
+        return None
 
     # --- Sessions ---
 
