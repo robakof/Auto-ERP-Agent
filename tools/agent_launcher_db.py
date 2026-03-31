@@ -58,6 +58,20 @@ def cmd_mark_stopped(args):
     print(json.dumps({"ok": True}))
 
 
+def cmd_mark_resumed(args):
+    """Reactivate a stopped agent with new spawn_token (called by extension after resume)."""
+    conn = _connect()
+    conn.execute(
+        "UPDATE live_agents SET status = 'active', spawn_token = ?, "
+        "stopped_at = NULL, last_activity = datetime('now') "
+        "WHERE session_id = ?",
+        (args.spawn_token, args.session_id),
+    )
+    conn.commit()
+    conn.close()
+    print(json.dumps({"ok": True}))
+
+
 def cmd_cleanup(args):
     conn = _connect()
     cur = conn.execute(
@@ -131,6 +145,10 @@ def main():
     p_stop = sub.add_parser("mark-stopped")
     p_stop.add_argument("--session-id", required=True)
 
+    p_resumed = sub.add_parser("mark-resumed")
+    p_resumed.add_argument("--session-id", required=True)
+    p_resumed.add_argument("--spawn-token", required=True)
+
     sub.add_parser("cleanup")
 
     sub.add_parser("pending-invocations")
@@ -153,6 +171,7 @@ def main():
         "insert": cmd_insert,
         "list-active": cmd_list_active,
         "mark-stopped": cmd_mark_stopped,
+        "mark-resumed": cmd_mark_resumed,
         "cleanup": cmd_cleanup,
         "pending-invocations": cmd_pending_invocations,
         "approve-invocation": cmd_approve_invocation,

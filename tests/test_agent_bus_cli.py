@@ -987,6 +987,101 @@ class TestDashboard:
         assert len(data["alerts"]) >= 1
 
 
+class TestSpawnPolicy:
+    """Tests for spawn_policy.json routing in cmd_spawn / cmd_resume."""
+
+    @pytest.fixture
+    def bus(self, db):
+        sys.path.insert(0, str(Path(__file__).parent.parent / "tools" / "lib"))
+        from agent_bus import AgentBus
+        return AgentBus(db)
+
+    def test_get_spawn_policy_reads_config(self, tmp_path):
+        sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
+        import agent_bus_cli
+        config = tmp_path / "spawn_policy.json"
+        config.write_text('{"spawn": "auto", "stop": "auto", "resume": "approval", "kill": "approval"}')
+        original = agent_bus_cli.SPAWN_POLICY_FILE
+        agent_bus_cli.SPAWN_POLICY_FILE = config
+        try:
+            assert agent_bus_cli._get_spawn_policy("spawn") == "auto"
+            assert agent_bus_cli._get_spawn_policy("resume") == "approval"
+            assert agent_bus_cli._get_spawn_policy("kill") == "approval"
+            assert agent_bus_cli._get_spawn_policy("unknown") == "approval"  # default
+        finally:
+            agent_bus_cli.SPAWN_POLICY_FILE = original
+
+    def test_get_spawn_policy_missing_file_returns_approval(self):
+        sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
+        import agent_bus_cli
+        original = agent_bus_cli.SPAWN_POLICY_FILE
+        agent_bus_cli.SPAWN_POLICY_FILE = Path("/nonexistent/spawn_policy.json")
+        try:
+            assert agent_bus_cli._get_spawn_policy("spawn") == "approval"
+        finally:
+            agent_bus_cli.SPAWN_POLICY_FILE = original
+
+    def test_spawn_approval_creates_pending_invocation(self, bus):
+        """spawn with policy=approval creates pending invocation."""
+        sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
+        import agent_bus_cli
+        from unittest.mock import patch
+        import argparse
+        args = argparse.Namespace(
+            sender="dispatcher", role="developer", task="test task",
+            force=False, permission_mode=None,
+        )
+        with patch.object(agent_bus_cli, "_get_spawn_policy", return_value="approval"):
+            result = agent_bus_cli.cmd_spawn(args, bus)
+        assert result["ok"] is True
+        assert result["status"] == "pending"
+        assert result["policy"] == "approval"
+        row = bus._conn.execute(
+            "SELECT status, action FROM invocations WHERE id = ?",
+            (result["invocation_id"],),
+        ).fetchone()
+        assert row["status"] == "pending"
+        assert row["action"] == "spawn"
+
+    def test_resume_approval_creates_pending_invocation(self, bus):
+        """resume with policy=approval creates pending invocation."""
+        sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
+        import agent_bus_cli
+        from unittest.mock import patch
+        import argparse
+        # Seed a live agent
+        bus._conn.execute(
+            """INSERT INTO live_agents (session_id, role, terminal_name, status, created_at)
+               VALUES ('sess-resume', 'analyst', 'Agent: analyst', 'stopped', datetime('now'))"""
+        )
+        bus._conn.commit()
+        args = argparse.Namespace(sender="dispatcher", session_id="sess-resume")
+        with patch.object(agent_bus_cli, "_get_spawn_policy", return_value="approval"):
+            result = agent_bus_cli.cmd_resume(args, bus)
+        assert result["ok"] is True
+        assert result["status"] == "pending"
+        assert result["policy"] == "approval"
+
+    def test_spawn_auto_executes_directly(self, bus):
+        """spawn with policy=auto calls vscode_uri (mocked)."""
+        sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
+        import agent_bus_cli
+        from unittest.mock import patch, MagicMock
+        import argparse
+        args = argparse.Namespace(
+            sender="dispatcher", role="developer", task="test task",
+            force=False, permission_mode=None,
+        )
+        mock_run = MagicMock(return_value=MagicMock(
+            stdout='{"ok": true, "uri": "vscode://test"}', returncode=0,
+        ))
+        with patch.object(agent_bus_cli, "_get_spawn_policy", return_value="auto"), \
+             patch("subprocess.run", mock_run):
+            result = agent_bus_cli.cmd_spawn(args, bus)
+        assert result["policy"] == "auto"
+        assert result["ok"] is True
+
+
 class TestCliStopRequest:
     """Tests for stop-request command (#219 bezpiecznik)."""
 

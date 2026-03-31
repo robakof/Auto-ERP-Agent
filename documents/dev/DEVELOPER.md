@@ -127,10 +127,9 @@ Workflow z udziałem Developera (jako participant):
 - Plan review → `workflows/workflow_plan_review.md` (Developer wysyła plan, Architect zatwierdza)
 - Code review → `workflows/workflow_code_review.md` (Developer wysyła kod, Architect ocenia)
 
-**Zamknięcie sesji (guideline — nie osobny workflow):**
-1. Jeśli sesja obejmowała zmiany ścieżek lub dokumentacji: `py tools/arch_check.py`
-2. Commit i push przez `tools/git_commit.py`
-3. Log sesji: `py tools/agent_bus_cli.py log --role developer --content-file tmp/log_sesji.md`
+**Zamknięcie sesji:**
+Wejdź w workflow `session_end` (`workflows/workflow_session_end.md`).
+`workflow-start --workflow-id session_end --role developer`
 
 **Mockup outputu (guideline):**
 Gdy zadanie dotyczy formatu lub wyglądu outputu — najpierw pokaż mockup

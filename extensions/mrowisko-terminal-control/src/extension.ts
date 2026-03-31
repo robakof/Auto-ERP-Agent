@@ -21,7 +21,7 @@ export function activate(context: vscode.ExtensionContext): void {
   registry = new Registry(dbPath);
   const spawner = new Spawner(registry, terminals, layout);
   watcher = new Watcher(registry, terminals, layout);
-  approver = new Approver(dbPath, spawner, layout);
+  approver = new Approver(dbPath, spawner);
 
   watcher.activate();
   registerCommands(context, registry, spawner, terminals, layout);
@@ -168,7 +168,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   // Cleanup orphaned agents on startup
-  registry.cleanup();
+  try { registry.cleanup(); } catch {}
 }
 
 export function deactivate(): void {

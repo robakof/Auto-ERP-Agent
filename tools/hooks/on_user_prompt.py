@@ -64,17 +64,18 @@ def main():
             raw_payload=raw[:4000],
         )
 
-        # Heartbeat: update last_activity — deterministic match
+        # Heartbeat: update last_activity for active agents only.
+        # Revival from stopped is handled by pre_tool_use (actual tool usage).
         if spawn_token:
             bus._conn.execute(
                 """UPDATE live_agents SET last_activity = datetime('now')
-                   WHERE spawn_token = ? AND status != 'stopped'""",
+                   WHERE spawn_token = ? AND status IN ('starting', 'active')""",
                 (spawn_token,),
             )
         elif claude_uuid:
             bus._conn.execute(
                 """UPDATE live_agents SET last_activity = datetime('now')
-                   WHERE claude_uuid = ? AND status != 'stopped'""",
+                   WHERE claude_uuid = ? AND status IN ('starting', 'active')""",
                 (claude_uuid,),
             )
 

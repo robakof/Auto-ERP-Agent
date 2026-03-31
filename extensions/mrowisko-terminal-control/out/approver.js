@@ -173,36 +173,49 @@ class Approver {
             vscode.window.showWarningMessage(`Resume ${inv.target_role}: brak terminal_name w DB.`);
             return;
         }
+        // Dispose stale terminal if it exists (stop may not have cleaned up)
         const existing = vscode.window.terminals.find((t) => t.name === terminalName);
         if (existing) {
-            existing.sendText("/resume");
-            vscode.window.showInformationMessage(`Resume wysłany do: ${terminalName}`);
+            existing.dispose();
         }
-        else {
-            // Terminal gone — create new and start claude --resume <uuid>
-            const roleMatch = terminalName.match(/^Agent:\s*(.+)$/);
-            const resumeRole = roleMatch ? roleMatch[1] : "";
-            const spawnToken = crypto.randomUUID();
-            const locationSetting = vscode.workspace
-                .getConfiguration("mrowisko")
-                .get("terminalLocation", "editor");
-            const location = locationSetting === "editor" && resumeRole
-                ? { viewColumn: this.layout.getViewColumn(resumeRole) }
-                : vscode.TerminalLocation.Panel;
-            const newTerminal = vscode.window.createTerminal({
-                name: terminalName,
-                location,
-                env: { MROWISKO_SPAWN_TOKEN: spawnToken },
-            });
-            if (resumeRole) {
-                this.layout.addTerminal(resumeRole, newTerminal);
+        // Always create new terminal with claude --resume
+        const roleMatch = terminalName.match(/^Agent:\s*(.+)$/);
+        const resumeRole = roleMatch ? roleMatch[1] : "";
+        const spawnToken = crypto.randomUUID();
+        const locationSetting = vscode.workspace
+            .getConfiguration("mrowisko")
+            .get("terminalLocation", "editor");
+        const location = locationSetting === "editor" && resumeRole
+            ? { viewColumn: this.layout.getViewColumn(resumeRole) }
+            : vscode.TerminalLocation.Panel;
+        const newTerminal = vscode.window.createTerminal({
+            name: terminalName,
+            location,
+            env: { MROWISKO_SPAWN_TOKEN: spawnToken },
+        });
+        if (resumeRole) {
+            this.layout.addTerminal(resumeRole, newTerminal);
+        }
+        const claudeUuid = inv.agent_claude_uuid || "";
+        const resumeCmd = claudeUuid
+            ? `claude --resume "${claudeUuid}"`
+            : "claude --resume";
+        newTerminal.sendText(resumeCmd);
+        newTerminal.show();
+        // Sync DB: update spawn_token + status for heartbeat matching
+        if (inv.target_session_id) {
+            try {
+                this.run([
+                    "mark-resumed",
+                    "--session-id",
+                    inv.target_session_id,
+                    "--spawn-token",
+                    spawnToken,
+                ]);
             }
-            const claudeUuid = inv.agent_claude_uuid || "";
-            const resumeCmd = claudeUuid
-                ? `claude --resume "${claudeUuid}"`
-                : "claude --resume";
-            newTerminal.sendText(resumeCmd);
-            newTerminal.show();
+            catch {
+                // Non-critical — heartbeat will eventually pick up
+            }
         }
     }
     dispose() {

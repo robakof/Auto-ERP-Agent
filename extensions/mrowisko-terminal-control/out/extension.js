@@ -150,38 +150,34 @@ function activate(context) {
                 const claudeUuid = params.get("claudeUuid") || "";
                 const spawnToken = params.get("spawnToken") || crypto.randomUUID();
                 if (terminalName) {
+                    // Dispose stale terminal if it exists (stop may not have cleaned up)
                     const existing = vscode.window.terminals.find((t) => t.name === terminalName);
                     if (existing) {
-                        // Terminal exists — send /resume
-                        existing.sendText("/resume");
-                        vscode.window.showInformationMessage(`Resume wysłany do: ${terminalName}`);
+                        existing.dispose();
                     }
-                    else {
-                        // Terminal gone — create new and start claude --resume <uuid>
-                        // Extract role from terminal name "Agent: <role>"
-                        const roleMatch = terminalName.match(/^Agent:\s*(.+)$/);
-                        const resumeRole = roleMatch ? roleMatch[1] : "";
-                        const locationSetting = vscode.workspace
-                            .getConfiguration("mrowisko")
-                            .get("terminalLocation", "editor");
-                        const location = locationSetting === "editor" && resumeRole
-                            ? { viewColumn: layout.getViewColumn(resumeRole) }
-                            : vscode.TerminalLocation.Panel;
-                        const newTerminal = vscode.window.createTerminal({
-                            name: terminalName,
-                            location,
-                            env: { MROWISKO_SPAWN_TOKEN: spawnToken },
-                        });
-                        if (resumeRole) {
-                            layout.addTerminal(resumeRole, newTerminal);
-                        }
-                        const resumeCmd = claudeUuid
-                            ? `claude --resume "${claudeUuid}"`
-                            : "claude --resume";
-                        newTerminal.sendText(resumeCmd);
-                        newTerminal.show();
-                        vscode.window.showInformationMessage(`Agent wznowiony w nowym terminalu: ${terminalName}`);
+                    // Always create new terminal with claude --resume
+                    const roleMatch = terminalName.match(/^Agent:\s*(.+)$/);
+                    const resumeRole = roleMatch ? roleMatch[1] : "";
+                    const locationSetting = vscode.workspace
+                        .getConfiguration("mrowisko")
+                        .get("terminalLocation", "editor");
+                    const location = locationSetting === "editor" && resumeRole
+                        ? { viewColumn: layout.getViewColumn(resumeRole) }
+                        : vscode.TerminalLocation.Panel;
+                    const newTerminal = vscode.window.createTerminal({
+                        name: terminalName,
+                        location,
+                        env: { MROWISKO_SPAWN_TOKEN: spawnToken },
+                    });
+                    if (resumeRole) {
+                        layout.addTerminal(resumeRole, newTerminal);
                     }
+                    const resumeCmd = claudeUuid
+                        ? `claude --resume "${claudeUuid}"`
+                        : "claude --resume";
+                    newTerminal.sendText(resumeCmd);
+                    newTerminal.show();
+                    vscode.window.showInformationMessage(`Agent wznowiony w nowym terminalu: ${terminalName}`);
                 }
             }
         },

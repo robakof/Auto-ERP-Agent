@@ -1,0 +1,6 @@
+{
+  "spawn": "approval",
+  "stop": "auto",
+  "resume": "auto",
+  "kill": "approval"
+}
