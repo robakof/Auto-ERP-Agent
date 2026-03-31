@@ -355,6 +355,7 @@ Research to petla: research → nowe watki → kolejny research → az wyczerpan
   - escalate: no
   - reason: "Review niekompletny. Dokoncz."
 **next_step:** apply_feedback (if PASS — brak critical issues), apply_feedback (if FAIL — critical issues do poprawy)
+<!-- W obu przypadkach revision jest wymagana: PASS = drobne uwagi, FAIL = critical issues. State machine traktuje to jako jeden next_step. -->
 
 ### Exit Gate
 

@@ -67,14 +67,14 @@ przez Decision Point.
   - skip: no
   - escalate: yes
   - reason: "Baza niedostepna lub brak sugestii. Sprawdz polaczenie z mrowisko.db."
-**next_step:** count_suggestions (if PASS), workflow_end (if FAIL — brak sugestii)
+**next_step:** count_suggestions (if PASS), END (if FAIL — brak sugestii)
 
 ---
 
 ## Step 2: Policz sugestie
 
 **step_id:** count_suggestions
-**action:** Ustaw N = liczba open suggestions. Jesli N == 0 → workflow_end.
+**action:** Ustaw N = liczba open suggestions. Jesli N == 0 → END.
 **tool:** manual
 **command:** `N = len(suggestions)`
 **verification:** N >= 1
@@ -83,7 +83,7 @@ przez Decision Point.
   - skip: no
   - escalate: no
   - reason: "N == 0 oznacza brak pracy. Zamknij workflow."
-**next_step:** group_suggestions (if PASS), workflow_end (if FAIL — N == 0)
+**next_step:** group_suggestions (if PASS), END (if FAIL — N == 0)
 
 ### Exit Gate
 
@@ -93,7 +93,7 @@ przez Decision Point.
 
 **Status:**
 - PASS if: wszystkie == true
-- BLOCKED if: count_positive == false → workflow_end (nic do zrobienia)
+- BLOCKED if: count_positive == false → END (nic do zrobienia)
 
 ---
 
