@@ -234,11 +234,10 @@ EXEMPT_BASH_PREFIXES = (
     "which ", "where ",                # discovery
 )
 
-def _check_workflow_awareness(tool_name: str, tool_input: dict) -> None:
+def _check_workflow_awareness(tool_name: str, tool_input: dict, claude_uuid: str) -> None:
     """Soft mode: warn if agent works outside workflow. Never blocks.
 
-    Note: each hook invocation is a new process, so in-memory throttling
-    doesn't work. We accept ~1ms DB query per non-exempt tool call.
+    Uses claude_uuid → live_agents lookup (multi-agent safe, same pattern as heartbeat).
     """
     # Exempt tools — no check needed
     if tool_name in EXEMPT_TOOLS:
@@ -247,21 +246,32 @@ def _check_workflow_awareness(tool_name: str, tool_input: dict) -> None:
         cmd = tool_input.get("command", "").strip()
         if any(cmd.startswith(p) for p in EXEMPT_BASH_PREFIXES):
             return
+    if not claude_uuid:
+        return
 
     from pathlib import Path
-    session_data_file = Path(__file__).parent.parent.parent / "tmp" / "session_data.json"
-    if not session_data_file.exists():
-        return
     try:
         import sqlite3
-        sd = json.loads(session_data_file.read_text(encoding="utf-8"))
-        session_id = sd.get("session_id")
-        role = sd.get("role")
-        if not session_id:
-            return
         db_path = Path(__file__).parent.parent.parent / "mrowisko.db"
         conn = sqlite3.connect(str(db_path))
         conn.execute("PRAGMA busy_timeout=1000")
+
+        # Lookup session_id + role via claude_uuid (like heartbeat)
+        agent = conn.execute(
+            "SELECT session_id, role FROM live_agents "
+            "WHERE claude_uuid=? AND status IN ('starting','active','warned')",
+            (claude_uuid,),
+        ).fetchone()
+        if not agent:
+            conn.close()
+            return  # agent not in DB — skip
+
+        session_id, role = agent
+        if not session_id:
+            conn.close()
+            return
+
+        # Check for running workflow
         row = conn.execute(
             "SELECT id, workflow_id FROM workflow_execution "
             "WHERE session_id=? AND status='running' ORDER BY started_at DESC LIMIT 1",
@@ -274,8 +284,7 @@ def _check_workflow_awareness(tool_name: str, tool_input: dict) -> None:
                 f"Użyj workflow-start przed pracą.",
                 file=sys.stderr,
             )
-            # Track untracked tool call (sentinel execution_id=0, SKIPPED status)
-            # Note: step_log CHECK constraint allows SKIPPED but not UNTRACKED
+            # Track untracked tool call (sentinel execution_id=0)
             conn.execute(
                 "INSERT OR IGNORE INTO workflow_execution (id, workflow_id, role, session_id, status) "
                 "VALUES (0, 'untracked', 'system', '', 'running')"
@@ -383,10 +392,11 @@ def main() -> None:
     # Heartbeat — fires for ALL tool types, throttled to 60s
     _heartbeat(data.get("session_id", ""))
 
-    # Workflow awareness — soft mode warning, throttled to 30s
+    # Workflow awareness — soft mode warning (claude_uuid → live_agents lookup)
     _check_workflow_awareness(
         data.get("tool_name", ""),
         data.get("tool_input", {}),
+        data.get("session_id", ""),
     )
 
     # Poke check — fires for ALL tool types (before Bash-only gate)
