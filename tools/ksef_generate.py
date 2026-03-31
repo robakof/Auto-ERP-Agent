@@ -95,7 +95,7 @@ WHERE n.TrN_GIDTyp = 2033 AND n.TrN_GIDNumer = {GID_NUMER}
 ORDER BY e.TrE_GIDLp
 """
 
-NS = "http://crd.gov.pl/wzor/2023/06/29/12648/"
+NS = "http://crd.gov.pl/wzor/2025/06/25/13775/"
 NSMAP = {None: NS}
 
 
@@ -131,8 +131,8 @@ def build_xml(rows):
     # Naglowek
     nag = E(root, "Naglowek")
     kf = E(nag, "KodFormularza", text="FA",
-           kodSystemowy="FA (2)", wersjaSchemy="1-0E")
-    E(nag, "WariantFormularza", text="2")
+           kodSystemowy="FA (3)", wersjaSchemy="1-0E")
+    E(nag, "WariantFormularza", text="3")
     E(nag, "DataWytworzeniaFa", text=datetime.now().strftime("%Y-%m-%dT%H:%M:%S") + "Z")
     E(nag, "SystemInfo", text="Comarch ERP XL")
 
@@ -155,6 +155,8 @@ def build_xml(rows):
     E(adr2, "KodKraju", text=v(r, "P2_KodKraju"))
     E(adr2, "AdresL1", text=v(r, "P2_AdresL1"))
     E(adr2, "AdresL2", text=v(r, "P2_AdresL2"))
+    E(p2, "JST", text="2")
+    E(p2, "GV", text="2")
 
     # Fa
     fa = E(root, "Fa")
