@@ -77,10 +77,10 @@ User przegląda przez `render.py workflow` → .md na żądanie.
 
 ### Exit gate
 
-- [ ] Tabele DB istnieją (migracja done)
-- [ ] Import poprawnie ładuje ≥2 workflow do DB
-- [ ] Render produkuje czytelne .md z DB
-- [ ] Testy PASS
+- [x] Tabele DB istnieją (migracja done) — `ca57b4d`
+- [x] Import poprawnie ładuje ≥2 workflow do DB — convention_creation (19 steps), suggestions_processing (17 steps)
+- [x] Render produkuje czytelne .md z DB — `render.py workflow --list` / `--workflow-id`
+- [x] Testy PASS — 27 testów w `test_workflow_import.py`
 
 ### Forward-compatibility
 

@@ -1,4 +1,4 @@
-Zrealizowane workflow dzisiaj                0
+Zrealizowane workflow dzisiaj                1
 
 | **Workflow w toku** | **Ilosc** | **Etap** |
 | ---------------------- | ------------------- | -------- |
@@ -6,9 +6,9 @@ Zrealizowane workflow dzisiaj                0
 | workflow_exploration | 1 (prompt_engineer) | - |
 | session_end | 1 (dispatcher) | 3 |
 | exploratory | 1 (architect) | 2 |
-| developer_tool | 1 (developer) | 4 |
 
 | **Obszar** | **Zadanie w toku** |
 | ---------- | --------------------------------------------- |
+| Dev | Mechaniczny enforcement workflow tracking ... |
 | Dev | Identity redesign cleanup — W1-W7 z code r... |
 | Prompt | Audyt i fix workflow gate — agenci pomijają |
