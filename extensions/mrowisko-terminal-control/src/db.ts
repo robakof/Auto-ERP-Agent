@@ -97,13 +97,13 @@ export class MrowiskoDB {
   ): void {
     this.db.prepare(
       `INSERT INTO live_agents (spawn_token, role, task, terminal_name, spawned_by, status, created_at)
-       VALUES (?, ?, ?, ?, ?, 'starting', datetime('now', 'localtime'))`
+       VALUES (?, ?, ?, ?, ?, 'starting', datetime('now'))`
     ).run(spawnToken, role, task, terminalName, spawnedBy);
   }
 
   markStopped(sessionId: string): void {
     this.db.prepare(
-      "UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now', 'localtime') WHERE session_id = ?"
+      "UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now') WHERE session_id = ?"
     ).run(sessionId);
   }
 
@@ -147,7 +147,7 @@ export class MrowiskoDB {
 
   cleanup(thresholdMinutes: number = 60): void {
     this.db.prepare(
-      `UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now', 'localtime')
+      `UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now')
        WHERE status IN ('starting', 'active')
        AND last_activity < datetime('now', '-' || ? || ' minutes')`
     ).run(thresholdMinutes);
