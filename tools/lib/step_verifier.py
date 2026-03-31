@@ -70,9 +70,10 @@ class StepVerifier:
         )
 
     def _verify_test_pass(self, test_path: str) -> VerifyResult:
+        import sys as _sys
         try:
             result = subprocess.run(
-                ["py", "-m", "pytest", test_path, "--tb=no", "-q"],
+                [_sys.executable, "-m", "pytest", test_path, "--tb=no", "-q"],
                 capture_output=True, text=True, timeout=120,
             )
             if result.returncode == 0:
@@ -117,7 +118,7 @@ class StepVerifier:
             else:
                 # Check if any message was sent in last 5 minutes
                 row = conn.execute(
-                    "SELECT id FROM messages WHERE created_at > datetime('now', '-5 minutes') "
+                    "SELECT id FROM messages WHERE created_at > datetime('now', 'localtime', '-5 minutes') "
                     "ORDER BY id DESC LIMIT 1"
                 ).fetchone()
             conn.close()

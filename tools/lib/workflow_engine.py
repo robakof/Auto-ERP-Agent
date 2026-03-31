@@ -299,11 +299,13 @@ class WorkflowEngine:
             return None
 
         handoff_time = last_log["timestamp"]
-        # Look for reply from handoff_to role (>= because same-second inserts)
+        # Look for reply from handoff_to role directed to workflow owner
+        execution = self._get_execution(execution_id)
+        owner_role = execution["role"] if execution else ""
         try:
             row = self._conn.execute(
-                "SELECT id FROM messages WHERE sender=? AND created_at >= ? LIMIT 1",
-                (state.handoff_to, handoff_time),
+                "SELECT id FROM messages WHERE sender=? AND recipient=? AND created_at >= ? LIMIT 1",
+                (state.handoff_to, owner_role, handoff_time),
             ).fetchone()
         except Exception:
             return None  # messages table may not exist in test environments
