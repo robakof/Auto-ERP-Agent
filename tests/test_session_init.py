@@ -17,29 +17,7 @@ def bus(tmp_path):
     return AgentBus(db_path=str(tmp_path / "test.db"))
 
 
-# --- AgentBus: trace ---
-
-class TestTrace:
-    def test_add_and_get_trace(self, bus):
-        session_id = "abc123"
-        bus.add_trace_event(session_id, "Bash", "git status")
-        result = bus.get_trace(session_id)
-        assert len(result) == 1
-        assert result[0]["tool_name"] == "Bash"
-        assert result[0]["summary"] == "git status"
-
-    def test_trace_filtered_by_session(self, bus):
-        bus.add_trace_event("s1", "Bash", "cmd1")
-        bus.add_trace_event("s2", "Edit", "file.py")
-        assert len(bus.get_trace("s1")) == 1
-        assert len(bus.get_trace("s2")) == 1
-
-    def test_trace_ordering(self, bus):
-        bus.add_trace_event("s1", "Read", "a")
-        bus.add_trace_event("s1", "Write", "b")
-        result = bus.get_trace("s1")
-        assert result[0]["tool_name"] == "Read"
-        assert result[1]["tool_name"] == "Write"
+# TestTrace removed — add_trace_event/get_trace never existed in AgentBus (dead tests)
 
 
 # --- AgentBus: conversation ---
@@ -85,6 +63,7 @@ class TestConversation:
 
 class TestSessionInit:
     def run_session_init(self, tmp_path, role, extra_args=None):
+        import os
         cmd = [
             sys.executable, str(PROJECT_ROOT / "tools" / "session_init.py"),
             "--role", role,
@@ -92,7 +71,9 @@ class TestSessionInit:
         ]
         if extra_args:
             cmd += extra_args
-        result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", cwd=str(PROJECT_ROOT))
+        env = os.environ.copy()
+        env.pop("MROWISKO_SPAWN_TOKEN", None)
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", cwd=str(PROJECT_ROOT), env=env)
         return json.loads(result.stdout)
 
     def test_session_init_returns_session_id(self, tmp_path):
@@ -126,6 +107,7 @@ class TestSessionInit:
         assert "ERP_SPECIALIST.md" in result["doc_path"]
 
     def test_each_call_generates_new_session_id(self, tmp_path):
+        """Each call without matching claude_uuid generates a new session_id."""
         r1 = self.run_session_init(tmp_path, "developer")
         r2 = self.run_session_init(tmp_path, "developer")
         assert r1["session_id"] != r2["session_id"]
@@ -151,12 +133,15 @@ class TestSessionInitContext:
     """Tests for configurable session_init with full context loading."""
 
     def run_session_init(self, tmp_path, role):
+        import os
         cmd = [
             sys.executable, str(PROJECT_ROOT / "tools" / "session_init.py"),
             "--role", role,
             "--db", str(tmp_path / "test.db"),
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", cwd=str(PROJECT_ROOT))
+        env = os.environ.copy()
+        env.pop("MROWISKO_SPAWN_TOKEN", None)
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", cwd=str(PROJECT_ROOT), env=env)
         return json.loads(result.stdout)
 
     def test_session_init_returns_context(self, tmp_path):
@@ -284,53 +269,63 @@ class TestSessionInitContext:
 class TestResumeDetection:
     """Tests for auto resume detection via claude_uuid."""
 
-    def run_session_init(self, tmp_path, role):
+    def run_session_init(self, tmp_path, role, claude_uuid=None):
+        import os
         cmd = [
             sys.executable, str(PROJECT_ROOT / "tools" / "session_init.py"),
             "--role", role,
             "--db", str(tmp_path / "test.db"),
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", cwd=str(PROJECT_ROOT))
+        env = os.environ.copy()
+        env.pop("MROWISKO_SPAWN_TOKEN", None)
+        if claude_uuid:
+            env["CLAUDE_SESSION_ID"] = claude_uuid
+        else:
+            env.pop("CLAUDE_SESSION_ID", None)
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", cwd=str(PROJECT_ROOT), env=env)
         return json.loads(result.stdout)
 
     def test_new_session_not_resumed(self, tmp_path):
         """First call without pending claude_uuid → new session, resumed=False."""
-        result = self.run_session_init(tmp_path, "developer")
+        result = self.run_session_init(tmp_path, "developer", claude_uuid="fresh-uuid-no-match")
         assert result["ok"] is True
         assert result["resumed"] is False
         assert len(result["session_id"]) == 12
 
     def test_resume_reuses_session_id(self, tmp_path):
         """When claude_uuid exists in DB, session_init reuses session_id."""
-        bus = AgentBus(db_path=str(tmp_path / "test.db"))
-        # Step 1: create initial session with claude_uuid
+        import sqlite3
+        db_file = str(tmp_path / "test.db")
+        bus = AgentBus(db_path=db_file)
         bus._conn.execute(
             """INSERT INTO live_agents (session_id, role, status, spawned_by, last_activity, claude_uuid)
                VALUES ('orig123', 'developer', 'stopped', 'manual', datetime('now'), 'test-uuid-abc')""",
         )
-        # Step 2: insert into uuid_bridge (simulates on_session_start)
-        bus._conn.execute("INSERT INTO uuid_bridge (claude_uuid) VALUES ('test-uuid-abc')")
         bus._conn.commit()
 
-        result = self.run_session_init(tmp_path, "developer")
+        result = self.run_session_init(tmp_path, "developer", claude_uuid="test-uuid-abc")
         assert result["ok"] is True
         assert result["resumed"] is True
         assert result["session_id"] == "orig123"  # reused, not new
 
     def test_resume_reactivates_stopped_session(self, tmp_path):
         """Resume should set status back to 'active'."""
-        bus = AgentBus(db_path=str(tmp_path / "test.db"))
+        import sqlite3
+        db_file = str(tmp_path / "test.db")
+        bus = AgentBus(db_path=db_file)
         bus._conn.execute(
             """INSERT INTO live_agents (session_id, role, status, spawned_by, last_activity, claude_uuid)
                VALUES ('stopped1', 'developer', 'stopped', 'manual', datetime('now'), 'uuid-stopped')""",
         )
-        bus._conn.execute("INSERT INTO uuid_bridge (claude_uuid) VALUES ('uuid-stopped')")
         bus._conn.commit()
 
-        self.run_session_init(tmp_path, "developer")
-        row = bus._conn.execute(
+        self.run_session_init(tmp_path, "developer", claude_uuid="uuid-stopped")
+        # Fresh connection to see subprocess changes
+        conn = sqlite3.connect(db_file)
+        row = conn.execute(
             "SELECT status FROM live_agents WHERE session_id='stopped1'"
         ).fetchone()
+        conn.close()
         assert row[0] == "active"
 
     def test_different_uuid_creates_new_session(self, tmp_path):
@@ -340,10 +335,9 @@ class TestResumeDetection:
             """INSERT INTO live_agents (session_id, role, status, spawned_by, last_activity, claude_uuid)
                VALUES ('old1', 'developer', 'stopped', 'manual', datetime('now'), 'uuid-old')""",
         )
-        bus._conn.execute("INSERT INTO uuid_bridge (claude_uuid) VALUES ('uuid-completely-new')")
         bus._conn.commit()
 
-        result = self.run_session_init(tmp_path, "developer")
+        result = self.run_session_init(tmp_path, "developer", claude_uuid="uuid-completely-new")
         assert result["ok"] is True
         assert result["resumed"] is False
         assert result["session_id"] != "old1"  # new session_id
