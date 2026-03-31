@@ -54,7 +54,7 @@ function activate(context) {
     registry = new registry_1.Registry(dbPath);
     const spawner = new spawner_1.Spawner(registry, terminals, layout);
     watcher = new watcher_1.Watcher(registry, terminals, layout);
-    approver = new approver_1.Approver(dbPath, spawner, layout);
+    approver = new approver_1.Approver(dbPath, spawner);
     watcher.activate();
     (0, commands_1.registerCommands)(context, registry, spawner, terminals, layout);
     // Poll for pending invocations (approval gate)
@@ -150,12 +150,12 @@ function activate(context) {
                 const claudeUuid = params.get("claudeUuid") || "";
                 const spawnToken = params.get("spawnToken") || crypto.randomUUID();
                 if (terminalName) {
-                    // Dispose stale terminal if it exists (stop may not have cleaned up)
+                    // Always dispose stale terminal — Claude Code has exited, shell is dead
                     const existing = vscode.window.terminals.find((t) => t.name === terminalName);
                     if (existing) {
                         existing.dispose();
                     }
-                    // Always create new terminal with claude --resume
+                    // Create fresh terminal with claude --resume
                     const roleMatch = terminalName.match(/^Agent:\s*(.+)$/);
                     const resumeRole = roleMatch ? roleMatch[1] : "";
                     const locationSetting = vscode.workspace
@@ -177,13 +177,16 @@ function activate(context) {
                         : "claude --resume";
                     newTerminal.sendText(resumeCmd);
                     newTerminal.show();
-                    vscode.window.showInformationMessage(`Agent wznowiony w nowym terminalu: ${terminalName}`);
+                    vscode.window.showInformationMessage(`Agent wznowiony: ${terminalName}`);
                 }
             }
         },
     }));
     // Cleanup orphaned agents on startup
-    registry.cleanup();
+    try {
+        registry.cleanup();
+    }
+    catch { }
 }
 function deactivate() {
     approver?.dispose();

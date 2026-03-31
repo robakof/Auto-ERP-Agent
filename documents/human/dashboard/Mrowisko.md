@@ -1,22 +1,23 @@
-30 . 03                                                                                                   **13:47**
+31 . 03                                                                                                   **07:08**
 
 **Sesje**                    1
-Workflow             5
+Workflow             6
 
 | **Sesje** | **Status** | **Kontekst** |
 | --------------- | ------------- | ------------ |
-| developer | Praca | PRIORYTET: Faza 0 przebudowy dispatchera. Przeczytaj plan: documents/human/plans/plan_dispatcher_rebuild_v1.md — sekcja F0 Quick Wins. Trzy zadania: 1) Hook spawn→spawn-request redirect, 2) git_commit.py multi-agent guard, 3) Dashboard CLI tool (jeden JSON). Wejdź w odpowiedni workflow i realizuj po kolei. Przeczytaj inbox. |
+| developer | Praca | Workflow Enforcement Faza 1: DB Schema + Import Tool. Plan: documents/human/plans/plan_workflow_enforcement.md. ADR: documents/architecture/ADR-002-workflow-enforcement.md. Szczegóły w tmp/task_dev_wf_f1.md. Przeczytaj inbox. |
 
 | Zadania | Wiadomosci |
 | :-----: | :--------: |
-| **46** | **28** |
+| **44** | **38** |
 
 | **Rola** | Nieprzeczytane |
 | --------------- | -------------: |
-| metodolog | 8 |
-| developer | 7 |
-| prompt_engineer | 5 |
-| architect | 3 |
-| dispatcher | 3 |
-| analyst | 1 |
-| erp_specialist | 1 |
+| dispatcher | 11 |
+| architect | 9 |
+| metodolog | 9 |
+| prompt_engineer | 3 |
+| analyst | 2 |
+| erp_specialist | 2 |
+| developer | 1 |
+| human | 1 |

@@ -1,0 +1,130 @@
+{
+  "name": "mrowisko-terminal-control",
+  "displayName": "Mrowisko Agent Launcher",
+  "description": "Spawn i zarzadzanie agentami Claude Code w terminalach VS Code",
+  "version": "0.3.0",
+  "publisher": "mrowisko",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "workspaceContains:mrowisko.db"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "mrowisko.spawnAgent",
+        "title": "Mrowisko: Spawn Agent"
+      },
+      {
+        "command": "mrowisko.listAgents",
+        "title": "Mrowisko: List Agents"
+      },
+      {
+        "command": "mrowisko.stopAgent",
+        "title": "Mrowisko: Stop Agent"
+      },
+      {
+        "command": "mrowisko.killAgent",
+        "title": "Mrowisko: Kill Agent (force)"
+      },
+      {
+        "command": "mrowisko.resumeAgent",
+        "title": "Mrowisko: Resume Agent"
+      },
+      {
+        "command": "mrowisko.focusAgent",
+        "title": "Mrowisko: Focus Agent Role"
+      },
+      {
+        "command": "mrowisko.rotateTab",
+        "title": "Mrowisko: Rotate Agent Tab"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "mrowisko.rotateTab",
+        "key": "ctrl+alt+]",
+        "when": "terminalFocus"
+      }
+    ],
+    "configuration": {
+      "title": "Mrowisko Agent Launcher",
+      "properties": {
+        "mrowisko.dbPath": {
+          "type": "string",
+          "default": "mrowisko.db",
+          "description": "Path to mrowisko.db (relative to workspace root or absolute)"
+        },
+        "mrowisko.defaultPermissionMode": {
+          "type": "string",
+          "enum": [
+            "default",
+            "acceptEdits",
+            "plan",
+            "bypassPermissions"
+          ],
+          "default": "default",
+          "description": "Default permission mode for spawned agents"
+        },
+        "mrowisko.trustedPairs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Trusted invoker>target pairs for auto-approve (e.g. developer>erp_specialist)"
+        },
+        "mrowisko.pollIntervalMs": {
+          "type": "number",
+          "default": 5000,
+          "description": "Interval (ms) for polling pending invocations"
+        },
+        "mrowisko.startupDelayMs": {
+          "type": "number",
+          "default": 4000,
+          "description": "Delay (ms) before sending first message to spawned Claude Code"
+        },
+        "mrowisko.autoPromptTemplate": {
+          "type": "string",
+          "default": "Rola: {role}. Task: {task}",
+          "description": "System prompt template for spawned agents ({role} and {task} are replaced)"
+        },
+        "mrowisko.terminalLocation": {
+          "type": "string",
+          "enum": [
+            "editor",
+            "panel"
+          ],
+          "default": "editor",
+          "description": "Where to open agent terminals"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:better-sqlite3 --platform=node --format=cjs",
+    "watch": "npm run build -- --watch --sourcemap",
+    "compile": "tsc -p ./",
+    "typecheck": "tsc --noEmit",
+    "pretest": "npm rebuild better-sqlite3",
+    "test": "tsc -p tsconfig.test.json && mocha out-test/**/*.test.js --timeout 5000"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.80.0",
+    "esbuild": "^0.27.0",
+    "mocha": "^11.7.5",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.8.0"
+  }
+}

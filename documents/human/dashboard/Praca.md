@@ -1,14 +1,14 @@
-Zrealizowane workflow dzisiaj                17
+Zrealizowane workflow dzisiaj                0
 
 | **Workflow w toku** | **Ilosc** | **Etap** |
 | ---------------------- | ------------------- | -------- |
 | workflow_prompt_patch | 2 | - |
-| workflow_exploration | 1 (dispatcher) | 1 |
-| session_end | 1 (architect) | 3 |
-| exploration | 1 (architect) | 1 |
+| workflow_exploration | 1 (prompt_engineer) | - |
+| session_end | 1 (dispatcher) | 3 |
+| exploratory | 1 (architect) | 2 |
+| developer_tool | 1 (developer) | 4 |
 
 | **Obszar** | **Zadanie w toku** |
 | ---------- | --------------------------------------------- |
-| Arch | ADR-004 Policy Engine — research + design |
 | Dev | Identity redesign cleanup — W1-W7 z code r... |
 | Prompt | Audyt i fix workflow gate — agenci pomijają |

@@ -200,6 +200,65 @@ CREATE TABLE IF NOT EXISTS known_gaps (
 );
 
 CREATE INDEX IF NOT EXISTS idx_known_gaps_area_status ON known_gaps(area, status);
+
+CREATE TABLE IF NOT EXISTS workflow_definitions (
+    workflow_id   TEXT NOT NULL,
+    version       TEXT NOT NULL,
+    owner_role    TEXT NOT NULL,
+    trigger_desc  TEXT,
+    status        TEXT DEFAULT 'active' CHECK (status IN ('active', 'deprecated')),
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (workflow_id, version)
+);
+
+CREATE TABLE IF NOT EXISTS workflow_steps (
+    id                INTEGER PRIMARY KEY,
+    workflow_id       TEXT NOT NULL,
+    workflow_version  TEXT NOT NULL,
+    step_id           TEXT NOT NULL,
+    phase             TEXT,
+    sort_order        INTEGER NOT NULL,
+    action            TEXT NOT NULL,
+    tool              TEXT,
+    command           TEXT,
+    verification_type  TEXT,
+    verification_value TEXT,
+    on_failure_retry   INTEGER DEFAULT 0,
+    on_failure_skip    INTEGER DEFAULT 0,
+    on_failure_escalate INTEGER DEFAULT 1,
+    on_failure_reason  TEXT,
+    next_step_pass    TEXT,
+    next_step_fail    TEXT,
+    is_handoff        INTEGER DEFAULT 0,
+    handoff_to        TEXT,
+    FOREIGN KEY (workflow_id, workflow_version)
+        REFERENCES workflow_definitions(workflow_id, version),
+    UNIQUE (workflow_id, workflow_version, step_id)
+);
+
+CREATE TABLE IF NOT EXISTS workflow_decisions (
+    id               INTEGER PRIMARY KEY,
+    workflow_id      TEXT NOT NULL,
+    workflow_version TEXT NOT NULL,
+    decision_id      TEXT NOT NULL,
+    condition        TEXT NOT NULL,
+    path_true        TEXT NOT NULL,
+    path_false       TEXT NOT NULL,
+    default_action   TEXT,
+    FOREIGN KEY (workflow_id, workflow_version)
+        REFERENCES workflow_definitions(workflow_id, version)
+);
+
+CREATE TABLE IF NOT EXISTS workflow_exit_gates (
+    id               INTEGER PRIMARY KEY,
+    workflow_id      TEXT NOT NULL,
+    workflow_version TEXT NOT NULL,
+    phase            TEXT NOT NULL,
+    item_id          TEXT NOT NULL,
+    condition        TEXT NOT NULL,
+    FOREIGN KEY (workflow_id, workflow_version)
+        REFERENCES workflow_definitions(workflow_id, version)
+);
 """
 
 _MIGRATE_SQL = [
@@ -775,3 +834,53 @@ class AgentBus:
         if result["ok"]:
             self._auto_commit()
         return result
+
+    # --- Workflow Definitions ---
+
+    def get_workflow_definitions(self, status: str = None) -> list[dict]:
+        """List all workflow definitions, optionally filtered by status."""
+        if status:
+            rows = self._conn.execute(
+                "SELECT * FROM workflow_definitions WHERE status=? ORDER BY workflow_id",
+                (status,),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                "SELECT * FROM workflow_definitions ORDER BY workflow_id",
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_workflow_detail(self, workflow_id: str, version: str = None) -> dict | None:
+        """Get full workflow detail (definition + steps + decisions + exit_gates)."""
+        if version:
+            defn = self._conn.execute(
+                "SELECT * FROM workflow_definitions WHERE workflow_id=? AND version=?",
+                (workflow_id, version),
+            ).fetchone()
+        else:
+            defn = self._conn.execute(
+                "SELECT * FROM workflow_definitions WHERE workflow_id=? ORDER BY version DESC LIMIT 1",
+                (workflow_id,),
+            ).fetchone()
+        if not defn:
+            return None
+        defn = dict(defn)
+        ver = defn["version"]
+        steps = [dict(r) for r in self._conn.execute(
+            "SELECT * FROM workflow_steps WHERE workflow_id=? AND workflow_version=? ORDER BY sort_order",
+            (workflow_id, ver),
+        ).fetchall()]
+        decisions = [dict(r) for r in self._conn.execute(
+            "SELECT * FROM workflow_decisions WHERE workflow_id=? AND workflow_version=?",
+            (workflow_id, ver),
+        ).fetchall()]
+        gates = [dict(r) for r in self._conn.execute(
+            "SELECT * FROM workflow_exit_gates WHERE workflow_id=? AND workflow_version=?",
+            (workflow_id, ver),
+        ).fetchall()]
+        return {
+            "definition": defn,
+            "steps": steps,
+            "decisions": decisions,
+            "exit_gates": gates,
+        }
