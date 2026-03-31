@@ -45,6 +45,7 @@ class WorkflowEngine:
     """State machine engine reading workflow definitions from DB."""
 
     def __init__(self, db_path: str = "mrowisko.db"):
+        self._db_path = db_path
         self._conn = sqlite3.connect(db_path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA foreign_keys=ON")
@@ -221,6 +222,22 @@ class WorkflowEngine:
                 message=f"Invalid transition: '{state.step_id}' → '{step_id}'. "
                         f"Allowed: {state.allowed_transitions}",
             )
+
+        # Verification (Faza 4): if PASS, check artifact exists
+        if status == "PASS":
+            execution = self._get_execution(execution_id)
+            steps = self._get_steps(execution["workflow_id"])
+            step_def = self._find_step(steps, step_id)
+            if step_def and step_def.get("verification_type") and step_def["verification_type"] != "manual":
+                from tools.lib.step_verifier import StepVerifier
+                verifier = StepVerifier(db_path=self._db_path)
+                vr = verifier.verify(step_def["verification_type"], step_def.get("verification_value", ""))
+                if not vr.ok:
+                    self._log_step(execution_id, step_id, "BLOCKED", f"Verification failed: {vr.message}")
+                    return StepResult(
+                        ok=False, step_id=step_id, status="BLOCKED",
+                        message=f"Verification failed ({vr.verification_type}): {vr.message}",
+                    )
 
         self._log_step(execution_id, step_id, status, output_summary)
         return StepResult(ok=True, step_id=step_id, status=status)

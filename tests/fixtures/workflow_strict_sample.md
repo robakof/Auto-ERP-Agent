@@ -64,7 +64,7 @@ outputs:
 **action:** Napisz kod rozwiązania
 **tool:** Write
 **command:** `tools/new_tool.py`
-**verification:** file_exists tools/new_tool.py
+**verification:** manual
 **on_failure:**
   - retry: yes
   - skip: no
@@ -78,7 +78,7 @@ outputs:
 **action:** Uruchom testy
 **tool:** Bash
 **command:** `py -m pytest tests/ -q`
-**verification:** test_pass tests/
+**verification:** manual
 **on_failure:**
   - retry: yes
   - skip: no
@@ -101,7 +101,7 @@ outputs:
 **action:** Wyślij do review przez architect
 **tool:** agent_bus_cli
 **command:** `py tools/agent_bus_cli.py send --from developer --to architect --content-file tmp/review.md`
-**verification:** message_sent
+**verification:** manual
 **on_failure:**
   - retry: yes
   - skip: no

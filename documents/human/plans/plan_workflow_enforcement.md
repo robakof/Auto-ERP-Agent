@@ -277,9 +277,9 @@ class StepVerifier:
 
 ### Exit gate
 
-- [ ] Verifier poprawnie sprawdza ≥4 typy artefaktów
-- [ ] complete_step odmawia PASS gdy verifier fails
-- [ ] Testy PASS
+- [x] Verifier poprawnie sprawdza ≥4 typy artefaktów — 6 typów (file_exists, file_not_empty, test_pass, commit_exists, message_sent, git_clean) + manual
+- [x] complete_step odmawia PASS gdy verifier fails — engine integracja, BLOCKED status
+- [x] Testy PASS — 17 testów verifier + 74 total workflow suite
 
 ---
 

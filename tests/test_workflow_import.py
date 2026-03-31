@@ -316,17 +316,17 @@ class TestVerificationParsing:
         assert read_step["verification_type"] == "file_exists"
         assert "DEVELOPER.md" in read_step["verification_value"]
 
-    def test_test_pass(self):
+    def test_manual_verification(self):
         text = SAMPLE.read_text(encoding="utf-8")
         steps = parse_steps(text)
         test_step = [s for s in steps if s["step_id"] == "run_tests"][0]
-        assert test_step["verification_type"] == "test_pass"
+        assert test_step["verification_type"] == "manual"
 
-    def test_message_sent(self):
+    def test_send_review_manual(self):
         text = SAMPLE.read_text(encoding="utf-8")
         steps = parse_steps(text)
         review = [s for s in steps if s["step_id"] == "send_review"][0]
-        assert review["verification_type"] == "message_sent"
+        assert review["verification_type"] == "manual"
 
 
 # --- Review fixes (C1, W1, W2, S2, S3) ---

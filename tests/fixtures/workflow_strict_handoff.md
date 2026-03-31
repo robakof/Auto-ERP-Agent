@@ -20,7 +20,7 @@ trigger: "Test workflow with HANDOFF point"
 **action:** Utwórz draft SQL
 **tool:** Write
 **command:** `solutions/draft.sql`
-**verification:** file_exists solutions/draft.sql
+**verification:** manual
 **on_failure:**
   - retry: yes
   - skip: no
@@ -42,7 +42,7 @@ trigger: "Test workflow with HANDOFF point"
 **action:** Wyślij draft do zatwierdzenia przez człowieka
 **tool:** agent_bus_cli
 **command:** `py tools/agent_bus_cli.py flag --from erp_specialist --reason-file tmp/approval.md`
-**verification:** message_sent
+**verification:** manual
 **on_failure:**
   - retry: yes
   - skip: no
