@@ -263,11 +263,10 @@ def _check_workflow_awareness(tool_name: str, tool_input: dict, claude_uuid: str
 
         session_id, role = None, None
 
-        # Strategy 1: claude_uuid → live_agents (spawned agents)
+        # Strategy 1: claude_uuid → live_agents (spawned agents, includes GC-stopped)
         if claude_uuid:
             agent = conn.execute(
-                "SELECT session_id, role FROM live_agents "
-                "WHERE claude_uuid=? AND status IN ('starting','active','warned')",
+                "SELECT session_id, role FROM live_agents WHERE claude_uuid=?",
                 (claude_uuid,),
             ).fetchone()
             if agent:
