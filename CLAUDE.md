@@ -125,6 +125,10 @@ Agent NIE może samodzielnie autoryzować pracy bez workflow — zawsze weryfiku
 Powiedz: "To zadanie wykracza poza mój scope." STOP.
 Eskaluj do odpowiedniej roli lub do człowieka.
 
+**Wiele elementów w jednym workflow:**
+Gdy workflow operuje na wielu elementach (pliki, sugestie, taski),
+każdy element przechodzi pełny cykl workflow z review zanim startuje następny.
+
 ### Konwencja językowa
 
 **Warstwa techniczna (EN):** kod Python, baza danych, CLI, JSON keys, błędy w kodzie
