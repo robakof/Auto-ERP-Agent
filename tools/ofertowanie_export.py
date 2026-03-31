@@ -19,6 +19,9 @@ from pathlib import Path
 
 import openpyxl
 from openpyxl.drawing.image import Image as XlImage
+from openpyxl.drawing.spreadsheet_drawing import OneCellAnchor, AnchorMarker
+from openpyxl.drawing.xdr import XDRPositiveSize2D
+from openpyxl.utils.units import pixels_to_EMU
 from openpyxl.styles import Alignment, Font, PatternFill
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -258,10 +261,10 @@ def _export_excel(rows: list[dict], output_path: str) -> None:
             if os.path.exists(photo_path):
                 try:
                     img = XlImage(photo_path)
-                    img.height = IMG_HEIGHT_PX
-                    img.width  = IMG_WIDTH_PX
-                    cell_addr = f"{openpyxl.utils.get_column_letter(COL_PHOTO_IDX)}{row_idx}"
-                    ws.add_image(img, cell_addr)
+                    marker = AnchorMarker(col=COL_PHOTO_IDX - 1, colOff=0, row=row_idx - 1, rowOff=0)
+                    size = XDRPositiveSize2D(pixels_to_EMU(IMG_WIDTH_PX), pixels_to_EMU(IMG_HEIGHT_PX))
+                    img.anchor = OneCellAnchor(_from=marker, ext=size)
+                    ws.add_image(img)
                     ws.row_dimensions[row_idx].height = ROW_HEIGHT_PT
                 except Exception:
                     pass  # uszkodzony plik — pomijamy, nie crashujemy
