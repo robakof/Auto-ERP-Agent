@@ -1,0 +1,181 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
+  <Naglowek>
+    <KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+    <WariantFormularza>3</WariantFormularza>
+    <DataWytworzeniaFa>2026-03-31T12:36:49Z</DataWytworzeniaFa>
+    <SystemInfo>Comarch ERP XL</SystemInfo>
+  </Naglowek>
+  <Podmiot1>
+    <DaneIdentyfikacyjne>
+      <NIP>7871003063</NIP>
+      <Nazwa>Produkcja Zniczy I Lampionów CEIM MAREK CYPROWSKI</Nazwa>
+    </DaneIdentyfikacyjne>
+    <Adres>
+      <KodKraju>PL</KodKraju>
+      <AdresL1>Leśna 14</AdresL1>
+      <AdresL2>64-551 Otorowo</AdresL2>
+    </Adres>
+  </Podmiot1>
+  <Podmiot2>
+    <DaneIdentyfikacyjne>
+      <NIP>6671025125</NIP>
+      <Nazwa>ELŻBIETA MIKOŁAJEWSKA KWIACIARNIA "KONWALIA"</Nazwa>
+    </DaneIdentyfikacyjne>
+    <Adres>
+      <KodKraju>PL</KodKraju>
+      <AdresL1>ul. Elizy Orzeszkowej 4</AdresL1>
+      <AdresL2>62-400 Słupca</AdresL2>
+    </Adres>
+    <JST>2</JST>
+    <GV>2</GV>
+  </Podmiot2>
+  <Fa>
+    <KodWaluty>PLN</KodWaluty>
+    <P_1>2026-03-31</P_1>
+    <P_2>FRA/266</P_2>
+    <P_13_1>1349.76</P_13_1>
+    <P_14_1>310.44</P_14_1>
+    <P_15>1660.20</P_15>
+    <Adnotacje>
+      <P_16>2</P_16>
+      <P_17>2</P_17>
+      <P_18>2</P_18>
+      <P_18A>2</P_18A>
+      <Zwolnienie>
+        <P_19N>1</P_19N>
+      </Zwolnienie>
+      <NoweSrodkiTransportu>
+        <P_22N>1</P_22N>
+      </NoweSrodkiTransportu>
+      <P_23>2</P_23>
+      <PMarzy>
+        <P_PMarzyN>1</P_PMarzyN>
+      </PMarzy>
+    </Adnotacje>
+    <RodzajFaktury>VAT</RodzajFaktury>
+    <FaWiersz>
+      <NrWierszaFa>1</NrWierszaFa>
+      <P_7>WK Promyk 3 Kerti</P_7>
+      <P_8A>szt.</P_8A>
+      <P_8B>100</P_8B>
+      <P_9A>2.20</P_9A>
+      <P_11>178.86</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>2</NrWierszaFa>
+      <P_7>WK Promyk 4 Kerti</P_7>
+      <P_8A>szt.</P_8A>
+      <P_8B>100</P_8B>
+      <P_9A>2.50</P_9A>
+      <P_11>203.25</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>3</NrWierszaFa>
+      <P_7>Wk Promyk 2 Kerti</P_7>
+      <P_8A>szt.</P_8A>
+      <P_8B>100</P_8B>
+      <P_9A>1.70</P_9A>
+      <P_11>138.21</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>4</NrWierszaFa>
+      <P_7>Wk CEiM zniczowy 5 szeroki</P_7>
+      <P_8A>szt.</P_8A>
+      <P_8B>32</P_8B>
+      <P_9A>4.30</P_9A>
+      <P_11>111.87</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>5</NrWierszaFa>
+      <P_7>Bol 3D forsycja</P_7>
+      <P_8A>szt.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>14.00</P_9A>
+      <P_11>68.29</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>6</NrWierszaFa>
+      <P_7>Bol 3D magnolia</P_7>
+      <P_8A>szt.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>14.00</P_9A>
+      <P_11>68.29</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>7</NrWierszaFa>
+      <P_7>J 9 cukier SR</P_7>
+      <P_8A>szt.</P_8A>
+      <P_8B>16</P_8B>
+      <P_9A>9.00</P_9A>
+      <P_11>117.07</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>8</NrWierszaFa>
+      <P_7>J 9 cukier ZŁ</P_7>
+      <P_8A>szt.</P_8A>
+      <P_8B>16</P_8B>
+      <P_9A>9.00</P_9A>
+      <P_11>117.07</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>9</NrWierszaFa>
+      <P_7>Jajo KL 4 ZŁ</P_7>
+      <P_8A>szt.</P_8A>
+      <P_8B>15</P_8B>
+      <P_9A>14.00</P_9A>
+      <P_11>170.73</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>10</NrWierszaFa>
+      <P_7>Z 491 J zielone</P_7>
+      <P_8A>szt.</P_8A>
+      <P_8B>4</P_8B>
+      <P_9A>15.00</P_9A>
+      <P_11>48.78</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>11</NrWierszaFa>
+      <P_7>Z 491 J żółte</P_7>
+      <P_8A>szt.</P_8A>
+      <P_8B>8</P_8B>
+      <P_9A>15.00</P_9A>
+      <P_11>97.56</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>12</NrWierszaFa>
+      <P_7>Z 02 aplikacja Wielkanoc</P_7>
+      <P_8A>szt.</P_8A>
+      <P_8B>8</P_8B>
+      <P_9A>4.50</P_9A>
+      <P_11>29.27</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>13</NrWierszaFa>
+      <P_7>Wk bolsius parafinowy RP 2</P_7>
+      <P_8A>szt.</P_8A>
+      <P_8B>60</P_8B>
+      <P_9A>0.01</P_9A>
+      <P_11>0.49</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <Platnosc>
+      <TerminPlatnosci>
+        <Termin>2026-03-31</Termin>
+      </TerminPlatnosci>
+      <FormaPlatnosci>3</FormaPlatnosci>
+    </Platnosc>
+  </Fa>
+</Faktura>

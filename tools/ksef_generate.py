@@ -10,7 +10,7 @@ from lxml import etree
 sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
 from sql_query import run_query
 
-GID_NUMER = 8981165   # FRA/267 z 2026-03-31
+GID_NUMER = 8981092   # FRA/266 z 2026-03-31
 
 SQL = f"""
 SELECT
