@@ -234,18 +234,18 @@ EXEMPT_BASH_PREFIXES = (
     "which ", "where ",                # discovery
 )
 
-def _check_workflow_awareness(tool_name: str, tool_input: dict, claude_uuid: str) -> None:
-    """Soft mode: warn if agent works outside workflow. Never blocks.
+def _check_workflow_awareness(tool_name: str, tool_input: dict, claude_uuid: str) -> bool:
+    """Soft mode: warn if agent works outside workflow. Returns True if deny was issued.
 
     Uses claude_uuid → live_agents lookup (multi-agent safe, same pattern as heartbeat).
     """
     # Exempt tools — no check needed
     if tool_name in EXEMPT_TOOLS:
-        return
+        return False
     if tool_name == "Bash":
         cmd = tool_input.get("command", "").strip()
         if any(cmd.startswith(p) for p in EXEMPT_BASH_PREFIXES):
-            return
+            return False
     from pathlib import Path
     try:
         import sqlite3
@@ -274,7 +274,6 @@ def _check_workflow_awareness(tool_name: str, tool_input: dict, claude_uuid: str
             if sess:
                 session_id = sess[0]
                 role = sess[1]
-            # Also try tmp/session_data.json for role if sessions has no role
             if session_id and not role:
                 sd_file = Path(__file__).parent.parent.parent / "tmp" / "session_data.json"
                 if sd_file.exists():
@@ -284,7 +283,7 @@ def _check_workflow_awareness(tool_name: str, tool_input: dict, claude_uuid: str
 
         if not session_id:
             conn.close()
-            return
+            return False
 
         # Check for running workflow
         row = conn.execute(
@@ -315,8 +314,10 @@ def _check_workflow_awareness(tool_name: str, tool_input: dict, claude_uuid: str
                     f"Wywołaj: py tools/agent_bus_cli.py workflow-start --workflow-id <ID> --role <rola>. "
                     f"Ponów komendę po workflow-start."
                 )
-            return
+                return True  # deny issued — main() must stop
+            return False
         conn.close()
+        return False
     except Exception as e:
         from pathlib import Path as _P
         try:
@@ -325,6 +326,7 @@ def _check_workflow_awareness(tool_name: str, tool_input: dict, claude_uuid: str
             )
         except Exception:
             pass
+        return False
 
 
 _last_heartbeat: float = 0.0
@@ -413,12 +415,14 @@ def main() -> None:
     # Heartbeat — fires for ALL tool types, throttled to 60s
     _heartbeat(data.get("session_id", ""))
 
-    # Workflow awareness — soft mode warning (claude_uuid → live_agents lookup)
-    _check_workflow_awareness(
+    # Workflow awareness — soft mode warning (claude_uuid → live_agents/sessions lookup)
+    denied = _check_workflow_awareness(
         data.get("tool_name", ""),
         data.get("tool_input", {}),
         data.get("session_id", ""),
     )
+    if denied:
+        return
 
     # Poke check — fires for ALL tool types (before Bash-only gate)
     poke_reason = _check_poke()
