@@ -246,9 +246,6 @@ def _check_workflow_awareness(tool_name: str, tool_input: dict, claude_uuid: str
         cmd = tool_input.get("command", "").strip()
         if any(cmd.startswith(p) for p in EXEMPT_BASH_PREFIXES):
             return
-    if not claude_uuid:
-        return
-
     from pathlib import Path
     try:
         import sqlite3
@@ -256,17 +253,26 @@ def _check_workflow_awareness(tool_name: str, tool_input: dict, claude_uuid: str
         conn = sqlite3.connect(str(db_path))
         conn.execute("PRAGMA busy_timeout=1000")
 
-        # Lookup session_id + role via claude_uuid (like heartbeat)
-        agent = conn.execute(
-            "SELECT session_id, role FROM live_agents "
-            "WHERE claude_uuid=? AND status IN ('starting','active','warned')",
-            (claude_uuid,),
-        ).fetchone()
-        if not agent:
-            conn.close()
-            return  # agent not in DB — skip
+        session_id, role = None, None
 
-        session_id, role = agent
+        # Strategy 1: claude_uuid → live_agents (multi-agent safe, spawned agents)
+        if claude_uuid:
+            agent = conn.execute(
+                "SELECT session_id, role FROM live_agents "
+                "WHERE claude_uuid=? AND status IN ('starting','active','warned')",
+                (claude_uuid,),
+            ).fetchone()
+            if agent:
+                session_id, role = agent
+
+        # Strategy 2: fallback to session_data.json (manually started agents)
+        if not session_id:
+            sd_file = Path(__file__).parent.parent.parent / "tmp" / "session_data.json"
+            if sd_file.exists():
+                sd = json.loads(sd_file.read_text(encoding="utf-8"))
+                session_id = sd.get("session_id")
+                role = sd.get("role")
+
         if not session_id:
             conn.close()
             return
