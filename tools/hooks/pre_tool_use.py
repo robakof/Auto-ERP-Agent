@@ -234,19 +234,12 @@ EXEMPT_BASH_PREFIXES = (
     "which ", "where ",                # discovery
 )
 
-_last_wf_check: float = 0.0
-WF_CHECK_INTERVAL = 30  # seconds — throttle workflow checks
-
-
 def _check_workflow_awareness(tool_name: str, tool_input: dict) -> None:
-    """Soft mode: warn if agent works outside workflow. Never blocks."""
-    global _last_wf_check
-    import time
-    now = time.monotonic()
-    if now - _last_wf_check < WF_CHECK_INTERVAL:
-        return
-    _last_wf_check = now
+    """Soft mode: warn if agent works outside workflow. Never blocks.
 
+    Note: each hook invocation is a new process, so in-memory throttling
+    doesn't work. We accept ~1ms DB query per non-exempt tool call.
+    """
     # Exempt tools — no check needed
     if tool_name in EXEMPT_TOOLS:
         return
@@ -281,7 +274,11 @@ def _check_workflow_awareness(tool_name: str, tool_input: dict) -> None:
                 f"Użyj workflow-start przed pracą.",
                 file=sys.stderr,
             )
-            # Track untracked tool call
+            # Track untracked tool call (sentinel execution_id=0)
+            conn.execute(
+                "INSERT OR IGNORE INTO workflow_execution (id, workflow_id, role, session_id, status) "
+                "VALUES (0, 'untracked', 'system', '', 'running')"
+            )
             conn.execute(
                 "INSERT INTO step_log (execution_id, step_id, status, output_summary) "
                 "VALUES (0, ?, 'UNTRACKED', ?)",
