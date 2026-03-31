@@ -325,7 +325,7 @@ def _check_workflow_awareness(tool_name: str, tool_input: dict, claude_uuid: str
                 f"[workflow-BLOCK #{warning_number}] Agent {role or '?'} zablokowany — "
                 f"{count} tool calls bez workflow. "
                 f"Wymagana inspekcja dispatchera. "
-                f"Dispatcher: py tools/agent_bus_cli.py workflow-resume lub workflow-start."
+                f"Dispatcher: py tools/agent_bus_cli.py workflow-start --workflow-id <ID> --role {role or '<rola>'}."
             )
             return True
 

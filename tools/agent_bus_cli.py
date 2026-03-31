@@ -446,6 +446,15 @@ def cmd_workflow_start(args: argparse.Namespace, bus: AgentBus) -> dict:
         role=args.role,
         session_id=session_id,
     )
+    # Reset untracked count for this session (W3: nudge counter reset)
+    try:
+        bus._conn.execute(
+            "DELETE FROM step_log WHERE execution_id=0 AND output_summary LIKE ?",
+            (f"session={session_id}%",),
+        )
+        bus._conn.commit()
+    except Exception:
+        pass
     # Check if workflow has a definition in DB (Faza 2 engine awareness)
     detail = bus.get_workflow_detail(args.workflow_id)
     has_definition = detail is not None
