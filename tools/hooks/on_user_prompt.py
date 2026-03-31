@@ -50,7 +50,7 @@ def main():
                 session_id = row[0]
         if not session_id and claude_uuid:
             row = bus._conn.execute(
-                "SELECT session_id FROM live_agents WHERE claude_uuid = ? AND status != 'stopped'",
+                "SELECT session_id FROM live_agents WHERE claude_uuid = ?",
                 (claude_uuid,),
             ).fetchone()
             if row:
