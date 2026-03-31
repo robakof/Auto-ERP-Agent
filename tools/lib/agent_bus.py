@@ -246,7 +246,8 @@ CREATE TABLE IF NOT EXISTS workflow_decisions (
     path_false       TEXT NOT NULL,
     default_action   TEXT,
     FOREIGN KEY (workflow_id, workflow_version)
-        REFERENCES workflow_definitions(workflow_id, version)
+        REFERENCES workflow_definitions(workflow_id, version),
+    UNIQUE (workflow_id, workflow_version, decision_id)
 );
 
 CREATE TABLE IF NOT EXISTS workflow_exit_gates (

@@ -327,3 +327,55 @@ class TestVerificationParsing:
         steps = parse_steps(text)
         review = [s for s in steps if s["step_id"] == "send_review"][0]
         assert review["verification_type"] == "message_sent"
+
+
+# --- Review fixes (C1, W1, W2, S2, S3) ---
+
+class TestReviewFixes:
+    def test_c1_faza_regex_phases_assigned(self):
+        """C1: Fixtures use ## Faza N: — phases must be non-empty."""
+        text = SAMPLE.read_text(encoding="utf-8")
+        steps = parse_steps(text)
+        steps = assign_phases(steps, text)
+        for s in steps:
+            assert s["phase"] != "", f"Step {s['step_id']} has empty phase"
+
+    def test_c1_faza_exit_gates_have_phase(self):
+        """C1: Exit gates must have phase from ## Faza headers."""
+        text = SAMPLE.read_text(encoding="utf-8")
+        gates = parse_exit_gates(text)
+        for g in gates:
+            assert g["phase"] != "", f"Gate {g['item_id']} has empty phase"
+
+    def test_w1_yaml_lists_parsed(self):
+        """W1: YAML lists (participants, outputs) should not be silently dropped."""
+        text = SAMPLE.read_text(encoding="utf-8")
+        h = parse_yaml_header(text)
+        assert isinstance(h.get("participants"), list)
+        assert "developer" in h["participants"]
+        assert "architect" in h["participants"]
+
+    def test_w2_verification_word_boundary(self):
+        """W2: 'file_exists_custom' should NOT match as file_exists type."""
+        from tools.workflow_import import _parse_verification
+        t, v = _parse_verification("file_exists_custom foo")
+        assert t == "manual"  # should not match file_exists
+
+        t2, v2 = _parse_verification("file_exists foo/bar.py")
+        assert t2 == "file_exists"
+        assert v2 == "foo/bar.py"
+
+    def test_s2_exit_gate_hyphen_item_id(self, tmp_path):
+        """S2: Exit gate item_id with hyphens should parse."""
+        md = tmp_path / "workflow_hyphen.md"
+        md.write_text(
+            "---\nworkflow_id: hyphen_test\nversion: '1.0'\nowner_role: dev\n---\n\n"
+            "## Faza 1: Test\n\n### Step 1: Do\n\n**step_id:** do_thing\n"
+            "**action:** Do it\n**tool:** Bash\n**command:** `echo hi`\n"
+            "**next_step:** end (if PASS), escalate (if FAIL)\n\n"
+            "### Exit Gate\n\n- **gate-with-hyphens:** Check passed\n",
+            encoding="utf-8",
+        )
+        result = parse_workflow(md)
+        assert result["ok"]
+        assert any(g["item_id"] == "gate-with-hyphens" for g in result["exit_gates"])

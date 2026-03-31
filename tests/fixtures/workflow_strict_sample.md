@@ -19,7 +19,7 @@ outputs:
 
 ---
 
-## Phase 1: Verify
+## Faza 1: Verify
 
 ### Step 1: Check Git Status
 
@@ -56,7 +56,7 @@ outputs:
 
 ---
 
-## Phase 2: Implement
+## Faza 2: Implement
 
 ### Step 3: Write Code
 
@@ -93,7 +93,7 @@ outputs:
 
 ---
 
-## Phase 3: Review
+## Faza 3: Review
 
 ### Step 5: Send for Review
 

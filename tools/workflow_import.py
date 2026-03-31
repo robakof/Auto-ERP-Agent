@@ -30,21 +30,43 @@ DEFAULT_WORKFLOWS_DIR = "workflows"
 # ---------------------------------------------------------------------------
 
 def parse_yaml_header(text: str) -> dict | None:
-    """Extract YAML front-matter between --- delimiters."""
+    """Extract YAML front-matter between --- delimiters.
+
+    Handles scalar values and simple YAML lists (W1: don't silently drop lists).
+    """
     m = re.match(r"^---\s*\n(.*?)\n---", text, re.DOTALL)
     if not m:
         return None
     raw = m.group(1)
     result = {}
+    current_key = None
+    current_list = None
     for line in raw.split("\n"):
-        line = line.strip()
-        if not line or line.startswith("#") or line.startswith("-"):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
             continue
-        if ":" in line:
-            key, _, val = line.partition(":")
+        # List item under current key
+        if stripped.startswith("- ") and current_key:
+            if current_list is None:
+                current_list = []
+            current_list.append(stripped[2:].strip())
+            continue
+        # New key:value or key: (start of list)
+        if ":" in stripped and not stripped.startswith("-"):
+            # Save previous list
+            if current_key and current_list is not None:
+                result[current_key] = current_list
+            key, _, val = stripped.partition(":")
+            current_key = key.strip()
+            current_list = None
             val = val.strip().strip('"').strip("'")
             if val:
-                result[key.strip()] = val
+                result[current_key] = val
+                current_key = None  # scalar, no list follows
+            continue
+    # Save trailing list
+    if current_key and current_list is not None:
+        result[current_key] = current_list
     return result if result.get("workflow_id") else None
 
 
@@ -121,13 +143,14 @@ def _parse_step_block(block: str, sort_order: int) -> dict | None:
 
 
 def _parse_verification(raw: str) -> tuple[str, str]:
-    """Map verification string to (type, value)."""
+    """Map verification string to (type, value). W2: word-boundary match."""
     if not raw:
         return "manual", ""
-    known = ["file_exists", "file_not_empty", "test_pass", "commit_exists",
+    known = ["file_not_empty", "file_exists", "test_pass", "commit_exists",
              "message_sent", "git_clean"]
     for t in known:
-        if raw.startswith(t):
+        # Word boundary: must end at string end, space, or non-word char
+        if raw.startswith(t) and (len(raw) == len(t) or not raw[len(t)].isalnum() and raw[len(t)] != "_"):
             value = raw[len(t):].strip()
             return t, value
     return "manual", raw
@@ -197,7 +220,7 @@ def parse_exit_gates(text: str) -> list[dict]:
     """Parse ### Exit Gate sections with - **item_id:** condition items."""
     gates = []
     # Find phase context for each exit gate
-    phase_pattern = re.compile(r"^##\s+Phase\s+\d+:\s+(.+?)$", re.MULTILINE)
+    phase_pattern = re.compile(r"^##\s+(?:Phase|Faza)\s+\d+\w*[\s:—–-]+(.+?)$", re.MULTILINE)
     gate_pattern = re.compile(r"^###\s+Exit\s+Gate", re.MULTILINE)
 
     phases = [(m.start(), m.group(1).strip()) for m in phase_pattern.finditer(text)]
@@ -216,8 +239,8 @@ def parse_exit_gates(text: str) -> list[dict]:
         end = gate_pos + 1 + next_section.start() if next_section else len(text)
         block = text[gate_pos:end]
 
-        # Parse items: - **item_id:** condition
-        for m in re.finditer(r"-\s+\*\*(\w+):\*\*\s+(.+)", block):
+        # Parse items: - **item_id:** condition (S2: item_id may contain hyphens)
+        for m in re.finditer(r"-\s+\*\*([\w-]+):\*\*\s+(.+)", block):
             gates.append({
                 "phase": phase,
                 "item_id": m.group(1),
@@ -227,8 +250,8 @@ def parse_exit_gates(text: str) -> list[dict]:
 
 
 def assign_phases(steps: list[dict], text: str) -> list[dict]:
-    """Assign phase names to steps based on ## Phase headers in text."""
-    phase_pattern = re.compile(r"^##\s+Phase\s+\d+:\s+(.+?)$", re.MULTILINE)
+    """Assign phase names to steps based on ## Phase/Faza headers in text."""
+    phase_pattern = re.compile(r"^##\s+(?:Phase|Faza)\s+\d+\w*[\s:—–-]+(.+?)$", re.MULTILINE)
     step_pattern = re.compile(r"^#{2,3}\s+Step\s+\d+:", re.MULTILINE)
 
     phases = [(m.start(), m.group(1).strip()) for m in phase_pattern.finditer(text)]

@@ -12,7 +12,7 @@ trigger: "Test workflow with HANDOFF point"
 
 ---
 
-## Phase 1: Draft
+## Faza 1: Draft
 
 ### Step 1: Create Draft
 
@@ -34,7 +34,7 @@ trigger: "Test workflow with HANDOFF point"
 
 ---
 
-## Phase 2: Approval
+## Faza 2: Approval
 
 ### Step 2: Send for Approval
 
