@@ -219,10 +219,10 @@ WHERE workflow_id = ? AND workflow_version = ? AND step_id = ?
 
 ### Exit gate
 
-- [ ] Hook wykrywa obecność/brak workflow
-- [ ] Warnings logowane (nie blokują)
-- [ ] Dane o untracked work zbierane
-- [ ] Testy PASS
+- [x] Hook wykrywa obecność/brak workflow — query DB po session_id, throttled 30s
+- [x] Warnings logowane (nie blokują) — stderr warning, soft mode
+- [x] Dane o untracked work zbierane — step_log z execution_id=0, status=UNTRACKED
+- [x] Testy PASS — 67 testów (5 nowych workflow awareness)
 - [ ] Deploy na 1 tydzień → zebrać metryki
 
 ---
