@@ -47,33 +47,43 @@ def _get_all_roles() -> list[str]:
 
 
 def _get_session_data() -> dict:
-    """Read session data from live_agents by spawn_token or claude_uuid env var."""
+    """Read session data — tries live_agents first, then session_data.json fallback."""
     import os
     import sqlite3
     spawn_token = os.environ.get("MROWISKO_SPAWN_TOKEN", "")
     claude_uuid = os.environ.get("CLAUDE_SESSION_ID", "")
-    if not spawn_token and not claude_uuid:
-        return {}
+    # Strategy 1: live_agents (spawned agents)
+    if spawn_token or claude_uuid:
+        try:
+            conn = sqlite3.connect(str(DB_PATH))
+            conn.row_factory = sqlite3.Row
+            row = None
+            if spawn_token:
+                row = conn.execute(
+                    "SELECT session_id, role FROM live_agents WHERE spawn_token = ?",
+                    (spawn_token,),
+                ).fetchone()
+            if not row and claude_uuid:
+                row = conn.execute(
+                    "SELECT session_id, role FROM live_agents WHERE claude_uuid = ? AND status != 'stopped'",
+                    (claude_uuid,),
+                ).fetchone()
+            conn.close()
+            if row and row["session_id"]:
+                return {"session_id": row["session_id"], "role": row["role"]}
+        except Exception:
+            pass
+    # Strategy 2: session_data.json (manual agents via session_init)
     try:
-        conn = sqlite3.connect(str(DB_PATH))
-        conn.row_factory = sqlite3.Row
-        row = None
-        if spawn_token:
-            row = conn.execute(
-                "SELECT session_id, role FROM live_agents WHERE spawn_token = ?",
-                (spawn_token,),
-            ).fetchone()
-        if not row and claude_uuid:
-            row = conn.execute(
-                "SELECT session_id, role FROM live_agents WHERE claude_uuid = ? AND status != 'stopped'",
-                (claude_uuid,),
-            ).fetchone()
-        conn.close()
-        if row:
-            return {"session_id": row["session_id"], "role": row["role"]}
-        return {}
+        import json as _json
+        sd_path = Path(__file__).parent / ".." / "tmp" / "session_data.json"
+        if sd_path.exists():
+            sd = _json.loads(sd_path.read_text(encoding="utf-8"))
+            if sd.get("session_id"):
+                return {"session_id": sd["session_id"], "role": sd.get("role")}
     except Exception:
-        return {}
+        pass
+    return {}
 
 
 def get_session_role() -> str | None:
