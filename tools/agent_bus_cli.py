@@ -701,7 +701,7 @@ def cmd_stop(args: argparse.Namespace, bus: AgentBus) -> dict:
 
     # Mark stopped in DB
     bus._conn.execute(
-        "UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now') WHERE session_id = ?",
+        "UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now', 'localtime') WHERE session_id = ?",
         (args.session_id,),
     )
     bus._conn.commit()
@@ -763,7 +763,7 @@ def cmd_resume(args: argparse.Namespace, bus: AgentBus) -> dict:
     if ok:
         bus._conn.execute(
             "UPDATE live_agents SET status = 'active', spawn_token = ?, "
-            "stopped_at = NULL, last_activity = datetime('now') "
+            "stopped_at = NULL, last_activity = datetime('now', 'localtime') "
             "WHERE session_id = ?",
             (new_spawn_token, args.session_id),
         )
@@ -811,7 +811,7 @@ def cmd_kill(args: argparse.Namespace, bus: AgentBus) -> dict:
     uri_result = _call_vscode("killAgent", session_id=args.session_id, role=role or "")
 
     bus._conn.execute(
-        "UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now') WHERE session_id = ?",
+        "UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now', 'localtime') WHERE session_id = ?",
         (args.session_id,),
     )
     bus._conn.commit()

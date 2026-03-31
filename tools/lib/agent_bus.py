@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS suggestions (
     status      TEXT NOT NULL DEFAULT 'open',
     backlog_id  INTEGER REFERENCES backlog(id),
     session_id  TEXT,
-    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_suggestions_status ON suggestions(status);
@@ -38,8 +38,8 @@ CREATE TABLE IF NOT EXISTS backlog (
     effort      TEXT,
     status      TEXT NOT NULL DEFAULT 'planned',
     source_id   INTEGER REFERENCES suggestions(id),
-    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    updated_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_backlog_status ON backlog(status);
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS session_log (
     content     TEXT NOT NULL,
     title       TEXT,
     session_id  TEXT,
-    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_session_log_role ON session_log(role);
@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS messages (
     content     TEXT NOT NULL,
     status      TEXT NOT NULL DEFAULT 'unread',
     session_id  TEXT,
-    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    created_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     read_at     TEXT,
     claimed_by  TEXT,
     title       TEXT NOT NULL DEFAULT '',
@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS state (
     type        TEXT NOT NULL,
     content     TEXT NOT NULL,
     session_id  TEXT,
-    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    created_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     metadata    TEXT
 );
 
@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS trace (
     session_id  TEXT NOT NULL,
     tool_name   TEXT NOT NULL,
     summary     TEXT,
-    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_trace_session ON trace(session_id);
@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     claude_session_id TEXT,
     role              TEXT,
     transcript_path   TEXT,
-    started_at        TEXT NOT NULL DEFAULT (datetime('now')),
+    started_at        TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     ended_at          TEXT
 );
 
@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS tool_calls (
     input_summary TEXT,
     is_error      INTEGER NOT NULL DEFAULT 0,
     tokens_out    INTEGER,
-    timestamp     TEXT NOT NULL DEFAULT (datetime('now'))
+    timestamp     TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_tool_calls_session ON tool_calls(session_id);
@@ -128,7 +128,7 @@ CREATE TABLE IF NOT EXISTS token_usage (
     cache_read_tokens    INTEGER,
     cache_create_tokens  INTEGER,
     duration_ms          INTEGER,
-    timestamp            TEXT NOT NULL DEFAULT (datetime('now'))
+    timestamp            TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_token_usage_session ON token_usage(session_id);
@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS conversation (
     content     TEXT NOT NULL,
     event_type  TEXT NOT NULL,
     raw_payload TEXT,
-    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_conversation_session ON conversation(session_id);
@@ -150,8 +150,8 @@ CREATE TABLE IF NOT EXISTS agent_instances (
     role           TEXT NOT NULL,
     status         TEXT NOT NULL DEFAULT 'idle',
     active_task_id INTEGER,
-    started_at     TEXT NOT NULL DEFAULT (datetime('now')),
-    last_seen_at   TEXT NOT NULL DEFAULT (datetime('now'))
+    started_at     TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    last_seen_at   TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_agent_instances_role_status ON agent_instances(role, status);
@@ -162,7 +162,7 @@ CREATE TABLE IF NOT EXISTS workflow_execution (
     role            TEXT NOT NULL,
     session_id      TEXT,
     status          TEXT NOT NULL DEFAULT 'running',
-    started_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    started_at      TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     ended_at        TEXT,
     CHECK (status IN ('running', 'completed', 'interrupted', 'failed'))
 );
@@ -177,7 +177,7 @@ CREATE TABLE IF NOT EXISTS step_log (
     status          TEXT NOT NULL,
     output_summary  TEXT,
     output_json     TEXT,
-    timestamp       TEXT NOT NULL DEFAULT (datetime('now')),
+    timestamp       TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     FOREIGN KEY (execution_id) REFERENCES workflow_execution(id),
     CHECK (status IN ('PASS', 'FAIL', 'BLOCKED', 'SKIPPED', 'IN_PROGRESS'))
 );
@@ -194,7 +194,7 @@ CREATE TABLE IF NOT EXISTS known_gaps (
     reported_by          TEXT NOT NULL,
     status               TEXT NOT NULL DEFAULT 'open',
     resolved_by_backlog_id INTEGER REFERENCES backlog(id),
-    created_at           TEXT NOT NULL DEFAULT (datetime('now')),
+    created_at           TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     resolved_at          TEXT,
     CHECK (status IN ('open', 'resolved'))
 );
@@ -289,7 +289,7 @@ _MIGRATE_SQL = [
         status          TEXT NOT NULL DEFAULT 'starting',
         spawned_by      TEXT,
         permission_mode TEXT NOT NULL DEFAULT 'default',
-        created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+        created_at      TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
         last_activity   TEXT,
         stopped_at      TEXT,
         transcript_path TEXT,
@@ -306,7 +306,7 @@ _MIGRATE_SQL = [
         task            TEXT NOT NULL,
         session_id      TEXT REFERENCES sessions(id),
         status          TEXT NOT NULL DEFAULT 'pending',
-        created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+        created_at      TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
         ended_at        TEXT,
         CHECK (invoker_type IN ('human', 'agent', 'orchestrator')),
         CHECK (status IN ('pending', 'approved', 'running', 'completed', 'failed', 'rejected'))
@@ -357,7 +357,7 @@ _MIGRATE_SQL = [
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         claude_uuid TEXT NOT NULL,
         session_id  TEXT,
-        created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+        created_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
     )""",
     # Identity Redesign: handled in _run_migrations() as conditional migration
 ]
@@ -379,7 +379,7 @@ _IDENTITY_REDESIGN_SQL = [
         spawned_by      TEXT,
         spawn_token     TEXT UNIQUE,
         last_activity   TEXT,
-        created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+        created_at      TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
         stopped_at      TEXT,
         transcript_path TEXT,
         CHECK (status IN ('starting', 'active', 'stopped'))

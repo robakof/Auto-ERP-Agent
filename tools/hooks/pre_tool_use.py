@@ -216,6 +216,83 @@ def validate_segment(segment: str) -> Optional[str]:
 
 
 
+# --- Workflow awareness (Faza 3 — soft mode) ---
+
+# Tools exempt from workflow enforcement — always allowed
+EXEMPT_TOOLS = frozenset([
+    "Read", "Glob", "Grep",           # read-only
+    "Agent", "AskUserQuestion",        # delegation / user interaction
+])
+
+# Bash commands exempt from workflow enforcement
+EXEMPT_BASH_PREFIXES = (
+    "py tools/agent_bus_cli.py",       # communication
+    "py tools/context_usage.py",       # monitoring
+    "py tools/session_init.py",        # session setup
+    "py tools/git_commit.py",          # git ops
+    "git ",                            # git ops
+    "which ", "where ",                # discovery
+)
+
+_last_wf_check: float = 0.0
+WF_CHECK_INTERVAL = 30  # seconds — throttle workflow checks
+
+
+def _check_workflow_awareness(tool_name: str, tool_input: dict) -> None:
+    """Soft mode: warn if agent works outside workflow. Never blocks."""
+    global _last_wf_check
+    import time
+    now = time.monotonic()
+    if now - _last_wf_check < WF_CHECK_INTERVAL:
+        return
+    _last_wf_check = now
+
+    # Exempt tools — no check needed
+    if tool_name in EXEMPT_TOOLS:
+        return
+    if tool_name == "Bash":
+        cmd = tool_input.get("command", "").strip()
+        if any(cmd.startswith(p) for p in EXEMPT_BASH_PREFIXES):
+            return
+
+    from pathlib import Path
+    session_data_file = Path(__file__).parent.parent.parent / "tmp" / "session_data.json"
+    if not session_data_file.exists():
+        return
+    try:
+        import sqlite3
+        sd = json.loads(session_data_file.read_text(encoding="utf-8"))
+        session_id = sd.get("session_id")
+        role = sd.get("role")
+        if not session_id:
+            return
+        db_path = Path(__file__).parent.parent.parent / "mrowisko.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("PRAGMA busy_timeout=1000")
+        row = conn.execute(
+            "SELECT id, workflow_id FROM workflow_execution "
+            "WHERE session_id=? AND status='running' ORDER BY started_at DESC LIMIT 1",
+            (session_id,),
+        ).fetchone()
+        if not row:
+            # No active workflow — log warning to stderr
+            print(
+                f"[workflow-warning] {role or '?'}: tool={tool_name} bez aktywnego workflow. "
+                f"Użyj workflow-start przed pracą.",
+                file=sys.stderr,
+            )
+            # Track untracked tool call
+            conn.execute(
+                "INSERT INTO step_log (execution_id, step_id, status, output_summary) "
+                "VALUES (0, ?, 'UNTRACKED', ?)",
+                (f"tool:{tool_name}", f"session={session_id} role={role}"),
+            )
+            conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
 _last_heartbeat: float = 0.0
 HEARTBEAT_INTERVAL = 60  # seconds — throttle DB writes
 
@@ -241,13 +318,13 @@ def _heartbeat(claude_uuid: str = "") -> None:
         conn.execute("PRAGMA busy_timeout=1000")
         if spawn_token:
             conn.execute(
-                "UPDATE live_agents SET last_activity = datetime('now'), status = 'active' "
+                "UPDATE live_agents SET last_activity = datetime('now', 'localtime'), status = 'active' "
                 "WHERE spawn_token = ? AND status IN ('starting', 'active', 'warned', 'stopped')",
                 (spawn_token,),
             )
         elif claude_uuid:
             conn.execute(
-                "UPDATE live_agents SET last_activity = datetime('now'), status = 'active' "
+                "UPDATE live_agents SET last_activity = datetime('now', 'localtime'), status = 'active' "
                 "WHERE claude_uuid = ? AND status IN ('starting', 'active', 'warned', 'stopped')",
                 (claude_uuid,),
             )
@@ -285,7 +362,7 @@ def _check_poke() -> Optional[str]:
             conn.close()
             return None
         msg_id, sender, content = row
-        conn.execute("UPDATE messages SET status='read', read_at=datetime('now') WHERE id=?", (msg_id,))
+        conn.execute("UPDATE messages SET status='read', read_at=datetime('now', 'localtime') WHERE id=?", (msg_id,))
         conn.commit()
         conn.close()
         return f"[POKE od {sender}] {content}"
@@ -301,6 +378,12 @@ def main() -> None:
 
     # Heartbeat — fires for ALL tool types, throttled to 60s
     _heartbeat(data.get("session_id", ""))
+
+    # Workflow awareness — soft mode warning, throttled to 30s
+    _check_workflow_awareness(
+        data.get("tool_name", ""),
+        data.get("tool_input", {}),
+    )
 
     # Poke check — fires for ALL tool types (before Bash-only gate)
     poke_reason = _check_poke()

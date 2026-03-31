@@ -44,7 +44,7 @@ def main():
             cur = conn.execute(
                 """UPDATE live_agents
                    SET status = 'stopped',
-                       stopped_at = datetime('now'),
+                       stopped_at = datetime('now', 'localtime'),
                        transcript_path = COALESCE(?, transcript_path)
                    WHERE spawn_token = ? AND status != 'stopped'""",
                 (transcript_path or None, spawn_token),
@@ -55,7 +55,7 @@ def main():
             conn.execute(
                 """UPDATE live_agents
                    SET status = 'stopped',
-                       stopped_at = datetime('now'),
+                       stopped_at = datetime('now', 'localtime'),
                        transcript_path = COALESCE(?, transcript_path)
                    WHERE claude_uuid = ? AND status != 'stopped'""",
                 (transcript_path or None, claude_uuid),

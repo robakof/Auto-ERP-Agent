@@ -22,7 +22,7 @@ class TelemetryService:
         """Log a tool call. Returns row id or 0 if duplicate."""
         cursor = self._conn.execute(
             """INSERT OR IGNORE INTO tool_calls (session_id, tool_name, input_summary, is_error, tokens_out, timestamp)
-               VALUES (?, ?, ?, ?, ?, COALESCE(?, datetime('now')))""",
+               VALUES (?, ?, ?, ?, ?, COALESCE(?, datetime('now', 'localtime')))""",
             (session_id, tool_name, input_summary, is_error, tokens_out, timestamp),
         )
         return cursor.lastrowid
@@ -43,7 +43,7 @@ class TelemetryService:
             """INSERT INTO token_usage
                (session_id, turn_index, input_tokens, output_tokens,
                 cache_read_tokens, cache_create_tokens, duration_ms, timestamp)
-               VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now', 'localtime')))""",
             (session_id, turn_index, input_tokens, output_tokens,
              cache_read_tokens, cache_create_tokens, duration_ms, timestamp),
         )

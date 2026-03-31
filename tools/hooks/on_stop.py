@@ -37,7 +37,7 @@ def _update_live_agent(bus, transcript_path: str, spawn_token: str = "", claude_
         if spawn_token:
             cur = bus._conn.execute(
                 """UPDATE live_agents
-                   SET last_activity = datetime('now'),
+                   SET last_activity = datetime('now', 'localtime'),
                        transcript_path = COALESCE(?, transcript_path)
                    WHERE spawn_token = ? AND status = 'active'""",
                 (transcript_path or None, spawn_token),
@@ -46,7 +46,7 @@ def _update_live_agent(bus, transcript_path: str, spawn_token: str = "", claude_
         if updated == 0 and claude_uuid:
             bus._conn.execute(
                 """UPDATE live_agents
-                   SET last_activity = datetime('now'),
+                   SET last_activity = datetime('now', 'localtime'),
                        transcript_path = COALESCE(?, transcript_path)
                    WHERE claude_uuid = ? AND status = 'active'""",
                 (transcript_path or None, claude_uuid),

@@ -56,7 +56,7 @@ class WorkflowService:
 
         self._conn.execute(
             """UPDATE workflow_execution
-               SET status = ?, ended_at = datetime('now')
+               SET status = ?, ended_at = datetime('now', 'localtime')
                WHERE id = ?""",
             (status, execution_id),
         )

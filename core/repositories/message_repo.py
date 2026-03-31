@@ -277,7 +277,7 @@ class MessageRepository(Repository[Message]):
                 )
                 entity.id = cursor.lastrowid
 
-                # Read created_at from DB (uses DEFAULT datetime('now') = UTC)
+                # Read created_at from DB (uses DEFAULT datetime('now', 'localtime') = local time)
                 row = conn.execute("SELECT created_at FROM messages WHERE id = ?", (entity.id,)).fetchone()
                 entity.created_at = datetime.fromisoformat(row["created_at"])
 

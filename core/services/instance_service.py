@@ -13,17 +13,17 @@ class InstanceService:
         """Register a runner instance. Upsert — safe to call on restart."""
         self._conn.execute(
             """INSERT INTO agent_instances (instance_id, role, status, started_at, last_seen_at)
-               VALUES (?, ?, 'idle', datetime('now'), datetime('now'))
+               VALUES (?, ?, 'idle', datetime('now', 'localtime'), datetime('now', 'localtime'))
                ON CONFLICT(instance_id) DO UPDATE SET
                    status = 'idle', active_task_id = NULL,
-                   started_at = datetime('now'), last_seen_at = datetime('now')""",
+                   started_at = datetime('now', 'localtime'), last_seen_at = datetime('now', 'localtime')""",
             (instance_id, role),
         )
 
     def heartbeat(self, instance_id: str) -> None:
         """Update last_seen_at for a running instance."""
         self._conn.execute(
-            "UPDATE agent_instances SET last_seen_at = datetime('now') WHERE instance_id = ?",
+            "UPDATE agent_instances SET last_seen_at = datetime('now', 'localtime') WHERE instance_id = ?",
             (instance_id,),
         )
 

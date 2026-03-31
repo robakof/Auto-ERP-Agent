@@ -68,20 +68,20 @@ def main():
         # Revival from stopped is handled by pre_tool_use (actual tool usage).
         if spawn_token:
             bus._conn.execute(
-                """UPDATE live_agents SET last_activity = datetime('now')
+                """UPDATE live_agents SET last_activity = datetime('now', 'localtime')
                    WHERE spawn_token = ? AND status IN ('starting', 'active')""",
                 (spawn_token,),
             )
         elif claude_uuid:
             bus._conn.execute(
-                """UPDATE live_agents SET last_activity = datetime('now')
+                """UPDATE live_agents SET last_activity = datetime('now', 'localtime')
                    WHERE claude_uuid = ? AND status IN ('starting', 'active')""",
                 (claude_uuid,),
             )
 
         # GC: auto-stop dead sessions (no heartbeat for >10 min)
         bus._conn.execute(
-            """UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now')
+            """UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now', 'localtime')
                WHERE status IN ('active', 'starting')
                  AND last_activity IS NOT NULL
                  AND last_activity < datetime('now', '-10 minutes')""",
