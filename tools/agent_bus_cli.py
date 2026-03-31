@@ -440,12 +440,19 @@ def cmd_delete(args: argparse.Namespace, bus: AgentBus) -> dict:
 # --- Workflow execution tracking ---
 
 def cmd_workflow_start(args: argparse.Namespace, bus: AgentBus) -> dict:
+    session_id = args.session_id or get_session_id()
     execution_id = bus.start_workflow_execution(
         workflow_id=args.workflow_id,
         role=args.role,
-        session_id=args.session_id or get_session_id(),
+        session_id=session_id,
     )
-    return {"ok": True, "execution_id": execution_id}
+    # Check if workflow has a definition in DB (Faza 2 engine awareness)
+    detail = bus.get_workflow_detail(args.workflow_id)
+    has_definition = detail is not None
+    result = {"ok": True, "execution_id": execution_id}
+    if not has_definition and args.workflow_id != "exploratory":
+        result["warning"] = f"No DB definition for '{args.workflow_id}' — running without enforcement"
+    return result
 
 
 def cmd_step_log(args: argparse.Namespace, bus: AgentBus) -> dict:
@@ -454,6 +461,29 @@ def cmd_step_log(args: argparse.Namespace, bus: AgentBus) -> dict:
         import json as json_mod
         output_json = json_mod.loads(Path(args.output_file).read_text(encoding="utf-8"))
 
+    # Soft validation via WorkflowEngine (Faza 2) — check only, don't write
+    warning = None
+    try:
+        from tools.lib.workflow_engine import WorkflowEngine
+        engine = WorkflowEngine(db_path=bus._db_path)
+        try:
+            state = engine.get_current_state(args.execution_id)
+            if not state.is_exploratory and state.workflow_id != "exploratory":
+                detail = bus.get_workflow_detail(state.workflow_id)
+                if detail:  # has DB definition — validate transition
+                    is_retry = (args.step_id == state.step_id
+                                and state.status in ("FAIL", "IN_PROGRESS", "BLOCKED"))
+                    is_first = state.step_id is None and args.step_id in state.allowed_transitions
+                    is_valid = args.step_id in state.allowed_transitions or is_retry or is_first
+                    if not is_valid:
+                        warning = (f"Invalid transition: '{state.step_id}' → '{args.step_id}'. "
+                                   f"Allowed: {state.allowed_transitions}")
+        finally:
+            engine.close()
+    except Exception:
+        pass  # engine not available — skip validation
+
+    # Always write via bus (single writer)
     step_id = bus.log_step(
         execution_id=args.execution_id,
         step_id=args.step_id,
@@ -462,7 +492,10 @@ def cmd_step_log(args: argparse.Namespace, bus: AgentBus) -> dict:
         output_summary=args.summary,
         output_json=output_json,
     )
-    return {"ok": True, "step_log_id": step_id}
+    result = {"ok": True, "step_log_id": step_id}
+    if warning:
+        result["warning"] = warning
+    return result
 
 
 def cmd_workflow_end(args: argparse.Namespace, bus: AgentBus) -> dict:

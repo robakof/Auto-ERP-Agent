@@ -175,10 +175,11 @@ WHERE workflow_id = ? AND workflow_version = ? AND step_id = ?
 
 ### Exit gate
 
-- [ ] WorkflowEngine poprawnie zarządza przejściami stanów
-- [ ] can_transition blokuje nielegalne przejścia
-- [ ] HANDOFF blokuje automatyczne przejście
-- [ ] Testy PASS (≥5 scenariuszy)
+- [x] WorkflowEngine poprawnie zarządza przejściami stanów — `tools/lib/workflow_engine.py`
+- [x] can_transition blokuje nielegalne przejścia — 24 testów
+- [x] HANDOFF blokuje automatyczne przejście — 5 testów handoff
+- [x] Testy PASS (24 scenariuszy) — `tests/test_workflow_engine.py`
+- [x] CLI integracja (soft mode) — workflow-start warning, step-log validation
 
 ---
 
