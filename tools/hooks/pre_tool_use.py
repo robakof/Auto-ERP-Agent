@@ -220,7 +220,7 @@ _last_heartbeat: float = 0.0
 HEARTBEAT_INTERVAL = 60  # seconds — throttle DB writes
 
 
-def _heartbeat() -> None:
+def _heartbeat(claude_uuid: str = "") -> None:
     """Update last_activity + revive agent if GC stopped it. Throttled to once per 60s."""
     global _last_heartbeat
     import time
@@ -232,18 +232,25 @@ def _heartbeat() -> None:
     from pathlib import Path
     import os
     spawn_token = os.environ.get("MROWISKO_SPAWN_TOKEN", "")
-    if not spawn_token:
+    if not spawn_token and not claude_uuid:
         return
     try:
         import sqlite3
         db_path = Path(__file__).parent.parent.parent / "mrowisko.db"
         conn = sqlite3.connect(str(db_path))
         conn.execute("PRAGMA busy_timeout=1000")
-        conn.execute(
-            "UPDATE live_agents SET last_activity = datetime('now'), status = 'active' "
-            "WHERE spawn_token = ? AND status IN ('starting', 'active', 'stopped')",
-            (spawn_token,),
-        )
+        if spawn_token:
+            conn.execute(
+                "UPDATE live_agents SET last_activity = datetime('now'), status = 'active' "
+                "WHERE spawn_token = ? AND status IN ('starting', 'active', 'warned', 'stopped')",
+                (spawn_token,),
+            )
+        elif claude_uuid:
+            conn.execute(
+                "UPDATE live_agents SET last_activity = datetime('now'), status = 'active' "
+                "WHERE claude_uuid = ? AND status IN ('starting', 'active', 'warned', 'stopped')",
+                (claude_uuid,),
+            )
         conn.commit()
         conn.close()
     except Exception:
@@ -293,7 +300,7 @@ def main() -> None:
         sys.exit(0)
 
     # Heartbeat — fires for ALL tool types, throttled to 60s
-    _heartbeat()
+    _heartbeat(data.get("session_id", ""))
 
     # Poke check — fires for ALL tool types (before Bash-only gate)
     poke_reason = _check_poke()
