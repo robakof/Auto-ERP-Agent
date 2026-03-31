@@ -371,20 +371,20 @@ class TestWorkflowAwareness:
             timestamp TEXT DEFAULT (datetime('now')))""")
         db.commit()
 
-        # No workflow running → insert UNTRACKED
+        # No workflow running → insert untracked (SKIPPED status, step_id prefixed)
         db.execute(
             "INSERT INTO step_log (execution_id, step_id, status, output_summary) "
-            "VALUES (0, ?, 'UNTRACKED', ?)",
-            ("tool:Write", "session=abc role=developer"),
+            "VALUES (0, ?, 'SKIPPED', ?)",
+            ("untracked:tool:Write", "session=abc role=developer"),
         )
         db.commit()
 
         row = db.execute(
-            "SELECT * FROM step_log WHERE status='UNTRACKED'"
+            "SELECT * FROM step_log WHERE step_id LIKE 'untracked:%'"
         ).fetchone()
         assert row is not None
         assert row[1] == 0  # execution_id
-        assert row[4] == "UNTRACKED"
+        assert row[4] == "SKIPPED"
         db.close()
 
     def test_hook_still_works_without_session_data(self):

@@ -274,20 +274,27 @@ def _check_workflow_awareness(tool_name: str, tool_input: dict) -> None:
                 f"Użyj workflow-start przed pracą.",
                 file=sys.stderr,
             )
-            # Track untracked tool call (sentinel execution_id=0)
+            # Track untracked tool call (sentinel execution_id=0, SKIPPED status)
+            # Note: step_log CHECK constraint allows SKIPPED but not UNTRACKED
             conn.execute(
                 "INSERT OR IGNORE INTO workflow_execution (id, workflow_id, role, session_id, status) "
                 "VALUES (0, 'untracked', 'system', '', 'running')"
             )
             conn.execute(
                 "INSERT INTO step_log (execution_id, step_id, status, output_summary) "
-                "VALUES (0, ?, 'UNTRACKED', ?)",
-                (f"tool:{tool_name}", f"session={session_id} role={role}"),
+                "VALUES (0, ?, 'SKIPPED', ?)",
+                (f"untracked:tool:{tool_name}", f"session={session_id} role={role}"),
             )
             conn.commit()
         conn.close()
-    except Exception:
-        pass
+    except Exception as e:
+        from pathlib import Path as _P
+        try:
+            _P(__file__).parent.parent.parent.joinpath("tmp", "workflow_hook_debug.log").write_text(
+                f"{type(e).__name__}: {e}\n", encoding="utf-8",
+            )
+        except Exception:
+            pass
 
 
 _last_heartbeat: float = 0.0
