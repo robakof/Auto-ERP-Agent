@@ -122,14 +122,14 @@ class WorkflowEngine:
                 phase=step_def["phase"],
                 status="PASS",
                 sort_order=step_def["sort_order"],
-                allowed_transitions=[next_id] if next_id and next_id != "end" else [],
+                allowed_transitions=[next_id] if next_id and next_id.lower() not in ("end", "done") else [],
                 is_handoff=bool(step_def["is_handoff"]),
                 handoff_to=step_def["handoff_to"] or "",
             )
 
         if last_status == "FAIL" and step_def:
             next_fail = step_def["next_step_fail"]
-            transitions = [next_fail] if next_fail and next_fail != "escalate" else []
+            transitions = [next_fail] if next_fail and next_fail.lower() not in ("escalate",) else []
             # Also allow retry of current step
             transitions.append(last_step_id)
             return StepState(

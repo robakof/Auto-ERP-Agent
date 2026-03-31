@@ -385,3 +385,24 @@ class TestEdgeCases:
         # Next step is read_context, tool=Read
         tools = e.get_allowed_tools(exec_id)
         assert "Read" in tools
+
+    def test_end_uppercase_next_step(self, db):
+        """S3: next_step='END' (uppercase) should be treated as terminal."""
+        conn = sqlite3.connect(db)
+        conn.execute(
+            "INSERT INTO workflow_definitions (workflow_id, version, owner_role) VALUES ('end_test','1.0','dev')"
+        )
+        conn.execute(
+            "INSERT INTO workflow_steps (workflow_id, workflow_version, step_id, sort_order, action, "
+            "next_step_pass, next_step_fail) VALUES ('end_test','1.0','only_step',1,'do it','END','ESCALATE')"
+        )
+        conn.commit()
+        conn.close()
+
+        engine = WorkflowEngine(db_path=db)
+        exec_id = engine.start("end_test", "dev")
+        engine.complete_step(exec_id, "only_step", "PASS")
+        state = engine.get_current_state(exec_id)
+        # END should result in empty allowed_transitions (terminal)
+        assert state.allowed_transitions == []
+        engine.close()

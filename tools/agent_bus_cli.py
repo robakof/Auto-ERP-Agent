@@ -480,8 +480,9 @@ def cmd_step_log(args: argparse.Namespace, bus: AgentBus) -> dict:
                                    f"Allowed: {state.allowed_transitions}")
         finally:
             engine.close()
-    except Exception:
-        pass  # engine not available — skip validation
+    except Exception as exc:
+        import sys as _sys
+        print(f"[workflow_engine] validation skipped: {exc}", file=_sys.stderr)
 
     # Always write via bus (single writer)
     step_id = bus.log_step(
