@@ -29,9 +29,29 @@ def _make_db(tmp_path: Path, session_ids: list[str] = None) -> Path:
             tokens_out    INTEGER,
             timestamp     TEXT NOT NULL DEFAULT (datetime('now'))
         );
+        CREATE TABLE IF NOT EXISTS live_agents (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            claude_uuid     TEXT UNIQUE,
+            session_id      TEXT,
+            role            TEXT,
+            status          TEXT NOT NULL DEFAULT 'active',
+            spawn_token     TEXT,
+            last_activity   TEXT,
+            created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+            stopped_at      TEXT,
+            terminal_name   TEXT,
+            task            TEXT,
+            spawned_by      TEXT,
+            transcript_path TEXT
+        );
     """)
     for sid in (session_ids or []):
         conn.execute("INSERT OR IGNORE INTO sessions (id) VALUES (?)", (sid,))
+        # Also create live_agents entry so hook can resolve session_id
+        conn.execute(
+            "INSERT OR IGNORE INTO live_agents (claude_uuid, session_id, role, status) VALUES (?,?,?,?)",
+            (sid, sid, "test", "active"),
+        )
     conn.commit()
     conn.close()
     return db_path
@@ -75,6 +95,7 @@ class TestPostToolUseSmoke:
             "tool_name": "Bash",
             "tool_input": {"command": "python tools/agent_bus_cli.py backlog --area Dev"},
             "tool_response": {"is_error": False, "content": []},
+            "session_id": "test-session-123",
         }
         result = run_hook(payload, tmp_path, session_id="test-session-123")
         assert result.returncode == 0
@@ -98,6 +119,7 @@ class TestPostToolUseSmoke:
             "tool_name": "Read",
             "tool_input": {"file_path": "/nonexistent/file.txt"},
             "tool_response": {"is_error": True, "content": []},
+            "session_id": "test-session-456",
         }
         result = run_hook(payload, tmp_path, session_id="test-session-456")
         assert result.returncode == 0
