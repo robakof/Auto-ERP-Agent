@@ -23,7 +23,6 @@ from tools.lib.agent_bus import AgentBus
 from tools.lib.output import print_json
 
 DB_PATH = "mrowisko.db"
-SESSION_DATA_FILE = Path("tmp/session_data.json")
 SESSION_INIT_CONFIG = Path("config/session_init_config.json")
 SPAWN_POLICY_FILE = Path(__file__).parent.parent / "config" / "spawn_policy.json"
 
@@ -47,12 +46,12 @@ def _get_all_roles() -> list[str]:
 
 
 def _get_session_data() -> dict:
-    """Read session data — tries live_agents first, then session_data.json fallback."""
+    """Read session data from live_agents DB (by spawn_token or claude_uuid)."""
     import os
     import sqlite3
     spawn_token = os.environ.get("MROWISKO_SPAWN_TOKEN", "")
     claude_uuid = os.environ.get("CLAUDE_SESSION_ID", "")
-    # Strategy 1: live_agents (spawned agents)
+    # Lookup by spawn_token or claude_uuid in live_agents
     if spawn_token or claude_uuid:
         try:
             conn = sqlite3.connect(str(DB_PATH))
@@ -73,16 +72,6 @@ def _get_session_data() -> dict:
                 return {"session_id": row["session_id"], "role": row["role"]}
         except Exception:
             pass
-    # Strategy 2: session_data.json (manual agents via session_init)
-    try:
-        import json as _json
-        sd_path = Path(__file__).parent / ".." / "tmp" / "session_data.json"
-        if sd_path.exists():
-            sd = _json.loads(sd_path.read_text(encoding="utf-8"))
-            if sd.get("session_id"):
-                return {"session_id": sd["session_id"], "role": sd.get("role")}
-    except Exception:
-        pass
     return {}
 
 

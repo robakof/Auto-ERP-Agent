@@ -284,14 +284,6 @@ def main():
         print_json({"ok": False, "error": str(e)})
         return
 
-    # Write session_data.json for hook workflow awareness (F3)
-    session_data_path = Path("tmp/session_data.json")
-    session_data_path.parent.mkdir(parents=True, exist_ok=True)
-    session_data_path.write_text(
-        json.dumps({"session_id": session_id, "role": args.role}),
-        encoding="utf-8",
-    )
-
     print_json({
         "ok": True,
         "session_id": session_id,

@@ -391,26 +391,28 @@ def _heartbeat(claude_uuid: str = "") -> None:
         pass
 
 
-def _check_poke() -> Optional[str]:
+def _check_poke(session_id: str) -> Optional[str]:
     """Check for unread poke messages for current agent. Returns deny reason or None.
 
-    Reads role from tmp/session_data.json, queries inbox for type='poke'.
+    Resolves role from live_agents DB via claude_uuid (session_id from payload).
     Marks poke as read after retrieval. ~1-3ms overhead per call.
-    Known limitation: multi-agent session_data.json conflict (MVP accepts this).
     """
-    from pathlib import Path
-    session_data_file = Path(__file__).parent.parent.parent / "tmp" / "session_data.json"
-    if not session_data_file.exists():
+    if not session_id:
         return None
     try:
         import sqlite3
-        sd = json.loads(session_data_file.read_text(encoding="utf-8"))
-        role = sd.get("role")
-        if not role:
-            return None
+        from pathlib import Path
         db_path = Path(__file__).parent.parent.parent / "mrowisko.db"
         conn = sqlite3.connect(str(db_path))
         conn.execute("PRAGMA busy_timeout=1000")
+        role_row = conn.execute(
+            "SELECT role FROM live_agents WHERE claude_uuid = ?",
+            (session_id,),
+        ).fetchone()
+        if not role_row or not role_row[0]:
+            conn.close()
+            return None
+        role = role_row[0]
         row = conn.execute(
             "SELECT id, sender, content FROM messages WHERE recipient=? AND type='poke' AND status='unread' LIMIT 1",
             (role,),
@@ -446,7 +448,7 @@ def main() -> None:
         return
 
     # Poke check — fires for ALL tool types (before Bash-only gate)
-    poke_reason = _check_poke()
+    poke_reason = _check_poke(data.get("session_id", ""))
     if poke_reason:
         deny_response(poke_reason)
         return

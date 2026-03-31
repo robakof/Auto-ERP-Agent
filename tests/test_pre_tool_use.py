@@ -164,7 +164,7 @@ class TestPokeCheck:
         db.close()
 
     def test_no_poke_passthrough(self):
-        """Without session_data.json, _check_poke returns None — non-Bash tools pass through."""
+        """Without live_agents entry, _check_poke returns None — non-Bash tools pass through."""
         rc, out = run_hook({"tool_name": "Read", "tool_input": {"file_path": "/tmp/x"}})
         assert rc == 0
         assert out is None
@@ -388,7 +388,7 @@ class TestWorkflowAwareness:
         db.close()
 
     def test_hook_still_works_without_session_data(self):
-        """Hook should not crash when session_data.json missing."""
+        """Hook should not crash without live_agents entry."""
         rc, out = run_hook(make_bash("py -m pytest tests/ -q"))
         assert out["hookSpecificOutput"]["permissionDecision"] == "allow"
 
