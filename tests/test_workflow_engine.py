@@ -54,6 +54,11 @@ def db(tmp_path):
             workflow_version TEXT NOT NULL, phase TEXT NOT NULL,
             item_id TEXT NOT NULL, condition TEXT NOT NULL
         );
+        CREATE TABLE messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sender TEXT, recipient TEXT, content TEXT, type TEXT,
+            status TEXT DEFAULT 'unread',
+            created_at TEXT DEFAULT (datetime('now')));
         CREATE TABLE workflow_execution (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             workflow_id TEXT NOT NULL, role TEXT NOT NULL,
@@ -406,3 +411,96 @@ class TestEdgeCases:
         # END should result in empty allowed_transitions (terminal)
         assert state.allowed_transitions == []
         engine.close()
+
+
+# --- 7. HANDOFF resume (Faza 6) ---
+
+class TestHandoffResume:
+    def test_resume_unblocks_handoff(self, engine_with_sample):
+        e = engine_with_sample
+        exec_id = e.start("test_sample", "developer")
+
+        # Walk to handoff point
+        e.complete_step(exec_id, "verify_git", "PASS")
+        e.complete_step(exec_id, "read_context", "PASS")
+        e.complete_step(exec_id, "implement", "PASS")
+        e.complete_step(exec_id, "run_tests", "PASS")
+        e.complete_step(exec_id, "send_review", "PASS")
+
+        state = e.get_current_state(exec_id)
+        assert state.is_handoff
+
+        # Resume
+        r = e.resume_handoff(exec_id, resumed_by="manual")
+        assert r.ok
+        assert "resumed" in r.message.lower()
+
+        # After resume — no longer in handoff
+        state2 = e.get_current_state(exec_id)
+        assert not state2.is_handoff
+
+    def test_resume_not_in_handoff(self, engine_with_sample):
+        e = engine_with_sample
+        exec_id = e.start("test_sample", "developer")
+        e.complete_step(exec_id, "verify_git", "PASS")
+
+        r = e.resume_handoff(exec_id)
+        assert not r.ok
+        assert "not in handoff" in r.message.lower()
+
+    def test_auto_resume_with_message(self, engine_with_handoff):
+        """Auto-resume when handoff_to role sends a message."""
+        e = engine_with_handoff
+        exec_id = e.start("test_handoff", "erp_specialist")
+
+        e.complete_step(exec_id, "create_draft", "PASS")
+        e.complete_step(exec_id, "send_approval", "PASS")
+
+        state = e.get_current_state(exec_id)
+        assert state.is_handoff
+        assert state.handoff_to == "human"
+
+        # Simulate message from human (handoff_to)
+        e._conn.execute(
+            "INSERT INTO messages (sender, recipient, content, type) VALUES ('human','erp_specialist','approved','direct')"
+        )
+        e._conn.commit()
+
+        # Auto-resume should detect the message
+        r = e.check_auto_resume(exec_id)
+        assert r is not None
+        assert r.ok
+
+    def test_auto_resume_no_message(self, engine_with_handoff):
+        """No auto-resume when no message from handoff_to."""
+        e = engine_with_handoff
+        exec_id = e.start("test_handoff", "erp_specialist")
+
+        e.complete_step(exec_id, "create_draft", "PASS")
+        e.complete_step(exec_id, "send_approval", "PASS")
+
+        # No messages table / no messages
+        r = e.check_auto_resume(exec_id)
+        assert r is None  # no auto-resume
+
+    def test_handoff_blocks_write_allows_resume(self, engine_with_sample):
+        """HANDOFF blocks Write tool, but resume unblocks."""
+        e = engine_with_sample
+        exec_id = e.start("test_sample", "developer")
+
+        e.complete_step(exec_id, "verify_git", "PASS")
+        e.complete_step(exec_id, "read_context", "PASS")
+        e.complete_step(exec_id, "implement", "PASS")
+        e.complete_step(exec_id, "run_tests", "PASS")
+        e.complete_step(exec_id, "send_review", "PASS")
+
+        # In HANDOFF — only agent_bus_cli
+        assert e.get_allowed_tools(exec_id) == ["agent_bus_cli"]
+        assert not e.can_transition(exec_id, "anything")
+
+        # Resume
+        e.resume_handoff(exec_id, resumed_by="architect")
+
+        # After resume — can transition again
+        state = e.get_current_state(exec_id)
+        assert not state.is_handoff

@@ -258,6 +258,60 @@ class WorkflowEngine:
         self._conn.commit()
         return {"ok": True, "message": f"Execution {execution_id} ended with status '{status}'"}
 
+    def resume_handoff(self, execution_id: int, resumed_by: str = "manual") -> StepResult:
+        """Resume workflow blocked at HANDOFF point.
+
+        Called by: workflow-resume CLI, auto-resume on message from handoff_to role.
+        """
+        state = self.get_current_state(execution_id)
+        if not state.is_handoff:
+            return StepResult(
+                ok=False, step_id=state.step_id or "", status="BLOCKED",
+                message="Not in HANDOFF state — nothing to resume",
+            )
+
+        # Log the resume event
+        self._log_step(
+            execution_id, f"handoff_resumed:{state.step_id}",
+            "PASS", f"Resumed by {resumed_by}",
+        )
+        return StepResult(
+            ok=True, step_id=state.step_id or "", status="PASS",
+            message=f"HANDOFF at '{state.step_id}' resumed by {resumed_by}",
+        )
+
+    def check_auto_resume(self, execution_id: int) -> Optional[StepResult]:
+        """Check if HANDOFF can be auto-resumed (message from handoff_to role exists).
+
+        Returns StepResult if resumed, None if no auto-resume.
+        """
+        state = self.get_current_state(execution_id)
+        if not state.is_handoff or not state.handoff_to:
+            return None
+
+        # Check for message from handoff_to role sent after the handoff step
+        last_log = self._conn.execute(
+            "SELECT timestamp FROM step_log WHERE execution_id=? "
+            "ORDER BY timestamp DESC, id DESC LIMIT 1",
+            (execution_id,),
+        ).fetchone()
+        if not last_log:
+            return None
+
+        handoff_time = last_log["timestamp"]
+        # Look for reply from handoff_to role (>= because same-second inserts)
+        try:
+            row = self._conn.execute(
+                "SELECT id FROM messages WHERE sender=? AND created_at >= ? LIMIT 1",
+                (state.handoff_to, handoff_time),
+            ).fetchone()
+        except Exception:
+            return None  # messages table may not exist in test environments
+
+        if row:
+            return self.resume_handoff(execution_id, resumed_by=f"auto:{state.handoff_to}")
+        return None
+
     def get_logged_steps(self, execution_id: int) -> list[dict]:
         """Return all logged steps for an execution (useful for exploratory post-analysis)."""
         rows = self._conn.execute(

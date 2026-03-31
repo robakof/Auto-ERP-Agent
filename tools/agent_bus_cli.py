@@ -504,6 +504,20 @@ def cmd_workflow_end(args: argparse.Namespace, bus: AgentBus) -> dict:
     return result
 
 
+def cmd_workflow_resume(args: argparse.Namespace, bus: AgentBus) -> dict:
+    """Resume workflow blocked at HANDOFF point."""
+    try:
+        from tools.lib.workflow_engine import WorkflowEngine
+        engine = WorkflowEngine(db_path=bus._db_path)
+        try:
+            result = engine.resume_handoff(args.execution_id, resumed_by="manual")
+            return {"ok": result.ok, "message": result.message}
+        finally:
+            engine.close()
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
 def cmd_execution_status(args: argparse.Namespace, bus: AgentBus) -> dict:
     status = bus.get_execution_status(args.execution_id)
     if status is None:
@@ -1320,6 +1334,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_inter = subparsers.add_parser("interrupted-workflows", help="List interrupted/running workflows")
     p_inter.add_argument("--role", default=None)
 
+    # workflow-resume
+    p_wresume = subparsers.add_parser("workflow-resume", help="Resume workflow blocked at HANDOFF point")
+    p_wresume.add_argument("--execution-id", dest="execution_id", type=int, required=True)
+
     # flag
     p_flag = subparsers.add_parser("flag", help="Flag something for human review")
     p_flag.add_argument("--from", dest="sender", required=True)
@@ -1445,6 +1463,7 @@ def main():
         "workflow-start": cmd_workflow_start,
         "step-log": cmd_step_log,
         "workflow-end": cmd_workflow_end,
+        "workflow-resume": cmd_workflow_resume,
         "execution-status": cmd_execution_status,
         "interrupted-workflows": cmd_interrupted_workflows,
         "flag": cmd_flag,

@@ -361,9 +361,9 @@ class StepVerifier:
 
 ### Exit gate
 
-- [ ] HANDOFF_POINT blokuje przejście
-- [ ] Odblokowanie działa (manual + auto)
-- [ ] Testy PASS
+- [x] HANDOFF_POINT blokuje przejście — engine.is_handoff, can_transition=False, tools=[agent_bus_cli]
+- [x] Odblokowanie działa (manual + auto) — workflow-resume CLI + check_auto_resume()
+- [x] Testy PASS — 5 testów HandoffResume + 79 total
 
 ---
 
