@@ -51,6 +51,8 @@ COLUMNS_ORDER = [
     "Czy zdjęcie załadowane do systemu",
     "Czy zdjęcie zrobione png",
     "Cena 100",
+    "Cena Brico",
+    "Cena PSB",
 ]
 
 # Kolumny obliczane w Python (nie z SQL)
@@ -72,7 +74,9 @@ SELECT
     CAST(jm_karton.TwJ_PrzeliczL  AS BIGINT)  AS [karton],
     CAST(jm_paleta.TwJ_PrzeliczL  AS BIGINT)  AS [paleta],
     ISNULL(zak.CenaZakupu, 0)                 AS [ZAKUP],
-    tc100.TwC_Wartosc                         AS [Cena 100]
+    tc100.TwC_Wartosc                         AS [Cena 100],
+    tc_brico.TwC_Wartosc                      AS [Cena Brico],
+    tc_psb.TwC_Wartosc                        AS [Cena PSB]
 FROM CDN.TwrKarty tk
 JOIN Produkty p
     ON tk.Twr_GIDNumer = p.Twr_GIDNumer
@@ -112,6 +116,18 @@ LEFT JOIN (
     WHERE TwC_TcnId = 1 AND TwC_KntNumer = 0
     GROUP BY TwC_TwrNumer, TwC_TwrTyp
 ) tc100 ON tc100.TwC_TwrNumer = tk.Twr_GIDNumer AND tc100.TwC_TwrTyp = tk.Twr_GIDTyp
+LEFT JOIN (
+    SELECT TwC_TwrNumer, TwC_TwrTyp, MAX(TwC_Wartosc) AS TwC_Wartosc
+    FROM CDN.TwrCeny
+    WHERE TwC_TcnId = 8 AND TwC_KntNumer = 0
+    GROUP BY TwC_TwrNumer, TwC_TwrTyp
+) tc_brico ON tc_brico.TwC_TwrNumer = tk.Twr_GIDNumer AND tc_brico.TwC_TwrTyp = tk.Twr_GIDTyp
+LEFT JOIN (
+    SELECT TwC_TwrNumer, TwC_TwrTyp, MAX(TwC_Wartosc) AS TwC_Wartosc
+    FROM CDN.TwrCeny
+    WHERE TwC_TcnId = 10 AND TwC_KntNumer = 0
+    GROUP BY TwC_TwrNumer, TwC_TwrTyp
+) tc_psb ON tc_psb.TwC_TwrNumer = tk.Twr_GIDNumer AND tc_psb.TwC_TwrTyp = tk.Twr_GIDTyp
 LEFT JOIN GrupaNazwa tg_path ON tg_path.TwrNumer = tk.Twr_GIDNumer
 ORDER BY tk.Twr_Kod
 """
@@ -277,7 +293,7 @@ def _export_excel(rows: list[dict], output_path: str) -> None:
         "SZEROKOŚĆ BRUTTO OPAKOWANIA": 14, "warstwa": 10, "opak.": 10,
         "karton": 10, "paleta": 10,
         "Czy zdjęcie załadowane do systemu": 16, "Czy zdjęcie zrobione png": 14,
-        "Cena 100": 12,
+        "Cena 100": 12, "Cena Brico": 12, "Cena PSB": 12,
     }
     for col_idx, col_name in enumerate(COLUMNS_ORDER, start=1):
         ws.column_dimensions[
