@@ -65,7 +65,7 @@ def _get_session_data() -> dict:
                 ).fetchone()
             if not row and claude_uuid:
                 row = conn.execute(
-                    "SELECT session_id, role FROM live_agents WHERE claude_uuid = ? AND status != 'stopped'",
+                    "SELECT session_id, role FROM live_agents WHERE claude_uuid = ?",
                     (claude_uuid,),
                 ).fetchone()
             conn.close()
