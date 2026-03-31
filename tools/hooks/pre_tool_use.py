@@ -293,12 +293,6 @@ def _check_workflow_awareness(tool_name: str, tool_input: dict, claude_uuid: str
             (session_id,),
         ).fetchone()
         if not row:
-            # No active workflow — log warning to stderr
-            print(
-                f"[workflow-warning] {role or '?'}: tool={tool_name} bez aktywnego workflow. "
-                f"Użyj workflow-start przed pracą.",
-                file=sys.stderr,
-            )
             # Track untracked tool call (sentinel execution_id=0)
             conn.execute(
                 "INSERT OR IGNORE INTO workflow_execution (id, workflow_id, role, session_id, status) "
@@ -310,6 +304,18 @@ def _check_workflow_awareness(tool_name: str, tool_input: dict, claude_uuid: str
                 (f"untracked:tool:{tool_name}", f"session={session_id} role={role}"),
             )
             conn.commit()
+            conn.close()
+
+            # Visible warning via deny (once per session — use flag file)
+            flag = Path(__file__).parent.parent.parent / "tmp" / f"wf_warned_{session_id}.flag"
+            if not flag.exists():
+                flag.write_text("1", encoding="utf-8")
+                deny_response(
+                    f"[workflow-warning] Brak aktywnego workflow (session={session_id}). "
+                    f"Wywołaj: py tools/agent_bus_cli.py workflow-start --workflow-id <ID> --role <rola>. "
+                    f"Ponów komendę po workflow-start."
+                )
+            return
         conn.close()
     except Exception as e:
         from pathlib import Path as _P
