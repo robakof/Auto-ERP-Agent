@@ -255,7 +255,7 @@ def _check_workflow_awareness(tool_name: str, tool_input: dict, claude_uuid: str
 
         session_id, role = None, None
 
-        # Strategy 1: claude_uuid → live_agents (multi-agent safe, spawned agents)
+        # Strategy 1: claude_uuid → live_agents (spawned agents)
         if claude_uuid:
             agent = conn.execute(
                 "SELECT session_id, role FROM live_agents "
@@ -265,13 +265,22 @@ def _check_workflow_awareness(tool_name: str, tool_input: dict, claude_uuid: str
             if agent:
                 session_id, role = agent
 
-        # Strategy 2: fallback to session_data.json (manually started agents)
-        if not session_id:
-            sd_file = Path(__file__).parent.parent.parent / "tmp" / "session_data.json"
-            if sd_file.exists():
-                sd = json.loads(sd_file.read_text(encoding="utf-8"))
-                session_id = sd.get("session_id")
-                role = sd.get("role")
+        # Strategy 2: claude_uuid → sessions table (all agents via session_init)
+        if not session_id and claude_uuid:
+            sess = conn.execute(
+                "SELECT id, role FROM sessions WHERE claude_session_id=?",
+                (claude_uuid,),
+            ).fetchone()
+            if sess:
+                session_id = sess[0]
+                role = sess[1]
+            # Also try tmp/session_data.json for role if sessions has no role
+            if session_id and not role:
+                sd_file = Path(__file__).parent.parent.parent / "tmp" / "session_data.json"
+                if sd_file.exists():
+                    sd = json.loads(sd_file.read_text(encoding="utf-8"))
+                    if sd.get("session_id") == session_id:
+                        role = sd.get("role")
 
         if not session_id:
             conn.close()
