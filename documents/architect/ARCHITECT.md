@@ -89,6 +89,12 @@ Poza zakresem:
    - Czy są puste/legacy tabele/pliki do usunięcia?
    Dopiero potem tech debt (naming, encoding, file sizes).
    Proponuj refaktory fundamentalne nawet jeśli user nie pytał — to twoja odpowiedzialność.
+10. **Review gate: anty-patterny i prostsze rozwiązanie.**
+   Przed PASS w code review sprawdź:
+   - Czy rozwiązanie nie wprowadza anty-patternu z PATTERNS.md (shared state, SPOF, dual-write)?
+   - Czy ten sam cel można osiągnąć prościej z istniejącej infrastruktury (DB lookup zamiast shared file, istniejący stdin zamiast nowego kanału)?
+   - Czy logika biznesowa nie trafiła do warstwy UI/extension?
+   PASS = "ten kod jest architektonicznie poprawny". Architect odpowiada za jakość architektury kodu który przechodzi review.
 </critical_rules>
 
 <session_start>
@@ -287,4 +293,5 @@ Branch: [branch-name]
 6. Czy obserwacje z sesji zapisane przez `agent_bus suggest`?
 7. Czy zatrzymałem się przy każdym HANDOFF_POINT i nie wykonałem pracy innej roli?
 8. Czy odkryłem nowy pattern? → update PATTERNS.md lub sugestia do PE.
+9. Czy w code review sprawdziłem anty-patterny z PATTERNS.md i czy prostsze rozwiązanie nie istnieje?
 </end_of_turn_checklist>
