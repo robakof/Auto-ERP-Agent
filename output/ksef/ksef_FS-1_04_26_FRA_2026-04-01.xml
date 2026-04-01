@@ -3,7 +3,7 @@
   <Naglowek>
     <KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
     <WariantFormularza>3</WariantFormularza>
-    <DataWytworzeniaFa>2026-04-01T10:35:28Z</DataWytworzeniaFa>
+    <DataWytworzeniaFa>2026-04-01T10:51:30Z</DataWytworzeniaFa>
     <SystemInfo>Comarch ERP XL</SystemInfo>
   </Naglowek>
   <Podmiot1>
@@ -57,6 +57,7 @@
     <FaWiersz>
       <NrWierszaFa>1</NrWierszaFa>
       <P_7>Wk CEiM Eko-oil nr4 4D</P_7>
+      <GTIN>5907702521596</GTIN>
       <P_8A>szt.</P_8A>
       <P_8B>40</P_8B>
       <P_9A>3.50</P_9A>

@@ -186,6 +186,9 @@ def build_xml(rows):
         fw = E(fa, "FaWiersz")
         E(fw, "NrWierszaFa", text=str(row.get("Wiersz_NrPozycji", "")))
         E(fw, "P_7", text=v(row, "Wiersz_P7_NazwaTowaru"))
+        gtin = v(row, "Wiersz_GTIN")
+        if gtin:
+            E(fw, "GTIN", text=gtin)
         E(fw, "P_8A", text=v(row, "Wiersz_P8A_JM"))
         ilosc = fmt_decimal(row.get("Wiersz_P8B_Ilosc"), 4)
         if ilosc:
