@@ -130,6 +130,8 @@ def build_xml(rows):
     E(adr2, "KodKraju", text=v(r, "P2_KodKraju"))
     E(adr2, "AdresL1", text=v(r, "P2_AdresL1"))
     E(adr2, "AdresL2", text=v(r, "P2_AdresL2"))
+    E(p2, "JST", text="2")
+    E(p2, "GV", text="2")
 
     # Fa
     fa = E(root, "Fa")

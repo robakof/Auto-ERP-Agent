@@ -3,7 +3,7 @@
   <Naglowek>
     <KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
     <WariantFormularza>3</WariantFormularza>
-    <DataWytworzeniaFa>2026-04-01T10:21:45Z</DataWytworzeniaFa>
+    <DataWytworzeniaFa>2026-04-01T10:29:10Z</DataWytworzeniaFa>
     <SystemInfo>Comarch ERP XL</SystemInfo>
   </Naglowek>
   <Podmiot1>
@@ -24,7 +24,7 @@
     </DaneIdentyfikacyjne>
     <Adres>
       <KodKraju>PL</KodKraju>
-      <AdresL1>Wołyńska 35</AdresL1>
+      <AdresL1>ul. Wołyńska 35</AdresL1>
       <AdresL2>60-637 Poznań</AdresL2>
     </Adres>
     <JST>2</JST>
@@ -59,7 +59,7 @@
       <P_7>Wk CEiM Eko-oil nr4 4D</P_7>
       <P_8A>szt.</P_8A>
       <P_8B>40</P_8B>
-      <P_9A>2.8455</P_9A>
+      <P_9A>3.50</P_9A>
       <P_11>113.82</P_11>
       <P_12>23</P_12>
     </FaWiersz>
