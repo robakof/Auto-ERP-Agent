@@ -249,6 +249,8 @@ def parse_args():
                     help="Sciezka do pliku XSD do walidacji")
     p.add_argument("--dry-run", action="store_true",
                     help="Pokaz SQL bez wykonania")
+    p.add_argument("--output-dir", dest="output_dir", metavar="KATALOG",
+                    help="Katalog wyjsciowy dla plikow XML (domyslnie: output/ksef)")
     return p.parse_args()
 
 
@@ -288,7 +290,8 @@ def main():
     all_rows.sort(key=itemgetter("_GIDNumer"))
     groups = groupby(all_rows, key=itemgetter("_GIDNumer"))
 
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    out_dir = Path(args.output_dir) if args.output_dir else OUTPUT_DIR
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     generated = []
     errors = []
@@ -303,7 +306,7 @@ def main():
             root, xml_declaration=True, encoding="UTF-8", pretty_print=True,
         )
 
-        out_path = OUTPUT_DIR / f"ksef_{nr}_{data}.xml"
+        out_path = out_dir / f"ksef_{nr}_{data}.xml"
         out_path.write_bytes(xml_bytes)
         print(f"  [OK] {nr} ({len(rows)} poz.) -> {out_path.name}")
 
@@ -324,7 +327,7 @@ def main():
 
         generated.append(out_path)
 
-    print(f"\nWygenerowano {len(generated)} faktur(y) w {OUTPUT_DIR}")
+    print(f"\nWygenerowano {len(generated)} faktur(y) w {out_dir}")
     if errors:
         print(f"Walidacja XSD: {len(errors)} z bledami.")
         sys.exit(2)

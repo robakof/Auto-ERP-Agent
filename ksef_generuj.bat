@@ -1,8 +1,8 @@
 @echo off
 :: Generowanie XML KSeF dla faktur z danego dnia
 :: Uzycie:
-::   ksef_generuj.bat              -> dzisiejsza data
-::   ksef_generuj.bat 2026-04-01   -> podana data (YYYY-MM-DD)
+::   ksef_generuj.bat              -> dzisiejsza data, dialog wyboru folderu
+::   ksef_generuj.bat 2026-04-01   -> podana data (YYYY-MM-DD), dialog wyboru folderu
 
 cd /d "%~dp0"
 
@@ -15,8 +15,14 @@ if "%1"=="" (
 echo Generowanie faktur KSeF za: %DATA%
 echo.
 
-py tools/ksef_generate.py --date-from %DATA% --validate output/schemat_FA3.xsd
+:: Dialog wyboru folderu wyjsciowego
+for /f "usebackq delims=" %%F in (`powershell -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.FolderBrowserDialog; $d.Description = 'Wybierz folder dla plikow XML KSeF'; $d.SelectedPath = '%~dp0output\ksef'; if ($d.ShowDialog() -eq 'OK') { $d.SelectedPath } else { '%~dp0output\ksef' }"`) do set OUT_DIR=%%F
+
+echo Folder wyjsciowy: %OUT_DIR%
+echo.
+
+py tools/ksef_generate.py --date-from %DATA% --validate output/schemat_FA3.xsd --output-dir "%OUT_DIR%"
 
 echo.
-echo Gotowe. Pliki zapisane w: output\ksef\
+echo Gotowe. Pliki zapisane w: %OUT_DIR%
 pause
