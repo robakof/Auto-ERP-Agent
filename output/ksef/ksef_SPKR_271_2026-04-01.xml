@@ -1,0 +1,560 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
+  <Naglowek>
+    <KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+    <WariantFormularza>3</WariantFormularza>
+    <DataWytworzeniaFa>2026-04-01T10:18:46Z</DataWytworzeniaFa>
+    <SystemInfo>Comarch ERP XL</SystemInfo>
+  </Naglowek>
+  <Podmiot1>
+    <DaneIdentyfikacyjne>
+      <NIP>7871003063</NIP>
+      <Nazwa>Produkcja Zniczy I Lampionów CEIM MAREK CYPROWSKI</Nazwa>
+    </DaneIdentyfikacyjne>
+    <Adres>
+      <KodKraju>PL</KodKraju>
+      <AdresL1>Leśna 14</AdresL1>
+      <AdresL2>64-551 Otorowo</AdresL2>
+    </Adres>
+  </Podmiot1>
+  <Podmiot2>
+    <DaneIdentyfikacyjne>
+      <NIP>7822136580</NIP>
+      <Nazwa>VILEMO SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ</Nazwa>
+    </DaneIdentyfikacyjne>
+    <Adres>
+      <KodKraju>PL</KodKraju>
+      <AdresL1>Kolejowa 14</AdresL1>
+      <AdresL2>64-300 Nowy Tomyśl</AdresL2>
+    </Adres>
+    <JST>2</JST>
+    <GV>2</GV>
+  </Podmiot2>
+  <Fa>
+    <KodWaluty>PLN</KodWaluty>
+    <P_1>2026-04-01</P_1>
+    <P_2>SPKR/271</P_2>
+    <P_6>2026-03-31</P_6>
+    <P_13_1>4085.90</P_13_1>
+    <P_14_1>939.76</P_14_1>
+    <P_15>5025.66</P_15>
+    <Adnotacje>
+      <P_16>2</P_16>
+      <P_17>2</P_17>
+      <P_18>2</P_18>
+      <P_18A>2</P_18A>
+      <Zwolnienie>
+        <P_19N>1</P_19N>
+      </Zwolnienie>
+      <NoweSrodkiTransportu>
+        <P_22N>1</P_22N>
+      </NoweSrodkiTransportu>
+      <P_23>2</P_23>
+      <PMarzy>
+        <P_PMarzyN>1</P_PMarzyN>
+      </PMarzy>
+    </Adnotacje>
+    <RodzajFaktury>VAT</RodzajFaktury>
+    <FaWiersz>
+      <NrWierszaFa>1</NrWierszaFa>
+      <P_7>Bol pieńk. zapch. 110/58 Everyday Piernikowy</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>4.5900</P_9A>
+      <P_11>27.54</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>2</NrWierszaFa>
+      <P_7>Bol szpica 180/21 Everyday Piernikowy</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>8</P_8B>
+      <P_9A>9.8900</P_9A>
+      <P_11>79.12</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>3</NrWierszaFa>
+      <P_7>Bol podg.3,5h 30 szt. Everyday</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>16</P_8B>
+      <P_9A>6.0600</P_9A>
+      <P_11>96.96</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>4</NrWierszaFa>
+      <P_7>Bol pieńk. zapch. 110/58 Everyday Mango Sorbet</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>4.5900</P_9A>
+      <P_11>27.54</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>5</NrWierszaFa>
+      <P_7>Bol podg. zapach. 18 szt. TS Granat</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>8</P_8B>
+      <P_9A>6.9800</P_9A>
+      <P_11>55.84</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>6</NrWierszaFa>
+      <P_7>Bol pieńk. 120/58 mroźna biała</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>4.7800</P_9A>
+      <P_11>28.68</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>7</NrWierszaFa>
+      <P_7>Bol pieńk. 120/58 Zielona Oliwka</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>4.7800</P_9A>
+      <P_11>28.68</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>8</NrWierszaFa>
+      <P_7>Bis św. walec 60/120 a1 p-biały</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>6.2000</P_9A>
+      <P_11>37.20</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>9</NrWierszaFa>
+      <P_7>Bis św. walec 60/150 a1 biała</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>5.8000</P_9A>
+      <P_11>34.80</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>10</NrWierszaFa>
+      <P_7>Bol pieńk. 200/68 Delikatny Perłowy</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>9.9800</P_9A>
+      <P_11>59.88</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>11</NrWierszaFa>
+      <P_7>Bol podg. zapach. 18 szt. TS Mango</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>8</P_8B>
+      <P_9A>6.9800</P_9A>
+      <P_11>55.84</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>12</NrWierszaFa>
+      <P_7>Bol podg. zapach. maxi 8H TS Brzoskwinia</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>11.3200</P_9A>
+      <P_11>67.92</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>13</NrWierszaFa>
+      <P_7>Bol szpica 245/24 1 szt. złota</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>24</P_8B>
+      <P_9A>2.3700</P_9A>
+      <P_11>56.88</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>14</NrWierszaFa>
+      <P_7>Cor Świeca LED 2/20/WAX 5cm x 15cm czarna</P_7>
+      <P_8A>szt.</P_8A>
+      <P_8B>12</P_8B>
+      <P_9A>5.5500</P_9A>
+      <P_11>66.60</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>15</NrWierszaFa>
+      <P_7>Cor Wkład LED Melius z.biały</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>36</P_8B>
+      <P_9A>2.9900</P_9A>
+      <P_11>107.64</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>16</NrWierszaFa>
+      <P_7>Cor Wkład LED Melius czerwony</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>12</P_8B>
+      <P_9A>2.9900</P_9A>
+      <P_11>35.88</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>17</NrWierszaFa>
+      <P_7>Cor Wkład LED serce (2xR6) Biały</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>24</P_8B>
+      <P_9A>5.9900</P_9A>
+      <P_11>143.76</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>18</NrWierszaFa>
+      <P_7>Ass Świeca LED akrylowa 14.5cm BROKAT (978) zimny biały</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>12</P_8B>
+      <P_9A>7.4900</P_9A>
+      <P_11>89.88</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>19</NrWierszaFa>
+      <P_7>Ass Świeca LED akrylowa 14.5cm KWADRAT (982) zimny biały</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>12</P_8B>
+      <P_9A>7.4900</P_9A>
+      <P_11>89.88</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>20</NrWierszaFa>
+      <P_7>Ass Świeca LED akrylowa 14.5cm KWADRAT (983) ciepły biały</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>12</P_8B>
+      <P_9A>7.4900</P_9A>
+      <P_11>89.88</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>21</NrWierszaFa>
+      <P_7>Bol św. w szkle 97/85 Brzoskwinia</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>4</P_8B>
+      <P_9A>11.2400</P_9A>
+      <P_11>44.96</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>22</NrWierszaFa>
+      <P_7>Bol podg. zapach. maxi 8H TS Rozmaryn</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>11.3200</P_9A>
+      <P_11>67.92</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>23</NrWierszaFa>
+      <P_7>AGN Świeca LED w TUBIE DIODA (z bat.) 10cm;  śr:5,5cm</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>24</P_8B>
+      <P_9A>5.5000</P_9A>
+      <P_11>132.00</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>24</NrWierszaFa>
+      <P_7>AGN Świeca LED w TUBIE DIODA (z bat.) 12,5cm;  śr:5,5cm</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>24</P_8B>
+      <P_9A>5.7500</P_9A>
+      <P_11>138.00</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>25</NrWierszaFa>
+      <P_7>AGN Świeca LED w TUBIE DIODA (z bat.) 15cm;  śr:5,5cm</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>24</P_8B>
+      <P_9A>6.1800</P_9A>
+      <P_11>148.32</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>26</NrWierszaFa>
+      <P_7>AGN Świeca LED w TUBIE DIODA (z bat.) 17,5cm;  śr:5,5cm</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>24</P_8B>
+      <P_9A>6.7200</P_9A>
+      <P_11>161.28</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>27</NrWierszaFa>
+      <P_7>Cor Świeca LED w TUBIE (z bat.) 12,5cm,  śr:5cm</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>24</P_8B>
+      <P_9A>5.6500</P_9A>
+      <P_11>135.60</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>28</NrWierszaFa>
+      <P_7>Cor Świeca LED w TUBIE (z bat.) 10cm,  śr:5cm</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>24</P_8B>
+      <P_9A>5.0500</P_9A>
+      <P_11>121.20</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>29</NrWierszaFa>
+      <P_7>Cor Wkład Led XL efekt płomienia (2xR6)</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>20</P_8B>
+      <P_9A>9.4500</P_9A>
+      <P_11>189.00</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>30</NrWierszaFa>
+      <P_7>Bol podg. zapach. 18 szt. 6h Brzoskwinia</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>10.7500</P_9A>
+      <P_11>64.50</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>31</NrWierszaFa>
+      <P_7>Bol szpica 245/24 1 szt. srebro</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>24</P_8B>
+      <P_9A>2.3700</P_9A>
+      <P_11>56.88</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>32</NrWierszaFa>
+      <P_7>Ass Świetlik S6 - biały</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>24</P_8B>
+      <P_9A>4.4900</P_9A>
+      <P_11>107.76</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>33</NrWierszaFa>
+      <P_7>Ass Świetlik S6 - MIX kolorów</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>24</P_8B>
+      <P_9A>4.4900</P_9A>
+      <P_11>107.76</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>34</NrWierszaFa>
+      <P_7>Ass Świetlik S6 - zmieniający</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>24</P_8B>
+      <P_9A>4.4900</P_9A>
+      <P_11>107.76</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>35</NrWierszaFa>
+      <P_7>Bol podg. zapach. maxi 8H TS Lawenda</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>11.3200</P_9A>
+      <P_11>67.92</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>36</NrWierszaFa>
+      <P_7>Gol Kadzidełka długie Red Rose</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>25</P_8B>
+      <P_9A>0.9900</P_9A>
+      <P_11>24.75</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>37</NrWierszaFa>
+      <P_7>Gol Kadzidełka długie Sandal Rose</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>25</P_8B>
+      <P_9A>0.9900</P_9A>
+      <P_11>24.75</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>38</NrWierszaFa>
+      <P_7>Gol Kadzidełka długie Vanilla Orange</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>25</P_8B>
+      <P_9A>0.9900</P_9A>
+      <P_11>24.75</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>39</NrWierszaFa>
+      <P_7>Gol Kadzidełka długie Amber Sandal</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>25</P_8B>
+      <P_9A>0.9900</P_9A>
+      <P_11>24.75</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>40</NrWierszaFa>
+      <P_7>Gol Kadzidełka długie Lemon grass</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>25</P_8B>
+      <P_9A>0.9900</P_9A>
+      <P_11>24.75</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>41</NrWierszaFa>
+      <P_7>Gol Kadzidełka długie Strawberry</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>25</P_8B>
+      <P_9A>0.9900</P_9A>
+      <P_11>24.75</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>42</NrWierszaFa>
+      <P_7>Gol Kadzidełka długie New White Musk</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>25</P_8B>
+      <P_9A>0.9900</P_9A>
+      <P_11>24.75</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>43</NrWierszaFa>
+      <P_7>Gol Kadzidełka długie Love</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>25</P_8B>
+      <P_9A>0.9900</P_9A>
+      <P_11>24.75</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>44</NrWierszaFa>
+      <P_7>Gol Kadzidełka długie Forest</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>25</P_8B>
+      <P_9A>0.9900</P_9A>
+      <P_11>24.75</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>45</NrWierszaFa>
+      <P_7>Gol Kadzidełka długie White Sage</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>25</P_8B>
+      <P_9A>0.9900</P_9A>
+      <P_11>24.75</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>46</NrWierszaFa>
+      <P_7>Bis św. zapach. snk80 kawa</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>8.5800</P_9A>
+      <P_11>51.48</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>47</NrWierszaFa>
+      <P_7>Bis św. zapach. snk80 lawenda</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>8.5800</P_9A>
+      <P_11>51.48</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>48</NrWierszaFa>
+      <P_7>Bis św. zapach. snk80 róża</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>8.5800</P_9A>
+      <P_11>51.48</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>49</NrWierszaFa>
+      <P_7>Bis św. zapach. snk80 białe kwiaty</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>8.5800</P_9A>
+      <P_11>51.48</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>50</NrWierszaFa>
+      <P_7>Bis św. zapach. snk80 kwiat kaktusa</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>8.5800</P_9A>
+      <P_11>51.48</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>51</NrWierszaFa>
+      <P_7>Olejek zapachowy 12 ml Nature</P_7>
+      <P_8A>szt.</P_8A>
+      <P_8B>60</P_8B>
+      <P_9A>3.9900</P_9A>
+      <P_11>239.40</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>52</NrWierszaFa>
+      <P_7>Bis św. zapach. snk80 ogród spa</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>8.5800</P_9A>
+      <P_11>51.48</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>53</NrWierszaFa>
+      <P_7>Bis podg. p15-30 B</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>18</P_8B>
+      <P_9A>6.8500</P_9A>
+      <P_11>123.30</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>54</NrWierszaFa>
+      <P_7>Bis podg. p15-50 B</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>12</P_8B>
+      <P_9A>10.6500</P_9A>
+      <P_11>127.80</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>55</NrWierszaFa>
+      <P_7>Ass Świetlik S6 - żółty</P_7>
+      <P_8A>opak.</P_8A>
+      <P_8B>24</P_8B>
+      <P_9A>4.4900</P_9A>
+      <P_11>107.76</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <Platnosc>
+      <TerminPlatnosci>
+        <Termin>2026-04-30</Termin>
+      </TerminPlatnosci>
+      <FormaPlatnosci>6</FormaPlatnosci>
+    </Platnosc>
+  </Fa>
+</Faktura>

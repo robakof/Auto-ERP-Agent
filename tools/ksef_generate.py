@@ -242,6 +242,7 @@ def build_xml(rows):
 def main():
     parser = argparse.ArgumentParser(description="Generuje KSeF XML dla faktury FS.")
     parser.add_argument("--gid", type=int, default=GID_NUMER_DEFAULT, help="TrN_GIDNumer faktury")
+    parser.add_argument("--date", type=str, default=None, help="Override daty wystawienia P_1 (YYYY-MM-DD)")
     args = parser.parse_args()
 
     sql = _SQL.format(gid_numer=args.gid)
@@ -252,6 +253,10 @@ def main():
 
     cols = res["data"]["columns"]
     rows = [dict(zip(cols, row)) for row in res["data"]["rows"]]
+    if args.date:
+        for row in rows:
+            row["Fa_P1_DataWystawienia"] = args.date
+        print(f"Data wystawienia nadpisana: {args.date}")
     print(f"Pobrano {len(rows)} pozycji faktury.")
 
     root = build_xml(rows)
