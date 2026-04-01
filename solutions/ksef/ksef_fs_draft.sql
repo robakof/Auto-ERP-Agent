@@ -42,8 +42,10 @@ SELECT
          THEN CONVERT(DATE, DATEADD(day, n.TrN_DataSprOrg, '1800-12-28'))
          ELSE CONVERT(DATE, DATEADD(day, n.TrN_Data2,      '1800-12-28'))
     END                                                         AS Fa_P2_DataSprzedazy,
-    RTRIM(n.TrN_TrNSeria) + '/' + CAST(n.TrN_TrNNumer AS VARCHAR(20))
-                                                                AS Fa_P2A_NumerFaktury,
+    'FS-' + CAST(n.TrN_TrNNumer AS VARCHAR(20))
+        + '/' + RIGHT('0' + CAST(MONTH(DATEADD(day, n.TrN_Data2, '1800-12-28')) AS VARCHAR(2)), 2)
+        + '/' + RIGHT(CAST(YEAR(DATEADD(day, n.TrN_Data2, '1800-12-28')) AS VARCHAR(4)), 2)
+        + '/' + RTRIM(n.TrN_TrNSeria)                          AS Fa_P2A_NumerFaktury,
     'VAT'                                                       AS Fa_P6_RodzajTransakcji,
     CASE WHEN NULLIF(RTRIM(n.TrN_NrKorekty), '') IS NULL
          THEN 'VAT' ELSE 'KOR' END                              AS Fa_RodzajFaktury,
