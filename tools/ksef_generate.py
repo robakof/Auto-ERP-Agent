@@ -222,8 +222,8 @@ def build_xml(rows):
             ilosc = ilosc.rstrip("0").rstrip(".")
         E(fw, "P_8B",  text=ilosc)
         E(fw, "P_9A",  text=fmt_decimal(row.get("Wiersz_P9A_CenaNettoJedn")))
-        E(fw, "P_10",  text=fmt_decimal(row.get("Wiersz_P10_WartoscNetto")))  # wartość netto
-        E(fw, "P_11",  text=fmt_decimal(row.get("Wiersz_P12_KwotaVAT")))      # kwota VAT
+        # P_10 = rabat/opust — pomijamy (brak rabatów w CEIM)
+        E(fw, "P_11",  text=fmt_decimal(row.get("Wiersz_P10_WartoscNetto")))  # wartość netto
         E(fw, "P_12",  text=v(row, "Wiersz_P11_StawkaVAT"))                   # stawka VAT (enum)
 
     # Platnosc
@@ -233,7 +233,8 @@ def build_xml(rows):
     E(plat, "FormaPlatnosci", text=v(r, "Plat_KodFormyPlatnosci"))
     rachunek = v(r, "Plat_NrRachunkuBankowego")
     if rachunek:
-        E(plat, "NrRachunku", text=rachunek)
+        rb = E(plat, "RachunekBankowy")
+        E(rb, "NrRB", text=rachunek)
 
     return root
 
