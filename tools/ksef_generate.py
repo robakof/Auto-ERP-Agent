@@ -1,106 +1,42 @@
 """
-Generuje KSeF FA(2) XML dla jednej faktury.
-Prototype — dane z CDN.TraNag/TraElem/TraVat/TraPlat/KntKarty/Firma.
+Generuje KSeF FA(2) XML z danych ERP XL.
+
+CLI:
+    py tools/ksef_generate.py --gid 8981092              # jedna faktura
+    py tools/ksef_generate.py --gid 8981092 8981093      # kilka faktur
+    py tools/ksef_generate.py --date-from 2026-03-01 --date-to 2026-03-31
+    py tools/ksef_generate.py --date-from 2026-03-31     # jeden dzień
+    py tools/ksef_generate.py --validate output/schemat.xsd --gid 8981092
+
+Opcje:
+    --gid N [N ...]       GID_NUMER faktur(y)
+    --date-from YYYY-MM-DD  data wystawienia od
+    --date-to YYYY-MM-DD    data wystawienia do (domyślnie = date-from)
+    --validate XSD_PATH   walidacja każdego XML przeciw XSD
+    --dry-run             pokaż SQL bez wykonania
 """
+import argparse
 import sys
+from itertools import groupby
+from operator import itemgetter
 from pathlib import Path
 from datetime import datetime
 from lxml import etree
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
-from sql_query import run_query
 
-GID_NUMER = 8981092   # FRA/266 z 2026-03-31
-
-SQL = f"""
-SELECT
-    'FA'                                                        AS KSeF_KodFormularza,
-    2                                                           AS KSeF_WariantFormularza,
-    f.Frm_NIP                                                   AS P1_NIP,
-    RTRIM(f.Frm_Nazwa1) + ' ' + RTRIM(f.Frm_Nazwa2)            AS P1_PelnaNazwa,
-    f.Frm_Kraj                                                  AS P1_KodKraju,
-    RTRIM(f.Frm_Ulica)                                          AS P1_AdresL1,
-    f.Frm_KodP + ' ' + RTRIM(f.Frm_Miasto)                     AS P1_AdresL2,
-    RTRIM(k.Knt_Nip)                                            AS P2_NIP,
-    CASE WHEN RTRIM(k.Knt_NipPrefiks) = '' THEN 'PL' ELSE RTRIM(k.Knt_NipPrefiks) END AS P2_PrefiksNIP,
-    RTRIM(k.Knt_Nazwa1)                                         AS P2_PelnaNazwa,
-    k.Knt_Kraj                                                  AS P2_KodKraju,
-    RTRIM(k.Knt_Ulica)                                          AS P2_AdresL1,
-    k.Knt_KodP + ' ' + RTRIM(k.Knt_Miasto)                     AS P2_AdresL2,
-    n.TrN_Waluta                                                AS Fa_KodWaluty,
-    CONVERT(DATE, DATEADD(day, n.TrN_Data2, '1800-12-28'))      AS Fa_P1_DataWystawienia,
-    CASE WHEN n.TrN_DataSprOrg > 0
-         THEN CONVERT(DATE, DATEADD(day, n.TrN_DataSprOrg, '1800-12-28'))
-         ELSE CONVERT(DATE, DATEADD(day, n.TrN_Data2, '1800-12-28'))
-    END                                                         AS Fa_P2_DataSprzedazy,
-    RTRIM(n.TrN_TrNSeria) + '/' + CAST(n.TrN_TrNNumer AS VARCHAR(20)) AS Fa_P2A_NumerFaktury,
-    CASE WHEN NULLIF(RTRIM(n.TrN_NrKorekty), '') IS NULL THEN 'VAT' ELSE 'KOR' END AS Fa_RodzajFaktury,
-    v23.NettoR                                                  AS Fa_P13_1_Podstawa23,
-    v23.VatR                                                    AS Fa_P14_1_VAT23,
-    v8.NettoR                                                   AS Fa_P13_2_Podstawa8,
-    v8.VatR                                                     AS Fa_P14_2_VAT8,
-    v5.NettoR                                                   AS Fa_P13_3_Podstawa5,
-    v5.VatR                                                     AS Fa_P14_3_VAT5,
-    v0.NettoR                                                   AS Fa_P13_5_Podstawa0,
-    v0.VatR                                                     AS Fa_P14_5_VAT0,
-    vZW.NettoR                                                  AS Fa_P13_6_PodstawaZW,
-    vNP.NettoR                                                  AS Fa_P13_7_PodstawaNP,
-    n.TrN_NettoR + n.TrN_VatR                                   AS Fa_P15_KwotaNaleznosci,
-    CASE WHEN n.TrN_MPP = 1 THEN '1' ELSE '2' END              AS Fa_P16_MPP,
-    e.TrE_GIDLp                                                 AS Wiersz_NrPozycji,
-    RTRIM(e.TrE_TwrNazwa)                                       AS Wiersz_P7_NazwaTowaru,
-    RTRIM(e.TrE_JmZ)                                            AS Wiersz_P8A_JM,
-    e.TrE_Ilosc                                                 AS Wiersz_P8B_Ilosc,
-    e.TrE_Cena                                                  AS Wiersz_P9A_CenaNettoJedn,
-    e.TrE_KsiegowaNetto                                         AS Wiersz_P10_WartoscNetto,
-    CASE e.TrE_GrupaPod
-        WHEN 'A' THEN '23' WHEN 'B' THEN '8' WHEN 'C' THEN '5'
-        WHEN 'F' THEN '0'  WHEN 'D' THEN 'ZW' WHEN 'E' THEN 'NP'
-        ELSE CAST(CAST(e.TrE_StawkaPod AS DECIMAL(5,0)) AS VARCHAR(5))
-    END                                                         AS Wiersz_P11_StawkaVAT,
-    e.TrE_KsiegowaBrutto - e.TrE_KsiegowaNetto                 AS Wiersz_P12_KwotaVAT,
-    CONVERT(DATE, DATEADD(day, p.TrP_Termin, '1800-12-28'))     AS Plat_TerminPlatnosci,
-    CASE p.TrP_FormaNr WHEN 10 THEN '1' WHEN 20 THEN '6' WHEN 50 THEN '3'
-        ELSE CAST(p.TrP_FormaNr AS VARCHAR(5)) END              AS Plat_KodFormyPlatnosci,
-    CASE WHEN p.TrP_FormaNr = 20 THEN rb.RkB_NrRachunku ELSE NULL END AS Plat_NrRachunkuBankowego
-
-FROM CDN.TraNag n
-CROSS JOIN (SELECT TOP 1 Frm_NIP, Frm_Nazwa1, Frm_Nazwa2,
-    Frm_Kraj, Frm_Ulica, Frm_KodP, Frm_Miasto FROM CDN.Firma) f
-JOIN CDN.KntKarty k ON k.Knt_GIDNumer = n.TrN_KntNumer AND k.Knt_GIDTyp = 32
-JOIN CDN.TraElem e ON e.TrE_GIDTyp = n.TrN_GIDTyp AND e.TrE_GIDNumer = n.TrN_GIDNumer
-LEFT JOIN (SELECT TrV_GIDTyp, TrV_GIDNumer, SUM(TrV_NettoR) AS NettoR, SUM(TrV_VatR) AS VatR
-    FROM CDN.TraVat WHERE TrV_FlagaVat=1 AND TrV_StawkaPod='23.00'
-    GROUP BY TrV_GIDTyp, TrV_GIDNumer) v23 ON v23.TrV_GIDTyp=n.TrN_GIDTyp AND v23.TrV_GIDNumer=n.TrN_GIDNumer
-LEFT JOIN (SELECT TrV_GIDTyp, TrV_GIDNumer, SUM(TrV_NettoR) AS NettoR, SUM(TrV_VatR) AS VatR
-    FROM CDN.TraVat WHERE TrV_FlagaVat=1 AND TrV_StawkaPod='8.00'
-    GROUP BY TrV_GIDTyp, TrV_GIDNumer) v8 ON v8.TrV_GIDTyp=n.TrN_GIDTyp AND v8.TrV_GIDNumer=n.TrN_GIDNumer
-LEFT JOIN (SELECT TrV_GIDTyp, TrV_GIDNumer, SUM(TrV_NettoR) AS NettoR, SUM(TrV_VatR) AS VatR
-    FROM CDN.TraVat WHERE TrV_FlagaVat=1 AND TrV_StawkaPod='5.00'
-    GROUP BY TrV_GIDTyp, TrV_GIDNumer) v5 ON v5.TrV_GIDTyp=n.TrN_GIDTyp AND v5.TrV_GIDNumer=n.TrN_GIDNumer
-LEFT JOIN (SELECT TrV_GIDTyp, TrV_GIDNumer, SUM(TrV_NettoR) AS NettoR, SUM(TrV_VatR) AS VatR
-    FROM CDN.TraVat WHERE TrV_FlagaVat=1 AND TrV_StawkaPod='0.00'
-    GROUP BY TrV_GIDTyp, TrV_GIDNumer) v0 ON v0.TrV_GIDTyp=n.TrN_GIDTyp AND v0.TrV_GIDNumer=n.TrN_GIDNumer
-LEFT JOIN (SELECT TrV_GIDTyp, TrV_GIDNumer, SUM(TrV_NettoR) AS NettoR
-    FROM CDN.TraVat WHERE TrV_FlagaVat=2
-    GROUP BY TrV_GIDTyp, TrV_GIDNumer) vZW ON vZW.TrV_GIDTyp=n.TrN_GIDTyp AND vZW.TrV_GIDNumer=n.TrN_GIDNumer
-LEFT JOIN (SELECT TrV_GIDTyp, TrV_GIDNumer, SUM(TrV_NettoR) AS NettoR
-    FROM CDN.TraVat WHERE TrV_FlagaVat=0
-    GROUP BY TrV_GIDTyp, TrV_GIDNumer) vNP ON vNP.TrV_GIDTyp=n.TrN_GIDTyp AND vNP.TrV_GIDNumer=n.TrN_GIDNumer
-LEFT JOIN (SELECT TrP_GIDTyp, TrP_GIDNumer, TrP_Termin, TrP_FormaNr, TrP_FormaNazwa, TrP_RachBank,
-    ROW_NUMBER() OVER (PARTITION BY TrP_GIDTyp, TrP_GIDNumer ORDER BY TrP_GIDLp) AS rn
-    FROM CDN.TraPlat) p ON p.TrP_GIDTyp=n.TrN_GIDTyp AND p.TrP_GIDNumer=n.TrN_GIDNumer AND p.rn=1
-LEFT JOIN CDN.RachunkiBankowe rb ON rb.RkB_Id=p.TrP_RachBank AND p.TrP_FormaNr=20
-WHERE n.TrN_GIDTyp = 2033 AND n.TrN_GIDNumer = {GID_NUMER}
-ORDER BY e.TrE_GIDLp
-"""
+SQL_PATH = Path(__file__).parent.parent / "solutions" / "ksef" / "ksef_fs_draft.sql"
+OUTPUT_DIR = Path(__file__).parent.parent / "output" / "ksef"
 
 NS = "http://crd.gov.pl/wzor/2025/06/25/13775/"
 NSMAP = {None: NS}
 
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
 def E(parent, tag, text=None, **attrib):
-    """Tworzy element w przestrzeni nazw KSeF i opcjonalnie ustawia text."""
     el = etree.SubElement(parent, f"{{{NS}}}{tag}", **attrib)
     if text is not None:
         el.text = text
@@ -123,6 +59,44 @@ def fmt_decimal(val, places=2):
         return str(val)
 
 
+# ---------------------------------------------------------------------------
+# SQL builder
+# ---------------------------------------------------------------------------
+
+def load_base_sql():
+    return SQL_PATH.read_text(encoding="utf-8")
+
+
+def build_sql(gids=None, date_from=None, date_to=None):
+    base = load_base_sql()
+
+    conditions = []
+    if gids:
+        id_list = ", ".join(str(int(g)) for g in gids)
+        conditions.append(f"n.TrN_GIDNumer IN ({id_list})")
+    if date_from:
+        conditions.append(
+            f"DATEADD(day, n.TrN_Data2, '1800-12-28') >= '{date_from}'"
+        )
+    if date_to:
+        conditions.append(
+            f"DATEADD(day, n.TrN_Data2, '1800-12-28') <= '{date_to}'"
+        )
+
+    if conditions:
+        extra = " AND " + " AND ".join(conditions)
+        base = base.replace(
+            "WHERE n.TrN_GIDTyp = 2033",
+            "WHERE n.TrN_GIDTyp = 2033" + extra,
+        )
+
+    return base
+
+
+# ---------------------------------------------------------------------------
+# XML builder
+# ---------------------------------------------------------------------------
+
 def build_xml(rows):
     r = rows[0]
 
@@ -130,10 +104,11 @@ def build_xml(rows):
 
     # Naglowek
     nag = E(root, "Naglowek")
-    kf = E(nag, "KodFormularza", text="FA",
-           kodSystemowy="FA (3)", wersjaSchemy="1-0E")
+    E(nag, "KodFormularza", text="FA",
+      kodSystemowy="FA (3)", wersjaSchemy="1-0E")
     E(nag, "WariantFormularza", text="3")
-    E(nag, "DataWytworzeniaFa", text=datetime.now().strftime("%Y-%m-%dT%H:%M:%S") + "Z")
+    E(nag, "DataWytworzeniaFa",
+      text=datetime.now().strftime("%Y-%m-%dT%H:%M:%S") + "Z")
     E(nag, "SystemInfo", text="Comarch ERP XL")
 
     # Podmiot1
@@ -155,8 +130,6 @@ def build_xml(rows):
     E(adr2, "KodKraju", text=v(r, "P2_KodKraju"))
     E(adr2, "AdresL1", text=v(r, "P2_AdresL1"))
     E(adr2, "AdresL2", text=v(r, "P2_AdresL2"))
-    E(p2, "JST", text="2")
-    E(p2, "GV", text="2")
 
     # Fa
     fa = E(root, "Fa")
@@ -164,25 +137,24 @@ def build_xml(rows):
     E(fa, "P_1", text=v(r, "Fa_P1_DataWystawienia"))
     E(fa, "P_2", text=v(r, "Fa_P2A_NumerFaktury"))
 
-    # P_6 = data dokonania dostawy (tylko gdy inna niż data wystawienia)
     data_spr = v(r, "Fa_P2_DataSprzedazy")
     data_wyst = v(r, "Fa_P1_DataWystawienia")
     if data_spr and data_spr != data_wyst:
         E(fa, "P_6", text=data_spr)
 
     # VAT per stawka
-    p13_map = [
+    vat_map = [
         ("Fa_P13_1_Podstawa23", "Fa_P14_1_VAT23", "P_13_1", "P_14_1"),
         ("Fa_P13_2_Podstawa8",  "Fa_P14_2_VAT8",  "P_13_2", "P_14_2"),
         ("Fa_P13_3_Podstawa5",  "Fa_P14_3_VAT5",  "P_13_3", "P_14_3"),
         ("Fa_P13_5_Podstawa0",  "Fa_P14_5_VAT0",  "P_13_5", "P_14_5"),
     ]
-    for netto_col, vat_col, netto_tag, vat_tag in p13_map:
+    for netto_col, vat_col, netto_tag, vat_tag in vat_map:
         netto = r.get(netto_col)
-        vat   = r.get(vat_col)
+        vat = r.get(vat_col)
         if netto is not None:
             E(fa, netto_tag, text=fmt_decimal(netto))
-            E(fa, vat_tag,   text=fmt_decimal(vat))
+            E(fa, vat_tag, text=fmt_decimal(vat))
 
     if r.get("Fa_P13_6_PodstawaZW") is not None:
         E(fa, "P_13_6", text=fmt_decimal(r["Fa_P13_6_PodstawaZW"]))
@@ -193,9 +165,9 @@ def build_xml(rows):
 
     # Adnotacje
     adt = E(fa, "Adnotacje")
-    E(adt, "P_16",  text=v(r, "Fa_P16_MPP"))
-    E(adt, "P_17",  text="2")
-    E(adt, "P_18",  text="2")
+    E(adt, "P_16", text=v(r, "Fa_P16_MPP"))
+    E(adt, "P_17", text="2")
+    E(adt, "P_18", text="2")
     E(adt, "P_18A", text="2")
     zwol = E(adt, "Zwolnienie")
     E(zwol, "P_19N", text="1")
@@ -207,20 +179,19 @@ def build_xml(rows):
 
     E(fa, "RodzajFaktury", text=v(r, "Fa_RodzajFaktury"))
 
-    # FaWiersz — pozycje
+    # FaWiersz
     for row in rows:
         fw = E(fa, "FaWiersz")
         E(fw, "NrWierszaFa", text=str(row.get("Wiersz_NrPozycji", "")))
-        E(fw, "P_7",  text=v(row, "Wiersz_P7_NazwaTowaru"))
+        E(fw, "P_7", text=v(row, "Wiersz_P7_NazwaTowaru"))
         E(fw, "P_8A", text=v(row, "Wiersz_P8A_JM"))
         ilosc = fmt_decimal(row.get("Wiersz_P8B_Ilosc"), 4)
         if ilosc:
             ilosc = ilosc.rstrip("0").rstrip(".")
-        E(fw, "P_8B",  text=ilosc)
-        E(fw, "P_9A",  text=fmt_decimal(row.get("Wiersz_P9A_CenaNettoJedn")))
-        # P_10 = rabat/opust — pomijamy (brak osobnej kolumny rabatu)
-        E(fw, "P_11",  text=fmt_decimal(row.get("Wiersz_P10_WartoscNetto")))  # wartość netto
-        E(fw, "P_12",  text=v(row, "Wiersz_P11_StawkaVAT"))                   # stawka VAT (enum)
+        E(fw, "P_8B", text=ilosc)
+        E(fw, "P_9A", text=fmt_decimal(row.get("Wiersz_P9A_CenaNettoJedn")))
+        E(fw, "P_11", text=fmt_decimal(row.get("Wiersz_P10_WartoscNetto")))
+        E(fw, "P_12", text=v(row, "Wiersz_P11_StawkaVAT"))
 
     # Platnosc
     plat = E(fa, "Platnosc")
@@ -234,35 +205,122 @@ def build_xml(rows):
     return root
 
 
+# ---------------------------------------------------------------------------
+# XSD validation
+# ---------------------------------------------------------------------------
+
+def validate_xsd(xml_path, xsd_path):
+    with open(xsd_path, "rb") as f:
+        schema = etree.XMLSchema(etree.parse(f))
+    with open(xml_path, "rb") as f:
+        doc = etree.parse(f)
+
+    if schema.validate(doc):
+        return True, []
+
+    errors = []
+    for err in schema.error_log:
+        errors.append(f"Linia {err.line}: {err.message}")
+    return False, errors
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def parse_args():
+    p = argparse.ArgumentParser(
+        description="Generuj KSeF FA(2) XML z ERP XL"
+    )
+    p.add_argument("--gid", type=int, nargs="+",
+                    help="GID_NUMER faktur(y)")
+    p.add_argument("--date-from", dest="date_from",
+                    help="Data wystawienia od (YYYY-MM-DD)")
+    p.add_argument("--date-to", dest="date_to",
+                    help="Data wystawienia do (YYYY-MM-DD, domyslnie=date-from)")
+    p.add_argument("--validate", metavar="XSD_PATH",
+                    help="Sciezka do pliku XSD do walidacji")
+    p.add_argument("--dry-run", action="store_true",
+                    help="Pokaz SQL bez wykonania")
+    return p.parse_args()
+
+
 def main():
-    res = run_query(SQL, inject_top=None)
+    args = parse_args()
+
+    if not args.gid and not args.date_from:
+        print("Podaj --gid N lub --date-from YYYY-MM-DD")
+        sys.exit(1)
+
+    date_to = args.date_to or args.date_from
+
+    sql = build_sql(
+        gids=args.gid,
+        date_from=args.date_from,
+        date_to=date_to,
+    )
+
+    if args.dry_run:
+        print(sql)
+        return
+
+    from sql_query import run_query
+    res = run_query(sql, inject_top=None)
     if not res["ok"]:
         print("ERROR SQL:", res["error"]["message"])
         sys.exit(1)
 
     cols = res["data"]["columns"]
-    rows = [dict(zip(cols, row)) for row in res["data"]["rows"]]
-    print(f"Pobrano {len(rows)} pozycji faktury.")
+    all_rows = [dict(zip(cols, row)) for row in res["data"]["rows"]]
 
-    root = build_xml(rows)
+    if not all_rows:
+        print("Brak faktur dla podanych kryteriów.")
+        sys.exit(0)
 
-    xml_bytes = etree.tostring(
-        root,
-        xml_declaration=True,
-        encoding="UTF-8",
-        pretty_print=True,
-    )
+    # Grupuj po GIDNumer
+    all_rows.sort(key=itemgetter("_GIDNumer"))
+    groups = groupby(all_rows, key=itemgetter("_GIDNumer"))
 
-    out_dir = Path(__file__).parent.parent / "output" / "ksef"
-    out_dir.mkdir(parents=True, exist_ok=True)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    nr = rows[0].get("Fa_P2A_NumerFaktury", "faktura")
-    nr = str(nr).replace("/", "_")
-    data = str(rows[0].get("Fa_P1_DataWystawienia", ""))[:10]
-    out_path = out_dir / f"ksef_{nr}_{data}.xml"
+    generated = []
+    errors = []
 
-    out_path.write_bytes(xml_bytes)
-    print(f"XML zapisany: {out_path}")
+    for gid_numer, rows_iter in groups:
+        rows = list(rows_iter)
+        nr = str(rows[0].get("Fa_P2A_NumerFaktury", "faktura")).replace("/", "_")
+        data = str(rows[0].get("Fa_P1_DataWystawienia", ""))[:10]
+
+        root = build_xml(rows)
+        xml_bytes = etree.tostring(
+            root, xml_declaration=True, encoding="UTF-8", pretty_print=True,
+        )
+
+        out_path = OUTPUT_DIR / f"ksef_{nr}_{data}.xml"
+        out_path.write_bytes(xml_bytes)
+        print(f"  [OK] {nr} ({len(rows)} poz.) -> {out_path.name}")
+
+        # Walidacja XSD
+        if args.validate:
+            xsd = Path(args.validate)
+            if not xsd.exists():
+                print(f"  [!] XSD nie istnieje: {xsd}")
+            else:
+                valid, errs = validate_xsd(out_path, xsd)
+                if valid:
+                    print(f"  [XSD OK] {out_path.name}")
+                else:
+                    print(f"  [XSD FAIL] {out_path.name} — {len(errs)} bledow:")
+                    for e in errs[:5]:
+                        print(f"    {e}")
+                    errors.append((nr, errs))
+
+        generated.append(out_path)
+
+    print(f"\nWygenerowano {len(generated)} faktur(y) w {OUTPUT_DIR}")
+    if errors:
+        print(f"Walidacja XSD: {len(errors)} z bledami.")
+        sys.exit(2)
 
 
 if __name__ == "__main__":
