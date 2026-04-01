@@ -27,7 +27,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 sys.path.insert(0, str(Path(__file__).parent))
 from sql_query import run_query
 
-PHOTOS_DIR = r"D:\UdzialySieciowe\ZDJĘCIA\ZDJĘCIA PRODUKTÓW\jpg do systemu"
+PHOTOS_DIR = r"C:\CEIM\Zdjęcia"
 GROUP_NUMER = 9139   # CDN.TwrGrupy: 10_OFERTY
 GROUP_TYP   = -16
 
