@@ -166,7 +166,7 @@ def build_xml(rows):
     fa = E(root, "Fa")
     E(fa, "KodWaluty", text=v(r, "Fa_KodWaluty"))
     E(fa, "P_1", text=v(r, "Fa_P1_DataWystawienia"))
-    E(fa, "P_2A", text=v(r, "Fa_P2A_NumerFaktury"))
+    E(fa, "P_2", text=v(r, "Fa_P2A_NumerFaktury"))
 
     # P_6 = data dokonania dostawy (tylko gdy inna niż data wystawienia)
     data_spr = v(r, "Fa_P2_DataSprzedazy")

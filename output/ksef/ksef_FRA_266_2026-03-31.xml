@@ -3,7 +3,7 @@
   <Naglowek>
     <KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
     <WariantFormularza>3</WariantFormularza>
-    <DataWytworzeniaFa>2026-04-01T08:50:17Z</DataWytworzeniaFa>
+    <DataWytworzeniaFa>2026-04-01T09:01:34Z</DataWytworzeniaFa>
     <SystemInfo>Comarch ERP XL</SystemInfo>
   </Naglowek>
   <Podmiot1>
@@ -33,7 +33,7 @@
   <Fa>
     <KodWaluty>PLN</KodWaluty>
     <P_1>2026-03-31</P_1>
-    <P_2A>FRA/266</P_2A>
+    <P_2>FRA/266</P_2>
     <P_13_1>1349.76</P_13_1>
     <P_14_1>310.44</P_14_1>
     <P_15>1660.20</P_15>

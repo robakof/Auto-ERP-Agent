@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 from lxml import etree
 
-XSD_PATH = Path(__file__).parent.parent / "output" / "StrukturyDanych_v10-0E.xsd"
+XSD_PATH = Path(__file__).parent.parent / "output" / "schemat_FA3.xsd"
 XML_PATH_DEFAULT = Path(__file__).parent.parent / "output" / "ksef" / "ksef_FRA_267_2026-03-31.xml"
 
 def main():
