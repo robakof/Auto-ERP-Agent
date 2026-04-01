@@ -129,7 +129,9 @@ def build_xml(rows):
     adr2 = E(p2, "Adres")
     E(adr2, "KodKraju", text=v(r, "P2_KodKraju"))
     E(adr2, "AdresL1", text=v(r, "P2_AdresL1"))
-    E(adr2, "AdresL2", text=v(r, "P2_AdresL2"))
+    adres_l2 = v(r, "P2_AdresL2")
+    if adres_l2:
+        E(adr2, "AdresL2", text=adres_l2)
     E(p2, "JST", text="2")
     E(p2, "GV", text="2")
 

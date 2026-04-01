@@ -27,8 +27,11 @@ SELECT
          ELSE RTRIM(k.Knt_NipPrefiks) END                      AS P2_PrefiksNIP,
     RTRIM(k.Knt_Nazwa1)                                         AS P2_PelnaNazwa,
     k.Knt_Kraj                                                  AS P2_KodKraju,
-    RTRIM(k.Knt_Ulica)                                          AS P2_AdresL1,
-    k.Knt_KodP + ' ' + RTRIM(k.Knt_Miasto)                     AS P2_AdresL2,
+    CASE WHEN RTRIM(k.Knt_Ulica) = ''
+         THEN k.Knt_KodP + ' ' + RTRIM(k.Knt_Miasto)
+         ELSE RTRIM(k.Knt_Ulica) END                            AS P2_AdresL1,
+    CASE WHEN RTRIM(k.Knt_Ulica) = '' THEN NULL
+         ELSE k.Knt_KodP + ' ' + RTRIM(k.Knt_Miasto) END       AS P2_AdresL2,
 
     -- =========================================================
     -- FA — Nagłówek faktury (CDN.TraNag)

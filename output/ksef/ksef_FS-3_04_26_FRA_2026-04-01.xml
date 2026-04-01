@@ -19,13 +19,12 @@
   </Podmiot1>
   <Podmiot2>
     <DaneIdentyfikacyjne>
-      <NIP>7810042175</NIP>
-      <Nazwa>"PROFIL" KRZYSZTOF BARTOSIK, KRZYSZTOF BRZEZIŃSKI</Nazwa>
+      <NIP>5951473002</NIP>
+      <Nazwa>HURTOWNIA KWIATÓW MUSIALSCY SPÓŁKA Z OGRANICZONĄ</Nazwa>
     </DaneIdentyfikacyjne>
     <Adres>
       <KodKraju>PL</KodKraju>
-      <AdresL1>ul. Wołyńska 35</AdresL1>
-      <AdresL2>60-637 Poznań</AdresL2>
+      <AdresL1>64-423 Lubosz</AdresL1>
     </Adres>
     <JST>2</JST>
     <GV>2</GV>
@@ -33,10 +32,10 @@
   <Fa>
     <KodWaluty>PLN</KodWaluty>
     <P_1>2026-04-01</P_1>
-    <P_2>FS-1/04/26/FRA</P_2>
-    <P_13_1>113.82</P_13_1>
-    <P_14_1>26.18</P_14_1>
-    <P_15>140.00</P_15>
+    <P_2>FS-3/04/26/FRA</P_2>
+    <P_13_1>60.16</P_13_1>
+    <P_14_1>13.84</P_14_1>
+    <P_15>74.00</P_15>
     <Adnotacje>
       <P_16>2</P_16>
       <P_17>2</P_17>
@@ -56,17 +55,17 @@
     <RodzajFaktury>VAT</RodzajFaktury>
     <FaWiersz>
       <NrWierszaFa>1</NrWierszaFa>
-      <P_7>Wk CEiM Eko-oil nr4 4D</P_7>
-      <GTIN>5907702521596</GTIN>
+      <P_7>Wk CEiM zniczowy 4</P_7>
+      <GTIN>5907702509877</GTIN>
       <P_8A>szt.</P_8A>
-      <P_8B>40</P_8B>
-      <P_9A>3.50</P_9A>
-      <P_11>113.82</P_11>
+      <P_8B>20</P_8B>
+      <P_9A>3.70</P_9A>
+      <P_11>60.16</P_11>
       <P_12>23</P_12>
     </FaWiersz>
     <Platnosc>
       <TerminPlatnosci>
-        <Termin>2026-04-02</Termin>
+        <Termin>2026-04-01</Termin>
       </TerminPlatnosci>
       <FormaPlatnosci>1</FormaPlatnosci>
     </Platnosc>
