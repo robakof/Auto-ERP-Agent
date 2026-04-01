@@ -104,7 +104,7 @@ SELECT
     END                                                         AS Wiersz_P11_StawkaVAT,
     e.TrE_GrupaPod                                              AS Wiersz_GrupaVAT,
     e.TrE_KsiegowaBrutto - e.TrE_KsiegowaNetto                 AS Wiersz_P12_KwotaVAT,
-    ean.EAN                                                     AS Wiersz_GTIN,
+    NULLIF(RTRIM(tk.Twr_Ean), '')                               AS Wiersz_GTIN,
 
     -- =========================================================
     -- Płatność (CDN.TraPlat + CDN.RachunkiBankowe)
@@ -216,13 +216,8 @@ LEFT JOIN (
     AND p.TrP_GIDNumer  = n.TrN_GIDNumer
     AND p.rn            = 1
 
--- EAN towaru (CDN.TwrZasoby, jeden EAN per towar)
-LEFT JOIN (
-    SELECT TwZ_TwrNumer, MIN(RTRIM(TwZ_Ean)) AS EAN
-    FROM CDN.TwrZasoby
-    WHERE TwZ_Ean IS NOT NULL AND RTRIM(TwZ_Ean) <> ''
-    GROUP BY TwZ_TwrNumer
-) ean ON ean.TwZ_TwrNumer = e.TrE_TwrNumer
+-- EAN towaru (CDN.TwrKarty)
+LEFT JOIN CDN.TwrKarty tk ON tk.Twr_GIDNumer = e.TrE_TwrNumer
 
 -- Rachunek bankowy (tylko dla przelewu)
 LEFT JOIN CDN.RachunkiBankowe rb
