@@ -3,6 +3,7 @@ Generuje KSeF FA(2) XML dla jednej faktury.
 Prototype — dane z CDN.TraNag/TraElem/TraVat/TraPlat/KntKarty/Firma.
 """
 import sys
+import argparse
 from pathlib import Path
 from datetime import datetime
 from lxml import etree
@@ -10,9 +11,9 @@ from lxml import etree
 sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
 from sql_query import run_query
 
-GID_NUMER = 8981092   # FRA/266 z 2026-03-31
+GID_NUMER_DEFAULT = 8981092   # FRA/266 z 2026-03-31
 
-SQL = f"""
+_SQL = """
 SELECT
     'FA'                                                        AS KSeF_KodFormularza,
     2                                                           AS KSeF_WariantFormularza,
@@ -91,7 +92,7 @@ LEFT JOIN (SELECT TrP_GIDTyp, TrP_GIDNumer, TrP_Termin, TrP_FormaNr, TrP_FormaNa
     ROW_NUMBER() OVER (PARTITION BY TrP_GIDTyp, TrP_GIDNumer ORDER BY TrP_GIDLp) AS rn
     FROM CDN.TraPlat) p ON p.TrP_GIDTyp=n.TrN_GIDTyp AND p.TrP_GIDNumer=n.TrN_GIDNumer AND p.rn=1
 LEFT JOIN CDN.RachunkiBankowe rb ON rb.RkB_Id=p.TrP_RachBank AND p.TrP_FormaNr=20
-WHERE n.TrN_GIDTyp = 2033 AND n.TrN_GIDNumer = {GID_NUMER}
+WHERE n.TrN_GIDTyp = 2033 AND n.TrN_GIDNumer = {gid_numer}
 ORDER BY e.TrE_GIDLp
 """
 
@@ -235,7 +236,12 @@ def build_xml(rows):
 
 
 def main():
-    res = run_query(SQL, inject_top=None)
+    parser = argparse.ArgumentParser(description="Generuje KSeF XML dla faktury FS.")
+    parser.add_argument("--gid", type=int, default=GID_NUMER_DEFAULT, help="TrN_GIDNumer faktury")
+    args = parser.parse_args()
+
+    sql = _SQL.format(gid_numer=args.gid)
+    res = run_query(sql, inject_top=None)
     if not res["ok"]:
         print("ERROR SQL:", res["error"]["message"])
         sys.exit(1)
