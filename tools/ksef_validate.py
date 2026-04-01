@@ -1,44 +1,69 @@
-"""Walidacja XML KSeF względem XSD."""
-import sys
+"""
+Walidacja XML KSeF względem XSD.
+
+CLI:
+    py tools/ksef_validate.py sciezka/schemat.xsd sciezka/do/pliku.xml
+    py tools/ksef_validate.py sciezka/schemat.xsd output/ksef/ksef_*.xml
+"""
 import argparse
+import sys
 from pathlib import Path
 from lxml import etree
 
-XSD_PATH = Path(__file__).parent.parent / "output" / "schemat_FA3.xsd"
-XML_PATH_DEFAULT = Path(__file__).parent.parent / "output" / "ksef" / "ksef_FRA_267_2026-03-31.xml"
+
+def validate(xml_path, schema):
+    with open(xml_path, "rb") as f:
+        doc = etree.parse(f)
+
+    if schema.validate(doc):
+        return True, []
+
+    return False, [
+        f"Linia {err.line}: {err.message}" for err in schema.error_log
+    ]
+
 
 def main():
-    parser = argparse.ArgumentParser(description="Walidacja XML KSeF względem XSD FA(3).")
-    parser.add_argument("xml", nargs="?", default=str(XML_PATH_DEFAULT), help="Ścieżka do pliku XML")
-    parser.add_argument("--xsd", default=str(XSD_PATH), help="Ścieżka do pliku XSD")
-    args = parser.parse_args()
+    p = argparse.ArgumentParser(description="Walidacja XML KSeF vs XSD")
+    p.add_argument("xsd", help="Sciezka do pliku XSD")
+    p.add_argument("xml", nargs="+", help="Sciezka do pliku(ow) XML")
+    args = p.parse_args()
 
     xsd_path = Path(args.xsd)
-    xml_path = Path(args.xml)
-
-    print(f"XSD: {xsd_path}")
-    print(f"XML: {xml_path}")
-
-    with open(xsd_path, "rb") as f:
-        schema_doc = etree.parse(f)
-
-    try:
-        schema = etree.XMLSchema(schema_doc)
-    except etree.XMLSchemaParseError as e:
-        print(f"\nBłąd parsowania XSD (może wymagać zdalnego importu):\n{e}")
+    if not xsd_path.exists():
+        print(f"XSD nie istnieje: {xsd_path}")
         sys.exit(1)
 
-    with open(xml_path, "rb") as f:
-        xml_doc = etree.parse(f)
+    with open(xsd_path, "rb") as f:
+        try:
+            schema = etree.XMLSchema(etree.parse(f))
+        except etree.XMLSchemaParseError as e:
+            print(f"Blad parsowania XSD:\n{e}")
+            sys.exit(1)
 
-    valid = schema.validate(xml_doc)
+    ok_count = 0
+    fail_count = 0
 
-    if valid:
-        print("\nOK XML PRAWIDLOWY — brak bledow walidacji.")
-    else:
-        print(f"\nBLAD XML NIEPRAWIDLOWY — {len(schema.error_log)} bledow:\n")
-        for i, err in enumerate(schema.error_log, 1):
-            print(f"  [{i}] Linia {err.line}: {err.message}")
+    for xml_arg in args.xml:
+        xml_path = Path(xml_arg)
+        if not xml_path.exists():
+            print(f"  [!] Plik nie istnieje: {xml_path}")
+            fail_count += 1
+            continue
+
+        valid, errors = validate(xml_path, schema)
+        if valid:
+            print(f"  [OK] {xml_path.name}")
+            ok_count += 1
+        else:
+            print(f"  [FAIL] {xml_path.name} — {len(errors)} bledow:")
+            for err in errors[:10]:
+                print(f"    {err}")
+            fail_count += 1
+
+    print(f"\nWynik: {ok_count} OK, {fail_count} FAIL")
+    sys.exit(0 if fail_count == 0 else 2)
+
 
 if __name__ == "__main__":
     main()

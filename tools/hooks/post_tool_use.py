@@ -13,10 +13,9 @@ Payload od Claude Code (stdin JSON):
     }
   }
 
-session_id czytamy z tmp/session_id.txt (tak jak pozostałe hooki).
+session_id resolved via spawn_token/claude_uuid from live_agents DB.
 Env vars (do testów):
   MROWISKO_DB          — ścieżka do DB (domyślnie: PROJECT_ROOT/mrowisko.db)
-  MROWISKO_SESSION_DIR — katalog z session_id.txt (domyślnie: PROJECT_ROOT/tmp)
 
 Nigdy nie blokuje agenta — wszystkie błędy są ciche.
 """
@@ -67,22 +66,8 @@ def main() -> None:
         from tools.lib.agent_bus import AgentBus
         bus = AgentBus(db_path=_DB_PATH)
 
-        # Resolve mrowisko session_id: spawn_token (deterministic) or claude_uuid
-        session_id = None
-        if spawn_token:
-            row = bus._conn.execute(
-                "SELECT session_id FROM live_agents WHERE spawn_token = ?",
-                (spawn_token,),
-            ).fetchone()
-            if row:
-                session_id = row[0]
-        if not session_id and claude_uuid:
-            row = bus._conn.execute(
-                "SELECT session_id FROM live_agents WHERE claude_uuid = ? AND status != 'stopped'",
-                (claude_uuid,),
-            ).fetchone()
-            if row:
-                session_id = row[0]
+        # Resolve mrowisko session_id via public AgentBus method
+        session_id = bus.resolve_session_id(spawn_token=spawn_token, claude_uuid=claude_uuid)
 
         bus.add_tool_call(
             session_id=session_id,

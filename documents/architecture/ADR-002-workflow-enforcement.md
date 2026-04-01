@@ -1,6 +1,6 @@
 # ADR-002: Workflow Enforcement via State Machine Pattern
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-03-27
 **Authors:** Architect
 **Deciders:** Dawid (human), Architect, Developer
@@ -106,17 +106,97 @@ Chronologia eskalacji:
 
 ### Kluczowe decyzje projektowe
 
-**D1: Workflow definition jako parsowalna struktura, nie prose**
+**D1: Workflow definitions w DB, import z .md**
 
 Workflow YAML header (CONVENTION_WORKFLOW 01R) + steps w formacie strict (04R)
-już istnieją w konwencji. Potrzebny parser który wyciąga:
-- Listę kroków z `step_id` i `next_step`
-- Warunki przejścia (`verification`)
-- HANDOFF_POINTs (13R)
-- Exit gates (07R)
+już istnieją w konwencji. Zamiast runtime parsera .md → obiekt,
+**definicje workflow trafiają do DB** (tabele poniżej).
 
-Format: plik `.md` z YAML header + strict steps → parser → `WorkflowDefinition` object.
-Nie przenosimy workflow do DB w tej fazie — parser czyta z pliku.
+PE autoruje workflow w .md (CONVENTION_WORKFLOW format) → `workflow-import` ładuje do DB.
+User przegląda przez `render.py workflow` → .md na żądanie.
+Runtime (state machine, hooks) czyta wyłącznie z DB.
+
+**Dlaczego DB zamiast parser:**
+- Parser = zależność runtime (przy każdym tool call), drift .md ↔ parser = bug
+- DB = SELECT ~1ms, schema = kontrakt, walidacja na INSERT
+- Spójność z projektem (agent_bus, backlog, suggestions — wszystko w mrowisko.db)
+- Forward-compatible z composable steps (suggestion #498)
+
+**Minimalne tabele (enforcement-focused):**
+
+```sql
+-- Definicja workflow (1 row per workflow version)
+CREATE TABLE workflow_definitions (
+    workflow_id   TEXT NOT NULL,
+    version       TEXT NOT NULL,
+    owner_role    TEXT NOT NULL,
+    trigger_desc  TEXT,
+    status        TEXT DEFAULT 'active' CHECK (status IN ('active','deprecated')),
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (workflow_id, version)
+);
+
+-- Kroki workflow (building blocks)
+CREATE TABLE workflow_steps (
+    id              INTEGER PRIMARY KEY,
+    workflow_id     TEXT NOT NULL,
+    workflow_version TEXT NOT NULL,
+    step_id         TEXT NOT NULL,
+    phase           TEXT,
+    sort_order      INTEGER NOT NULL,
+    action          TEXT NOT NULL,
+    tool            TEXT,
+    command         TEXT,
+    verification_type  TEXT,  -- file_exists|test_pass|message_sent|commit_exists|manual
+    verification_value TEXT,
+    on_failure_retry   INTEGER DEFAULT 0,
+    on_failure_skip    INTEGER DEFAULT 0,
+    on_failure_escalate INTEGER DEFAULT 1,
+    on_failure_reason  TEXT,
+    next_step_pass  TEXT,
+    next_step_fail  TEXT,
+    is_handoff      INTEGER DEFAULT 0,
+    handoff_to      TEXT,
+    FOREIGN KEY (workflow_id, workflow_version)
+        REFERENCES workflow_definitions(workflow_id, version),
+    UNIQUE (workflow_id, workflow_version, step_id)
+);
+
+-- Decision points
+CREATE TABLE workflow_decisions (
+    id            INTEGER PRIMARY KEY,
+    workflow_id   TEXT NOT NULL,
+    workflow_version TEXT NOT NULL,
+    decision_id   TEXT NOT NULL,
+    condition     TEXT NOT NULL,
+    path_true     TEXT NOT NULL,
+    path_false    TEXT NOT NULL,
+    default_action TEXT,
+    FOREIGN KEY (workflow_id, workflow_version)
+        REFERENCES workflow_definitions(workflow_id, version)
+);
+
+-- Exit gates (checklist items per phase)
+CREATE TABLE workflow_exit_gates (
+    id            INTEGER PRIMARY KEY,
+    workflow_id   TEXT NOT NULL,
+    workflow_version TEXT NOT NULL,
+    phase         TEXT NOT NULL,
+    item_id       TEXT NOT NULL,
+    condition     TEXT NOT NULL,
+    FOREIGN KEY (workflow_id, workflow_version)
+        REFERENCES workflow_definitions(workflow_id, version)
+);
+```
+
+**Czego NIE robimy teraz:**
+- Composable step library (kroki współdzielone między workflow) — docelowo tak, teraz 1:1
+- Dynamiczny assembly per rola/kontekst — docelowo tak, teraz statyczne definicje
+- Wariantowość kroków (templating) — docelowo tak, teraz flat
+
+Schema jest forward-compatible: `workflow_steps` to już "building blocks w DB".
+Przejście do composable = dodanie tabeli `step_templates` + `workflow_compositions`
+bez migracji istniejących danych.
 
 **D2: Enforcement gradualny (soft → hard)**
 
@@ -251,8 +331,8 @@ Semantyczna jakość artefaktów wymaga review (Warstwa 3, typ `manual`).
 ### Negatywne
 
 1. **Workflow definitions muszą być precyzyjne** — strict format (04R) wymagany
-   dla każdego workflow objętego enforcement. Prose workflow nie parsuje się do state machine.
-   *Mitygacja:* parser + gradualny rollout (najpierw 2-3 critical workflows).
+   dla każdego workflow objętego enforcement. Prose workflow nie importuje się do DB.
+   *Mitygacja:* import tool + gradualny rollout (najpierw 2-3 critical workflows).
 
 2. **Rigidity vs creativity trade-off** — agent w state machine nie może "improwizować".
    *Mitygacja:* Exploratory workflow (D7) — pusta koperta z tracking bez enforcement.
@@ -291,3 +371,5 @@ Osobny dokument: `documents/human/plans/plan_workflow_enforcement.md`
 - ADR-001: `documents/architecture/ADR-001-domain-model-migration.md` (format reference)
 - PE msg #405: 6 nieudanych prób prompt enforcement
 - User quote: "Gate na końcu jest za późno" (2026-03-26)
+- Suggestion #498: Wizja Composable Workflow Engine (potoki z promptów) — docelowa architektura
+- User decision 2026-03-30: DB-first zamiast parser, forward-compatible z composable steps

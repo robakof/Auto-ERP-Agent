@@ -64,7 +64,7 @@ class KnownGapsService:
 
         self._conn.execute(
             """UPDATE known_gaps
-               SET status = 'resolved', resolved_by_backlog_id = ?, resolved_at = datetime('now')
+               SET status = 'resolved', resolved_by_backlog_id = ?, resolved_at = datetime('now', 'localtime')
                WHERE id = ?""",
             (backlog_id, gap_id),
         )

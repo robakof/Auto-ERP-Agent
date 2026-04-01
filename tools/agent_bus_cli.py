@@ -23,7 +23,6 @@ from tools.lib.agent_bus import AgentBus
 from tools.lib.output import print_json
 
 DB_PATH = "mrowisko.db"
-SESSION_DATA_FILE = Path("tmp/session_data.json")
 SESSION_INIT_CONFIG = Path("config/session_init_config.json")
 SPAWN_POLICY_FILE = Path(__file__).parent.parent / "config" / "spawn_policy.json"
 
@@ -47,33 +46,33 @@ def _get_all_roles() -> list[str]:
 
 
 def _get_session_data() -> dict:
-    """Read session data from live_agents by spawn_token or claude_uuid env var."""
+    """Read session data from live_agents DB (by spawn_token or claude_uuid)."""
     import os
     import sqlite3
     spawn_token = os.environ.get("MROWISKO_SPAWN_TOKEN", "")
     claude_uuid = os.environ.get("CLAUDE_SESSION_ID", "")
-    if not spawn_token and not claude_uuid:
-        return {}
-    try:
-        conn = sqlite3.connect(str(DB_PATH))
-        conn.row_factory = sqlite3.Row
-        row = None
-        if spawn_token:
-            row = conn.execute(
-                "SELECT session_id, role FROM live_agents WHERE spawn_token = ?",
-                (spawn_token,),
-            ).fetchone()
-        if not row and claude_uuid:
-            row = conn.execute(
-                "SELECT session_id, role FROM live_agents WHERE claude_uuid = ? AND status != 'stopped'",
-                (claude_uuid,),
-            ).fetchone()
-        conn.close()
-        if row:
-            return {"session_id": row["session_id"], "role": row["role"]}
-        return {}
-    except Exception:
-        return {}
+    # Lookup by spawn_token or claude_uuid in live_agents
+    if spawn_token or claude_uuid:
+        try:
+            conn = sqlite3.connect(str(DB_PATH))
+            conn.row_factory = sqlite3.Row
+            row = None
+            if spawn_token:
+                row = conn.execute(
+                    "SELECT session_id, role FROM live_agents WHERE spawn_token = ?",
+                    (spawn_token,),
+                ).fetchone()
+            if not row and claude_uuid:
+                row = conn.execute(
+                    "SELECT session_id, role FROM live_agents WHERE claude_uuid = ?",
+                    (claude_uuid,),
+                ).fetchone()
+            conn.close()
+            if row and row["session_id"]:
+                return {"session_id": row["session_id"], "role": row["role"]}
+        except Exception:
+            pass
+    return {}
 
 
 def get_session_role() -> str | None:
@@ -440,12 +439,28 @@ def cmd_delete(args: argparse.Namespace, bus: AgentBus) -> dict:
 # --- Workflow execution tracking ---
 
 def cmd_workflow_start(args: argparse.Namespace, bus: AgentBus) -> dict:
+    session_id = args.session_id or get_session_id()
     execution_id = bus.start_workflow_execution(
         workflow_id=args.workflow_id,
         role=args.role,
-        session_id=args.session_id or get_session_id(),
+        session_id=session_id,
     )
-    return {"ok": True, "execution_id": execution_id}
+    # Reset untracked count for this session (W3: nudge counter reset)
+    try:
+        bus._conn.execute(
+            "DELETE FROM step_log WHERE execution_id=0 AND output_summary LIKE ?",
+            (f"session={session_id}%",),
+        )
+        bus._conn.commit()
+    except Exception:
+        pass
+    # Check if workflow has a definition in DB (Faza 2 engine awareness)
+    detail = bus.get_workflow_detail(args.workflow_id)
+    has_definition = detail is not None
+    result = {"ok": True, "execution_id": execution_id}
+    if not has_definition and args.workflow_id != "exploratory":
+        result["warning"] = f"No DB definition for '{args.workflow_id}' — running without enforcement"
+    return result
 
 
 def cmd_step_log(args: argparse.Namespace, bus: AgentBus) -> dict:
@@ -454,6 +469,30 @@ def cmd_step_log(args: argparse.Namespace, bus: AgentBus) -> dict:
         import json as json_mod
         output_json = json_mod.loads(Path(args.output_file).read_text(encoding="utf-8"))
 
+    # Soft validation via WorkflowEngine (Faza 2) — check only, don't write
+    warning = None
+    try:
+        from tools.lib.workflow_engine import WorkflowEngine
+        engine = WorkflowEngine(db_path=bus._db_path)
+        try:
+            state = engine.get_current_state(args.execution_id)
+            if not state.is_exploratory and state.workflow_id != "exploratory":
+                detail = bus.get_workflow_detail(state.workflow_id)
+                if detail:  # has DB definition — validate transition
+                    is_retry = (args.step_id == state.step_id
+                                and state.status in ("FAIL", "IN_PROGRESS", "BLOCKED"))
+                    is_first = state.step_id is None and args.step_id in state.allowed_transitions
+                    is_valid = args.step_id in state.allowed_transitions or is_retry or is_first
+                    if not is_valid:
+                        warning = (f"Invalid transition: '{state.step_id}' → '{args.step_id}'. "
+                                   f"Allowed: {state.allowed_transitions}")
+        finally:
+            engine.close()
+    except Exception as exc:
+        import sys as _sys
+        print(f"[workflow_engine] validation skipped: {exc}", file=_sys.stderr)
+
+    # Always write via bus (single writer)
     step_id = bus.log_step(
         execution_id=args.execution_id,
         step_id=args.step_id,
@@ -462,12 +501,29 @@ def cmd_step_log(args: argparse.Namespace, bus: AgentBus) -> dict:
         output_summary=args.summary,
         output_json=output_json,
     )
-    return {"ok": True, "step_log_id": step_id}
+    result = {"ok": True, "step_log_id": step_id}
+    if warning:
+        result["warning"] = warning
+    return result
 
 
 def cmd_workflow_end(args: argparse.Namespace, bus: AgentBus) -> dict:
     result = bus.end_workflow_execution(args.execution_id, args.status)
     return result
+
+
+def cmd_workflow_resume(args: argparse.Namespace, bus: AgentBus) -> dict:
+    """Resume workflow blocked at HANDOFF point."""
+    try:
+        from tools.lib.workflow_engine import WorkflowEngine
+        engine = WorkflowEngine(db_path=bus._db_path)
+        try:
+            result = engine.resume_handoff(args.execution_id, resumed_by="manual")
+            return {"ok": result.ok, "message": result.message}
+        finally:
+            engine.close()
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 
 def cmd_execution_status(args: argparse.Namespace, bus: AgentBus) -> dict:
@@ -667,7 +723,7 @@ def cmd_stop(args: argparse.Namespace, bus: AgentBus) -> dict:
 
     # Mark stopped in DB
     bus._conn.execute(
-        "UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now') WHERE session_id = ?",
+        "UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now', 'localtime') WHERE session_id = ?",
         (args.session_id,),
     )
     bus._conn.commit()
@@ -729,7 +785,7 @@ def cmd_resume(args: argparse.Namespace, bus: AgentBus) -> dict:
     if ok:
         bus._conn.execute(
             "UPDATE live_agents SET status = 'active', spawn_token = ?, "
-            "stopped_at = NULL, last_activity = datetime('now') "
+            "stopped_at = NULL, last_activity = datetime('now', 'localtime') "
             "WHERE session_id = ?",
             (new_spawn_token, args.session_id),
         )
@@ -743,6 +799,51 @@ def cmd_resume(args: argparse.Namespace, bus: AgentBus) -> dict:
         "terminal_name": terminal_name,
         "claude_uuid": claude_uuid,
         "spawn_token": new_spawn_token,
+    }
+
+
+def cmd_kill(args: argparse.Namespace, bus: AgentBus) -> dict:
+    """Kill a live agent — force dispose terminal and mark stopped in DB."""
+    terminal_name, role = _lookup_terminal_name(bus, args.session_id)
+    if not terminal_name:
+        return {"ok": False, "error": f"No terminal_name for session '{args.session_id}'"}
+
+    policy = _get_spawn_policy("kill")
+    if policy == "approval":
+        sender = getattr(args, "sender", None) or get_session_role()
+        conn = bus._conn
+        conn.execute(
+            """INSERT INTO invocations (invoker_type, invoker_id, target_role, task, status, action, target_session_id)
+               VALUES ('agent', ?, ?, ?, 'pending', 'kill', ?)""",
+            (sender, role, f"Kill agent {role}", args.session_id),
+        )
+        conn.commit()
+        inv_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        return {
+            "ok": True,
+            "invocation_id": inv_id,
+            "status": "pending",
+            "policy": "approval",
+            "session_id": args.session_id,
+            "role": role,
+            "message": "Kill request created. Awaiting human approval in VS Code.",
+        }
+
+    # policy == "auto"
+    uri_result = _call_vscode("killAgent", session_id=args.session_id, role=role or "")
+
+    bus._conn.execute(
+        "UPDATE live_agents SET status = 'stopped', stopped_at = datetime('now', 'localtime') WHERE session_id = ?",
+        (args.session_id,),
+    )
+    bus._conn.commit()
+
+    return {
+        "ok": uri_result.get("ok", False),
+        "policy": "auto",
+        "session_id": args.session_id,
+        "role": role,
+        "terminal_name": terminal_name,
     }
 
 
@@ -1241,6 +1342,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_inter = subparsers.add_parser("interrupted-workflows", help="List interrupted/running workflows")
     p_inter.add_argument("--role", default=None)
 
+    # workflow-resume
+    p_wresume = subparsers.add_parser("workflow-resume", help="Resume workflow blocked at HANDOFF point")
+    p_wresume.add_argument("--execution-id", dest="execution_id", type=int, required=True)
+
     # flag
     p_flag = subparsers.add_parser("flag", help="Flag something for human review")
     p_flag.add_argument("--from", dest="sender", required=True)
@@ -1276,6 +1381,10 @@ def build_parser() -> argparse.ArgumentParser:
     # stop — stop a live agent
     p_stop = subparsers.add_parser("stop", help="Stop a live agent — sends /exit to terminal")
     p_stop.add_argument("--session-id", dest="session_id", required=True, help="Agent session_id")
+
+    p_kill = subparsers.add_parser("kill", help="Kill a live agent — force dispose terminal (policy-routed)")
+    p_kill.add_argument("--from", dest="sender", help="Invoker role")
+    p_kill.add_argument("--session-id", dest="session_id", required=True, help="Agent session_id")
 
     # resume — resume a stopped agent
     p_resume = subparsers.add_parser("resume", help="Resume a stopped agent — sends /resume or creates new terminal")
@@ -1362,6 +1471,7 @@ def main():
         "workflow-start": cmd_workflow_start,
         "step-log": cmd_step_log,
         "workflow-end": cmd_workflow_end,
+        "workflow-resume": cmd_workflow_resume,
         "execution-status": cmd_execution_status,
         "interrupted-workflows": cmd_interrupted_workflows,
         "flag": cmd_flag,
@@ -1369,6 +1479,7 @@ def main():
         "gaps": cmd_gaps,
         "gap-resolve": cmd_gap_resolve,
         "stop": cmd_stop,
+        "kill": cmd_kill,
         "resume": cmd_resume,
         "poke": cmd_poke,
         "spawn": cmd_spawn,

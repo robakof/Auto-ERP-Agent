@@ -164,7 +164,7 @@ class TestPokeCheck:
         db.close()
 
     def test_no_poke_passthrough(self):
-        """Without session_data.json, _check_poke returns None — non-Bash tools pass through."""
+        """Without live_agents entry, _check_poke returns None — non-Bash tools pass through."""
         rc, out = run_hook({"tool_name": "Read", "tool_input": {"file_path": "/tmp/x"}})
         assert rc == 0
         assert out is None
@@ -336,3 +336,64 @@ class TestLifecycleHookPassthrough:
     def test_other_commands_allowed(self):
         rc, out = run_hook(make_bash("py tools/agent_bus_cli.py inbox --role developer"))
         assert out["hookSpecificOutput"]["permissionDecision"] == "allow"
+
+
+class TestWorkflowAwareness:
+    """Tests for Faza 3 — workflow awareness in hook (soft mode)."""
+
+    def test_exempt_tools_list(self):
+        """Verify exempt tools include read-only and communication."""
+        import sys
+        sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
+        from tools.hooks.pre_tool_use import EXEMPT_TOOLS
+        assert "Read" in EXEMPT_TOOLS
+        assert "Glob" in EXEMPT_TOOLS
+        assert "Grep" in EXEMPT_TOOLS
+
+    def test_exempt_bash_prefixes(self):
+        """Verify exempt Bash prefixes include agent_bus and monitoring."""
+        from tools.hooks.pre_tool_use import EXEMPT_BASH_PREFIXES
+        assert any("agent_bus_cli" in p for p in EXEMPT_BASH_PREFIXES)
+        assert any("context_usage" in p for p in EXEMPT_BASH_PREFIXES)
+
+    def test_untracked_logging(self, tmp_path):
+        """Verify UNTRACKED entries are logged to step_log with execution_id=0."""
+        import sqlite3
+        db = sqlite3.connect(str(tmp_path / "test.db"))
+        db.execute("""CREATE TABLE workflow_execution (
+            id INTEGER PRIMARY KEY, workflow_id TEXT, role TEXT,
+            session_id TEXT, status TEXT DEFAULT 'running',
+            started_at TEXT, ended_at TEXT)""")
+        db.execute("""CREATE TABLE step_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            execution_id INTEGER, step_id TEXT, step_index INTEGER,
+            status TEXT, output_summary TEXT, output_json TEXT,
+            timestamp TEXT DEFAULT (datetime('now')))""")
+        db.commit()
+
+        # No workflow running → insert untracked (SKIPPED status, step_id prefixed)
+        db.execute(
+            "INSERT INTO step_log (execution_id, step_id, status, output_summary) "
+            "VALUES (0, ?, 'SKIPPED', ?)",
+            ("untracked:tool:Write", "session=abc role=developer"),
+        )
+        db.commit()
+
+        row = db.execute(
+            "SELECT * FROM step_log WHERE step_id LIKE 'untracked:%'"
+        ).fetchone()
+        assert row is not None
+        assert row[1] == 0  # execution_id
+        assert row[4] == "SKIPPED"
+        db.close()
+
+    def test_hook_still_works_without_session_data(self):
+        """Hook should not crash without live_agents entry."""
+        rc, out = run_hook(make_bash("py -m pytest tests/ -q"))
+        assert out["hookSpecificOutput"]["permissionDecision"] == "allow"
+
+    def test_read_tool_passes_without_workflow(self):
+        """Read tool (exempt) should never be affected by workflow check."""
+        rc, out = run_hook({"tool_name": "Read", "tool_input": {"file_path": "/tmp/x"}})
+        assert rc == 0
+        assert out is None  # passthrough, no decision

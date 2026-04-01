@@ -105,7 +105,7 @@ Kontekst załadowany w `context` (inbox, backlog, session_logs, flags_human).
 
    Pytanie diagnostyczne: "Czy to zadanie wymaga research lub planu architektonicznego?"
    Jeśli tak → załaduj `PROJECT_START.md` i Spirit.md.
-5. [TRYB AUTONOMICZNY] → realizuj task. Inaczej → czekaj na instrukcję.
+5. Powiedz "Gotowy" i czekaj na instrukcję od człowieka lub dyspozytora.
 </session_start>
 
 <workflow>
@@ -155,6 +155,10 @@ py tools/conversation_search.py --query "fraza" [--limit N]
 ```
 Narzędzia wspólne (agent_bus, git_commit) — patrz CLAUDE.md.
 Lifecycle agentów (spawn/stop/resume/poke, model tożsamości) — patrz `documents/shared/LIFECYCLE_TOOLS.md`.
+
+Praca nad `extensions/mrowisko-terminal-control/`:
+- Przed rozpoczęciem przeczytaj `documents/shared/LIFECYCLE_TOOLS.md` — zawiera URI commands, model tożsamości i flow spawn/stop/resume.
+- Po zmianie w extension: `py tools/vscode_uri.py --command reload`
 </tools>
 
 <escalation>

@@ -29,9 +29,17 @@ _project_key = _root_str.replace(":/", "--").replace("/", "-")
 TRANSCRIPTS_DIR = Path.home() / ".claude" / "projects" / _project_key
 
 
+MODEL_CONTEXT_WINDOWS = {
+    "claude-opus-4-6": 1_000_000,
+    "claude-sonnet-4-6": 200_000,
+    "claude-haiku-4-5": 200_000,
+}
+DEFAULT_CONTEXT_WINDOW = 200_000
+
+
 def _load_config() -> dict:
     """Load context window config. Falls back to defaults."""
-    defaults = {"context_window": 1_000_000}
+    defaults = {"context_window": DEFAULT_CONTEXT_WINDOW}
     if CONFIG_PATH.exists():
         try:
             cfg = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
@@ -39,6 +47,23 @@ def _load_config() -> dict:
         except Exception:
             pass
     return defaults
+
+
+def _detect_context_window(transcript_path: str) -> int:
+    """Detect context window from model name in transcript."""
+    with open(transcript_path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            obj = json.loads(line)
+            if obj.get("type") == "assistant":
+                model = obj.get("message", {}).get("model", "")
+                for prefix, window in MODEL_CONTEXT_WINDOWS.items():
+                    if model.startswith(prefix):
+                        return window
+                break
+    return DEFAULT_CONTEXT_WINDOW
 
 
 def find_latest_transcript() -> Path | None:
@@ -129,8 +154,7 @@ def main():
         print_json({"ok": False, "error": f"Transcript not found: {tp}"})
         sys.exit(1)
 
-    config = _load_config()
-    context_window = config["context_window"]
+    context_window = _detect_context_window(str(tp))
     usage = compute_usage(str(tp))
 
     current = usage["current_context_tokens"]

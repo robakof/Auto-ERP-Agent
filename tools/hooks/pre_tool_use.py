@@ -216,11 +216,145 @@ def validate_segment(segment: str) -> Optional[str]:
 
 
 
+# --- Workflow awareness (Faza 3 — nudge mode) ---
+
+# Tools exempt from workflow enforcement — never checked
+EXEMPT_TOOLS = frozenset([
+    "Read", "Glob", "Grep",           # read-only
+    "Agent", "AskUserQuestion",        # delegation / user interaction
+])
+
+# Bash commands exempt from workflow enforcement
+EXEMPT_BASH_PREFIXES = (
+    "py tools/agent_bus_cli.py",       # communication + workflow-start
+    "py tools/context_usage.py",       # monitoring
+    "py tools/session_init.py",        # session setup
+    "py tools/render.py",             # view rendering
+    "py tools/conversation_search.py", # history search
+    "git status", "git log", "git diff", "git branch",  # git read-only
+    "which ", "where ",                # discovery
+)
+
+# Workflow nudge config
+WF_NUDGE_EVERY = 5     # warn every Nth non-exempt tool call
+WF_HARD_BLOCK_AFTER = 10  # hard block after N warnings (= N * WF_NUDGE_EVERY calls)
+
+def _check_workflow_awareness(tool_name: str, tool_input: dict, claude_uuid: str) -> bool:
+    """Nudge mode: periodic deny when agent works outside workflow.
+
+    Every WF_NUDGE_EVERY non-exempt tool calls → deny with counter.
+    After WF_HARD_BLOCK_AFTER warnings → hard block (dispatcher must unblock).
+    Agent should retry after seeing nudge — next call goes through.
+    Returns True if deny was issued (main must stop).
+    """
+    # Exempt tools — never checked
+    if tool_name in EXEMPT_TOOLS:
+        return False
+    if tool_name == "Bash":
+        cmd = tool_input.get("command", "").strip()
+        if any(cmd.startswith(p) for p in EXEMPT_BASH_PREFIXES):
+            return False
+    from pathlib import Path
+    try:
+        import sqlite3
+        db_path = Path(__file__).parent.parent.parent / "mrowisko.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("PRAGMA busy_timeout=1000")
+
+        session_id, role = None, None
+
+        # Strategy 1: claude_uuid → live_agents (spawned agents, includes GC-stopped)
+        if claude_uuid:
+            agent = conn.execute(
+                "SELECT session_id, role FROM live_agents WHERE claude_uuid=?",
+                (claude_uuid,),
+            ).fetchone()
+            if agent:
+                session_id, role = agent
+
+        # Strategy 2: claude_uuid → sessions table (all agents via session_init)
+        if not session_id and claude_uuid:
+            sess = conn.execute(
+                "SELECT id, role FROM sessions WHERE claude_session_id=?",
+                (claude_uuid,),
+            ).fetchone()
+            if sess:
+                session_id = sess[0]
+                role = sess[1]
+
+        if not session_id:
+            conn.close()
+            return False
+
+        # Check for running workflow
+        row = conn.execute(
+            "SELECT id, workflow_id FROM workflow_execution "
+            "WHERE session_id=? AND status='running' ORDER BY started_at DESC LIMIT 1",
+            (session_id,),
+        ).fetchone()
+        if row:
+            conn.close()
+            return False  # has workflow — all good
+
+        # No workflow — track + nudge
+        conn.execute(
+            "INSERT OR IGNORE INTO workflow_execution (id, workflow_id, role, session_id, status) "
+            "VALUES (0, 'untracked', 'system', '', 'running')"
+        )
+        conn.execute(
+            "INSERT INTO step_log (execution_id, step_id, status, output_summary) "
+            "VALUES (0, ?, 'SKIPPED', ?)",
+            (f"untracked:tool:{tool_name}", f"session={session_id} role={role}"),
+        )
+        conn.commit()
+
+        # Count untracked calls for THIS session
+        count = conn.execute(
+            "SELECT COUNT(*) FROM step_log WHERE execution_id=0 "
+            "AND output_summary LIKE ?",
+            (f"session={session_id}%",),
+        ).fetchone()[0]
+        conn.close()
+
+        warning_number = count // WF_NUDGE_EVERY
+        is_nudge = count % WF_NUDGE_EVERY == 0 and count > 0
+
+        if warning_number >= WF_HARD_BLOCK_AFTER:
+            deny_response(
+                f"[workflow-BLOCK #{warning_number}] Agent {role or '?'} zablokowany — "
+                f"{count} tool calls bez workflow. "
+                f"Wymagana inspekcja dispatchera. "
+                f"Dispatcher: py tools/agent_bus_cli.py workflow-start --workflow-id <ID> --role {role or '<rola>'}."
+            )
+            return True
+
+        if is_nudge:
+            deny_response(
+                f"[workflow-warning #{warning_number}/{WF_HARD_BLOCK_AFTER}] "
+                f"Pracujesz bez workflow ({count} calls). "
+                f"Wejdź w workflow: py tools/agent_bus_cli.py workflow-start --workflow-id <ID> --role {role or '<rola>'}. "
+                f"PONÓW komendę — to tylko przypomnienie."
+            )
+            return True
+
+        return False  # not a nudge call — allow silently
+
+    except Exception as e:
+        from pathlib import Path as _P
+        try:
+            _P(__file__).parent.parent.parent.joinpath("tmp", "workflow_hook_debug.log").write_text(
+                f"{type(e).__name__}: {e}\n", encoding="utf-8",
+            )
+        except Exception:
+            pass
+        return False
+
+
 _last_heartbeat: float = 0.0
 HEARTBEAT_INTERVAL = 60  # seconds — throttle DB writes
 
 
-def _heartbeat() -> None:
+def _heartbeat(claude_uuid: str = "") -> None:
     """Update last_activity + revive agent if GC stopped it. Throttled to once per 60s."""
     global _last_heartbeat
     import time
@@ -232,44 +366,53 @@ def _heartbeat() -> None:
     from pathlib import Path
     import os
     spawn_token = os.environ.get("MROWISKO_SPAWN_TOKEN", "")
-    if not spawn_token:
+    if not spawn_token and not claude_uuid:
         return
     try:
         import sqlite3
         db_path = Path(__file__).parent.parent.parent / "mrowisko.db"
         conn = sqlite3.connect(str(db_path))
         conn.execute("PRAGMA busy_timeout=1000")
-        conn.execute(
-            "UPDATE live_agents SET last_activity = datetime('now'), status = 'active' "
-            "WHERE spawn_token = ? AND status IN ('starting', 'active', 'stopped')",
-            (spawn_token,),
-        )
+        if spawn_token:
+            conn.execute(
+                "UPDATE live_agents SET last_activity = datetime('now', 'localtime'), status = 'active' "
+                "WHERE spawn_token = ? AND status IN ('starting', 'active', 'warned', 'stopped')",
+                (spawn_token,),
+            )
+        elif claude_uuid:
+            conn.execute(
+                "UPDATE live_agents SET last_activity = datetime('now', 'localtime'), status = 'active' "
+                "WHERE claude_uuid = ? AND status IN ('starting', 'active', 'warned', 'stopped')",
+                (claude_uuid,),
+            )
         conn.commit()
         conn.close()
     except Exception:
         pass
 
 
-def _check_poke() -> Optional[str]:
+def _check_poke(session_id: str) -> Optional[str]:
     """Check for unread poke messages for current agent. Returns deny reason or None.
 
-    Reads role from tmp/session_data.json, queries inbox for type='poke'.
+    Resolves role from live_agents DB via claude_uuid (session_id from payload).
     Marks poke as read after retrieval. ~1-3ms overhead per call.
-    Known limitation: multi-agent session_data.json conflict (MVP accepts this).
     """
-    from pathlib import Path
-    session_data_file = Path(__file__).parent.parent.parent / "tmp" / "session_data.json"
-    if not session_data_file.exists():
+    if not session_id:
         return None
     try:
         import sqlite3
-        sd = json.loads(session_data_file.read_text(encoding="utf-8"))
-        role = sd.get("role")
-        if not role:
-            return None
+        from pathlib import Path
         db_path = Path(__file__).parent.parent.parent / "mrowisko.db"
         conn = sqlite3.connect(str(db_path))
         conn.execute("PRAGMA busy_timeout=1000")
+        role_row = conn.execute(
+            "SELECT role FROM live_agents WHERE claude_uuid = ?",
+            (session_id,),
+        ).fetchone()
+        if not role_row or not role_row[0]:
+            conn.close()
+            return None
+        role = role_row[0]
         row = conn.execute(
             "SELECT id, sender, content FROM messages WHERE recipient=? AND type='poke' AND status='unread' LIMIT 1",
             (role,),
@@ -278,7 +421,7 @@ def _check_poke() -> Optional[str]:
             conn.close()
             return None
         msg_id, sender, content = row
-        conn.execute("UPDATE messages SET status='read', read_at=datetime('now') WHERE id=?", (msg_id,))
+        conn.execute("UPDATE messages SET status='read', read_at=datetime('now', 'localtime') WHERE id=?", (msg_id,))
         conn.commit()
         conn.close()
         return f"[POKE od {sender}] {content}"
@@ -293,10 +436,19 @@ def main() -> None:
         sys.exit(0)
 
     # Heartbeat — fires for ALL tool types, throttled to 60s
-    _heartbeat()
+    _heartbeat(data.get("session_id", ""))
+
+    # Workflow awareness — soft mode warning (claude_uuid → live_agents/sessions lookup)
+    denied = _check_workflow_awareness(
+        data.get("tool_name", ""),
+        data.get("tool_input", {}),
+        data.get("session_id", ""),
+    )
+    if denied:
+        return
 
     # Poke check — fires for ALL tool types (before Bash-only gate)
-    poke_reason = _check_poke()
+    poke_reason = _check_poke(data.get("session_id", ""))
     if poke_reason:
         deny_response(poke_reason)
         return

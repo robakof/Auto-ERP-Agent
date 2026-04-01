@@ -134,7 +134,7 @@ class MessageService:
     def mark_all_read(self, role: str) -> int:
         """Mark all unread messages for a role as read. Returns count."""
         cursor = self._conn.execute(
-            "UPDATE messages SET status = 'read', read_at = datetime('now') WHERE recipient = ? AND status = 'unread'",
+            "UPDATE messages SET status = 'read', read_at = datetime('now', 'localtime') WHERE recipient = ? AND status = 'unread'",
             (role,),
         )
         return cursor.rowcount

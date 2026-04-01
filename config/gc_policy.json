@@ -1,0 +1,5 @@
+{
+  "staleThresholdMinutes": 60,
+  "graceMinutes": 15,
+  "intervalMinutes": 5
+}

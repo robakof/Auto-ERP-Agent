@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS suggestions (
     status      TEXT NOT NULL DEFAULT 'open',
     backlog_id  INTEGER REFERENCES backlog(id),
     session_id  TEXT,
-    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_suggestions_status ON suggestions(status);
@@ -38,8 +38,8 @@ CREATE TABLE IF NOT EXISTS backlog (
     effort      TEXT,
     status      TEXT NOT NULL DEFAULT 'planned',
     source_id   INTEGER REFERENCES suggestions(id),
-    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    updated_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_backlog_status ON backlog(status);
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS session_log (
     content     TEXT NOT NULL,
     title       TEXT,
     session_id  TEXT,
-    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_session_log_role ON session_log(role);
@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS messages (
     content     TEXT NOT NULL,
     status      TEXT NOT NULL DEFAULT 'unread',
     session_id  TEXT,
-    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    created_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     read_at     TEXT,
     claimed_by  TEXT,
     title       TEXT NOT NULL DEFAULT '',
@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS state (
     type        TEXT NOT NULL,
     content     TEXT NOT NULL,
     session_id  TEXT,
-    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    created_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     metadata    TEXT
 );
 
@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS trace (
     session_id  TEXT NOT NULL,
     tool_name   TEXT NOT NULL,
     summary     TEXT,
-    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_trace_session ON trace(session_id);
@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     claude_session_id TEXT,
     role              TEXT,
     transcript_path   TEXT,
-    started_at        TEXT NOT NULL DEFAULT (datetime('now')),
+    started_at        TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     ended_at          TEXT
 );
 
@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS tool_calls (
     input_summary TEXT,
     is_error      INTEGER NOT NULL DEFAULT 0,
     tokens_out    INTEGER,
-    timestamp     TEXT NOT NULL DEFAULT (datetime('now'))
+    timestamp     TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_tool_calls_session ON tool_calls(session_id);
@@ -128,7 +128,7 @@ CREATE TABLE IF NOT EXISTS token_usage (
     cache_read_tokens    INTEGER,
     cache_create_tokens  INTEGER,
     duration_ms          INTEGER,
-    timestamp            TEXT NOT NULL DEFAULT (datetime('now'))
+    timestamp            TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_token_usage_session ON token_usage(session_id);
@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS conversation (
     content     TEXT NOT NULL,
     event_type  TEXT NOT NULL,
     raw_payload TEXT,
-    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_conversation_session ON conversation(session_id);
@@ -150,8 +150,8 @@ CREATE TABLE IF NOT EXISTS agent_instances (
     role           TEXT NOT NULL,
     status         TEXT NOT NULL DEFAULT 'idle',
     active_task_id INTEGER,
-    started_at     TEXT NOT NULL DEFAULT (datetime('now')),
-    last_seen_at   TEXT NOT NULL DEFAULT (datetime('now'))
+    started_at     TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    last_seen_at   TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_agent_instances_role_status ON agent_instances(role, status);
@@ -162,7 +162,7 @@ CREATE TABLE IF NOT EXISTS workflow_execution (
     role            TEXT NOT NULL,
     session_id      TEXT,
     status          TEXT NOT NULL DEFAULT 'running',
-    started_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    started_at      TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     ended_at        TEXT,
     CHECK (status IN ('running', 'completed', 'interrupted', 'failed'))
 );
@@ -177,7 +177,7 @@ CREATE TABLE IF NOT EXISTS step_log (
     status          TEXT NOT NULL,
     output_summary  TEXT,
     output_json     TEXT,
-    timestamp       TEXT NOT NULL DEFAULT (datetime('now')),
+    timestamp       TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     FOREIGN KEY (execution_id) REFERENCES workflow_execution(id),
     CHECK (status IN ('PASS', 'FAIL', 'BLOCKED', 'SKIPPED', 'IN_PROGRESS'))
 );
@@ -194,12 +194,72 @@ CREATE TABLE IF NOT EXISTS known_gaps (
     reported_by          TEXT NOT NULL,
     status               TEXT NOT NULL DEFAULT 'open',
     resolved_by_backlog_id INTEGER REFERENCES backlog(id),
-    created_at           TEXT NOT NULL DEFAULT (datetime('now')),
+    created_at           TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     resolved_at          TEXT,
     CHECK (status IN ('open', 'resolved'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_known_gaps_area_status ON known_gaps(area, status);
+
+CREATE TABLE IF NOT EXISTS workflow_definitions (
+    workflow_id   TEXT NOT NULL,
+    version       TEXT NOT NULL,
+    owner_role    TEXT NOT NULL,
+    trigger_desc  TEXT,
+    status        TEXT DEFAULT 'active' CHECK (status IN ('active', 'deprecated')),
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (workflow_id, version)
+);
+
+CREATE TABLE IF NOT EXISTS workflow_steps (
+    id                INTEGER PRIMARY KEY,
+    workflow_id       TEXT NOT NULL,
+    workflow_version  TEXT NOT NULL,
+    step_id           TEXT NOT NULL,
+    phase             TEXT,
+    sort_order        INTEGER NOT NULL,
+    action            TEXT NOT NULL,
+    tool              TEXT,
+    command           TEXT,
+    verification_type  TEXT,
+    verification_value TEXT,
+    on_failure_retry   INTEGER DEFAULT 0,
+    on_failure_skip    INTEGER DEFAULT 0,
+    on_failure_escalate INTEGER DEFAULT 1,
+    on_failure_reason  TEXT,
+    next_step_pass    TEXT,
+    next_step_fail    TEXT,
+    is_handoff        INTEGER DEFAULT 0,
+    handoff_to        TEXT,
+    FOREIGN KEY (workflow_id, workflow_version)
+        REFERENCES workflow_definitions(workflow_id, version),
+    UNIQUE (workflow_id, workflow_version, step_id)
+);
+
+CREATE TABLE IF NOT EXISTS workflow_decisions (
+    id               INTEGER PRIMARY KEY,
+    workflow_id      TEXT NOT NULL,
+    workflow_version TEXT NOT NULL,
+    decision_id      TEXT NOT NULL,
+    condition        TEXT NOT NULL,
+    path_true        TEXT NOT NULL,
+    path_false       TEXT NOT NULL,
+    default_action   TEXT,
+    FOREIGN KEY (workflow_id, workflow_version)
+        REFERENCES workflow_definitions(workflow_id, version),
+    UNIQUE (workflow_id, workflow_version, decision_id)
+);
+
+CREATE TABLE IF NOT EXISTS workflow_exit_gates (
+    id               INTEGER PRIMARY KEY,
+    workflow_id      TEXT NOT NULL,
+    workflow_version TEXT NOT NULL,
+    phase            TEXT NOT NULL,
+    item_id          TEXT NOT NULL,
+    condition        TEXT NOT NULL,
+    FOREIGN KEY (workflow_id, workflow_version)
+        REFERENCES workflow_definitions(workflow_id, version)
+);
 """
 
 _MIGRATE_SQL = [
@@ -229,7 +289,7 @@ _MIGRATE_SQL = [
         status          TEXT NOT NULL DEFAULT 'starting',
         spawned_by      TEXT,
         permission_mode TEXT NOT NULL DEFAULT 'default',
-        created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+        created_at      TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
         last_activity   TEXT,
         stopped_at      TEXT,
         transcript_path TEXT,
@@ -246,7 +306,7 @@ _MIGRATE_SQL = [
         task            TEXT NOT NULL,
         session_id      TEXT REFERENCES sessions(id),
         status          TEXT NOT NULL DEFAULT 'pending',
-        created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+        created_at      TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
         ended_at        TEXT,
         CHECK (invoker_type IN ('human', 'agent', 'orchestrator')),
         CHECK (status IN ('pending', 'approved', 'running', 'completed', 'failed', 'rejected'))
@@ -292,13 +352,6 @@ _MIGRATE_SQL = [
     LEFT JOIN live_agents la
         ON la.role = m.recipient AND la.status IN ('starting', 'active')
     WHERE m.type = 'handoff' AND m.status = 'unread' AND la.id IS NULL""",
-    # uuid_bridge: atomic mapping claude_uuid ↔ session_id (replaces shared pending file)
-    """CREATE TABLE IF NOT EXISTS uuid_bridge (
-        id          INTEGER PRIMARY KEY AUTOINCREMENT,
-        claude_uuid TEXT NOT NULL,
-        session_id  TEXT,
-        created_at  TEXT NOT NULL DEFAULT (datetime('now'))
-    )""",
     # Identity Redesign: handled in _run_migrations() as conditional migration
 ]
 
@@ -319,7 +372,7 @@ _IDENTITY_REDESIGN_SQL = [
         spawned_by      TEXT,
         spawn_token     TEXT UNIQUE,
         last_activity   TEXT,
-        created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+        created_at      TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
         stopped_at      TEXT,
         transcript_path TEXT,
         CHECK (status IN ('starting', 'active', 'stopped'))
@@ -637,6 +690,26 @@ class AgentBus:
         self._auto_commit()
         return result
 
+    # --- Session identity ---
+
+    def resolve_session_id(self, spawn_token: str = "", claude_uuid: str = "") -> str | None:
+        """Resolve mrowisko session_id from spawn_token or claude_uuid via live_agents."""
+        if spawn_token:
+            row = self._conn.execute(
+                "SELECT session_id FROM live_agents WHERE spawn_token = ?",
+                (spawn_token,),
+            ).fetchone()
+            if row:
+                return row[0] if isinstance(row, tuple) else row["session_id"]
+        if claude_uuid:
+            row = self._conn.execute(
+                "SELECT session_id FROM live_agents WHERE claude_uuid = ?",
+                (claude_uuid,),
+            ).fetchone()
+            if row:
+                return row[0] if isinstance(row, tuple) else row["session_id"]
+        return None
+
     # --- Sessions ---
 
     def upsert_session(self, session_id: str, role: str = None, claude_session_id: str = None, transcript_path: str = None, ended_at: str = None) -> None:
@@ -775,3 +848,53 @@ class AgentBus:
         if result["ok"]:
             self._auto_commit()
         return result
+
+    # --- Workflow Definitions ---
+
+    def get_workflow_definitions(self, status: str = None) -> list[dict]:
+        """List all workflow definitions, optionally filtered by status."""
+        if status:
+            rows = self._conn.execute(
+                "SELECT * FROM workflow_definitions WHERE status=? ORDER BY workflow_id",
+                (status,),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                "SELECT * FROM workflow_definitions ORDER BY workflow_id",
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_workflow_detail(self, workflow_id: str, version: str = None) -> dict | None:
+        """Get full workflow detail (definition + steps + decisions + exit_gates)."""
+        if version:
+            defn = self._conn.execute(
+                "SELECT * FROM workflow_definitions WHERE workflow_id=? AND version=?",
+                (workflow_id, version),
+            ).fetchone()
+        else:
+            defn = self._conn.execute(
+                "SELECT * FROM workflow_definitions WHERE workflow_id=? ORDER BY version DESC LIMIT 1",
+                (workflow_id,),
+            ).fetchone()
+        if not defn:
+            return None
+        defn = dict(defn)
+        ver = defn["version"]
+        steps = [dict(r) for r in self._conn.execute(
+            "SELECT * FROM workflow_steps WHERE workflow_id=? AND workflow_version=? ORDER BY sort_order",
+            (workflow_id, ver),
+        ).fetchall()]
+        decisions = [dict(r) for r in self._conn.execute(
+            "SELECT * FROM workflow_decisions WHERE workflow_id=? AND workflow_version=?",
+            (workflow_id, ver),
+        ).fetchall()]
+        gates = [dict(r) for r in self._conn.execute(
+            "SELECT * FROM workflow_exit_gates WHERE workflow_id=? AND workflow_version=?",
+            (workflow_id, ver),
+        ).fetchall()]
+        return {
+            "definition": defn,
+            "steps": steps,
+            "decisions": decisions,
+            "exit_gates": gates,
+        }

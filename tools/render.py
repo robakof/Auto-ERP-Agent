@@ -23,6 +23,8 @@ from tools.lib.renderers import (
     render_md,
     render_session_trace_xlsx,
     render_suggestions_md,
+    render_workflow_list_md,
+    render_workflow_md,
     render_xlsx,
 )
 
@@ -148,6 +150,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--session", required=True, help="Our session ID (12 hex)")
     p.add_argument("--output", default=None)
 
+    p = sub.add_parser("workflow")
+    p.add_argument("--workflow-id", default=None, help="Show specific workflow detail")
+    p.add_argument("--version", default=None, help="Workflow version (default: latest)")
+    p.add_argument("--list", action="store_true", dest="list_all", help="List all workflow definitions")
+    p.add_argument("--output", default=None)
+
     return parser
 
 
@@ -169,6 +177,30 @@ def main():
         tc_count = len(trace["tool_calls"])
         tu_count = len(trace["token_usage"])
         print(f"{output} ({tc_count} tool_calls, {tu_count} turns)")
+        return
+
+    if view == "workflow":
+        default_dir = Path("documents/human/workflows")
+        if args.list_all or not args.workflow_id:
+            workflows = bus.get_workflow_definitions()
+            if not workflows:
+                print("Brak workflow definitions w DB.", file=sys.stderr)
+                sys.exit(1)
+            output = Path(args.output) if args.output else default_dir / "workflow_list.md"
+            output.parent.mkdir(parents=True, exist_ok=True)
+            render_workflow_list_md(workflows, output)
+            print(f"{output} ({len(workflows)} workflow)")
+        else:
+            detail = bus.get_workflow_detail(args.workflow_id, args.version)
+            if not detail:
+                print(f"Workflow '{args.workflow_id}' nie znaleziony w DB.", file=sys.stderr)
+                sys.exit(1)
+            wf_id = detail["definition"]["workflow_id"]
+            output = Path(args.output) if args.output else default_dir / f"workflow_{wf_id}.md"
+            output.parent.mkdir(parents=True, exist_ok=True)
+            render_workflow_md(detail, output)
+            n_steps = len(detail["steps"])
+            print(f"{output} ({n_steps} steps)")
         return
 
     cfg = VIEWS[view]

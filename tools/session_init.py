@@ -6,7 +6,7 @@ Usage:
 
 Returns JSON with session_id, role prompt path, and full context (inbox, backlog, logs).
 Context is controlled by config/session_init_config.json.
-Writes session_id to tmp/session_id.txt.
+Session identity stored in live_agents DB (no shared files).
 """
 
 import argparse
@@ -263,9 +263,7 @@ def main():
             session_id = generate_session_id()
             bus._conn.execute(
                 """INSERT INTO live_agents (session_id, role, status, spawned_by, last_activity)
-                   VALUES (?, ?, 'active', 'manual', datetime('now'))
-                   ON CONFLICT(session_id) DO UPDATE SET
-                     status = 'active', role = excluded.role, last_activity = datetime('now')""",
+                   VALUES (?, ?, 'active', 'manual', datetime('now'))""",
                 (session_id, args.role),
             )
             bus._conn.commit()

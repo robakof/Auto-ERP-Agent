@@ -32,8 +32,20 @@ def get_active_session_id() -> str | None:
     return r["session_id"] if r else None
 
 
+def resolve_claude_uuid(session_id: str) -> str:
+    """Resolve session_id to claude_uuid (transcript filename). Falls back to session_id."""
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.row_factory = sqlite3.Row
+    r = conn.execute(
+        "SELECT claude_uuid FROM live_agents WHERE session_id = ?", (session_id,)
+    ).fetchone()
+    conn.close()
+    return r["claude_uuid"] if r and r["claude_uuid"] else session_id
+
+
 def read_transcript(session_id: str, lines: int = 20):
-    transcript = TRANSCRIPTS_DIR / f"{session_id}.jsonl"
+    claude_uuid = resolve_claude_uuid(session_id)
+    transcript = TRANSCRIPTS_DIR / f"{claude_uuid}.jsonl"
     if not transcript.exists():
         print(json.dumps({"ok": False, "error": f"Transcript not found: {transcript}"}))
         return
@@ -47,7 +59,7 @@ def read_transcript(session_id: str, lines: int = 20):
             for block in d.get("message", {}).get("content", []):
                 if block.get("type") == "text":
                     messages.append({"role": "agent", "text": block["text"][:500]})
-        elif t == "human":
+        elif t == "user":
             msg = d.get("message", {}).get("content", "")
             if isinstance(msg, str) and msg.strip():
                 messages.append({"role": "human", "text": msg[:300]})
@@ -72,7 +84,8 @@ def main():
         sys.exit(1)
 
     if args.pretty:
-        transcript = TRANSCRIPTS_DIR / f"{sid}.jsonl"
+        claude_uuid = resolve_claude_uuid(sid)
+        transcript = TRANSCRIPTS_DIR / f"{claude_uuid}.jsonl"
         if not transcript.exists():
             print(f"Transcript not found: {transcript}")
             return
@@ -84,7 +97,7 @@ def main():
                 for block in d.get("message", {}).get("content", []):
                     if block.get("type") == "text":
                         print(f"AGENT: {block['text'][:500]}")
-            elif t == "human":
+            elif t == "user":
                 msg = d.get("message", {}).get("content", "")
                 if isinstance(msg, str) and msg.strip():
                     print(f"HUMAN: {msg[:300]}")

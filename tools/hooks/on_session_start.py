@@ -44,7 +44,7 @@ def main():
                 """UPDATE live_agents
                    SET claude_uuid = ?,
                        status = 'active',
-                       last_activity = datetime('now')
+                       last_activity = datetime('now', 'localtime')
                    WHERE spawn_token = ? AND status = 'starting'""",
                 (claude_uuid, spawn_token),
             )
@@ -54,7 +54,7 @@ def main():
                 cur2 = conn.execute(
                     """UPDATE live_agents
                        SET status = 'active',
-                           last_activity = datetime('now'),
+                           last_activity = datetime('now', 'localtime'),
                            spawn_token = ?,
                            stopped_at = NULL
                        WHERE claude_uuid = ?""",
@@ -64,17 +64,17 @@ def main():
                     # Completely new — insert
                     conn.execute(
                         """INSERT INTO live_agents (claude_uuid, spawn_token, status, spawned_by, last_activity)
-                           VALUES (?, ?, 'active', 'manual', datetime('now'))""",
+                           VALUES (?, ?, 'active', 'manual', datetime('now', 'localtime'))""",
                         (claude_uuid, spawn_token),
                     )
         else:
             # Manual session: insert new record (or reactivate if claude_uuid exists)
             conn.execute(
                 """INSERT INTO live_agents (claude_uuid, status, spawned_by, last_activity)
-                   VALUES (?, 'active', 'manual', datetime('now'))
+                   VALUES (?, 'active', 'manual', datetime('now', 'localtime'))
                    ON CONFLICT(claude_uuid) DO UPDATE SET
                      status = 'active',
-                     last_activity = datetime('now'),
+                     last_activity = datetime('now', 'localtime'),
                      stopped_at = NULL""",
                 (claude_uuid,),
             )

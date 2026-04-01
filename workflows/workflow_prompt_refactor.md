@@ -244,6 +244,13 @@ PASS jeśli commit wykonany i notyfikacje wysłane.
 
 ---
 
+## Forbidden
+
+1. **Nie batchuj plików.**
+   Każdy plik przechodzi pełny cykl (Faza 0→7) z review (Faza 6) zanim startuje następny.
+
+---
+
 ## Scenariusze
 
 ### Scenariusz A: Refaktor workflow

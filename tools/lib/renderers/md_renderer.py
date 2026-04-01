@@ -125,6 +125,86 @@ def render_suggestions_md(data: list[dict], title: str, output: Path) -> None:
     output.write_text("\n".join(lines), encoding="utf-8")
 
 
+def render_workflow_md(data: dict, output: Path) -> None:
+    """Render a single workflow definition from DB to human-readable .md."""
+    wf = data["definition"]
+    steps = data["steps"]
+    decisions = data["decisions"]
+    gates = data["exit_gates"]
+    lines = [
+        f"# Workflow: {wf['workflow_id']} v{wf['version']}\n",
+        f"**Owner:** {wf['owner_role']}  **Status:** {wf['status']}",
+        f"**Trigger:** {wf.get('trigger_desc', '')}",
+        f"**Created:** {str(wf.get('created_at', ''))[:10]}",
+        "",
+    ]
+
+    # Group steps by phase
+    phases: dict[str, list] = {}
+    for s in steps:
+        phase = s.get("phase") or "(no phase)"
+        phases.setdefault(phase, []).append(s)
+
+    for phase_name, phase_steps in phases.items():
+        lines.append(f"## Phase: {phase_name}\n")
+        for s in sorted(phase_steps, key=lambda x: x["sort_order"]):
+            hoff = " [HANDOFF]" if s.get("is_handoff") else ""
+            lines.append(f"### Step {s['sort_order']}: {s['step_id']}{hoff}\n")
+            lines.append(f"**action:** {s['action']}")
+            if s.get("tool"):
+                lines.append(f"**tool:** {s['tool']}")
+            if s.get("command"):
+                lines.append(f"**command:** `{s['command']}`")
+            if s.get("verification_type"):
+                v = s["verification_type"]
+                if s.get("verification_value"):
+                    v += f" {s['verification_value']}"
+                lines.append(f"**verification:** {v}")
+            if s.get("next_step_pass"):
+                ns = f"{s['next_step_pass']} (if PASS)"
+                if s.get("next_step_fail"):
+                    ns += f", {s['next_step_fail']} (if FAIL)"
+                lines.append(f"**next_step:** {ns}")
+            if s.get("handoff_to"):
+                lines.append(f"**handoff_to:** {s['handoff_to']}")
+            lines.append("")
+
+        # Exit gates for this phase
+        phase_gates = [g for g in gates if g["phase"] == phase_name]
+        if phase_gates:
+            lines.append("### Exit Gate\n")
+            for g in phase_gates:
+                lines.append(f"- **{g['item_id']}:** {g['condition']}")
+            lines.append("")
+
+    if decisions:
+        lines.append("## Decision Points\n")
+        for d in decisions:
+            lines.append(f"### {d['decision_id']}\n")
+            lines.append(f"**condition:** {d['condition']}")
+            lines.append(f"**path_true:** {d['path_true']}")
+            lines.append(f"**path_false:** {d['path_false']}")
+            if d.get("default_action"):
+                lines.append(f"**default:** {d['default_action']}")
+            lines.append("")
+
+    output.write_text("\n".join(lines), encoding="utf-8")
+
+
+def render_workflow_list_md(workflows: list[dict], output: Path) -> None:
+    """Render list of workflow definitions to .md."""
+    lines = [f"# Workflow Definitions — {len(workflows)} pozycji\n"]
+    lines.append("| workflow_id | version | owner_role | status | created_at |")
+    lines.append("|-------------|---------|------------|--------|------------|")
+    for wf in workflows:
+        lines.append(
+            f"| {wf['workflow_id']} | {wf['version']} | {wf['owner_role']} "
+            f"| {wf['status']} | {str(wf.get('created_at', ''))[:10]} |"
+        )
+    lines.append("")
+    output.write_text("\n".join(lines), encoding="utf-8")
+
+
 def render_md(data: list[dict], columns: list[str], title: str, output: Path) -> None:
     """Human-readable md: each item as a section with metadata + content (if present)."""
     META_COLS = ["id", "area", "value", "effort", "status", "created_at", "sender", "author", "role"]

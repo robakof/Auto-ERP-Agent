@@ -37,7 +37,7 @@ def _update_live_agent(bus, transcript_path: str, spawn_token: str = "", claude_
         if spawn_token:
             cur = bus._conn.execute(
                 """UPDATE live_agents
-                   SET last_activity = datetime('now'),
+                   SET last_activity = datetime('now', 'localtime'),
                        transcript_path = COALESCE(?, transcript_path)
                    WHERE spawn_token = ? AND status = 'active'""",
                 (transcript_path or None, spawn_token),
@@ -46,7 +46,7 @@ def _update_live_agent(bus, transcript_path: str, spawn_token: str = "", claude_
         if updated == 0 and claude_uuid:
             bus._conn.execute(
                 """UPDATE live_agents
-                   SET last_activity = datetime('now'),
+                   SET last_activity = datetime('now', 'localtime'),
                        transcript_path = COALESCE(?, transcript_path)
                    WHERE claude_uuid = ? AND status = 'active'""",
                 (transcript_path or None, claude_uuid),
@@ -96,20 +96,8 @@ def main():
 
         claude_uuid = payload.get("session_id", "")
 
-        # Resolve mrowisko session_id from spawn_token or claude_uuid
-        session_id = None
-        if spawn_token:
-            row = bus._conn.execute(
-                "SELECT session_id FROM live_agents WHERE spawn_token = ?", (spawn_token,)
-            ).fetchone()
-            if row:
-                session_id = row[0]
-        if not session_id and claude_uuid:
-            row = bus._conn.execute(
-                "SELECT session_id FROM live_agents WHERE claude_uuid = ?", (claude_uuid,)
-            ).fetchone()
-            if row:
-                session_id = row[0]
+        # Resolve mrowisko session_id via public AgentBus method
+        session_id = bus.resolve_session_id(spawn_token=spawn_token, claude_uuid=claude_uuid)
 
         _save_last_message(bus, payload.get("last_assistant_message", ""), session_id, raw)
         _parse_transcript(bus, transcript_path, session_id)

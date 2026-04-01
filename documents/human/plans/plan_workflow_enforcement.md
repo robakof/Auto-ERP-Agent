@@ -10,8 +10,8 @@
 
 | Faza | Nazwa | Cel | Effort | Zależność |
 |------|-------|-----|--------|-----------|
-| 1 | Workflow Parser | Parsowanie workflow .md → WorkflowDefinition | srednia | brak |
-| 2 | State Machine Engine | Logika stanów i przejść | srednia | Faza 1 |
+| 1 | DB Schema + Import Tool | Tabele workflow w DB + import z .md | srednia | brak |
+| 2 | State Machine Engine | Logika stanów i przejść (czyta z DB) | srednia | Faza 1 |
 | 3 | Hook Integration (soft) | PreToolUse awareness + WARNING mode | mala | Faza 2 |
 | 4 | Step Verification | Zewnętrzna walidacja artefaktów przy step-log PASS | srednia | Faza 2 |
 | 5 | Hook Enforcement (hard) | Blokowanie tool calls poza workflow | mala | Faza 3+4 |
@@ -21,85 +21,81 @@
 
 ---
 
-## Faza 1: Workflow Parser
+## Faza 1: DB Schema + Import Tool
 
 **Owner:** Developer
 **Input:** pliki `workflows/workflow_*.md` w formacie CONVENTION_WORKFLOW 04R (strict)
-**Output:** moduł `tools/lib/workflow_parser.py`
+**Output:** migracja DB (tabele) + `tools/workflow_import.py` + `render.py workflow`
+
+### Decyzja architektoniczna
+
+DB jako runtime authority. .md jako format autorski.
+Patrz ADR-002 D1 (zaktualizowany 2026-03-30) + suggestion #498 (wizja composable steps).
+
+**Przepływ:** PE autoruje .md → `workflow_import.py` ładuje do DB → runtime czyta z DB.
+User przegląda przez `render.py workflow` → .md na żądanie.
 
 ### Zadania
 
-1.1. **Parser YAML header** — wyciągnij `workflow_id`, `version`, `owner_role`, `participants`
-     z frontmatter workflow .md.
+1.1. **Migracja DB** — utwórz tabele w mrowisko.db (schema z ADR-002 D1):
+   - `workflow_definitions` (workflow_id, version, owner_role, trigger_desc, status)
+   - `workflow_steps` (workflow_id, step_id, phase, action, tool, command, verification, on_failure, next_step, is_handoff, sort_order)
+   - `workflow_decisions` (workflow_id, decision_id, condition, path_true, path_false, default)
+   - `workflow_exit_gates` (workflow_id, phase, item_id, condition)
 
-1.2. **Parser strict steps** — z sekcji `## Step N:` wyciągnij:
-   - `step_id`
-   - `action`
-   - `tool` (dozwolone narzędzie)
-   - `verification` (warunek sukcesu)
-   - `next_step` (krawędź grafu)
-   - `on_failure` (retry/escalate)
+1.2. **Import tool** — `tools/workflow_import.py`:
+   - Czyta .md w formacie CONVENTION_WORKFLOW 04R (strict)
+   - Parsuje YAML header → `workflow_definitions`
+   - Parsuje `## Step N:` → `workflow_steps`
+   - Parsuje `## Decision Point N:` → `workflow_decisions`
+   - Parsuje `### Exit Gate` → `workflow_exit_gates`
+   - Wykrywa `→ HANDOFF:` → ustawia `is_handoff=1`, `handoff_to`
+   - Upsert: reimport nadpisuje istniejącą wersję (nie duplikuje)
 
-1.3. **Parser decision points** — z sekcji `## Decision Point N:` wyciągnij:
-   - `decision_id`
-   - `condition`
-   - `path_true`, `path_false`, `default`
+   ```
+   py tools/workflow_import.py workflows/workflow_suggestions_processing.md
+   py tools/workflow_import.py --all   # importuj wszystkie z workflows/
+   ```
 
-1.4. **Parser HANDOFF_POINT** — wykryj wzorzec `→ HANDOFF:` i oznacz krok jako `handoff=True`
-     z polem `handoff_to` (rola/human).
+1.3. **Render** — `render.py workflow`:
+   - Z DB → .md czytelny dla człowieka
+   - Opcje: `--workflow-id X` (konkretny) lub `--list` (lista dostępnych)
 
-1.5. **Parser exit gates** — z sekcji `### Exit Gate` wyciągnij listę `item_id` + warunków.
+1.4. **Walidacja przy import:**
+   - Brak `step_id` → error (nie importuj)
+   - Brak `workflow_id` w YAML header → error
+   - Human-readable (05R) bez strict steps → warning, skip (nie blokuje)
+   - Raport: imported N steps, M decisions, K exit gates
 
-1.6. **Dataclass `WorkflowDefinition`:**
-```python
-@dataclass
-class StepDef:
-    step_id: str
-    action: str
-    tool: str | None
-    verification: VerificationDef | None
-    next_step: str | None
-    on_failure: OnFailureDef | None
-    is_handoff: bool = False
-    handoff_to: str | None = None
-
-@dataclass
-class WorkflowDefinition:
-    workflow_id: str
-    version: str
-    owner_role: str
-    participants: list[str]
-    steps: dict[str, StepDef]        # step_id → StepDef
-    decisions: dict[str, DecisionDef]
-    exit_gates: dict[str, list[GateItem]]
-    # Computed
-    adjacency: dict[str, list[str]]  # graf przejść
-```
-
-1.7. **Testy:**
-   - Parsowanie istniejącego workflow (np. `workflow_suggestions_processing.md`)
-   - Parsowanie workflow z HANDOFF_POINT
-   - Parsowanie workflow z decision points
-   - Edge case: workflow bez strict steps (human-readable) → graceful skip / warning
+1.5. **Testy:**
+   - Import istniejącego workflow (np. `workflow_suggestions_processing.md`)
+   - Import workflow z HANDOFF_POINT → `is_handoff=1` w DB
+   - Import workflow z decision points → `workflow_decisions` populated
+   - Re-import (upsert) → nie duplikuje, nadpisuje
+   - Edge case: workflow bez strict steps → warning, skip
+   - Render → .md output czytelny, zawiera kroki i exit gates
 
 ### Exit gate
 
-- [ ] Parser poprawnie czyta ≥2 istniejące workflow w formacie strict
-- [ ] WorkflowDefinition zawiera graf przejść (adjacency)
-- [ ] Testy PASS
+- [x] Tabele DB istnieją (migracja done) — `ca57b4d`
+- [x] Import poprawnie ładuje ≥2 workflow do DB — convention_creation (19 steps), suggestions_processing (17 steps)
+- [x] Render produkuje czytelne .md z DB — `render.py workflow --list` / `--workflow-id`
+- [x] Testy PASS — 27 testów w `test_workflow_import.py`
 
-### Uwagi
+### Forward-compatibility
 
-Nie wszystkie workflow są w formacie strict (04R). Workflow w formacie human-readable (05R)
-nie będą parsowalne. Parser zwraca `None` / warning dla takich plików — nie blokuje.
-PE konwertuje workflow do strict w osobnym zadaniu (patrz Faza 0-prep).
+Schema `workflow_steps` to de facto step library — każdy krok to wiersz w DB.
+Przejście do composable workflows (suggestion #498) = dodanie:
+- `step_templates` (reużywalne klocki)
+- `workflow_compositions` (które klocki, w jakiej kolejności, per rola)
+Bez migracji istniejących danych — obecne tabele pozostają.
 
 ---
 
 ## Faza 2: State Machine Engine
 
 **Owner:** Developer
-**Input:** `WorkflowDefinition` + istniejące tabele `workflow_execution`, `step_log`
+**Input:** tabele `workflow_steps`, `workflow_decisions` (Faza 1) + istniejące `workflow_execution`, `step_log`
 **Output:** moduł `tools/lib/workflow_engine.py`
 
 ### Zadania
@@ -107,8 +103,12 @@ PE konwertuje workflow do strict w osobnym zadaniu (patrz Faza 0-prep).
 2.1. **Klasa `WorkflowEngine`** z API:
 ```python
 class WorkflowEngine:
+    def __init__(self, db_path: str):
+        """Łączy się z DB. Workflow definitions czytane z tabel, nie z plików."""
+
     def start(self, workflow_id: str, role: str, session_id: str) -> int:
-        """Tworzy execution, zwraca execution_id. Ładuje WorkflowDefinition."""
+        """Tworzy execution, zwraca execution_id.
+        Waliduje: workflow_id istnieje w workflow_definitions."""
 
     def get_current_state(self, execution_id: int) -> StepState:
         """Zwraca bieżący krok (last PASS) + dozwolone przejścia."""
@@ -130,29 +130,35 @@ class WorkflowEngine:
 
 2.2. **State resolution** — bieżący stan obliczany z DB:
 ```sql
+-- Bieżący krok
 SELECT step_id, status FROM step_log
 WHERE execution_id = ? ORDER BY timestamp DESC LIMIT 1
+
+-- Dozwolone przejścia (z workflow_steps)
+SELECT next_step_pass, next_step_fail FROM workflow_steps
+WHERE workflow_id = ? AND workflow_version = ? AND step_id = ?
 ```
-   - Jeśli brak wpisów → stan = `START` (pierwszy krok workflow)
-   - Jeśli last = PASS → stan = `next_step` tego kroku
+   - Jeśli brak wpisów → stan = pierwszy krok (sort_order=1)
+   - Jeśli last = PASS → stan = `next_step_pass` tego kroku
    - Jeśli last = IN_PROGRESS/FAIL/BLOCKED → stan = ten sam krok
 
 2.3. **Adjacency validation** — `can_transition` sprawdza czy `target_step`
-     jest w `adjacency[current_step]`.
+     jest w dozwolonych przejściach z `workflow_steps` (next_step_pass/fail).
 
-2.4. **HANDOFF detection** — jeśli bieżący krok ma `is_handoff=True`:
+2.4. **HANDOFF detection** — jeśli bieżący krok ma `is_handoff=1` w `workflow_steps`:
    - `get_allowed_tools()` zwraca tylko `agent_bus_cli` (send/flag)
    - Przejście do następnego kroku zablokowane do odblokowania
 
 2.5. **Exploratory workflow** — `workflow-start --workflow-id exploratory`:
-   - Tworzy execution bez WorkflowDefinition (steps=empty)
+   - Tworzy execution bez definicji w DB (brak wierszy w workflow_steps)
    - `can_transition()` → zawsze True (brak grafu = brak ograniczeń)
    - `get_allowed_tools()` → ALL (brak step-level restrictions)
    - `step-log` akceptuje dowolne `step_id` (agent loguje co robi, freeform)
    - Na `workflow-end`: zebrane step_ids → materiał do formalizacji przez PE
    - Cel: tracking + audit trail bez enforcement (research, spike, pierwsze wykonanie)
 
-2.6. **Cache** — `WorkflowDefinition` parsowana raz per sesję, nie per tool call.
+2.6. **Brak runtime parsowania** — engine czyta z DB. Żadnego .md w hot path.
+     DB = source of truth. Import (Faza 1) jest jednorazowy per wersja workflow.
 
 2.7. **Integracja z istniejącym CLI:**
    - `workflow-start` → deleguje do `WorkflowEngine.start()`
@@ -169,10 +175,11 @@ WHERE execution_id = ? ORDER BY timestamp DESC LIMIT 1
 
 ### Exit gate
 
-- [ ] WorkflowEngine poprawnie zarządza przejściami stanów
-- [ ] can_transition blokuje nielegalne przejścia
-- [ ] HANDOFF blokuje automatyczne przejście
-- [ ] Testy PASS (≥5 scenariuszy)
+- [x] WorkflowEngine poprawnie zarządza przejściami stanów — `tools/lib/workflow_engine.py`
+- [x] can_transition blokuje nielegalne przejścia — 24 testów
+- [x] HANDOFF blokuje automatyczne przejście — 5 testów handoff
+- [x] Testy PASS (24 scenariuszy) — `tests/test_workflow_engine.py`
+- [x] CLI integracja (soft mode) — workflow-start warning, step-log validation
 
 ---
 
@@ -212,10 +219,10 @@ WHERE execution_id = ? ORDER BY timestamp DESC LIMIT 1
 
 ### Exit gate
 
-- [ ] Hook wykrywa obecność/brak workflow
-- [ ] Warnings logowane (nie blokują)
-- [ ] Dane o untracked work zbierane
-- [ ] Testy PASS
+- [x] Hook wykrywa obecność/brak workflow — query DB po session_id, throttled 30s
+- [x] Warnings logowane (nie blokują) — stderr warning, soft mode
+- [x] Dane o untracked work zbierane — step_log z execution_id=0, status=UNTRACKED
+- [x] Testy PASS — 67 testów (5 nowych workflow awareness)
 - [ ] Deploy na 1 tydzień → zebrać metryki
 
 ---
@@ -270,9 +277,9 @@ class StepVerifier:
 
 ### Exit gate
 
-- [ ] Verifier poprawnie sprawdza ≥4 typy artefaktów
-- [ ] complete_step odmawia PASS gdy verifier fails
-- [ ] Testy PASS
+- [x] Verifier poprawnie sprawdza ≥4 typy artefaktów — 6 typów (file_exists, file_not_empty, test_pass, commit_exists, message_sent, git_clean) + manual
+- [x] complete_step odmawia PASS gdy verifier fails — engine integracja, BLOCKED status
+- [x] Testy PASS — 17 testów verifier + 74 total workflow suite
 
 ---
 
@@ -354,9 +361,9 @@ class StepVerifier:
 
 ### Exit gate
 
-- [ ] HANDOFF_POINT blokuje przejście
-- [ ] Odblokowanie działa (manual + auto)
-- [ ] Testy PASS
+- [x] HANDOFF_POINT blokuje przejście — engine.is_handoff, can_transition=False, tools=[agent_bus_cli]
+- [x] Odblokowanie działa (manual + auto) — workflow-resume CLI + check_auto_resume()
+- [x] Testy PASS — 5 testów HandoffResume + 79 total
 
 ---
 
@@ -396,7 +403,7 @@ class StepVerifier:
 Faza 0-prep (PE) ─────────────────────────────────────────┐
      │ (równolegle)                                        │
      ▼                                                     ▼
-Faza 1 (Parser) ──→ Faza 2 (Engine) ──┬──→ Faza 3 (Hook soft)
+Faza 1 (DB+Import) ──→ Faza 2 (Engine) ──┬──→ Faza 3 (Hook soft)
                                        │          │
                                        │          ▼
                                        │   [1 tydzień metryki]
@@ -409,8 +416,11 @@ Faza 1 (Parser) ──→ Faza 2 (Engine) ──┬──→ Faza 3 (Hook soft)
                                             Faza 5 (Hook hard)
 ```
 
-**Critical path:** Faza 1 → Faza 2 → Faza 3 (soft mode deploy).
+**Critical path:** Faza 1 (DB+Import) → Faza 2 (Engine) → Faza 3 (soft mode deploy).
 Pozostałe fazy mogą być wdrażane równolegle po Fazie 2.
+
+**Nowy element Fazy 0-prep:** PE po konwersji do strict .md uruchamia `workflow_import.py`
+żeby załadować definicje do DB. Import = warunek wejścia do Fazy 2 testów.
 
 ---
 
@@ -439,5 +449,5 @@ Pozostałe fazy mogą być wdrażane równolegle po Fazie 2.
 | Workflow definitions niekompletne → false blocks | wysokie (start) | wysoki | Faza A (soft) zbiera dane przed blokowaniem |
 | Agent obchodzi enforcement (np. pisze do pliku przez Bash zamiast Write) | niskie | sredni | Bash hook już istnieje, rozszerzamy |
 | Overhead per tool call spowalnia pracę | niskie | niski | SQLite query ~1ms, cache definition |
-| Zbyt wiele workflow do konwersji na strict | srednie | sredni | Priorytetyzacja top 3, reszta gradualnie |
+| Zbyt wiele workflow do konwersji na strict + import | srednie | sredni | Priorytetyzacja top 3, reszta gradualnie |
 | User override ("zrób mimo braku workflow") | srednie | sredni | Override logowany, metryki, review |

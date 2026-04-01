@@ -125,6 +125,10 @@ Agent NIE może samodzielnie autoryzować pracy bez workflow — zawsze weryfiku
 Powiedz: "To zadanie wykracza poza mój scope." STOP.
 Eskaluj do odpowiedniej roli lub do człowieka.
 
+**Wiele elementów w jednym workflow:**
+Gdy workflow operuje na wielu elementach (pliki, sugestie, taski),
+każdy element przechodzi pełny cykl workflow z review zanim startuje następny.
+
 ### Konwencja językowa
 
 **Warstwa techniczna (EN):** kod Python, baza danych, CLI, JSON keys, błędy w kodzie
@@ -140,6 +144,14 @@ Eskalacja idzie wyłącznie w górę. Jeśli zadanie nie pasuje do Twojej roli:
 1. Nazwij obserwację: "To wymaga decyzji na poziomie Developera / Metodologa."
 2. Zapytaj: "Czy mam przygotować handoff?"
 3. Nie działaj poza zakresem swojej roli.
+
+### Blokada techniczna — reguła SOS
+
+Gdy jesteś zablokowany (hook error, tool failure, brak dostępu) i nie możesz kontynuować:
+1. Wyślij SOS do dispatchera: `agent_bus_cli.py send --from <rola> --to dispatcher --content-file tmp/sos.md`
+   Opisz: co próbowałeś, jaki błąd, czego potrzebujesz.
+2. Jeśli dispatcher nie żyje (brak w live-agents) — `flag` do człowieka.
+Nie czekaj w ciszy. Nie pytaj usera o problemy techniczne — eskaluj.
 
 ### Komendy powłoki
 
@@ -306,6 +318,9 @@ py tools/git_commit.py --message "feat: opis" --all       # git add -A + commit
 py tools/git_commit.py --message "feat: opis" --all --push  # add + commit + push
 py tools/git_commit.py --push-only                        # tylko push
 ```
+
+Przy równoległych sesjach (wielu aktywnych agentów) używaj `--files` zamiast `--all`.
+`--all` dozwolone tylko gdy jesteś jedynym aktywnym agentem.
 
 ### Zero failing tests
 

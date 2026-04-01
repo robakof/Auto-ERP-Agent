@@ -58,6 +58,25 @@ py tools/agent_bus_cli.py resume --session-id <session_id>
 Tworzy nowy terminal z `claude --resume <claude_uuid>`.
 Agent odzyskuje pełny kontekst konwersacji. `session_id` = ten sam co przy stop.
 
+### Kill — natychmiastowe zamknięcie agenta (force)
+
+```
+py tools/agent_bus_cli.py kill --session-id <session_id>
+```
+
+Natychmiast zamyka terminal agenta (`terminal.dispose()`) i ustawia status: `stopped`.
+Użyj gdy agent nie reaguje na `/exit` (stop). Kill jest destruktywny — agent nie zdąży
+wykonać `on_session_end` hooks.
+
+**Stop vs Kill:**
+
+| | stop | kill |
+|---|---|---|
+| Mechanizm | `/exit` → graceful shutdown | `terminal.dispose()` → natychmiastowe zamknięcie |
+| on_session_end | Odpala się | Może nie zdążyć |
+| Policy | `auto` (szybkość) | `approval` (destruktywne) |
+| Kiedy | Agent żyje, chcemy zakończyć | Agent zamrożony, nie reaguje na /exit |
+
 ### Poke — wiadomość do żywego agenta
 
 ```
@@ -101,7 +120,8 @@ i dodaje tracking w DB.
 ```
 py tools/vscode_uri.py --command spawnAgent --role <rola> --task "opis"
 py tools/vscode_uri.py --command stopAgent --session-id <UUID>
-py tools/vscode_uri.py --command resumeAgent --session-id <UUID> --claude-uuid <UUID>
+py tools/vscode_uri.py --command killAgent --session-id <UUID>
+py tools/vscode_uri.py --command resumeAgent --terminal-name "Agent: rola" --claude-uuid <UUID>
 py tools/vscode_uri.py --command pokeAgent --terminal-name "Agent: rola" --message "tekst"
 py tools/vscode_uri.py --command listAgents
 py tools/vscode_uri.py --command reload
