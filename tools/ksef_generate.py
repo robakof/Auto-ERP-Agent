@@ -52,7 +52,7 @@ SELECT
     RTRIM(e.TrE_TwrNazwa)                                       AS Wiersz_P7_NazwaTowaru,
     RTRIM(e.TrE_JmZ)                                            AS Wiersz_P8A_JM,
     e.TrE_Ilosc                                                 AS Wiersz_P8B_Ilosc,
-    e.TrE_Cena                                                  AS Wiersz_P9A_CenaNettoJedn,
+    e.TrE_KsiegowaNetto / NULLIF(e.TrE_Ilosc, 0)               AS Wiersz_P9A_CenaNettoJedn,
     e.TrE_KsiegowaNetto                                         AS Wiersz_P10_WartoscNetto,
     CASE e.TrE_GrupaPod
         WHEN 'A' THEN '23' WHEN 'B' THEN '8' WHEN 'C' THEN '5'
@@ -61,7 +61,7 @@ SELECT
     END                                                         AS Wiersz_P11_StawkaVAT,
     e.TrE_KsiegowaBrutto - e.TrE_KsiegowaNetto                 AS Wiersz_P12_KwotaVAT,
     CONVERT(DATE, DATEADD(day, p.TrP_Termin, '1800-12-28'))     AS Plat_TerminPlatnosci,
-    CASE p.TrP_FormaNr WHEN 10 THEN '1' WHEN 20 THEN '6' WHEN 50 THEN '3'
+    CASE p.TrP_FormaNr WHEN 10 THEN '1' WHEN 20 THEN '6' WHEN 50 THEN '2'
         ELSE CAST(p.TrP_FormaNr AS VARCHAR(5)) END              AS Plat_KodFormyPlatnosci,
     CASE WHEN p.TrP_FormaNr = 20 THEN rb.RkB_NrRachunku ELSE NULL END AS Plat_NrRachunkuBankowego
 
@@ -166,7 +166,7 @@ def build_xml(rows):
     fa = E(root, "Fa")
     E(fa, "KodWaluty", text=v(r, "Fa_KodWaluty"))
     E(fa, "P_1", text=v(r, "Fa_P1_DataWystawienia"))
-    E(fa, "P_2", text=v(r, "Fa_P2A_NumerFaktury"))
+    E(fa, "P_2A", text=v(r, "Fa_P2A_NumerFaktury"))
 
     # P_6 = data dokonania dostawy (tylko gdy inna niż data wystawienia)
     data_spr = v(r, "Fa_P2_DataSprzedazy")
@@ -233,7 +233,7 @@ def build_xml(rows):
     E(plat, "FormaPlatnosci", text=v(r, "Plat_KodFormyPlatnosci"))
     rachunek = v(r, "Plat_NrRachunkuBankowego")
     if rachunek:
-        E(plat, "Rachunek", text=rachunek)
+        E(plat, "NrRachunku", text=rachunek)
 
     return root
 
