@@ -154,7 +154,10 @@ def build_xml(rows):
     E(di2, "Nazwa", text=v(r, "P2_PelnaNazwa"))
     adr2 = E(p2, "Adres")
     E(adr2, "KodKraju", text=v(r, "P2_KodKraju"))
-    E(adr2, "AdresL1", text=v(r, "P2_AdresL1"))
+    adres_l1_p2 = v(r, "P2_AdresL1") or ""
+    if adres_l1_p2.lower().startswith("ul. "):
+        adres_l1_p2 = adres_l1_p2[4:]
+    E(adr2, "AdresL1", text=adres_l1_p2)
     E(adr2, "AdresL2", text=v(r, "P2_AdresL2"))
     E(p2, "JST", text="2")
     E(p2, "GV", text="2")
@@ -163,7 +166,7 @@ def build_xml(rows):
     fa = E(root, "Fa")
     E(fa, "KodWaluty", text=v(r, "Fa_KodWaluty"))
     E(fa, "P_1", text=v(r, "Fa_P1_DataWystawienia"))
-    E(fa, "P_2", text=v(r, "Fa_P2A_NumerFaktury"))
+    E(fa, "P_2A", text=v(r, "Fa_P2A_NumerFaktury"))
 
     # P_6 = data dokonania dostawy (tylko gdy inna niż data wystawienia)
     data_spr = v(r, "Fa_P2_DataSprzedazy")
@@ -219,8 +222,8 @@ def build_xml(rows):
             ilosc = ilosc.rstrip("0").rstrip(".")
         E(fw, "P_8B",  text=ilosc)
         E(fw, "P_9A",  text=fmt_decimal(row.get("Wiersz_P9A_CenaNettoJedn")))
-        # P_10 = rabat/opust — pomijamy (brak osobnej kolumny rabatu)
-        E(fw, "P_11",  text=fmt_decimal(row.get("Wiersz_P10_WartoscNetto")))  # wartość netto
+        E(fw, "P_10",  text=fmt_decimal(row.get("Wiersz_P10_WartoscNetto")))  # wartość netto
+        E(fw, "P_11",  text=fmt_decimal(row.get("Wiersz_P12_KwotaVAT")))      # kwota VAT
         E(fw, "P_12",  text=v(row, "Wiersz_P11_StawkaVAT"))                   # stawka VAT (enum)
 
     # Platnosc
