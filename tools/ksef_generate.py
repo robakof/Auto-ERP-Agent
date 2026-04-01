@@ -221,7 +221,7 @@ def build_xml(rows):
         if ilosc:
             ilosc = ilosc.rstrip("0").rstrip(".")
         E(fw, "P_8B",  text=ilosc)
-        E(fw, "P_9A",  text=fmt_decimal(row.get("Wiersz_P9A_CenaNettoJedn")))
+        E(fw, "P_9A",  text=fmt_decimal(row.get("Wiersz_P9A_CenaNettoJedn"), 4))
         # P_10 = rabat/opust — pomijamy (brak rabatów w CEIM)
         E(fw, "P_11",  text=fmt_decimal(row.get("Wiersz_P10_WartoscNetto")))  # wartość netto
         E(fw, "P_12",  text=v(row, "Wiersz_P11_StawkaVAT"))                   # stawka VAT (enum)
