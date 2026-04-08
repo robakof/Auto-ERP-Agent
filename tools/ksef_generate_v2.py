@@ -2,11 +2,11 @@
 Generuje KSeF FA(2) XML z danych ERP XL.
 
 CLI:
-    py tools/ksef_generate.py --gid 8981092              # jedna faktura
-    py tools/ksef_generate.py --gid 8981092 8981093      # kilka faktur
-    py tools/ksef_generate.py --date-from 2026-03-01 --date-to 2026-03-31
-    py tools/ksef_generate.py --date-from 2026-03-31     # jeden dzień
-    py tools/ksef_generate.py --validate output/schemat.xsd --gid 8981092
+    py tools/ksef_generate_v2.py --gid 8981092              # jedna faktura
+    py tools/ksef_generate_v2.py --gid 8981092 8981093      # kilka faktur
+    py tools/ksef_generate_v2.py --date-from 2026-03-01 --date-to 2026-03-31
+    py tools/ksef_generate_v2.py --date-from 2026-03-31     # jeden dzień
+    py tools/ksef_generate_v2.py --validate output/schemat.xsd --gid 8981092
 
 Opcje:
     --gid N [N ...]       GID_NUMER faktur(y)
@@ -25,7 +25,7 @@ from lxml import etree
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
 
-SQL_PATH = Path(__file__).parent.parent / "solutions" / "ksef" / "ksef_fs_draft.sql"
+SQL_PATH = Path(__file__).parent.parent / "solutions" / "ksef" / "ksef_fs_draft_v2.sql"
 OUTPUT_DIR = Path(__file__).parent.parent / "output" / "ksef"
 
 NS = "http://crd.gov.pl/wzor/2025/06/25/13775/"
@@ -190,6 +190,7 @@ def build_xml(rows):
         E(fw, "P_7", text=v(row, "Wiersz_P7_NazwaTowaru"))
         gtin = v(row, "Wiersz_GTIN")
         if gtin:
+            E(fw, "Indeks", text=gtin)
             E(fw, "GTIN", text=gtin)
         E(fw, "P_8A", text=v(row, "Wiersz_P8A_JM"))
         ilosc = fmt_decimal(row.get("Wiersz_P8B_Ilosc"), 4)
