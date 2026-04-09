@@ -18,7 +18,7 @@ from typing import Optional
 import openpyxl
 
 
-PHOTOS_DIR = r"D:\UdzialySieciowe\ZDJĘCIA\ZDJĘCIA PRODUKTÓW\jpg do systemu"
+PHOTOS_DIR = r"C:\CEIM\Zdjęcia"
 
 BURNING_TIME_HOURS = {
     2.0: 48,
