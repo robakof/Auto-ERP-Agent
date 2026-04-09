@@ -83,6 +83,8 @@ if source == "Z ERP (rok / klient)":
 
     st.divider()
 
+    logo = st.radio("Logo:", ["CEiM", "KERTI"], horizontal=True).lower()
+
     if st.button("Generuj etykiety", type="primary", use_container_width=True):
         with st.spinner(f"Pobieranie danych dla {klient_kod} {rok}…"):
             try:
@@ -92,7 +94,7 @@ if source == "Z ERP (rok / klient)":
                     st.stop()
                 _OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
                 out_path = _OUTPUT_DIR / output_name
-                generate(products, out_path)
+                generate(products, out_path, logo=logo)
                 docx_bytes = out_path.read_bytes()
                 st.success(f"OK — {len(products)} etykiet wygenerowanych.")
             except Exception as e:
@@ -104,6 +106,8 @@ else:
     uploaded = st.file_uploader("Plik z kodami produktów (.xlsx, kolumna 'Kod'):", type=["xlsx", "xls"])
 
     st.divider()
+
+    logo = st.radio("Logo:", ["CEiM", "KERTI"], horizontal=True, key="logo_excel").lower()
 
     if st.button("Generuj etykiety", type="primary", use_container_width=True):
         if not uploaded:
@@ -125,7 +129,7 @@ else:
                 output_name = f"etykiety_{Path(uploaded.name).stem}.docx"
                 _OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
                 out_path = _OUTPUT_DIR / output_name
-                generate(products, out_path)
+                generate(products, out_path, logo=logo)
                 docx_bytes = out_path.read_bytes()
                 st.success(f"OK — {len(products)} etykiet wygenerowanych.")
             except Exception as e:

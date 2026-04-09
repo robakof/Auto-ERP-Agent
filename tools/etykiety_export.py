@@ -36,6 +36,44 @@ SQL_EXCEL_PATH = _PROJECT_ROOT / "solutions/jas/etykiety_excel.sql"
 TEMPLATE_PATH  = _PROJECT_ROOT / "documents/human/ar/dokumenty/Etykiety do wypełnienia.docx"
 DEFAULT_COLS   = 4
 
+_LOGO_FILES = {
+    "ceim":  _PROJECT_ROOT / "documents" / "Wzory plików" / "logo CEiM krzywe.pdf",
+    "kerti": _PROJECT_ROOT / "documents" / "Wzory plików" / "logo_kerti.jpg",
+}
+
+
+# ---------------------------------------------------------------------------
+# Logo
+# ---------------------------------------------------------------------------
+
+def _get_logo_path(logo: str) -> Path | None:
+    """Zwraca ścieżkę do pliku logo (JPG/PNG). PDF konwertuje przez fitz."""
+    path = _LOGO_FILES.get(logo)
+    if not path or not path.exists():
+        return None
+    if path.suffix.lower() in (".jpg", ".jpeg", ".png"):
+        return path
+    try:
+        import fitz
+        doc = fitz.open(str(path))
+        pix = doc[0].get_pixmap(matrix=fitz.Matrix(4, 4), alpha=True)
+        out = _PROJECT_ROOT / "tmp" / f"logo_{logo}.png"
+        out.parent.mkdir(exist_ok=True)
+        pix.save(str(out))
+        return out
+    except Exception:
+        return None
+
+
+def _replace_logo_in_para(para, logo_path: Path, width_cm: float = 3.5) -> None:
+    """Czyści istniejące runy w para[0] komórki i wstawia nowe logo."""
+    from docx.oxml.ns import qn
+    p_elem = para._p
+    for r in list(p_elem.findall(qn("w:r"))):
+        p_elem.remove(r)
+    para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    para.add_run().add_picture(str(logo_path), width=Cm(width_cm))
+
 
 # ---------------------------------------------------------------------------
 # Barcode
@@ -136,11 +174,12 @@ def _v(value, suffix: str = "") -> str:
     return (s + suffix) if s else ""
 
 
-def _fill_cell(cell, product: dict) -> None:
+def _fill_cell(cell, product: dict, logo: str = "ceim") -> None:
     """
     Wypełnia komórkę szablonu danymi produktu.
 
     Struktura komórki (17 paragrafów, indeksy stałe dla szablonu):
+      [0]  Logo (obraz — domyślnie CEiM z szablonu; podmiana gdy logo != "ceim")
       [2]  EAN:
       [3]  → kod kreskowy EAN-13 (obraz)
       [4]  → cyfry EAN (czytelne dla człowieka)
@@ -153,6 +192,12 @@ def _fill_cell(cell, product: dict) -> None:
       [15] Uwagi:
     """
     paras = cell.paragraphs
+
+    # Logo — para[0]: podmiana tylko gdy != "ceim" (CEiM jest wbudowany w szablon)
+    if logo != "ceim":
+        logo_path = _get_logo_path(logo)
+        if logo_path:
+            _replace_logo_in_para(paras[0], logo_path)
 
     # EAN barcode — para[3]
     ean_val = _v(product.get("ean"))
@@ -235,6 +280,7 @@ def generate(
     output_path: Path,
     template_path: Path = TEMPLATE_PATH,
     cols: int = DEFAULT_COLS,
+    logo: str = "ceim",
 ) -> None:
     """
     Generuje plik Word z etykietami.
@@ -284,7 +330,7 @@ def generate(
         for ci in range(cols):
             idx = ri * cols + ci
             if idx < n:
-                _fill_cell(row_obj.cells[ci], products[idx])
+                _fill_cell(row_obj.cells[ci], products[idx], logo=logo)
             # else: komórka zostaje pusta (format szablonu zachowany)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -305,6 +351,8 @@ def main() -> None:
                         help=f"Szablon Word (domyślnie: {TEMPLATE_PATH})")
     parser.add_argument("--cols", type=int, default=DEFAULT_COLS,
                         help=f"Etykiet w wierszu (domyślnie: {DEFAULT_COLS})")
+    parser.add_argument("--logo", choices=["ceim", "kerti"], default="ceim",
+                        help="Logo na etykiecie: ceim (domyślnie) lub kerti")
     args = parser.parse_args()
 
     output_path = Path(args.output)
@@ -336,7 +384,7 @@ def main() -> None:
         })
         return
 
-    generate(products, output_path, template_path, args.cols)
+    generate(products, output_path, template_path, args.cols, logo=args.logo)
 
     print_json({
         "ok": True,
