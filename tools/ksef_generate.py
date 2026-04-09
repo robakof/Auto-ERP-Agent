@@ -202,9 +202,13 @@ def build_xml(rows):
 
     # Platnosc
     plat = E(fa, "Platnosc")
-    termin_el = E(plat, "TerminPlatnosci")
-    E(termin_el, "Termin", text=v(r, "Plat_TerminPlatnosci"))
-    E(plat, "FormaPlatnosci", text=v(r, "Plat_KodFormyPlatnosci"))
+    termin = v(r, "Plat_TerminPlatnosci")
+    if termin:
+        termin_el = E(plat, "TerminPlatnosci")
+        E(termin_el, "Termin", text=termin)
+    forma = v(r, "Plat_KodFormyPlatnosci")
+    if forma:
+        E(plat, "FormaPlatnosci", text=forma)
     rachunek = v(r, "Plat_NrRachunkuBankowego")
     if rachunek:
         rb = E(plat, "RachunekBankowy")
