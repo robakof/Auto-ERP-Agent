@@ -1,7 +1,7 @@
 # Architektura projektu Serce
 
 Date: 2026-04-09
-Updated: 2026-04-10 (v5)
+Updated: 2026-04-10 (v6)
 Status: Accepted — gotowy do implementacji (Faza 1)
 Author: Architect
 
@@ -86,7 +86,7 @@ password_hash: str
 phone_number: str (unique, nullable)       ← jeden numer = jedno konto
 phone_verified: bool (DEFAULT false)
 heart_balance: int (>= 0 AND <= heart_balance_cap, DEFAULT 0)  ← 0 przy rejestracji, grant po weryfikacji telefonu
-location_id: FK → Location
+location_id: FK → Location (nullable)  ← NULL = brak lokalizacji; feed pokazuje tylko NATIONAL scope
 bio: str (nullable)
 is_active: bool (DEFAULT true)
 is_admin: bool (DEFAULT false)             ← dostęp do panelu admina i flag queue
@@ -437,6 +437,8 @@ Przykłady: Transport, Dom i ogród, Nauka, IT, Gotowanie, Opieka, Rękodzieło.
 14. Przy każdym zdarzeniu (ACCEPTED, COMPLETED, NEW_MESSAGE itd.) → INSERT Notification + wyślij email
 15. APScheduler uruchomiony przy starcie aplikacji: co godzinę wygasza Requests z przekroczonym expires_at
 16. Edycja Request: tylko status=OPEN; zmiana hearts_offered zablokowana gdy istnieje ≥1 PENDING Exchange (422)
+19. Feed publiczny (bez JWT): GET /requests, GET /offers, GET /users/{id}; operacje zapisu wymagają konta
+20. location_id nullable: brak lokalizacji → tylko NATIONAL scope w feedzie
 17. Review niemodyfikowalne po wystawieniu — brak PATCH /reviews/{id}
 18. Zmiana email/username wymaga weryfikacji (analogicznie do password reset flow)
 
@@ -526,6 +528,8 @@ Przykłady: Transport, Dom i ogród, Nauka, IT, Gotowanie, Opieka, Rękodzieło.
 | 27 | Edycja Offer po opublikowaniu? | `PATCH /offers/{id}` — pola `title / description / hearts_asked` edytowalne w każdym stanie. Zmiana statusu przez osobny endpoint `PATCH /offers/{id}/status` (ACTIVE ↔ PAUSED ↔ INACTIVE). |
 | 28 | Edycja profilu użytkownika? | `PATCH /users/me` — pola `bio`, `location_id`. Zmiana `username` i `email` przez osobne endpointy z weryfikacją (analogicznie do password reset). |
 | 29 | Edycja Review po wystawieniu? | Brak. Review jest niemodyfikowalne po wystawieniu. Integralność reputacji ważniejsza niż wygoda edycji. |
+| 30 | Publiczny dostęp do feedu (bez konta)? | Tak. GET /requests, GET /offers, GET /users/{id} (profil publiczny) — dostępne bez JWT. Tworzenie, odpowiadanie, wiadomości, transfer serc — wymagają konta. |
+| 31 | location_id wymagane przy rejestracji? | Nullable. Brak lokalizacji → feed pokazuje tylko NATIONAL scope. Soft requirement: UX motywuje do podania, nie wymuszamy technicznie. |
 
 ---
 
