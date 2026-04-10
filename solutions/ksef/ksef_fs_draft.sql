@@ -107,7 +107,7 @@ SELECT
     NULLIF(RTRIM(tk.Twr_Ean), '')                               AS Wiersz_GTIN,
 
     -- =========================================================
-    -- Płatność (CDN.TraPlat + CDN.RachunkiBankowe)
+    -- Płatność (CDN.TraPlat + CDN.Rejestry)
     -- =========================================================
     CONVERT(DATE, DATEADD(day, p.TrP_Termin, '1800-12-28'))     AS Plat_TerminPlatnosci,
     CASE p.TrP_FormaNr
@@ -117,7 +117,7 @@ SELECT
         ELSE CAST(p.TrP_FormaNr AS VARCHAR(5))
     END                                                         AS Plat_KodFormyPlatnosci,
     RTRIM(p.TrP_FormaNazwa)                                     AS Plat_FormaPlatnosci_Nazwa,
-    CASE WHEN p.TrP_FormaNr = 20 THEN rb.RkB_NrRachunku
+    CASE WHEN p.TrP_FormaNr = 20 THEN kar.KAR_NrRachunku
          ELSE NULL END                                          AS Plat_NrRachunkuBankowego,
 
     -- =========================================================
@@ -134,6 +134,15 @@ CROSS JOIN (SELECT TOP 1
     Frm_NIP, Frm_Nazwa1, Frm_Nazwa2,
     Frm_Kraj, Frm_Ulica, Frm_KodP, Frm_Miasto
     FROM CDN.Firma) f
+
+-- Rejestr bankowy firmy (domyślny aktywny PLN)
+CROSS JOIN (SELECT TOP 1
+    KAR_NrRachunku
+    FROM CDN.Rejestry
+    WHERE KAR_Typ        = 2
+      AND KAR_Waluta     = 'PLN'
+      AND KAR_Archiwalne = 0
+    ORDER BY KAR_GIDNumer) kar
 
 -- Nabywca
 JOIN CDN.KntKarty k
@@ -206,7 +215,7 @@ LEFT JOIN (
 -- Płatność (pierwsza rata/termin na fakturze)
 LEFT JOIN (
     SELECT TrP_GIDTyp, TrP_GIDNumer, TrP_Termin,
-           TrP_FormaNr, TrP_FormaNazwa, TrP_RachBank,
+           TrP_FormaNr, TrP_FormaNazwa,
            ROW_NUMBER() OVER (
                PARTITION BY TrP_GIDTyp, TrP_GIDNumer
                ORDER BY TrP_GIDLp
@@ -219,10 +228,6 @@ LEFT JOIN (
 -- EAN towaru (CDN.TwrKarty)
 LEFT JOIN CDN.TwrKarty tk ON tk.Twr_GIDNumer = e.TrE_TwrNumer
 
--- Rachunek bankowy (tylko dla przelewu)
-LEFT JOIN CDN.RachunkiBankowe rb
-    ON  rb.RkB_Id     = p.TrP_RachBank
-    AND p.TrP_FormaNr = 20
 
 WHERE n.TrN_GIDTyp = 2033
 
