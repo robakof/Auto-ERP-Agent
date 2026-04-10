@@ -1,7 +1,7 @@
 # Architektura projektu Serce
 
 Date: 2026-04-09
-Updated: 2026-04-10 (v7)
+Updated: 2026-04-10 (v8)
 Status: Accepted — gotowy do implementacji (Faza 1)
 Author: Architect
 
@@ -547,6 +547,81 @@ Przykłady: Transport, Dom i ogród, Nauka, IT, Gotowanie, Opieka, Rękodzieło.
 | 38 | Flow zmiany emaila — bezpieczeństwo? | Nowy email wymaga weryfikacji zanim zastąpi stary (stary aktywny do potwierdzenia). Stary email dostaje powiadomienie o zmianie (anti-hijacking). Zmiana emaila revokuje wszystkie refresh_tokens (wymuś re-login). |
 | 39 | HeartLedger przy hearts_agreed = 0? | Pomiń INSERT HeartLedger gdy amount = 0. Brak transakcji finansowej — wpis bez wartości. Exchange COMPLETED jest wystarczającym śladem w historii. |
 | 40 | Brakujące typy Notification? | Dodać do enum: HEARTS_RECEIVED (przy Gift), REQUEST_EXPIRED (APScheduler przy wygaśnięciu). EXCHANGE_FLAGGED dla admina — Faza 4. |
+| 41 | URL prefix i wersjonowanie API? | `/api/v1/` prefix na wszystkich endpointach. Wersja w URL (nie nagłówku). |
+| 42 | Format błędów API? | `{"error": "ERROR_CODE", "message": "...", "detail": {...}}`. Kody: SELF_EXCHANGE, BALANCE_INSUFFICIENT, CAP_EXCEEDED, NOT_FOUND, UNAUTHORIZED, FORBIDDEN, VALIDATION_ERROR. |
+| 43 | HTTP status codes — konwencja? | 201 CREATE, 200 UPDATE/akcje, 204 DELETE, 422 błąd biznesowy, 400 błąd formatu, 401 brak JWT, 403 brak uprawnień, 404 nie znaleziono. |
+| 44 | Pagination — format? | `?page=1&limit=20`. Response: `{"items": [...], "total": N, "page": N, "limit": N, "pages": N}`. Cursor-based — Faza 4. |
+| 45 | Format dat? | ISO 8601 UTC wszędzie (`2026-04-10T13:47:47Z`). Konwersja na lokalny czas — obowiązek frontendu/mobilki. |
+| 46 | Limity długości pól? | username 3–30 znaków `[a-z0-9_.-]`; password 8–128 (min 1 cyfra lub znak specjalny); title 5–100; description 10–2000; comment/message 1–1000/2000; bio 0–500. |
+| 47 | SMS OTP provider? | SMSAPI.pl (polska platforma, GDPR, PLN). |
+| 48 | Email provider? | Resend.com (nowoczesne API, darmowy tier 3k/mies.). |
+| 49 | CAPTCHA provider? | hCaptcha (privacy-first, GDPR-friendly, darmowy tier). |
+| 50 | Rate limiting — pełny zakres? | Rejestracja: 3/IP/24h (istniejące). Login: 10 prób/IP/15min. SMS OTP: 3 wysyłki/numer/24h. Wiadomości: 50/user/h. Gift serc: 10 transferów/user/24h. Biblioteka: SlowAPI (FastAPI middleware). |
+| 51 | CORS? | Whitelist origins z `.env` (`CORS_ORIGINS`). Wildcard `*` tylko w trybie dev. |
+| 52 | Polityka haseł? | Min 8 znaków, min 1 cyfra LUB znak specjalny. Brak wymogu wielkich liter. |
+| 53 | Health check endpoint? | `GET /health` — publiczny, bez JWT. Response: `{"status": "ok", "db": "ok"}`. Wymagany dla Docker healthcheck. |
+| 54 | Struktura `.env`? | Klucze zdefiniowane w `.env.example`: DATABASE_URL, SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, SMSAPI_TOKEN, RESEND_API_KEY, HCAPTCHA_SECRET, CORS_ORIGINS, INITIAL_HEART_GRANT, HEART_BALANCE_CAP, REQUEST_DEFAULT_EXPIRY_DAYS. |
+| 55 | Logging? | Structured JSON (biblioteka `structlog`). Per-request: method, path, status_code, duration_ms, user_id. Poziomy: INFO (2xx/3xx), WARNING (4xx), ERROR (5xx). |
+
+---
+
+## Konwencje API
+
+### URL structure
+
+```
+/api/v1/{resource}
+/api/v1/{resource}/{id}
+/api/v1/{resource}/{id}/{action}
+```
+
+Przykłady:
+```
+GET    /api/v1/requests
+POST   /api/v1/requests
+PATCH  /api/v1/requests/{id}
+POST   /api/v1/exchanges/{id}/accept
+POST   /api/v1/exchanges/{id}/cancel
+POST   /api/v1/exchanges/{id}/complete
+GET    /health
+```
+
+### Error response
+
+```json
+{
+  "error": "BALANCE_INSUFFICIENT",
+  "message": "Insufficient heart balance to complete transfer",
+  "detail": {
+    "required": 10,
+    "available": 3
+  }
+}
+```
+
+Kody błędów (wyczerpująca lista):
+- `VALIDATION_ERROR` — błąd formatu/walidacji pola
+- `NOT_FOUND` — zasób nie istnieje
+- `UNAUTHORIZED` — brak lub nieprawidłowy JWT
+- `FORBIDDEN` — brak uprawnień do zasobu
+- `SELF_EXCHANGE` — próba Exchange z samym sobą
+- `BALANCE_INSUFFICIENT` — za mało serc
+- `CAP_EXCEEDED` — odbiorca przekroczyłby heart_balance_cap
+- `HEARTS_MISMATCH` — hearts_agreed ≠ Offer.hearts_asked (Offer-first)
+- `EXCHANGE_NOT_CANCELLABLE` — Exchange już COMPLETED
+- `INVALID_STATUS_TRANSITION` — niedozwolona zmiana statusu
+
+### Pagination response
+
+```json
+{
+  "items": [...],
+  "total": 150,
+  "page": 1,
+  "limit": 20,
+  "pages": 8
+}
+```
 
 ---
 
