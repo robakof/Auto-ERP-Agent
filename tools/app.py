@@ -81,6 +81,14 @@ APPS = [
         "active": True,
     },
     {
+        "name": "Oferta Handlowa Kerti",
+        "desc": "Generator PDF oferty szkła Kerti (design katalogowy)",
+        "tip": "Excel: kolumna 'Akronim produktu' + opcjonalnie 'Nowość'. Dane z ERP.",
+        "icon": "🪟",
+        "page": "pages/oferta_handlowa.py",
+        "active": True,
+    },
+    {
         "name": "Preprocessing Zdjęć",
         "desc": "Przygotowanie zdjęć produktowych do katalogu",
         "icon": "🖼️",
