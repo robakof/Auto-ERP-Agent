@@ -1,7 +1,7 @@
 # Architektura projektu Serce
 
 Date: 2026-04-09
-Updated: 2026-04-10 (v6)
+Updated: 2026-04-10 (v7)
 Status: Accepted — gotowy do implementacji (Faza 1)
 Author: Architect
 
@@ -216,8 +216,10 @@ CHECK (request_id IS NOT NULL OR offer_id IS NOT NULL)
   W razie problemu: POST /exchanges/{id}/flag → admin interweniuje ręcznie.
 - PENDING = rozmowa wstępna. Wiadomości dostępne od PENDING. Wiele PENDING per Exchange-source dozwolone.
 - `POST /exchanges/{id}/accept` — dostępny wyłącznie dla strony która NIE jest `initiated_by`.
-- Transfer serc następuje przy status → COMPLETED.
-- Brak zamrożenia serc przy ACCEPTED — uproszcza UX v1.
+- Transfer serc następuje przy status → COMPLETED. Jeśli hearts_agreed = 0 — pomiń INSERT HeartLedger.
+- Brak zamrożenia serc przy ACCEPTED — upraszcza UX v1.
+- `POST /exchanges/{id}/cancel` — dostępny dla obu stron w każdym momencie przed COMPLETED. Na cancel: Exchange → CANCELLED, Request → OPEN (jeśli był IN_PROGRESS).
+- Self-exchange zablokowany: service zwraca 422 gdy initiator = druga strona Exchange.
 
 **Przepływy inicjacji (dwukierunkowe):**
 ```
@@ -294,7 +296,8 @@ used_at: datetime (nullable)  ← NULL = nieużyty
 id: UUID (PK)
 user_id: UUID (FK User)
 type: enum [NEW_EXCHANGE, EXCHANGE_ACCEPTED, EXCHANGE_COMPLETED,
-            NEW_MESSAGE, EXCHANGE_CANCELLED, NEW_REVIEW]
+            NEW_MESSAGE, EXCHANGE_CANCELLED, NEW_REVIEW,
+            HEARTS_RECEIVED, REQUEST_EXPIRED]
 related_exchange_id: UUID (nullable)
 related_message_id: UUID (nullable)
 is_read: bool (DEFAULT false)
@@ -437,8 +440,13 @@ Przykłady: Transport, Dom i ogród, Nauka, IT, Gotowanie, Opieka, Rękodzieło.
 14. Przy każdym zdarzeniu (ACCEPTED, COMPLETED, NEW_MESSAGE itd.) → INSERT Notification + wyślij email
 15. APScheduler uruchomiony przy starcie aplikacji: co godzinę wygasza Requests z przekroczonym expires_at
 16. Edycja Request: tylko status=OPEN; zmiana hearts_offered zablokowana gdy istnieje ≥1 PENDING Exchange (422)
-19. Feed publiczny (bez JWT): GET /requests, GET /offers, GET /users/{id}; operacje zapisu wymagają konta
+19. Feed publiczny (bez JWT): GET /requests, GET /requests/{id}, GET /offers, GET /offers/{id}, GET /users/{id}, GET /categories, GET /locations; wszystkie POST/PATCH/DELETE i GET /exchanges/*, /messages/*, /notifications wymagają JWT
 20. location_id nullable: brak lokalizacji → tylko NATIONAL scope w feedzie
+21. Self-exchange zablokowany: walidacja w service przy CREATE Exchange (422 gdy requester = helper)
+22. hearts_agreed w Offer-first musi = Offer.hearts_asked: walidacja w service przy CREATE (422 przy niezgodności)
+23. Cancel Exchange: dostępny dla obu stron w każdym momencie przed COMPLETED; Exchange → CANCELLED, Request → OPEN (jeśli był IN_PROGRESS); brak konsekwencji finansowych
+24. HeartLedger: pomiń INSERT gdy amount = 0
+25. Zmiana emaila: nowy email weryfikowany zanim zastąpi stary; powiadomienie na stary email; revoke wszystkich refresh_tokens
 17. Review niemodyfikowalne po wystawieniu — brak PATCH /reviews/{id}
 18. Zmiana email/username wymaga weryfikacji (analogicznie do password reset flow)
 
@@ -530,6 +538,15 @@ Przykłady: Transport, Dom i ogród, Nauka, IT, Gotowanie, Opieka, Rękodzieło.
 | 29 | Edycja Review po wystawieniu? | Brak. Review jest niemodyfikowalne po wystawieniu. Integralność reputacji ważniejsza niż wygoda edycji. |
 | 30 | Publiczny dostęp do feedu (bez konta)? | Tak. GET /requests, GET /offers, GET /users/{id} (profil publiczny) — dostępne bez JWT. Tworzenie, odpowiadanie, wiadomości, transfer serc — wymagają konta. |
 | 31 | location_id wymagane przy rejestracji? | Nullable. Brak lokalizacji → feed pokazuje tylko NATIONAL scope. Soft requirement: UX motywuje do podania, nie wymuszamy technicznie. |
+| 32 | Self-exchange (Exchange na własny Request/Offer)? | Zablokowany. Walidacja w service przy CREATE + opcjonalnie CHECK w DB. |
+| 33 | hearts_agreed w Offer-first — czy musi = Offer.hearts_asked? | Tak. hearts_agreed przy CREATE Exchange na Offer musi równać się Offer.hearts_asked. Brak negocjacji (spójnie z #24). Walidacja w service, 422 przy niezgodności. |
+| 34 | Request status przy CANCEL Exchange po ACCEPTED? | Request wraca do OPEN. Cancel możliwy przez obie strony w każdym momencie przed COMPLETED. Brak konsekwencji finansowych (serca nie zamrożone). Exchange → CANCELLED, Request → OPEN (jeśli był IN_PROGRESS). |
+| 35 | Kto i kiedy może anulować Exchange? | Obie strony, w każdym momencie przed COMPLETED. Duch platformy: pomoc, nie umowa. Brak timeoutów w v1 — jeśli ktoś znika, druga strona anuluje sama lub flaguje admina. |
+| 36 | Granica public/private endpointów? | Publiczne (bez JWT): GET /requests, GET /requests/{id}, GET /offers, GET /offers/{id}, GET /users/{id}, GET /categories, GET /locations. Prywatne (wymagają JWT): wszystkie POST/PATCH/DELETE, GET /exchanges/*, GET /messages/*, GET /notifications, GET /auth/sessions. |
+| 37 | Schemat publicznego profilu użytkownika? | GET /users/{id} zwraca: username, location (nazwa), bio, lista aktywnych Offers, lista aktywnych Requests, lista Reviews (komentarze jako reviewed). Ukryte: email, phone_number, heart_balance, deleted_at. |
+| 38 | Flow zmiany emaila — bezpieczeństwo? | Nowy email wymaga weryfikacji zanim zastąpi stary (stary aktywny do potwierdzenia). Stary email dostaje powiadomienie o zmianie (anti-hijacking). Zmiana emaila revokuje wszystkie refresh_tokens (wymuś re-login). |
+| 39 | HeartLedger przy hearts_agreed = 0? | Pomiń INSERT HeartLedger gdy amount = 0. Brak transakcji finansowej — wpis bez wartości. Exchange COMPLETED jest wystarczającym śladem w historii. |
+| 40 | Brakujące typy Notification? | Dodać do enum: HEARTS_RECEIVED (przy Gift), REQUEST_EXPIRED (APScheduler przy wygaśnięciu). EXCHANGE_FLAGGED dla admina — Faza 4. |
 
 ---
 
