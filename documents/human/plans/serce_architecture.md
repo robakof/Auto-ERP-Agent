@@ -1,7 +1,7 @@
 # Architektura projektu Serce
 
 Date: 2026-04-09
-Updated: 2026-04-11 (v10)
+Updated: 2026-04-11 (v11)
 Status: Accepted — gotowy do implementacji (Faza 1)
 Author: Architect
 
@@ -507,7 +507,10 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 - [ ] Exchanges: auto-cancel pozostałych PENDING przy akceptacji Request-first Exchange
 - [ ] Reviews: create po COMPLETED (UNIQUE exchange_id + reviewer_id)
 - [ ] Flag endpoint: POST /exchanges/{id}/flag → INSERT ExchangeFlag
-- [ ] Notifications: INSERT przy każdym zdarzeniu + email wysyłany równolegle; GET /notifications, POST /notifications/{id}/read
+- [ ] Notifications: INSERT przy każdym zdarzeniu + email wysyłany równolegle; GET /users/me/notifications, POST /users/me/notifications/{id}/read, POST /users/me/notifications/read-all
+- [ ] User resources API (ADR-SERCE-005): GET /users/me, /users/me/summary, /users/me/requests, /users/me/offers, /users/me/exchanges, /users/me/reviews (direction required), /users/me/ledger
+- [ ] Exchange transparency: GET /requests/{id}/exchanges, GET /offers/{id}/exchanges (owner + uczestnicy widzą, zredukowany widok dla rywali)
+- [ ] Messages: GET /exchanges/{id}/messages (sort ASC, paginacja, autoryzacja participants)
 - [ ] Background job: APScheduler — co godzinę CANCELLED wygasłe Requests (expires_at < now, status=OPEN)
 - [ ] Paginacja: wszystkie listing endpoints (requests, offers, exchanges, notifications) — ?page + ?limit
 - [ ] Testy: struktura `tests/{unit/{core,services},integration/{api,db}}` + `conftest.py` + `factories.py`
@@ -564,7 +567,7 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 | 19 | Exchange bez Request i Offer? | Niedozwolone. CHECK (request_id IS NOT NULL OR offer_id IS NOT NULL). |
 | 20 | Password reset? | Tabela PasswordResetToken (DB-backed, expires 15min). Po użyciu: revoke wszystkich refresh_tokens. |
 | 21 | Flag mechanism? | Osobna tabela ExchangeFlag (reported_by, reason, resolved_by, resolution_note). |
-| 22 | Powiadomienia? | Email + in-app (tabela Notification). Tworzone przy każdym zdarzeniu, email wysyłany równolegle. Faza 1. |
+| 22 | Powiadomienia? | Email + in-app (tabela Notification). Tworzone przy każdym zdarzeniu, email wysyłany równolegle. Faza 1. Endpointy: `GET /users/me/notifications`, `POST /users/me/notifications/{id}/read`, `POST /users/me/notifications/read-all` (namespace ujednolicony w ADR-SERCE-005 D7). |
 | 23 | Paginacja feedu? | Wymagana od Fazy 1. Wszystkie listing endpoints: ?page + ?limit. |
 | 24 | Negocjacja hearts_agreed? | Brak. Stały przy CREATE = Request.hearts_offered. |
 | 25 | Wygasanie Request? | APScheduler co godzinę: UPDATE status=CANCELLED WHERE expires_at < now AND status=OPEN. |
@@ -612,6 +615,16 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 | 67 | Transakcyjność soft delete? | All-or-nothing — cała kaskada (8 kroków) w jednej DB transaction. Częściowy fail = pęknięta spójność domeny, niedopuszczalny. Dedykowany integration test na atomowość. **ADR-SERCE-003 D6**. |
 | 68 | Grace period / account recovery? | Brak w v1. Soft delete = natychmiastowy, nieodwracalny self-service. Admin może cofnąć ręcznie w DB w skrajnych przypadkach. Self-service undelete → NICE backlog, Faza 2+. **ADR-SERCE-003 D7**. |
 | 69 | Hard delete (GDPR right to be forgotten)? | Odroczony do Fazy 4. v1: tylko soft delete = pseudoanonymization (zgodna z GDPR art. 17 — dane osobowe usunięte, historia finansowa/kontraktowa zachowana jako legalny interes). Hard delete = osobna decyzja architektoniczna. **ADR-SERCE-003 D8**. |
+| 70 | `GET /users/me` — własny profil? | Rozszerzony response vs publiczny: zawiera email, phone_number, email_verified, phone_verified, heart_balance, is_admin, created_at (vs publiczny #37 bez tych pól). Bez list Offers/Requests/Reviews — osobne endpointy. **ADR-SERCE-005 D1**. |
+| 71 | `GET /users/me/{requests,offers}`? | Paginacja + filtr `?status`, sort `created_at DESC`. Item zawiera `pending_exchanges_count` na zasób (szybki podgląd odzewu). **ADR-SERCE-005 D2, D3**. |
+| 72 | `GET /users/me/exchanges`? | Paginacja + filtry `?status`, `?role=requester\|helper`, `?initiated_by=me\|other`. Sort `created_at DESC`. Item: Exchange + skrócony Request/Offer + druga strona (zredukowany User). **ADR-SERCE-005 D4**. |
+| 73 | `GET /users/me/reviews`? | Wymagany parametr `?direction=given\|received` (brak defaulta — frontend explicit). Paginacja. **ADR-SERCE-005 D5**. |
+| 74 | `GET /users/me/ledger`? | Historia HeartLedger z perspektywy usera: `direction` (in/out) wyliczane backendem, `counterparty` = null dla SYSTEM/ACCOUNT_DELETED lub placeholder dla usuniętego usera. Parametry `?type`, `?direction`. Paginacja. **ADR-SERCE-005 D6**. |
+| 75 | `GET /users/me/summary` — dashboard w 1 requeście? | Liczniki: `heart_balance`, `unread_notifications_count`, `pending_exchanges_count`, `pending_reviews_count`, `active_requests_count`, `active_offers_count`, `email_verified`, `phone_verified`. Admin dodatkowo: `unresolved_flags_count` (warunkowe, obecne tylko gdy `is_admin=true`). **ADR-SERCE-005 D8**. |
+| 76 | `GET /requests/{id}/exchanges`, `GET /offers/{id}/exchanges` — transparentność? | Tak: owner zasobu widzi wszystko, helper z aktywnym Exchange widzi rywali (zredukowany widok: helper, hearts_agreed, status, created_at). Transparentność > prywatność konkurencyjnych helperów — anti-ghosting, social proof, fair-play. 403 dla nie-uczestników, 401 dla anonim. **ADR-SERCE-005 D9**. |
+| 77 | `GET /exchanges/{id}/messages`? | Paginacja, sort `created_at ASC` (chat UX). Autoryzacja: tylko `requester_id` i `helper_id` Exchange. **ADR-SERCE-005 D10**. |
+| 78 | Edycja/usuwanie wiadomości? | Brak. Message niemodyfikowalne po wysłaniu (brak PATCH/DELETE). Spójnie z #29 (Review). Integralność kontekstu Exchange, prostota modelu. Obraźliwe wiadomości → ContentFlag (ADR-SERCE-004) → admin ręcznie. **ADR-SERCE-005 D11**. |
+| 79 | Namespace notifications? | Ujednolicony: `/users/me/notifications/*` (usunięto `GET /notifications` z planu). Wszystkie zasoby zalogowanego usera pod `/users/me/*`. **ADR-SERCE-005 D7**. |
 
 ---
 
@@ -630,9 +643,26 @@ Przykłady:
 GET    /api/v1/requests
 POST   /api/v1/requests
 PATCH  /api/v1/requests/{id}
+GET    /api/v1/requests/{id}/exchanges         # owner + aktywni helperzy (transparentność)
+GET    /api/v1/offers/{id}/exchanges           # analogicznie
 POST   /api/v1/exchanges/{id}/accept
 POST   /api/v1/exchanges/{id}/cancel
 POST   /api/v1/exchanges/{id}/complete
+GET    /api/v1/exchanges/{id}/messages
+POST   /api/v1/exchanges/{id}/messages
+
+GET    /api/v1/users/me                        # własny profil (rozszerzony)
+PATCH  /api/v1/users/me                        # edycja bio, location
+GET    /api/v1/users/me/summary                # dashboard w 1 requeście
+GET    /api/v1/users/me/requests               # moje prośby
+GET    /api/v1/users/me/offers                 # moje oferty
+GET    /api/v1/users/me/exchanges              # moje wymiany
+GET    /api/v1/users/me/reviews?direction=given|received
+GET    /api/v1/users/me/ledger                 # historia serc
+GET    /api/v1/users/me/notifications
+POST   /api/v1/users/me/notifications/{id}/read
+POST   /api/v1/users/me/notifications/read-all
+
 GET    /health
 ```
 
@@ -680,3 +710,4 @@ Kody błędów (wyczerpująca lista):
 - `ADR-SERCE-001-stack.md` — wybór stack (FastAPI, Next.js, React Native)
 - `ADR-SERCE-002-hearts-ledger.md` — serca jako księga, nie obiekty
 - `ADR-SERCE-003-account-lifecycle.md` — cykl życia konta (soft delete, kaskada, prezentacja)
+- `ADR-SERCE-005-user-resources-api.md` — /users/me/* namespace, dashboard, transparentność Exchange per Request/Offer, niemodyfikowalne wiadomości
