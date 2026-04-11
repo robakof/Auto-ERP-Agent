@@ -1,7 +1,7 @@
 # Architektura projektu Serce
 
 Date: 2026-04-09
-Updated: 2026-04-11 (v14)
+Updated: 2026-04-11 (v15)
 Status: Accepted — gotowy do implementacji (Faza 1)
 Author: Architect
 
@@ -30,7 +30,32 @@ Można poprosić o pomoc bez serc — duch projektu: pomagajmy sobie nawzajem.
 
 Redis, message queue, CDN — nie w v1. Dodajemy gdy potrzeba się manifestuje.
 
-Deployment: decyzja po MVP. Docker umożliwia deploy na dowolną platformę (VPS, Railway, Render, AWS).
+### Deployment & infrastruktura
+
+**Serwer:** VPS z Docker support. Kandydaci: Hetzner CX22 (€4.35/mies., 4GB/2vCPU/40GB, EU), nazwa.pl (polska firma — do analizy). Decyzja o providerze otwarta.
+
+**Minimalne wymagania VPS:** 4 GB RAM, 2 vCPU, 40 GB SSD, lokalizacja EU (GDPR).
+
+**Stack na serwerze:**
+- Docker + docker-compose (backend + frontend + PostgreSQL)
+- nginx (reverse proxy, SSL termination, routing)
+- Let's Encrypt + certbot (auto-renewal SSL)
+- UFW firewall (80, 443, 22)
+- Backup: cron + pg_dump → object storage
+- Monitoring: UptimeRobot (free)
+
+**Usługi zewnętrzne:**
+
+| Usługa | Provider | Koszt MVP |
+|--------|----------|-----------|
+| SMS OTP | SMSAPI.pl | ~0.09 PLN/SMS |
+| Email transakcyjny | Resend.com | Free tier 3k/mies. |
+| CAPTCHA | hCaptcha | Free |
+| Domena | do wyboru | ~50-80 PLN/rok (.pl) |
+| SSL | Let's Encrypt | Free |
+| DNS | Cloudflare | Free tier |
+
+**Szacowany koszt MVP:** ~80-130 PLN/mies. (VPS + domena + SMS).
 
 ---
 
@@ -647,7 +672,7 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 | 3 | Limit serc? | Górny limit konfigurowalny (DEFAULT 50). DB CHECK constraint. SystemConfig: `heart_balance_cap`. |
 | 4 | Rating/reputacja? | Komentarz tekstowy po COMPLETED. Brak gwiazdek w v1. |
 | 5 | Lokalizacje — TERYT pełna baza? | Nie. 16 województw + ~100 największych miast. |
-| 6 | Deployment? | Decyzja po MVP. Docker zapewnia przenośność. |
+| 6 | Deployment? | VPS z Docker + docker-compose + nginx + Let's Encrypt. Provider: Hetzner CX22 lub nazwa.pl (do analizy). Shared hosting odpada (brak Docker/Python async/PostgreSQL). PaaS (Railway/Render) 3-4x droższy. Cloud (AWS) overkill na MVP. |
 | 7 | Email verification? | Tak — wymagana przed pełnym dostępem. |
 | 8 | Anti-farming? | Phone verification = gate do INITIAL_GRANT. CAPTCHA + IP rate limit + temp-mail denylist jako warstwy uzupełniające. |
 | 9 | Refresh token storage? | DB (tabela refresh_tokens) + token rotation. httpOnly cookie. Endpointy logout + logout-all + sessions. |
@@ -742,6 +767,7 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 | 98 | heart_balance_cap — DB CHECK? | CHECK tylko `>= 0`. Cap walidowany aplikacyjnie w HeartService (cross-table CHECK niemożliwy w PostgreSQL). |
 | 99 | Flag endpoints non-exchange? | Per-resource: POST /requests/{id}/flag, /offers/{id}/flag, /users/{id}/flag. Message flag przez Exchange (opis w reason). Brak generycznego POST /flags. |
 | 100 | Offer/Request status po admin unhide? | Offer → INACTIVE, Request → CANCELLED. User reaktywuje sam. Auto-ACTIVE po interwencji admina niedopuszczalne. Reguła biznesowa #29. |
+| 101 | Infrastruktura deployment? | VPS (4GB/2vCPU/40GB, EU) + Docker + nginx + Let's Encrypt. Usługi: SMSAPI.pl, Resend.com, hCaptcha, Cloudflare DNS. Provider VPS: Hetzner vs nazwa.pl — analiza otwarta. Koszt MVP: ~80-130 PLN/mies. |
 
 ---
 
