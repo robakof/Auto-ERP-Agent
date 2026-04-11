@@ -36,12 +36,12 @@ Dodatkowo: nieujednolicony namespace (`GET /notifications` vs `/users/me/*`) wym
   "heart_balance": 23,
   "location": {"id": 12, "name": "Warszawa", "type": "CITY"},
   "bio": "...",
-  "is_admin": false,
+  "role": "user",
   "created_at": "2026-01-15T10:30:00Z"
 }
 ```
 
-Różnica vs publiczny `GET /users/{id}` (decyzja #37): `/users/me` zawiera prywatne pola (email, phone_number, heart_balance, email_verified, phone_verified, is_admin, created_at). Nie zawiera listy Offers/Requests/Reviews — te są osobnymi endpointami z paginacją, żeby nie tworzyć monster-response.
+Różnica vs publiczny `GET /users/{id}` (decyzja #37): `/users/me` zawiera prywatne pola (email, phone_number, heart_balance, email_verified, phone_verified, role, created_at). Nie zawiera listy Offers/Requests/Reviews — te są osobnymi endpointami z paginacją, żeby nie tworzyć monster-response.
 
 **Autoryzacja:** wymaga JWT, user widzi tylko siebie.
 

@@ -42,7 +42,7 @@ Gdy `heart_balance = 0` — body opcjonalne (lub z `disposition=void` dla spójn
    - `UPDATE user SET heart_balance = 0`
 
 2. **`transfer`** — user przekazuje saldo innemu użytkownikowi.
-   - Walidacja: recipient istnieje, `is_active = true`, `deleted_at IS NULL`, `!= self`, `recipient.heart_balance + amount <= heart_balance_cap`
+   - Walidacja: recipient istnieje, `status = 'active'`, `deleted_at IS NULL`, `!= self`, `recipient.heart_balance + amount <= heart_balance_cap`
    - Jeśli przekracza cap → 422 `CAP_EXCEEDED` z `max_receivable` (user wybiera: zmniejszyć amount przez void części, zmienić recipient)
    - INSERT `HeartLedger(from_user_id=user, to_user_id=recipient, amount=balance, type=GIFT, note='balance transfer przed usunięciem konta')`
    - Notification `HEARTS_RECEIVED` do recipient
