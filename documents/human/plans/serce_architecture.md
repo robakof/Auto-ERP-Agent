@@ -1,7 +1,7 @@
 # Architektura projektu Serce
 
 Date: 2026-04-09
-Updated: 2026-04-11 (v12)
+Updated: 2026-04-11 (v13)
 Status: Accepted — gotowy do implementacji (Faza 1)
 Author: Architect
 
@@ -281,6 +281,8 @@ Przykładowe klucze:
 - `initial_heart_grant` — ile serc dostaje nowy user po weryfikacji telefonu (DEFAULT: 5)
 - `heart_balance_cap` — maksymalny balans serc (DEFAULT: 50)
 - `flag_admin_alert_days` — po ilu dniach bez rozwiązania flagi alert do admina (DEFAULT: 7)
+- `tos_current_version` — aktualna wersja regulaminu (np. "1.0")
+- `privacy_current_version` — aktualna wersja polityki prywatności (np. "1.0")
 
 ### PasswordResetToken
 
@@ -291,6 +293,32 @@ token_hash: str (NOT NULL)
 created_at: datetime
 expires_at: datetime     ← 15 minut
 used_at: datetime (nullable)  ← NULL = nieużyty
+```
+
+### UserConsent (akceptacja regulaminu — decyzja #90)
+
+```
+id: UUID (PK)
+user_id: UUID (FK User, CASCADE DELETE)
+document_type: enum [tos, privacy_policy]
+document_version: str (NOT NULL)           ← np. "1.0", "1.1"
+accepted_at: datetime
+ip_address: str
+```
+
+Aktualna wersja regulaminu w SystemConfig: `tos_current_version`, `privacy_current_version`.
+Przy rejestracji: INSERT per document_type. Zmiana regulaminu → frontend banner → `POST /auth/accept-terms`.
+
+### EmailChangeToken (decyzja #93)
+
+```
+id: UUID (PK)
+user_id: UUID (FK User, CASCADE DELETE)
+new_email: str (NOT NULL)
+token_hash: str (NOT NULL)
+created_at: datetime
+expires_at: datetime     ← 24h
+used_at: datetime (nullable)
 ```
 
 ### Notification
@@ -378,8 +406,8 @@ Przykłady: Transport, Dom i ogród, Nauka, IT, Gotowanie, Opieka, Rękodzieło.
 
 ### Rejestracja
 
-1. User POST /auth/register → walidacja email/username (+ CAPTCHA, IP rate limit, temp-mail denylist)
-2. hash password → INSERT User (heart_balance=0, email_verified=false, status='active', role='user')
+1. User POST /auth/register → walidacja email/username (+ CAPTCHA, IP rate limit, temp-mail denylist) + `tos_accepted`, `privacy_policy_accepted` wymagane (422 TERMS_NOT_ACCEPTED)
+2. hash password → INSERT User (heart_balance=0, email_verified=false, status='active', role='user') + INSERT UserConsent (tos + privacy_policy z aktualnymi wersjami z SystemConfig)
 3. Wyślij email weryfikacyjny → POST /auth/verify-email
 4. User POST /auth/verify-phone → SMS OTP
 5. Po weryfikacji telefonu: INSERT HeartLedger (type=INITIAL_GRANT, amount=initial_heart_grant)
@@ -520,16 +548,20 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 
 - [ ] Setup: FastAPI, PostgreSQL, SQLAlchemy, Alembic, Docker
 - [ ] Auth: register (+ CAPTCHA validation, IP rate limit, temp-mail check), login, refresh (token rotation), logout, logout-all
-- [ ] Auth: verify-email (token link), verify-phone (SMS OTP)
+- [ ] Auth: verify-email (token link), verify-phone (SMS OTP), resend-verification-email (rate limit 3/email/24h)
 - [ ] Auth: forgot-password + reset-password (PasswordResetToken)
-- [ ] Auth: sessions endpoint (GET /auth/sessions — lista aktywnych refresh tokens)
+- [ ] Auth: sessions endpoint (GET /auth/sessions, DELETE /auth/sessions/{id} z guardem CANNOT_REVOKE_CURRENT_SESSION)
+- [ ] Auth: accept-terms (POST /auth/accept-terms) + UserConsent model (document_type, document_version, ip_address)
+- [ ] Auth: rejestracja wymaga tos_accepted + privacy_policy_accepted; SystemConfig: tos_current_version, privacy_current_version
 - [ ] Profil: PATCH /users/me (bio, location_id); PATCH /users/me/username + PATCH /users/me/email (z weryfikacją)
+- [ ] Profil: POST /users/me/email/change (hasło + EmailChangeToken 24h + powiadomienie stary email), POST /auth/confirm-email-change
+- [ ] Profil: POST /users/me/phone/change (hasło + OTP nowy numer), POST /users/me/phone/verify (brak ponownego INITIAL_GRANT)
 - [ ] Soft delete: DELETE /users/me z dyspozycją salda (void/transfer), transakcyjna kaskada 8 kroków (ADR-SERCE-003 D6), test atomowości
 - [ ] Locations: preload województwa + wybrane miasta
 - [ ] Categories: preload bazowe kategorie
 - [ ] Hearts: transfer, gift, balance endpoint
-- [ ] Requests: CRUD + listing z filtrami (location_scope, category, status); PATCH /requests/{id} (title/description/expires_at, tylko OPEN, hearts_offered zablokowany gdy PENDING Exchange)
-- [ ] Offers: CRUD + listing; PATCH /offers/{id} (title/description/hearts_asked); PATCH /offers/{id}/status (ACTIVE/PAUSED/INACTIVE)
+- [ ] Requests: CRUD + listing z filtrami (location_scope, category, status, `?q=` ILIKE search, `?sort=`+`?order=`); PATCH /requests/{id} (title/description/expires_at, tylko OPEN, hearts_offered zablokowany gdy PENDING Exchange)
+- [ ] Offers: CRUD + listing z filtrami (analogicznie: location_scope, category, status, `?q=`, `?sort=`+`?order=`); PATCH /offers/{id} (title/description/hearts_asked); PATCH /offers/{id}/status (ACTIVE/PAUSED/INACTIVE)
 - [ ] Exchanges: create (PENDING, dwukierunkowy), accept (tylko non-initiator), complete, cancel + messages
 - [ ] Exchanges: auto-cancel pozostałych PENDING przy akceptacji Request-first Exchange
 - [ ] Reviews: create po COMPLETED (UNIQUE exchange_id + reviewer_id)
@@ -665,6 +697,15 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 | 84 | AdminAuditLog — transakcyjność? | Immutable log. Każda akcja admin (flag.resolve, user.suspend, hearts.grant) zapisana w tej samej transakcji co akcja właściwa. Brak wpisu = brak akcji. `GET /admin/audit` z paginacją i filtrami. **ADR-SERCE-004 D4**. |
 | 85 | Akcje moderacyjne — skończony enum? | `dismiss`, `warn_user`, `hide_content` (Request/Offer → HIDDEN, Message → is_hidden), `suspend_user`, `ban_user` (suspend z until=NULL), `grant_hearts_refund` (HeartLedger type=ADMIN_REFUND). **ADR-SERCE-004 D3**. |
 | 86 | Zachowanie zawieszonego konta? | Revoke refresh tokens, Requests/Offers ukryte z feedu (query filter `owner.status='active'` — nie anulowane), Exchanges trwają (druga strona może dokończyć), saldo zamrożone, login → 401 ACCOUNT_SUSPENDED z reason. Unsuspend odwraca stan. **ADR-SERCE-004 D6**. |
+| 87 | Search na feedzie? | `?q=` parametr na `GET /requests` i `GET /offers`. ILIKE na `title \|\| ' ' \|\| description` na start. PostgreSQL FTS (tsvector) jako upgrade gdy baza > ~10k rekordów. Zewnętrzny search (Meilisearch) → Faza 4. |
+| 88 | Sortowanie feedu? | `?sort=created_at\|hearts_offered\|hearts_asked` + `?order=asc\|desc` (default: `created_at DESC`). Whitelist dozwolonych kolumn (SQL injection prevention). Dotyczy `GET /requests` i `GET /offers`. |
+| 89 | Resend email verification? | `POST /auth/resend-verification-email {email}`. Email w body (nie wymaga JWT — user może nie być zalogowany). Rate limit: 3/email/24h. Stary token unieważniony przy nowym wysłaniu. Guard: 422 ALREADY_VERIFIED gdy `email_verified=true`. |
+| 90 | Akceptacja regulaminu (ToS)? | Pełny model `UserConsent` (user_id, document_type, document_version, accepted_at, ip_address). Przy rejestracji: `tos_accepted` + `privacy_policy_accepted` wymagane. Aktualna wersja w SystemConfig (`tos_current_version`, `privacy_current_version`). Zmiana regulaminu → banner → `POST /auth/accept-terms`. Brak akceptacji = brak rejestracji. |
+| 91 | Logout-all wymaga hasła? | Nie. Logout-all to akcja obronna (nie destrukcyjna) — user w panice nie powinien być spowalniany. Access token krótkotrwały (15 min), ryzyko niskie. |
+| 92 | Unieważnianie pojedynczej sesji? | `DELETE /auth/sessions/{id}`. User może usunąć tylko swoje sesje. Guard: 422 CANNOT_REVOKE_CURRENT_SESSION (zapobiega przypadkowemu self-logout). |
+| 93 | Flow zmiany emaila — endpointy? | `POST /users/me/email/change {new_email, password}` → walidacja hasła, unikalność, INSERT EmailChangeToken (expires 24h), link na nowy email, powiadomienie na stary. `POST /auth/confirm-email-change {token}` → UPDATE email, revoke refresh tokens. Rate limit: 3/user/24h. |
+| 94 | Zmiana phone_number? | `POST /users/me/phone/change {new_phone_number, password}` → walidacja hasła, unikalność, SMS OTP na nowy numer. `POST /users/me/phone/verify {code}` → UPDATE phone, revoke refresh tokens. Brak nowego INITIAL_GRANT (HeartLedger UNIQUE constraint pilnuje). Stary numer zwolniony. Rate limit: 3/user/24h. |
+| 95 | Account recovery po soft delete? | Brak. Soft delete natychmiastowy i nieodwracalny (self-service). Anonimizacja danych osobowych uniemożliwia pełne odzyskanie. Admin może cofnąć `status='deleted'` w DB ale dane osobowe już zanonimizowane — user musiałby uzupełnić od nowa. Świadoma decyzja, nie luka. Potwierdzenie #68 (ADR-003). |
 
 ---
 
@@ -691,8 +732,17 @@ POST   /api/v1/exchanges/{id}/complete
 GET    /api/v1/exchanges/{id}/messages
 POST   /api/v1/exchanges/{id}/messages
 
+# Auth uzupełnienia
+POST   /api/v1/auth/resend-verification-email  # email w body, rate limit 3/email/24h
+POST   /api/v1/auth/accept-terms               # document_type + document_version
+POST   /api/v1/auth/confirm-email-change       # token z EmailChangeToken
+DELETE /api/v1/auth/sessions/{id}              # selective session revoke
+
 GET    /api/v1/users/me                        # własny profil (rozszerzony)
 PATCH  /api/v1/users/me                        # edycja bio, location
+POST   /api/v1/users/me/email/change           # new_email + password (re-auth)
+POST   /api/v1/users/me/phone/change           # new_phone_number + password
+POST   /api/v1/users/me/phone/verify           # OTP code
 GET    /api/v1/users/me/summary                # dashboard w 1 requeście
 GET    /api/v1/users/me/requests               # moje prośby
 GET    /api/v1/users/me/offers                 # moje oferty
@@ -741,6 +791,10 @@ Kody błędów (wyczerpująca lista):
 - `INVALID_STATUS_TRANSITION` — niedozwolona zmiana statusu
 - `ACCOUNT_SUSPENDED` — konto zawieszone przez admina (401 przy logowaniu, z `suspended_until` i `reason`)
 - `FORBIDDEN_ADMIN_ONLY` — endpoint wymaga roli admin (403)
+- `ALREADY_VERIFIED` — email/phone już zweryfikowane (422)
+- `CANNOT_REVOKE_CURRENT_SESSION` — próba unieważnienia aktywnej sesji (422)
+- `TERMS_NOT_ACCEPTED` — brak akceptacji regulaminu przy rejestracji (422)
+- `INVALID_PASSWORD` — hasło nieprawidłowe przy re-auth (401)
 
 ### Pagination response
 
