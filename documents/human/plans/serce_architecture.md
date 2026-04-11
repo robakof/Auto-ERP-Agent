@@ -1,7 +1,7 @@
 # Architektura projektu Serce
 
 Date: 2026-04-09
-Updated: 2026-04-10 (v8)
+Updated: 2026-04-11 (v9)
 Status: Accepted — gotowy do implementacji (Faza 1)
 Author: Architect
 
@@ -475,7 +475,8 @@ Przykłady: Transport, Dom i ogród, Nauka, IT, Gotowanie, Opieka, Rękodzieło.
 - [ ] Notifications: INSERT przy każdym zdarzeniu + email wysyłany równolegle; GET /notifications, POST /notifications/{id}/read
 - [ ] Background job: APScheduler — co godzinę CANCELLED wygasłe Requests (expires_at < now, status=OPEN)
 - [ ] Paginacja: wszystkie listing endpoints (requests, offers, exchanges, notifications) — ?page + ?limit
-- [ ] Testy: unit (services) + integration (API endpoints)
+- [ ] Testy: struktura `tests/{unit/{core,services},integration/{api,db}}` + `conftest.py` + `factories.py`
+- [ ] Testy: pokrycie MUST-COVER (hearts transfer + concurrency, Exchange state machine, Exchange creation, Auth, rate limiting, public vs private, Review unique, APScheduler expire)
 
 ### Faza 2 — Frontend web
 
@@ -562,6 +563,13 @@ Przykłady: Transport, Dom i ogród, Nauka, IT, Gotowanie, Opieka, Rękodzieło.
 | 53 | Health check endpoint? | `GET /health` — publiczny, bez JWT. Response: `{"status": "ok", "db": "ok"}`. Wymagany dla Docker healthcheck. |
 | 54 | Struktura `.env`? | Klucze zdefiniowane w `.env.example`: DATABASE_URL, SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, SMSAPI_TOKEN, RESEND_API_KEY, HCAPTCHA_SECRET, CORS_ORIGINS, INITIAL_HEART_GRANT, HEART_BALANCE_CAP, REQUEST_DEFAULT_EXPIRY_DAYS. |
 | 55 | Logging? | Structured JSON (biblioteka `structlog`). Per-request: method, path, status_code, duration_ms, user_id. Poziomy: INFO (2xx/3xx), WARNING (4xx), ERROR (5xx). |
+| 56 | Podział testów unit vs integration? | 30% unit (core + services z mock repo) / 70% integration (API + test DB). Unit testuje pure logic (entities, walidacje, transfer math, state transitions). Integration testuje kontrakty request→service→DB→response przez FastAPI TestClient / `httpx.AsyncClient`. |
+| 57 | Testowa baza danych? | Osobna baza `serce_test` w tym samym kontenerze Postgres co dev. `conftest.py` aplikuje Alembic migracje raz na sesję. Fixture `db_session`: transakcja per test z rollbackiem. Guard: `RuntimeError` gdy `DATABASE_URL` nie kończy się na `_test` (anty-pomyłka). |
+| 58 | Kryterium akceptacji testów? | Lista MUST-COVER ścieżek, nie procent coverage. Metryka % motywuje do testowania niewłaściwych rzeczy (getters/setters) zamiast krytycznej logiki. MUST-COVER: (1) hearts transfer — happy + BALANCE_INSUFFICIENT + CAP_EXCEEDED + amount=0 skip ledger + concurrency; (2) Exchange state machine — wszystkie dozwolone przejścia + każde niedozwolone → 422 INVALID_STATUS_TRANSITION; (3) Exchange creation — Request-first, Offer-first, self-exchange block, hearts_agreed mismatch, auto-cancel PENDING przy ACCEPTED; (4) Auth — register + CAPTCHA, login, refresh rotation (stary token po użyciu → 401), logout-all, password reset revoke, email change revoke; (5) rate limiting — register/login/SMS OTP/messages/gift; (6) public vs private endpoints — GET /requests bez JWT = 200, POST = 401; (7) Review UNIQUE(exchange_id, reviewer_id); (8) APScheduler — expired Request → CANCELLED. |
+| 59 | Test concurrency dla hearts transfer? | Dedykowany `tests/integration/test_hearts_concurrency.py` z `asyncio.gather()` uruchamiającym N równoległych `complete_exchange()`. Weryfikuje że `SELECT ... FOR UPDATE` w `HeartService.transfer()` zapobiega race condition — suma balance zachowana po wszystkich operacjach. Jedyny test concurrency w suite. |
+| 60 | Struktura katalogów testów? | `backend/tests/{unit/{core,services}, integration/{api,db}}`. `conftest.py` (app, db_session, client, auth fixtures) + `factories.py` (`create_user()`, `create_request()`, `create_offer()`) w `tests/` root. Helpery zamiast `factory_boy` — skala nie uzasadnia biblioteki. |
+| 61 | Konwencja nazewnictwa testów? | `test_<action>__<condition>__<expected>`. Przykłady: `test_create_exchange__self_exchange__returns_422`, `test_complete_exchange__balance_insufficient__returns_422_and_no_ledger`, `test_refresh_token__already_used__returns_401`, `test_get_requests__no_jwt__returns_200_public`. Grep-friendly, czytelne bez ciała testu, naturalne grupowanie po akcji. |
+| 62 | Narzędzia testowe? | `pytest` + `pytest-asyncio` (async support), `httpx.AsyncClient` (async test client), `pytest-cov` zainstalowany jako narzędzie diagnostyczne (HTML raport) — **bez egzekwowania progu**. Brak `factory_boy`, brak `pytest-postgresql` (osobna DB via docker-compose wystarczy). `pytest-xdist` opcjonalnie, gdy testy zaczną być wolne. |
 
 ---
 
