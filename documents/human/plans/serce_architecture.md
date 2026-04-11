@@ -1,7 +1,7 @@
 # Architektura projektu Serce
 
 Date: 2026-04-09
-Updated: 2026-04-11 (v15)
+Updated: 2026-04-11 (v16)
 Status: Accepted — gotowy do implementacji (Faza 1)
 Author: Architect
 
@@ -229,7 +229,7 @@ requester_id: UUID (FK User)              ← kto potrzebuje pomocy (semantyczna
 helper_id: UUID (FK User)                 ← kto pomaga (semantyczna rola)
 initiated_by: UUID (FK User)              ← kto stworzył Exchange (helper lub requester)
 hearts_agreed: int (>= 0)
-status: enum [PENDING, ACCEPTED, IN_PROGRESS, COMPLETED, CANCELLED]
+status: enum [PENDING, ACCEPTED, COMPLETED, CANCELLED]
 created_at: datetime
 completed_at: datetime (nullable)
 ```
@@ -247,6 +247,7 @@ CHECK (request_id IS NOT NULL OR offer_id IS NOT NULL)
 - Transfer serc następuje przy status → COMPLETED. Jeśli hearts_agreed = 0 — pomiń INSERT HeartLedger.
 - Brak zamrożenia serc przy ACCEPTED — upraszcza UX v1.
 - `POST /exchanges/{id}/cancel` — dostępny dla obu stron w każdym momencie przed COMPLETED. Na cancel: Exchange → CANCELLED, Request → OPEN (jeśli był IN_PROGRESS).
+- `POST /requests/{id}/cancel` — dostępny tylko dla owner, tylko status=OPEN → CANCELLED. Auto-cancel powiązanych PENDING Exchange.
 - Self-exchange zablokowany: service zwraca 422 gdy initiator = druga strona Exchange.
 
 **Przepływy inicjacji (dwukierunkowe):**
@@ -270,7 +271,7 @@ Offer-first (requester inicjuje):
 -- Jeden ACCEPTED per Request (nie per Offer)
 CREATE UNIQUE INDEX uix_exchange_request_accepted
   ON exchanges(request_id)
-  WHERE status IN ('accepted', 'in_progress', 'completed')
+  WHERE status IN ('accepted', 'completed')
   AND request_id IS NOT NULL;
 ```
 
@@ -537,7 +538,7 @@ Gdy `heart_balance = 0` — body opcjonalne.
 **Transakcja all-or-nothing** w `UserService.soft_delete()`:
 
 1. Walidacja dyspozycji (422 gdy balance > 0 i brak dispositon; walidacja recipient przy transfer)
-2. Auto-CANCEL Exchange WHERE (requester=user OR helper=user) AND status IN (PENDING, ACCEPTED, IN_PROGRESS)
+2. Auto-CANCEL Exchange WHERE (requester=user OR helper=user) AND status IN (PENDING, ACCEPTED)
    - Request drugiej strony wraca do OPEN jeśli user był helperem (spójnie z #34)
    - Notification EXCHANGE_CANCELLED do drugiej strony z reason='account_deleted'
 3. Auto-CANCEL Request WHERE user_id=user AND status=OPEN
@@ -570,7 +571,7 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 1. `heart_balance >= 0` — DB CHECK constraint. Cap (`<= heart_balance_cap`) walidowany aplikacyjnie w HeartService (cross-table CHECK niemożliwy w PostgreSQL)
 2. Transfer serc atomowy — zawsze w DB transaction
 3. hearts_offered=0 dozwolone wszędzie — nie blokuj
-4. Exchange można anulować do ACCEPTED (brak konsekwencji — serca nie zamrożone)
+4. Exchange można anulować przed COMPLETED (brak konsekwencji — serca nie zamrożone)
 5. Po COMPLETED — brak odwołania; w razie sporu: POST /exchanges/{id}/flag → admin
 6. Jeden ACCEPTED Exchange per Request — partial unique index w DB (nie dotyczy Offer)
 7. Przy akceptacji Request-first Exchange → pozostałe PENDING dla tego request_id → auto-CANCELLED
@@ -595,6 +596,9 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 27. Review niemodyfikowalne po wystawieniu — brak PATCH /reviews/{id}
 28. Zmiana email/username wymaga weryfikacji (analogicznie do password reset flow)
 29. Admin unhide (Offer/Request) → status przywrócony do INACTIVE (Offer) / CANCELLED (Request). User reaktywuje sam. Auto-ACTIVE po interwencji admina niedopuszczalne — user musi kontrolować widoczność.
+30. Cancel Request przez usera: `POST /requests/{id}/cancel` — owner only, status=OPEN → CANCELLED. Auto-cancel powiązanych PENDING Exchange (Notification do helperów).
+31. Exchange creation guardy: Exchange dozwolony tylko na Request status=OPEN i Offer status=ACTIVE. PAUSED/INACTIVE/HIDDEN/CANCELLED/DONE → 422.
+32. HeartLedger type=PAYMENT: używany przy Exchange completion transfer (requester → helper).
 
 ---
 
@@ -616,9 +620,9 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 - [ ] Locations: preload województwa + wybrane miasta
 - [ ] Categories: preload bazowe kategorie
 - [ ] Hearts: transfer, gift, balance endpoint
-- [ ] Requests: CRUD + listing z filtrami (location_scope, category, status, `?q=` ILIKE search, `?sort=`+`?order=`); PATCH /requests/{id} (title/description/expires_at, tylko OPEN, hearts_offered zablokowany gdy PENDING Exchange)
+- [ ] Requests: CRUD + listing z filtrami (location_scope, category, status, `?q=` ILIKE search, `?sort=`+`?order=`); PATCH /requests/{id} (title/description/expires_at, tylko OPEN, hearts_offered zablokowany gdy PENDING Exchange); POST /requests/{id}/cancel (owner, OPEN → CANCELLED + auto-cancel PENDING Exchange)
 - [ ] Offers: CRUD + listing z filtrami (analogicznie: location_scope, category, status, `?q=`, `?sort=`+`?order=`); PATCH /offers/{id} (title/description/hearts_asked); PATCH /offers/{id}/status (ACTIVE/PAUSED/INACTIVE)
-- [ ] Exchanges: create (PENDING, dwukierunkowy), accept (tylko non-initiator), complete, cancel + messages
+- [ ] Exchanges: create (PENDING, dwukierunkowy; guardy: Request=OPEN, Offer=ACTIVE), accept (tylko non-initiator), complete (transfer type=PAYMENT), cancel + messages
 - [ ] Exchanges: auto-cancel pozostałych PENDING przy akceptacji Request-first Exchange
 - [ ] Reviews: create po COMPLETED (UNIQUE exchange_id + reviewer_id)
 - [ ] Flag endpoints: POST /exchanges/{id}/flag, POST /requests/{id}/flag, POST /offers/{id}/flag, POST /users/{id}/flag → INSERT ContentFlag z odpowiednim target_type. Message flag przez Exchange (opis w reason).
@@ -731,7 +735,7 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 | 62 | Narzędzia testowe? | `pytest` + `pytest-asyncio` (async support), `httpx.AsyncClient` (async test client), `pytest-cov` zainstalowany jako narzędzie diagnostyczne (HTML raport) — **bez egzekwowania progu**. Brak `factory_boy`, brak `pytest-postgresql` (osobna DB via docker-compose wystarczy). `pytest-xdist` opcjonalnie, gdy testy zaczną być wolne. |
 | 63 | Heart balance przy soft delete? | Wymagana dyspozycja gdy balance > 0: `void` (przepadają + HeartLedger type=ACCOUNT_DELETED, to_user_id=NULL) lub `transfer` (gift do wskazanego usera, walidacja cap, HeartLedger type=GIFT). 422 gdy balance>0 i brak dyspozycji. User zachowuje kontrolę do końca. Szczegóły: **ADR-SERCE-003 D1**. |
 | 64 | OPEN Requests i ACTIVE/PAUSED Offers przy soft delete? | Auto-CANCELLED (Requests) i auto-INACTIVE (Offers) w tej samej transakcji co soft delete. Kaskadowo triggerują anulowanie PENDING Exchange. **ADR-SERCE-003 D2/D3**. |
-| 65 | Aktywne Exchange (PENDING/ACCEPTED/IN_PROGRESS) przy soft delete? | Auto-CANCELLED, brak konsekwencji finansowych (spójnie z #35). Notification EXCHANGE_CANCELLED do drugiej strony z `reason='account_deleted'`. Request drugiej strony wraca do OPEN jeśli user był helperem (Request-first). **ADR-SERCE-003 D4**. |
+| 65 | Aktywne Exchange (PENDING/ACCEPTED) przy soft delete? | Auto-CANCELLED, brak konsekwencji finansowych (spójnie z #35). Notification EXCHANGE_CANCELLED do drugiej strony z `reason='account_deleted'`. Request drugiej strony wraca do OPEN jeśli user był helperem (Request-first). **ADR-SERCE-003 D4**. |
 | 66 | Prezentacja usuniętego usera w API? | `{id, username:null, bio:null, location:null, is_deleted:true}` wszędzie (public profile, Exchange, Messages, Reviews). HTTP 200 (nie 404). Frontend renderuje tekst ("Użytkownik usunięty") — i18n-ready. **ADR-SERCE-003 D5**. |
 | 67 | Transakcyjność soft delete? | All-or-nothing — cała kaskada (8 kroków) w jednej DB transaction. Częściowy fail = pęknięta spójność domeny, niedopuszczalny. Dedykowany integration test na atomowość. **ADR-SERCE-003 D6**. |
 | 68 | Grace period / account recovery? | Brak w v1. Soft delete = natychmiastowy, nieodwracalny self-service. Admin może cofnąć ręcznie w DB w skrajnych przypadkach. Self-service undelete → NICE backlog, Faza 2+. **ADR-SERCE-003 D7**. |
@@ -768,6 +772,10 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 | 99 | Flag endpoints non-exchange? | Per-resource: POST /requests/{id}/flag, /offers/{id}/flag, /users/{id}/flag. Message flag przez Exchange (opis w reason). Brak generycznego POST /flags. |
 | 100 | Offer/Request status po admin unhide? | Offer → INACTIVE, Request → CANCELLED. User reaktywuje sam. Auto-ACTIVE po interwencji admina niedopuszczalne. Reguła biznesowa #29. |
 | 101 | Infrastruktura deployment? | VPS (4GB/2vCPU/40GB, EU) + Docker + nginx + Let's Encrypt. Usługi: SMSAPI.pl, Resend.com, hCaptcha, Cloudflare DNS. Provider VPS: Hetzner vs nazwa.pl — analiza otwarta. Koszt MVP: ~80-130 PLN/mies. |
+| 102 | Cancel Request przez usera? | `POST /requests/{id}/cancel` — owner only, status=OPEN → CANCELLED. Auto-cancel powiązanych PENDING Exchange + Notification. Spójne z cancel Exchange. Reguła #30. |
+| 103 | Guardy Exchange creation? | Exchange dozwolony tylko na Request status=OPEN i Offer status=ACTIVE. PAUSED blokuje (semantyka: przerwa). HIDDEN/INACTIVE/CANCELLED/DONE → 422. Reguła #31. |
+| 104 | HeartLedger type=PAYMENT? | Używany przy Exchange completion transfer (requester → helper). Jedyny typ generowany przez flow complete. Reguła #32. |
+| 105 | Exchange.IN_PROGRESS — usunięty? | Usunięty z enum. Brak zdefiniowanego triggera. State machine: PENDING → ACCEPTED → COMPLETED + CANCELLED. Request zachowuje IN_PROGRESS (ustawiany przy accept). Supersedes częściowo #14. |
 
 ---
 
@@ -781,56 +789,92 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 /api/v1/{resource}/{id}/{action}
 ```
 
-Przykłady:
+Pełna lista endpointów:
 ```
-GET    /api/v1/requests
-POST   /api/v1/requests
-PATCH  /api/v1/requests/{id}
-GET    /api/v1/requests/{id}/exchanges         # owner + aktywni helperzy (transparentność)
-GET    /api/v1/offers/{id}/exchanges           # analogicznie
-POST   /api/v1/exchanges/{id}/accept
-POST   /api/v1/exchanges/{id}/cancel
-POST   /api/v1/exchanges/{id}/complete
-GET    /api/v1/exchanges/{id}/messages
-POST   /api/v1/exchanges/{id}/messages
+# --- Public (bez JWT) ---
+GET    /health                                  # healthcheck (Docker)
+GET    /api/v1/requests                         # feed próśb (?page, ?limit, ?q, ?sort, ?order, ?category_id, ?location_scope)
+GET    /api/v1/requests/{id}
+GET    /api/v1/offers                           # feed ofert (?page, ?limit, ?q, ?sort, ?order, ?category_id, ?location_scope)
+GET    /api/v1/offers/{id}
+GET    /api/v1/users/{id}                       # profil publiczny
+GET    /api/v1/categories
+GET    /api/v1/locations
 
-# Flag endpoints (per-resource)
-POST   /api/v1/exchanges/{id}/flag
-POST   /api/v1/requests/{id}/flag
-POST   /api/v1/offers/{id}/flag
-POST   /api/v1/users/{id}/flag
+# --- Auth ---
+POST   /api/v1/auth/register                    # email, username, password, tos_accepted, privacy_policy_accepted
+POST   /api/v1/auth/login                       # email, password → JWT + refresh cookie
+POST   /api/v1/auth/refresh                     # token rotation (cookie)
+POST   /api/v1/auth/logout                      # revoke current refresh token
+POST   /api/v1/auth/logout-all                  # revoke all refresh tokens
+POST   /api/v1/auth/verify-email                # token z EmailVerificationToken
+POST   /api/v1/auth/resend-verification-email   # email w body, rate limit 3/email/24h
+POST   /api/v1/auth/verify-phone                # SMS OTP code
+POST   /api/v1/auth/forgot-password             # email → PasswordResetToken
+POST   /api/v1/auth/reset-password              # token + new_password
+POST   /api/v1/auth/accept-terms                # document_type + document_version
+POST   /api/v1/auth/confirm-email-change        # token z EmailChangeToken
+GET    /api/v1/auth/sessions                    # lista aktywnych refresh tokenów
+DELETE /api/v1/auth/sessions/{id}               # selective session revoke
 
-# Auth uzupełnienia
-POST   /api/v1/auth/resend-verification-email  # email w body, rate limit 3/email/24h
-POST   /api/v1/auth/accept-terms               # document_type + document_version
-POST   /api/v1/auth/confirm-email-change       # token z EmailChangeToken
-DELETE /api/v1/auth/sessions/{id}              # selective session revoke
-
-GET    /api/v1/users/me                        # własny profil (rozszerzony)
-PATCH  /api/v1/users/me                        # edycja bio, location
-POST   /api/v1/users/me/email/change           # new_email + password (re-auth)
-POST   /api/v1/users/me/phone/change           # new_phone_number + password
-POST   /api/v1/users/me/phone/verify           # OTP code
-GET    /api/v1/users/me/summary                # dashboard w 1 requeście
-GET    /api/v1/users/me/requests               # moje prośby
-GET    /api/v1/users/me/offers                 # moje oferty
-GET    /api/v1/users/me/exchanges              # moje wymiany
-GET    /api/v1/users/me/reviews?direction=given|received
-GET    /api/v1/users/me/ledger                 # historia serc
-GET    /api/v1/users/me/notifications
+# --- User (wymagają JWT) ---
+GET    /api/v1/users/me                         # własny profil (rozszerzony)
+PATCH  /api/v1/users/me                         # edycja bio, location_id
+DELETE /api/v1/users/me                         # soft delete (body: balance_disposition)
+PATCH  /api/v1/users/me/username                # zmiana username (re-auth)
+POST   /api/v1/users/me/email/change            # new_email + password → EmailChangeToken
+POST   /api/v1/users/me/phone/change            # new_phone_number + password → SMS OTP
+POST   /api/v1/users/me/phone/verify            # OTP code → UPDATE phone
+GET    /api/v1/users/me/summary                 # dashboard w 1 requeście
+GET    /api/v1/users/me/requests                # moje prośby (?status, ?page, ?limit)
+GET    /api/v1/users/me/offers                  # moje oferty (?status, ?page, ?limit)
+GET    /api/v1/users/me/exchanges               # moje wymiany (?status, ?role, ?initiated_by, ?page, ?limit)
+GET    /api/v1/users/me/reviews                 # ?direction=given|received (wymagane), ?page, ?limit
+GET    /api/v1/users/me/ledger                  # historia serc (?type, ?direction, ?page, ?limit)
+GET    /api/v1/users/me/notifications           # ?page, ?limit
 POST   /api/v1/users/me/notifications/{id}/read
 POST   /api/v1/users/me/notifications/read-all
 
-GET    /health
+# --- Requests (wymagają JWT) ---
+POST   /api/v1/requests                         # create (title, description, hearts_offered, category_id, location_id, location_scope)
+PATCH  /api/v1/requests/{id}                    # edit (title, description, expires_at; only OPEN)
+POST   /api/v1/requests/{id}/cancel             # owner only, OPEN → CANCELLED + auto-cancel PENDING Exchange
+POST   /api/v1/requests/{id}/flag               # ContentFlag (target_type=request)
+GET    /api/v1/requests/{id}/exchanges          # transparentność (owner + uczestnicy)
 
-# Admin (require_admin dependency — ADR-004)
-GET    /api/v1/admin/flags                      # paginacja + filtry status, target_type
+# --- Offers (wymagają JWT) ---
+POST   /api/v1/offers                           # create (title, description, hearts_asked, category_id, location_id, location_scope)
+PATCH  /api/v1/offers/{id}                      # edit (title, description, hearts_asked)
+PATCH  /api/v1/offers/{id}/status               # ACTIVE ↔ PAUSED ↔ INACTIVE
+POST   /api/v1/offers/{id}/flag                 # ContentFlag (target_type=offer)
+GET    /api/v1/offers/{id}/exchanges            # transparentność (owner + uczestnicy)
+
+# --- Exchanges (wymagają JWT) ---
+POST   /api/v1/exchanges                        # create (request_id XOR offer_id, hearts_agreed)
+POST   /api/v1/exchanges/{id}/accept            # tylko non-initiator
+POST   /api/v1/exchanges/{id}/complete          # requester only → transfer serc
+POST   /api/v1/exchanges/{id}/cancel            # obie strony, przed COMPLETED
+GET    /api/v1/exchanges/{id}/messages          # paginacja, ASC, tylko participants
+POST   /api/v1/exchanges/{id}/messages          # send message
+POST   /api/v1/exchanges/{id}/flag              # ContentFlag (target_type=exchange)
+
+# --- Reviews (wymagają JWT) ---
+POST   /api/v1/exchanges/{id}/review            # po COMPLETED, UNIQUE(exchange_id, reviewer_id)
+
+# --- Hearts (wymagają JWT) ---
+POST   /api/v1/hearts/gift                      # to_user_id, amount, note
+
+# --- Flag (wymagają JWT) ---
+POST   /api/v1/users/{id}/flag                  # ContentFlag (target_type=user)
+
+# --- Admin (require_admin — ADR-004) ---
+GET    /api/v1/admin/flags                      # ?status, ?target_type, ?page, ?limit
 GET    /api/v1/admin/flags/{id}
 POST   /api/v1/admin/flags/{id}/resolve         # resolution_action + params
-POST   /api/v1/admin/users/{id}/suspend         # body: reason, until (nullable)
+POST   /api/v1/admin/users/{id}/suspend         # reason, until (nullable)
 POST   /api/v1/admin/users/{id}/unsuspend
-POST   /api/v1/admin/hearts/grant               # body: to_user_id, amount, reason
-GET    /api/v1/admin/audit                      # paginacja + filtry actor_id, action, target_type, from, to
+POST   /api/v1/admin/hearts/grant               # to_user_id, amount, reason
+GET    /api/v1/admin/audit                      # ?actor_id, ?action, ?target_type, ?from, ?to, ?page, ?limit
 ```
 
 ### Error response
