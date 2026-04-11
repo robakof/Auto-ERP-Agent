@@ -1,7 +1,7 @@
 # Architektura projektu Serce
 
 Date: 2026-04-09
-Updated: 2026-04-11 (v9)
+Updated: 2026-04-11 (v10)
 Status: Accepted — gotowy do implementacji (Faza 1)
 Author: Architect
 
@@ -135,9 +135,9 @@ Rozszerzenie do pełnej bazy gminy/powiaty gdy użytkownicy zgłoszą potrzebę.
 ```
 id: UUID (PK)
 from_user_id: UUID (nullable — NULL = SYSTEM grant)
-to_user_id: UUID (NOT NULL)
+to_user_id: UUID (nullable — NULL = ACCOUNT_DELETED void)
 amount: int (> 0)
-type: enum [INITIAL_GRANT, PAYMENT, GIFT, ADMIN_GRANT]
+type: enum [INITIAL_GRANT, PAYMENT, GIFT, ADMIN_GRANT, ACCOUNT_DELETED]
 related_exchange_id: UUID (nullable)
 note: str (nullable)
 created_at: datetime
@@ -298,6 +298,7 @@ user_id: UUID (FK User)
 type: enum [NEW_EXCHANGE, EXCHANGE_ACCEPTED, EXCHANGE_COMPLETED,
             NEW_MESSAGE, EXCHANGE_CANCELLED, NEW_REVIEW,
             HEARTS_RECEIVED, REQUEST_EXPIRED]
+reason: str (nullable)              ← kontekst dla EXCHANGE_CANCELLED: "account_deleted", "user_cancel", "admin_resolve"
 related_exchange_id: UUID (nullable)
 related_message_id: UUID (nullable)
 is_read: bool (DEFAULT false)
@@ -411,13 +412,47 @@ Przykłady: Transport, Dom i ogród, Nauka, IT, Gotowanie, Opieka, Rękodzieło.
 3. Walidacja: recipient nie przekroczy cap
 4. Transfer (jak wyżej, type=GIFT)
 
-### Usunięcie konta
+### Usunięcie konta (soft delete — ADR-SERCE-003)
 
-1. User DELETE /users/me
-2. `deleted_at = now()`, `is_active = false`
-3. email / username zastąpione hashem, phone_number = NULL → `anonymized_at = now()`
-4. Historia Exchange / HeartLedger / Review — zachowana (UUID powiązania niezmienione)
-5. Refresh tokens — wszystkie revoked
+**Wymagana dyspozycja salda** (gdy heart_balance > 0):
+```
+DELETE /users/me
+Body: {
+  "balance_disposition": "void" | "transfer",
+  "transfer_to_user_id": "<uuid>"  // wymagane gdy disposition=transfer
+}
+```
+
+Gdy `heart_balance = 0` — body opcjonalne.
+
+**Transakcja all-or-nothing** w `UserService.soft_delete()`:
+
+1. Walidacja dyspozycji (422 gdy balance > 0 i brak dispositon; walidacja recipient przy transfer)
+2. Auto-CANCEL Exchange WHERE (requester=user OR helper=user) AND status IN (PENDING, ACCEPTED, IN_PROGRESS)
+   - Request drugiej strony wraca do OPEN jeśli user był helperem (spójnie z #34)
+   - Notification EXCHANGE_CANCELLED do drugiej strony z reason='account_deleted'
+3. Auto-CANCEL Request WHERE user_id=user AND status=OPEN
+4. Auto-INACTIVE Offer WHERE user_id=user AND status IN (ACTIVE, PAUSED)
+5. Dyspozycja heart_balance:
+   - **void:** INSERT HeartLedger(type=ACCOUNT_DELETED, to_user_id=NULL, amount=balance); balance=0
+   - **transfer:** walidacja cap recipienta (422 CAP_EXCEEDED z max_receivable); UPDATE recipient balance; INSERT HeartLedger(type=GIFT, to_user_id=recipient, note='balance transfer przed usunięciem konta'); balance=0; Notification HEARTS_RECEIVED do recipient
+6. Anonimizacja: email/username zastąpione hashem (`deleted_a3f2b1@serce.pl`), phone_number=NULL
+7. SET deleted_at=now(), anonymized_at=now(), is_active=false
+8. Revoke wszystkich refresh_tokens (UPDATE revoked_at)
+
+Poza transakcją (best effort): wysyłka emaili z powiadomieniami, email "konto usunięte" na stary adres.
+
+**Prezentacja usuniętego usera w API** (GET /users/{id}, Exchange participants, Messages sender, Reviews author):
+```json
+{
+  "id": "<UUID>",
+  "username": null,
+  "bio": null,
+  "location": null,
+  "is_deleted": true
+}
+```
+HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (i18n-ready).
 
 ---
 
@@ -462,7 +497,7 @@ Przykłady: Transport, Dom i ogród, Nauka, IT, Gotowanie, Opieka, Rękodzieło.
 - [ ] Auth: forgot-password + reset-password (PasswordResetToken)
 - [ ] Auth: sessions endpoint (GET /auth/sessions — lista aktywnych refresh tokens)
 - [ ] Profil: PATCH /users/me (bio, location_id); PATCH /users/me/username + PATCH /users/me/email (z weryfikacją)
-- [ ] Soft delete: DELETE /users/me (anonimizacja)
+- [ ] Soft delete: DELETE /users/me z dyspozycją salda (void/transfer), transakcyjna kaskada 8 kroków (ADR-SERCE-003 D6), test atomowości
 - [ ] Locations: preload województwa + wybrane miasta
 - [ ] Categories: preload bazowe kategorie
 - [ ] Hearts: transfer, gift, balance endpoint
@@ -518,7 +553,7 @@ Przykłady: Transport, Dom i ogród, Nauka, IT, Gotowanie, Opieka, Rękodzieło.
 | 8 | Anti-farming? | Phone verification = gate do INITIAL_GRANT. CAPTCHA + IP rate limit + temp-mail denylist jako warstwy uzupełniające. |
 | 9 | Refresh token storage? | DB (tabela refresh_tokens) + token rotation. httpOnly cookie. Endpointy logout + logout-all + sessions. |
 | 10 | Nadwyżka serc przy transferze? | 422 z `max_receivable` — brak cichego obcinania. Helper decyduje. |
-| 11 | Soft delete? | Tak. deleted_at + anonymized_at. Dane osobowe usuwane, historia Exchange/Ledger/Review zachowana. GDPR-ready. |
+| 11 | Soft delete? | Tak. deleted_at + anonymized_at. Dane osobowe usuwane, historia Exchange/Ledger/Review zachowana. GDPR-ready. Szczegóły kaskady (balance, requests, offers, exchanges, prezentacja) → ADR-SERCE-003 / decyzje #63–#69. |
 | 12 | Dispute mechanism? | Brak w v1. Platforma działa na dobrej wierze. Flag endpoint → admin ręcznie. |
 | 13 | COUNTY w location_scope? | Usunięte. Zakres: CITY / VOIVODESHIP / NATIONAL. |
 | 14 | Komunikacja przed Exchange? | PENDING Exchange = rozmowa wstępna. Wiele PENDING per Request dozwolone. Jeden ACCEPTED — partial unique index. |
@@ -570,6 +605,13 @@ Przykłady: Transport, Dom i ogród, Nauka, IT, Gotowanie, Opieka, Rękodzieło.
 | 60 | Struktura katalogów testów? | `backend/tests/{unit/{core,services}, integration/{api,db}}`. `conftest.py` (app, db_session, client, auth fixtures) + `factories.py` (`create_user()`, `create_request()`, `create_offer()`) w `tests/` root. Helpery zamiast `factory_boy` — skala nie uzasadnia biblioteki. |
 | 61 | Konwencja nazewnictwa testów? | `test_<action>__<condition>__<expected>`. Przykłady: `test_create_exchange__self_exchange__returns_422`, `test_complete_exchange__balance_insufficient__returns_422_and_no_ledger`, `test_refresh_token__already_used__returns_401`, `test_get_requests__no_jwt__returns_200_public`. Grep-friendly, czytelne bez ciała testu, naturalne grupowanie po akcji. |
 | 62 | Narzędzia testowe? | `pytest` + `pytest-asyncio` (async support), `httpx.AsyncClient` (async test client), `pytest-cov` zainstalowany jako narzędzie diagnostyczne (HTML raport) — **bez egzekwowania progu**. Brak `factory_boy`, brak `pytest-postgresql` (osobna DB via docker-compose wystarczy). `pytest-xdist` opcjonalnie, gdy testy zaczną być wolne. |
+| 63 | Heart balance przy soft delete? | Wymagana dyspozycja gdy balance > 0: `void` (przepadają + HeartLedger type=ACCOUNT_DELETED, to_user_id=NULL) lub `transfer` (gift do wskazanego usera, walidacja cap, HeartLedger type=GIFT). 422 gdy balance>0 i brak dyspozycji. User zachowuje kontrolę do końca. Szczegóły: **ADR-SERCE-003 D1**. |
+| 64 | OPEN Requests i ACTIVE/PAUSED Offers przy soft delete? | Auto-CANCELLED (Requests) i auto-INACTIVE (Offers) w tej samej transakcji co soft delete. Kaskadowo triggerują anulowanie PENDING Exchange. **ADR-SERCE-003 D2/D3**. |
+| 65 | Aktywne Exchange (PENDING/ACCEPTED/IN_PROGRESS) przy soft delete? | Auto-CANCELLED, brak konsekwencji finansowych (spójnie z #35). Notification EXCHANGE_CANCELLED do drugiej strony z `reason='account_deleted'`. Request drugiej strony wraca do OPEN jeśli user był helperem (Request-first). **ADR-SERCE-003 D4**. |
+| 66 | Prezentacja usuniętego usera w API? | `{id, username:null, bio:null, location:null, is_deleted:true}` wszędzie (public profile, Exchange, Messages, Reviews). HTTP 200 (nie 404). Frontend renderuje tekst ("Użytkownik usunięty") — i18n-ready. **ADR-SERCE-003 D5**. |
+| 67 | Transakcyjność soft delete? | All-or-nothing — cała kaskada (8 kroków) w jednej DB transaction. Częściowy fail = pęknięta spójność domeny, niedopuszczalny. Dedykowany integration test na atomowość. **ADR-SERCE-003 D6**. |
+| 68 | Grace period / account recovery? | Brak w v1. Soft delete = natychmiastowy, nieodwracalny self-service. Admin może cofnąć ręcznie w DB w skrajnych przypadkach. Self-service undelete → NICE backlog, Faza 2+. **ADR-SERCE-003 D7**. |
+| 69 | Hard delete (GDPR right to be forgotten)? | Odroczony do Fazy 4. v1: tylko soft delete = pseudoanonymization (zgodna z GDPR art. 17 — dane osobowe usunięte, historia finansowa/kontraktowa zachowana jako legalny interes). Hard delete = osobna decyzja architektoniczna. **ADR-SERCE-003 D8**. |
 
 ---
 
@@ -637,3 +679,4 @@ Kody błędów (wyczerpująca lista):
 
 - `ADR-SERCE-001-stack.md` — wybór stack (FastAPI, Next.js, React Native)
 - `ADR-SERCE-002-hearts-ledger.md` — serca jako księga, nie obiekty
+- `ADR-SERCE-003-account-lifecycle.md` — cykl życia konta (soft delete, kaskada, prezentacja)
