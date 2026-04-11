@@ -1,7 +1,7 @@
 # Architektura projektu Serce
 
 Date: 2026-04-09
-Updated: 2026-04-11 (v13)
+Updated: 2026-04-11 (v14)
 Status: Accepted — gotowy do implementacji (Faza 1)
 Author: Architect
 
@@ -85,7 +85,7 @@ username: str (unique, NOT NULL)
 password_hash: str
 phone_number: str (unique, nullable)       ← jeden numer = jedno konto
 phone_verified: bool (DEFAULT false)
-heart_balance: int (>= 0 AND <= heart_balance_cap, DEFAULT 0)  ← 0 przy rejestracji, grant po weryfikacji telefonu
+heart_balance: int (>= 0, DEFAULT 0)  ← DB CHECK >= 0; cap (<= heart_balance_cap) walidowany aplikacyjnie
 location_id: FK → Location (nullable)  ← NULL = brak lokalizacji; feed pokazuje tylko NATIONAL scope
 bio: str (nullable)
 status: enum [active, suspended, deleted] (DEFAULT active)   ← zastępuje is_active (ADR-004 D5)
@@ -321,6 +321,35 @@ expires_at: datetime     ← 24h
 used_at: datetime (nullable)
 ```
 
+### EmailVerificationToken (decyzja #96)
+
+```
+id: UUID (PK)
+user_id: UUID (FK User, CASCADE DELETE)
+token_hash: str (NOT NULL)
+created_at: datetime
+expires_at: datetime     ← 24h (spójne z EmailChangeToken)
+used_at: datetime (nullable)
+```
+
+Resend (#89): DELETE stary (unused) przed INSERT nowego.
+Konwencja wspólna z PasswordResetToken / EmailChangeToken.
+
+### PhoneVerificationOTP (decyzja #97)
+
+```
+id: UUID (PK)
+user_id: UUID (FK User, CASCADE DELETE)
+phone_number: str (NOT NULL)     ← numer na który wysłano (ważne przy zmianie telefonu)
+code_hash: str (NOT NULL)        ← hash, nie plaintext
+created_at: datetime
+expires_at: datetime             ← 10min
+attempts: int (DEFAULT 0)        ← max 5, potem 422 OTP_MAX_ATTEMPTS
+used_at: datetime (nullable)
+```
+
+Nowy OTP unieważnia stary (DELETE WHERE user_id AND used_at IS NULL).
+
 ### Notification
 
 ```
@@ -513,7 +542,7 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 
 ## Reguły biznesowe (enforced w services/)
 
-1. `heart_balance >= 0 AND <= heart_balance_cap` zawsze — DB CHECK + aplikacyjna walidacja
+1. `heart_balance >= 0` — DB CHECK constraint. Cap (`<= heart_balance_cap`) walidowany aplikacyjnie w HeartService (cross-table CHECK niemożliwy w PostgreSQL)
 2. Transfer serc atomowy — zawsze w DB transaction
 3. hearts_offered=0 dozwolone wszędzie — nie blokuj
 4. Exchange można anulować do ACCEPTED (brak konsekwencji — serca nie zamrożone)
@@ -537,8 +566,10 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 23. Cancel Exchange: dostępny dla obu stron w każdym momencie przed COMPLETED; Exchange → CANCELLED, Request → OPEN (jeśli był IN_PROGRESS); brak konsekwencji finansowych
 24. HeartLedger: pomiń INSERT gdy amount = 0
 25. Zmiana emaila: nowy email weryfikowany zanim zastąpi stary; powiadomienie na stary email; revoke wszystkich refresh_tokens
-17. Review niemodyfikowalne po wystawieniu — brak PATCH /reviews/{id}
-18. Zmiana email/username wymaga weryfikacji (analogicznie do password reset flow)
+26. W Request-first Exchange: `hearts_agreed` przy CREATE musi = `Request.hearts_offered`. Walidacja w ExchangeService, 422 HEARTS_MISMATCH przy niezgodności. Symetrycznie z regułą #22 (Offer-first).
+27. Review niemodyfikowalne po wystawieniu — brak PATCH /reviews/{id}
+28. Zmiana email/username wymaga weryfikacji (analogicznie do password reset flow)
+29. Admin unhide (Offer/Request) → status przywrócony do INACTIVE (Offer) / CANCELLED (Request). User reaktywuje sam. Auto-ACTIVE po interwencji admina niedopuszczalne — user musi kontrolować widoczność.
 
 ---
 
@@ -565,7 +596,7 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 - [ ] Exchanges: create (PENDING, dwukierunkowy), accept (tylko non-initiator), complete, cancel + messages
 - [ ] Exchanges: auto-cancel pozostałych PENDING przy akceptacji Request-first Exchange
 - [ ] Reviews: create po COMPLETED (UNIQUE exchange_id + reviewer_id)
-- [ ] Flag endpoint: POST /exchanges/{id}/flag → INSERT ContentFlag (target_type='exchange')
+- [ ] Flag endpoints: POST /exchanges/{id}/flag, POST /requests/{id}/flag, POST /offers/{id}/flag, POST /users/{id}/flag → INSERT ContentFlag z odpowiednim target_type. Message flag przez Exchange (opis w reason).
 - [ ] Admin: GET /admin/flags (paginacja + filtry status, target_type), GET /admin/flags/{id}, POST /admin/flags/{id}/resolve (resolution_action + params)
 - [ ] Admin: POST /admin/users/{id}/suspend (+ revoke refresh tokens, audit log), POST /admin/users/{id}/unsuspend
 - [ ] Admin: POST /admin/hearts/grant (+ HeartLedger type=ADMIN_REFUND, audit log)
@@ -706,6 +737,11 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 | 93 | Flow zmiany emaila — endpointy? | `POST /users/me/email/change {new_email, password}` → walidacja hasła, unikalność, INSERT EmailChangeToken (expires 24h), link na nowy email, powiadomienie na stary. `POST /auth/confirm-email-change {token}` → UPDATE email, revoke refresh tokens. Rate limit: 3/user/24h. |
 | 94 | Zmiana phone_number? | `POST /users/me/phone/change {new_phone_number, password}` → walidacja hasła, unikalność, SMS OTP na nowy numer. `POST /users/me/phone/verify {code}` → UPDATE phone, revoke refresh tokens. Brak nowego INITIAL_GRANT (HeartLedger UNIQUE constraint pilnuje). Stary numer zwolniony. Rate limit: 3/user/24h. |
 | 95 | Account recovery po soft delete? | Brak. Soft delete natychmiastowy i nieodwracalny (self-service). Anonimizacja danych osobowych uniemożliwia pełne odzyskanie. Admin może cofnąć `status='deleted'` w DB ale dane osobowe już zanonimizowane — user musiałby uzupełnić od nowa. Świadoma decyzja, nie luka. Potwierdzenie #68 (ADR-003). |
+| 96 | Model EmailVerificationToken? | DB-backed token (spójne z PasswordResetToken/EmailChangeToken). TTL 24h. Resend (#89) unieważnia stary (DELETE unused). Pola: id, user_id, token_hash, created_at, expires_at, used_at. |
+| 97 | Model PhoneVerificationOTP? | DB-backed OTP. TTL 10min, max 5 attempts (422 OTP_MAX_ATTEMPTS). Pola: id, user_id, phone_number, code_hash, created_at, expires_at, attempts, used_at. Nowy OTP unieważnia stary. |
+| 98 | heart_balance_cap — DB CHECK? | CHECK tylko `>= 0`. Cap walidowany aplikacyjnie w HeartService (cross-table CHECK niemożliwy w PostgreSQL). |
+| 99 | Flag endpoints non-exchange? | Per-resource: POST /requests/{id}/flag, /offers/{id}/flag, /users/{id}/flag. Message flag przez Exchange (opis w reason). Brak generycznego POST /flags. |
+| 100 | Offer/Request status po admin unhide? | Offer → INACTIVE, Request → CANCELLED. User reaktywuje sam. Auto-ACTIVE po interwencji admina niedopuszczalne. Reguła biznesowa #29. |
 
 ---
 
@@ -731,6 +767,12 @@ POST   /api/v1/exchanges/{id}/cancel
 POST   /api/v1/exchanges/{id}/complete
 GET    /api/v1/exchanges/{id}/messages
 POST   /api/v1/exchanges/{id}/messages
+
+# Flag endpoints (per-resource)
+POST   /api/v1/exchanges/{id}/flag
+POST   /api/v1/requests/{id}/flag
+POST   /api/v1/offers/{id}/flag
+POST   /api/v1/users/{id}/flag
 
 # Auth uzupełnienia
 POST   /api/v1/auth/resend-verification-email  # email w body, rate limit 3/email/24h
@@ -795,6 +837,7 @@ Kody błędów (wyczerpująca lista):
 - `CANNOT_REVOKE_CURRENT_SESSION` — próba unieważnienia aktywnej sesji (422)
 - `TERMS_NOT_ACCEPTED` — brak akceptacji regulaminu przy rejestracji (422)
 - `INVALID_PASSWORD` — hasło nieprawidłowe przy re-auth (401)
+- `OTP_MAX_ATTEMPTS` — przekroczono limit prób OTP (422)
 
 ### Pagination response
 
