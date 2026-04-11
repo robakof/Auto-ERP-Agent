@@ -1,7 +1,7 @@
 # Architektura projektu Serce
 
 Date: 2026-04-09
-Updated: 2026-04-11 (v11)
+Updated: 2026-04-11 (v12)
 Status: Accepted — gotowy do implementacji (Faza 1)
 Author: Architect
 
@@ -88,8 +88,11 @@ phone_verified: bool (DEFAULT false)
 heart_balance: int (>= 0 AND <= heart_balance_cap, DEFAULT 0)  ← 0 przy rejestracji, grant po weryfikacji telefonu
 location_id: FK → Location (nullable)  ← NULL = brak lokalizacji; feed pokazuje tylko NATIONAL scope
 bio: str (nullable)
-is_active: bool (DEFAULT true)
-is_admin: bool (DEFAULT false)             ← dostęp do panelu admina i flag queue
+status: enum [active, suspended, deleted] (DEFAULT active)   ← zastępuje is_active (ADR-004 D5)
+role: enum [user, admin] (DEFAULT user)                      ← zastępuje is_admin (ADR-004 D7)
+suspended_at: datetime (nullable)          ← kiedy zawieszono
+suspended_until: datetime (nullable)       ← NULL = permanentny ban
+suspension_reason: str (nullable)
 deleted_at: datetime (nullable)            ← NULL = aktywny; soft delete
 anonymized_at: datetime (nullable)         ← NULL = dane osobowe w DB; ustawiane razem z deleted_at
 created_at: datetime
@@ -137,7 +140,7 @@ id: UUID (PK)
 from_user_id: UUID (nullable — NULL = SYSTEM grant)
 to_user_id: UUID (nullable — NULL = ACCOUNT_DELETED void)
 amount: int (> 0)
-type: enum [INITIAL_GRANT, PAYMENT, GIFT, ADMIN_GRANT, ACCOUNT_DELETED]
+type: enum [INITIAL_GRANT, PAYMENT, GIFT, ADMIN_GRANT, ADMIN_REFUND, ACCOUNT_DELETED]
 related_exchange_id: UUID (nullable)
 note: str (nullable)
 created_at: datetime
@@ -168,7 +171,7 @@ hearts_offered: int (>= 0, DEFAULT 0)  ← 0 = bezpłatna prośba
 category_id: int (FK Category)
 location_id: int (FK Location — skąd prosi)
 location_scope: enum [CITY, VOIVODESHIP, NATIONAL]
-status: enum [OPEN, IN_PROGRESS, DONE, CANCELLED]
+status: enum [OPEN, IN_PROGRESS, DONE, CANCELLED, HIDDEN]  ← HIDDEN = admin hide_content (ADR-004 D3)
 created_at: datetime
 expires_at: datetime (nullable)
 ```
@@ -187,7 +190,7 @@ hearts_asked: int (>= 0, DEFAULT 0)
 category_id: int (FK Category)
 location_id: int (FK Location)
 location_scope: enum [CITY, VOIVODESHIP, NATIONAL]
-status: enum [ACTIVE, PAUSED, INACTIVE]
+status: enum [ACTIVE, PAUSED, INACTIVE, HIDDEN]  ← HIDDEN = admin hide_content (ADR-004 D3)
 created_at: datetime
 ```
 
@@ -306,20 +309,43 @@ created_at: datetime
 ```
 
 Tworzona automatycznie przy każdym zdarzeniu. Email wysyłany równolegle przy INSERT.
-Endpointy: `GET /notifications`, `POST /notifications/{id}/read`, `POST /notifications/read-all`.
+Endpointy: `GET /users/me/notifications`, `POST /users/me/notifications/{id}/read`, `POST /users/me/notifications/read-all` (namespace ujednolicony — decyzja #79).
 
-### ExchangeFlag
+### ContentFlag (zastępuje ExchangeFlag — ADR-SERCE-004 D2)
 
 ```
 id: UUID (PK)
-exchange_id: UUID (FK Exchange)
-reported_by: UUID (FK User)
-reason: str (NOT NULL)
-created_at: datetime
+reporter_id: UUID (FK User, nullable)     ← nullable = anonimowe zgłoszenie z publicznego feedu
+target_type: enum [user, request, offer, exchange, message]
+target_id: UUID                           ← brak FK (polimorficzny); walidacja w serwisie
+reason: enum [spam, scam, abuse, inappropriate, other]
+description: str (nullable, max 1000)
+status: enum [open, resolved, dismissed] (DEFAULT open)
+resolved_by: UUID (FK User — admin, nullable)
 resolved_at: datetime (nullable)
-resolved_by: UUID (nullable, FK User — admin)
-resolution_note: str (nullable)
+resolution_action: enum [dismiss, warn_user, hide_content, suspend_user, ban_user, grant_hearts_refund] (nullable)
+resolution_reason: str (nullable, max 1000)
+created_at: datetime
 ```
+
+**Endpoint użytkownika:** `POST /exchanges/{id}/flag` tworzy ContentFlag z `target_type='exchange'`.
+**Endpoint admina:** `GET /admin/flags`, `POST /admin/flags/{id}/resolve` (z wybraną `resolution_action`).
+
+### AdminAuditLog (ADR-SERCE-004 D4)
+
+```
+id: UUID (PK)
+admin_id: UUID (FK User, NOT NULL)
+action: str (max 64)                      ← np. "flag.resolve", "user.suspend", "hearts.grant"
+target_type: enum [user, request, offer, exchange, message, flag, system]
+target_id: UUID (nullable)                ← NULL przy akcjach systemowych
+payload: JSONB                            ← pełny request body + kontekst
+reason: str (wymagane dla akcji sankcyjnych)
+created_at: datetime
+```
+
+**Immutable** — brak UPDATE/DELETE. Każda akcja admin zapisana w tej samej transakcji co akcja właściwa.
+Brak wpisu = brak akcji (enforced w serwisie).
 
 ### Message
 
@@ -328,6 +354,7 @@ id: UUID (PK)
 exchange_id: UUID (FK Exchange)
 sender_id: UUID (FK User)
 content: str
+is_hidden: bool (DEFAULT false)           ← admin hide_content (ADR-004 D3)
 created_at: datetime
 ```
 
@@ -352,7 +379,7 @@ Przykłady: Transport, Dom i ogród, Nauka, IT, Gotowanie, Opieka, Rękodzieło.
 ### Rejestracja
 
 1. User POST /auth/register → walidacja email/username (+ CAPTCHA, IP rate limit, temp-mail denylist)
-2. hash password → INSERT User (heart_balance=0, email_verified=false, is_admin=false)
+2. hash password → INSERT User (heart_balance=0, email_verified=false, status='active', role='user')
 3. Wyślij email weryfikacyjny → POST /auth/verify-email
 4. User POST /auth/verify-phone → SMS OTP
 5. Po weryfikacji telefonu: INSERT HeartLedger (type=INITIAL_GRANT, amount=initial_heart_grant)
@@ -437,7 +464,7 @@ Gdy `heart_balance = 0` — body opcjonalne.
    - **void:** INSERT HeartLedger(type=ACCOUNT_DELETED, to_user_id=NULL, amount=balance); balance=0
    - **transfer:** walidacja cap recipienta (422 CAP_EXCEEDED z max_receivable); UPDATE recipient balance; INSERT HeartLedger(type=GIFT, to_user_id=recipient, note='balance transfer przed usunięciem konta'); balance=0; Notification HEARTS_RECEIVED do recipient
 6. Anonimizacja: email/username zastąpione hashem (`deleted_a3f2b1@serce.pl`), phone_number=NULL
-7. SET deleted_at=now(), anonymized_at=now(), is_active=false
+7. SET deleted_at=now(), anonymized_at=now(), status='deleted'
 8. Revoke wszystkich refresh_tokens (UPDATE revoked_at)
 
 Poza transakcją (best effort): wysyłka emaili z powiadomieniami, email "konto usunięte" na stary adres.
@@ -506,7 +533,13 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 - [ ] Exchanges: create (PENDING, dwukierunkowy), accept (tylko non-initiator), complete, cancel + messages
 - [ ] Exchanges: auto-cancel pozostałych PENDING przy akceptacji Request-first Exchange
 - [ ] Reviews: create po COMPLETED (UNIQUE exchange_id + reviewer_id)
-- [ ] Flag endpoint: POST /exchanges/{id}/flag → INSERT ExchangeFlag
+- [ ] Flag endpoint: POST /exchanges/{id}/flag → INSERT ContentFlag (target_type='exchange')
+- [ ] Admin: GET /admin/flags (paginacja + filtry status, target_type), GET /admin/flags/{id}, POST /admin/flags/{id}/resolve (resolution_action + params)
+- [ ] Admin: POST /admin/users/{id}/suspend (+ revoke refresh tokens, audit log), POST /admin/users/{id}/unsuspend
+- [ ] Admin: POST /admin/hearts/grant (+ HeartLedger type=ADMIN_REFUND, audit log)
+- [ ] Admin: GET /admin/audit (paginacja + filtry actor_id, action, target_type, from, to)
+- [ ] Admin: dependency require_admin() + seed migration (INITIAL_ADMIN_EMAIL z .env)
+- [ ] Suspended account: login → 401 ACCOUNT_SUSPENDED; feed query WHERE owner.status='active'; Exchanges trwają, Messages/akcje zablokowane
 - [ ] Notifications: INSERT przy każdym zdarzeniu + email wysyłany równolegle; GET /users/me/notifications, POST /users/me/notifications/{id}/read, POST /users/me/notifications/read-all
 - [ ] User resources API (ADR-SERCE-005): GET /users/me, /users/me/summary, /users/me/requests, /users/me/offers, /users/me/exchanges, /users/me/reviews (direction required), /users/me/ledger
 - [ ] Exchange transparency: GET /requests/{id}/exchanges, GET /offers/{id}/exchanges (owner + uczestnicy widzą, zredukowany widok dla rywali)
@@ -563,10 +596,10 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 | 15 | Review unique constraint? | UNIQUE(exchange_id, reviewer_id) — jedna ocena per strona per Exchange (max 2 total). |
 | 16 | Offer → Exchange flow? | Dwukierunkowy. Request-first: helper inicjuje. Offer-first: requester inicjuje. `initiated_by` determinuje kto akceptuje. |
 | 17 | Limit ACCEPTED per Offer? | Brak. Offer = stała wizytówka. Helper może obsługiwać wielu jednocześnie. |
-| 18 | Admin role w modelu? | `is_admin: bool` na User (DEFAULT false). Prosta i wystarczająca na v1. |
+| 18 | ~~Admin role w modelu?~~ | ~~`is_admin: bool`~~ → zastąpione `User.role: ENUM('user','admin')`. **Superseded by #82 (ADR-SERCE-004 D7).** |
 | 19 | Exchange bez Request i Offer? | Niedozwolone. CHECK (request_id IS NOT NULL OR offer_id IS NOT NULL). |
 | 20 | Password reset? | Tabela PasswordResetToken (DB-backed, expires 15min). Po użyciu: revoke wszystkich refresh_tokens. |
-| 21 | Flag mechanism? | Osobna tabela ExchangeFlag (reported_by, reason, resolved_by, resolution_note). |
+| 21 | ~~Flag mechanism?~~ | ~~ExchangeFlag~~ → zastąpione polimorficznym ContentFlag (target_type + target_id). **Superseded by #80 (ADR-SERCE-004 D2).** |
 | 22 | Powiadomienia? | Email + in-app (tabela Notification). Tworzone przy każdym zdarzeniu, email wysyłany równolegle. Faza 1. Endpointy: `GET /users/me/notifications`, `POST /users/me/notifications/{id}/read`, `POST /users/me/notifications/read-all` (namespace ujednolicony w ADR-SERCE-005 D7). |
 | 23 | Paginacja feedu? | Wymagana od Fazy 1. Wszystkie listing endpoints: ?page + ?limit. |
 | 24 | Negocjacja hearts_agreed? | Brak. Stały przy CREATE = Request.hearts_offered. |
@@ -599,7 +632,7 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 | 51 | CORS? | Whitelist origins z `.env` (`CORS_ORIGINS`). Wildcard `*` tylko w trybie dev. |
 | 52 | Polityka haseł? | Min 8 znaków, min 1 cyfra LUB znak specjalny. Brak wymogu wielkich liter. |
 | 53 | Health check endpoint? | `GET /health` — publiczny, bez JWT. Response: `{"status": "ok", "db": "ok"}`. Wymagany dla Docker healthcheck. |
-| 54 | Struktura `.env`? | Klucze zdefiniowane w `.env.example`: DATABASE_URL, SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, SMSAPI_TOKEN, RESEND_API_KEY, HCAPTCHA_SECRET, CORS_ORIGINS, INITIAL_HEART_GRANT, HEART_BALANCE_CAP, REQUEST_DEFAULT_EXPIRY_DAYS. |
+| 54 | Struktura `.env`? | Klucze zdefiniowane w `.env.example`: DATABASE_URL, SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, SMSAPI_TOKEN, RESEND_API_KEY, HCAPTCHA_SECRET, CORS_ORIGINS, INITIAL_HEART_GRANT, HEART_BALANCE_CAP, REQUEST_DEFAULT_EXPIRY_DAYS, INITIAL_ADMIN_EMAIL. |
 | 55 | Logging? | Structured JSON (biblioteka `structlog`). Per-request: method, path, status_code, duration_ms, user_id. Poziomy: INFO (2xx/3xx), WARNING (4xx), ERROR (5xx). |
 | 56 | Podział testów unit vs integration? | 30% unit (core + services z mock repo) / 70% integration (API + test DB). Unit testuje pure logic (entities, walidacje, transfer math, state transitions). Integration testuje kontrakty request→service→DB→response przez FastAPI TestClient / `httpx.AsyncClient`. |
 | 57 | Testowa baza danych? | Osobna baza `serce_test` w tym samym kontenerze Postgres co dev. `conftest.py` aplikuje Alembic migracje raz na sesję. Fixture `db_session`: transakcja per test z rollbackiem. Guard: `RuntimeError` gdy `DATABASE_URL` nie kończy się na `_test` (anty-pomyłka). |
@@ -615,16 +648,23 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 | 67 | Transakcyjność soft delete? | All-or-nothing — cała kaskada (8 kroków) w jednej DB transaction. Częściowy fail = pęknięta spójność domeny, niedopuszczalny. Dedykowany integration test na atomowość. **ADR-SERCE-003 D6**. |
 | 68 | Grace period / account recovery? | Brak w v1. Soft delete = natychmiastowy, nieodwracalny self-service. Admin może cofnąć ręcznie w DB w skrajnych przypadkach. Self-service undelete → NICE backlog, Faza 2+. **ADR-SERCE-003 D7**. |
 | 69 | Hard delete (GDPR right to be forgotten)? | Odroczony do Fazy 4. v1: tylko soft delete = pseudoanonymization (zgodna z GDPR art. 17 — dane osobowe usunięte, historia finansowa/kontraktowa zachowana jako legalny interes). Hard delete = osobna decyzja architektoniczna. **ADR-SERCE-003 D8**. |
-| 70 | `GET /users/me` — własny profil? | Rozszerzony response vs publiczny: zawiera email, phone_number, email_verified, phone_verified, heart_balance, is_admin, created_at (vs publiczny #37 bez tych pól). Bez list Offers/Requests/Reviews — osobne endpointy. **ADR-SERCE-005 D1**. |
+| 70 | `GET /users/me` — własny profil? | Rozszerzony response vs publiczny: zawiera email, phone_number, email_verified, phone_verified, heart_balance, role, status, created_at (vs publiczny #37 bez tych pól). Bez list Offers/Requests/Reviews — osobne endpointy. **ADR-SERCE-005 D1**. |
 | 71 | `GET /users/me/{requests,offers}`? | Paginacja + filtr `?status`, sort `created_at DESC`. Item zawiera `pending_exchanges_count` na zasób (szybki podgląd odzewu). **ADR-SERCE-005 D2, D3**. |
 | 72 | `GET /users/me/exchanges`? | Paginacja + filtry `?status`, `?role=requester\|helper`, `?initiated_by=me\|other`. Sort `created_at DESC`. Item: Exchange + skrócony Request/Offer + druga strona (zredukowany User). **ADR-SERCE-005 D4**. |
 | 73 | `GET /users/me/reviews`? | Wymagany parametr `?direction=given\|received` (brak defaulta — frontend explicit). Paginacja. **ADR-SERCE-005 D5**. |
 | 74 | `GET /users/me/ledger`? | Historia HeartLedger z perspektywy usera: `direction` (in/out) wyliczane backendem, `counterparty` = null dla SYSTEM/ACCOUNT_DELETED lub placeholder dla usuniętego usera. Parametry `?type`, `?direction`. Paginacja. **ADR-SERCE-005 D6**. |
-| 75 | `GET /users/me/summary` — dashboard w 1 requeście? | Liczniki: `heart_balance`, `unread_notifications_count`, `pending_exchanges_count`, `pending_reviews_count`, `active_requests_count`, `active_offers_count`, `email_verified`, `phone_verified`. Admin dodatkowo: `unresolved_flags_count` (warunkowe, obecne tylko gdy `is_admin=true`). **ADR-SERCE-005 D8**. |
+| 75 | `GET /users/me/summary` — dashboard w 1 requeście? | Liczniki: `heart_balance`, `unread_notifications_count`, `pending_exchanges_count`, `pending_reviews_count`, `active_requests_count`, `active_offers_count`, `email_verified`, `phone_verified`. Admin dodatkowo: `unresolved_flags_count` (warunkowe, obecne tylko gdy `role='admin'`). **ADR-SERCE-005 D8**. |
 | 76 | `GET /requests/{id}/exchanges`, `GET /offers/{id}/exchanges` — transparentność? | Tak: owner zasobu widzi wszystko, helper z aktywnym Exchange widzi rywali (zredukowany widok: helper, hearts_agreed, status, created_at). Transparentność > prywatność konkurencyjnych helperów — anti-ghosting, social proof, fair-play. 403 dla nie-uczestników, 401 dla anonim. **ADR-SERCE-005 D9**. |
 | 77 | `GET /exchanges/{id}/messages`? | Paginacja, sort `created_at ASC` (chat UX). Autoryzacja: tylko `requester_id` i `helper_id` Exchange. **ADR-SERCE-005 D10**. |
 | 78 | Edycja/usuwanie wiadomości? | Brak. Message niemodyfikowalne po wysłaniu (brak PATCH/DELETE). Spójnie z #29 (Review). Integralność kontekstu Exchange, prostota modelu. Obraźliwe wiadomości → ContentFlag (ADR-SERCE-004) → admin ręcznie. **ADR-SERCE-005 D11**. |
 | 79 | Namespace notifications? | Ujednolicony: `/users/me/notifications/*` (usunięto `GET /notifications` z planu). Wszystkie zasoby zalogowanego usera pod `/users/me/*`. **ADR-SERCE-005 D7**. |
+| 80 | ContentFlag zamiast ExchangeFlag? | Tak. Polimorficzny ContentFlag (`target_type` + `target_id`) zastępuje wąski ExchangeFlag. Pokrywa User, Request, Offer, Exchange, Message bez nowych tabel. **ADR-SERCE-004 D2**. |
+| 81 | `User.status` zamiast `is_active`? | `status: ENUM(active, suspended, deleted)` zamiast `is_active: BOOL`. Eliminuje nielegalne kombinacje flag. `deleted_at`/`anonymized_at` pozostają (ADR-003). Nowe pola: `suspended_at`, `suspended_until`, `suspension_reason`. **ADR-SERCE-004 D5**. |
+| 82 | `User.role` zamiast `is_admin`? | `role: ENUM(user, admin) DEFAULT 'user'`. Dependency `require_admin()` na wszystkich `/admin/*`. Pierwszy admin = seed migration (`INITIAL_ADMIN_EMAIL` z `.env`). Brak endpointu promocji — świadoma decyzja (SQL only). **ADR-SERCE-004 D7**. |
+| 83 | Admin endpoints w Fazie 1? | Tak — pełny zestaw: flags (list/detail/resolve), suspend/unsuspend, hearts grant, audit log. Prefiks `/api/v1/admin/`. Ograniczenie zakresu zostawiłoby moderację ślepą lub bezzębną. **ADR-SERCE-004 D1**. |
+| 84 | AdminAuditLog — transakcyjność? | Immutable log. Każda akcja admin (flag.resolve, user.suspend, hearts.grant) zapisana w tej samej transakcji co akcja właściwa. Brak wpisu = brak akcji. `GET /admin/audit` z paginacją i filtrami. **ADR-SERCE-004 D4**. |
+| 85 | Akcje moderacyjne — skończony enum? | `dismiss`, `warn_user`, `hide_content` (Request/Offer → HIDDEN, Message → is_hidden), `suspend_user`, `ban_user` (suspend z until=NULL), `grant_hearts_refund` (HeartLedger type=ADMIN_REFUND). **ADR-SERCE-004 D3**. |
+| 86 | Zachowanie zawieszonego konta? | Revoke refresh tokens, Requests/Offers ukryte z feedu (query filter `owner.status='active'` — nie anulowane), Exchanges trwają (druga strona może dokończyć), saldo zamrożone, login → 401 ACCOUNT_SUSPENDED z reason. Unsuspend odwraca stan. **ADR-SERCE-004 D6**. |
 
 ---
 
@@ -664,6 +704,15 @@ POST   /api/v1/users/me/notifications/{id}/read
 POST   /api/v1/users/me/notifications/read-all
 
 GET    /health
+
+# Admin (require_admin dependency — ADR-004)
+GET    /api/v1/admin/flags                      # paginacja + filtry status, target_type
+GET    /api/v1/admin/flags/{id}
+POST   /api/v1/admin/flags/{id}/resolve         # resolution_action + params
+POST   /api/v1/admin/users/{id}/suspend         # body: reason, until (nullable)
+POST   /api/v1/admin/users/{id}/unsuspend
+POST   /api/v1/admin/hearts/grant               # body: to_user_id, amount, reason
+GET    /api/v1/admin/audit                      # paginacja + filtry actor_id, action, target_type, from, to
 ```
 
 ### Error response
@@ -690,6 +739,8 @@ Kody błędów (wyczerpująca lista):
 - `HEARTS_MISMATCH` — hearts_agreed ≠ Offer.hearts_asked (Offer-first)
 - `EXCHANGE_NOT_CANCELLABLE` — Exchange już COMPLETED
 - `INVALID_STATUS_TRANSITION` — niedozwolona zmiana statusu
+- `ACCOUNT_SUSPENDED` — konto zawieszone przez admina (401 przy logowaniu, z `suspended_until` i `reason`)
+- `FORBIDDEN_ADMIN_ONLY` — endpoint wymaga roli admin (403)
 
 ### Pagination response
 
@@ -710,4 +761,5 @@ Kody błędów (wyczerpująca lista):
 - `ADR-SERCE-001-stack.md` — wybór stack (FastAPI, Next.js, React Native)
 - `ADR-SERCE-002-hearts-ledger.md` — serca jako księga, nie obiekty
 - `ADR-SERCE-003-account-lifecycle.md` — cykl życia konta (soft delete, kaskada, prezentacja)
+- `ADR-SERCE-004-admin-moderation.md` — ContentFlag, AdminAuditLog, User.status/role refactor, suspend/unsuspend, akcje moderacyjne
 - `ADR-SERCE-005-user-resources-api.md` — /users/me/* namespace, dashboard, transparentność Exchange per Request/Offer, niemodyfikowalne wiadomości
