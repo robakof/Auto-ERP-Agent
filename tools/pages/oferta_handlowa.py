@@ -5,6 +5,7 @@ Uruchamiana z menu głównego: streamlit run tools/app.py
 """
 
 import tempfile
+import traceback
 from pathlib import Path
 
 import streamlit as st
@@ -73,7 +74,8 @@ if st.button("Generuj PDF", type="primary", use_container_width=True):
             pdf_bytes = _DEFAULT_OUTPUT.read_bytes()
 
         except Exception as e:
-            st.error(f"Błąd: {e}")
+            st.error(f"Błąd: {type(e).__name__}: {e}")
+            st.code(traceback.format_exc(), language="text")
             st.stop()
 
     st.success("PDF gotowy — zapisany w `output/oferta_handlowa_kerti.pdf`")

@@ -91,8 +91,15 @@ def _fmt_paleta(val: Optional[int]) -> str:
 
 
 def _render_card(product: KertiGlassData, max_h: float) -> str:
-    """Renderuje kartę produktu (.pc div)."""
-    scale = round(product.wysokosc_cm / max_h, 3) if max_h > 0 else 1.0
+    """Renderuje kartę produktu (.pc div).
+
+    Gdy produkt nie ma wysokości w ERP — zdjęcie widoczne w pełnym rozmiarze
+    (scale=1.0), a w polach wymiarów pokazuje się "—".
+    """
+    if product.wysokosc_cm and max_h > 0:
+        scale = round(product.wysokosc_cm / max_h, 3)
+    else:
+        scale = 1.0
     transform = f"transform:scale({scale});transform-origin:bottom center;"
 
     img_src = _img_to_b64(product.zdjecie_path) if product.zdjecie_path else ""
@@ -140,7 +147,8 @@ def _render_legend() -> str:
 
 def _render_section(seria: str, products: list[KertiGlassData], layout: str) -> str:
     """Renderuje sekcję z nagłówkiem serii i gridiem kart."""
-    max_h = max((p.wysokosc_cm for p in products), default=1.0) or 1.0
+    heights = [p.wysokosc_cm for p in products if p.wysokosc_cm]
+    max_h = max(heights) if heights else 1.0
     cards = "".join(_render_card(p, max_h) for p in products)
     seria_upper = seria.upper() if seria else "SZKŁO KERTI"
     return (

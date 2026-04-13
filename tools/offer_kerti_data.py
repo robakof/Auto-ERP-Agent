@@ -28,8 +28,8 @@ class KertiGlassData:
     kod: str
     nazwa: str
     seria: str
-    wysokosc_cm: float
-    sr_otworu_cm: float
+    wysokosc_cm: Optional[float]
+    sr_otworu_cm: Optional[float]
     sr_spodu_cm: Optional[float]
     ilosc_paleta: Optional[int]
     nowosc: bool
@@ -165,8 +165,8 @@ def load_kerti_products(excel_path: str) -> list[KertiGlassData]:
             kod=kod,
             nazwa=karta["nazwa"],
             seria=seria,
-            wysokosc_cm=atr.get(ATK_WYSOKOSC) or 0.0,
-            sr_otworu_cm=atr.get(ATK_SR_OTWORU) or 0.0,
+            wysokosc_cm=atr.get(ATK_WYSOKOSC),
+            sr_otworu_cm=atr.get(ATK_SR_OTWORU),
             sr_spodu_cm=atr.get(ATK_SR_SPODU),
             ilosc_paleta=palety.get(gid),
             nowosc=meta["nowosc"],
