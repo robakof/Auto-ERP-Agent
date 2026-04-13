@@ -16,8 +16,8 @@ from offer_kerti_data import KertiGlassData
 
 ASSETS_DIR = Path(__file__).parent / "kerti_assets"
 
-# Max products per page per layout
-PAGE_LIMITS = {"g2": 6, "g3": 9, "g4": 12}
+# Max products per page per layout (realne max na A4 po uwzględnieniu headera/footera)
+PAGE_LIMITS = {"g2": 4, "g3": 6, "g4": 8}
 
 # SVG icons — dokładne kopie z FINAL28
 SVG_WYSOKOSC = (
@@ -62,15 +62,40 @@ def _asset_b64(filename: str) -> str:
     return f"data:{mime};base64,{b64}"
 
 
+def _normalize_product_image(img):
+    """Trim białego tła + pad do kwadratu, produkt bottom-aligned.
+
+    Normalizuje zdjęcia z różnym kadrowaniem tak, by produkt zawsze
+    wypełniał 100% wysokości kadru (puste pasy po bokach dla wąskich).
+    Dzięki temu CSS transform:scale(wysokosc_cm/max_h) daje wizualne
+    wysokości proporcjonalne do wysokości z ERP.
+    """
+    from PIL import Image, ImageChops
+    img = img.convert("RGB")
+    # Trim białego tła (próg 15 — tolerancja cieni/antyaliasingu)
+    bg = Image.new("RGB", img.size, (255, 255, 255))
+    diff = ImageChops.difference(img, bg).convert("L").point(lambda x: 0 if x < 15 else 255)
+    bbox = diff.getbbox()
+    if bbox:
+        img = img.crop(bbox)
+    w, h = img.size
+    # Padding 10% u góry kadru — produkt nie dotyka górnej krawędzi (oddech wizualny)
+    side = int(max(w, h) * 1.1)
+    canvas = Image.new("RGB", (side, side), (255, 255, 255))
+    canvas.paste(img, ((side - w) // 2, side - h))  # center-x, bottom-y
+    return canvas
+
+
 def _img_to_b64(photo_path: str) -> str:
-    """Konwertuje zdjęcie produktu do base64 JPEG (opcjonalnie upscale 2x)."""
+    """Konwertuje zdjęcie produktu do base64 JPEG (normalizacja + opcjonalny upscale)."""
     try:
         from PIL import Image
         img = Image.open(photo_path)
+        img = _normalize_product_image(img)
         if img.width < 512:
             img = img.resize((img.width * 2, img.height * 2), Image.LANCZOS)
         buf = io.BytesIO()
-        img.convert("RGB").save(buf, format="JPEG", quality=92, optimize=True)
+        img.save(buf, format="JPEG", quality=92, optimize=True)
         b64 = base64.b64encode(buf.getvalue()).decode()
         return f"data:image/jpeg;base64,{b64}"
     except Exception:
