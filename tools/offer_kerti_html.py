@@ -178,7 +178,7 @@ def _render_section(seria: str, products: list[KertiGlassData], layout: str) -> 
     seria_upper = seria.upper() if seria else "SZKŁO KERTI"
     return (
         f'<div class="sl">{seria_upper}</div>'
-        f'<div class="{layout}" style="align-items:start;">{cards}</div>'
+        f'<div class="{layout}">{cards}</div>'
     )
 
 
