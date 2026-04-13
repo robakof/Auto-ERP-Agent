@@ -173,5 +173,4 @@ def load_kerti_products(excel_path: str) -> list[KertiGlassData]:
             zdjecie_path=_find_photo(kod),
         ))
 
-    products.sort(key=lambda p: (p.seria, p.kod))
     return products
