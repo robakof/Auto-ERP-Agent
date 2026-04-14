@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Integer, String, func
+from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Index, Integer, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -31,4 +31,10 @@ class HeartLedger(Base):
 
     __table_args__ = (
         CheckConstraint("amount > 0", name="ck_heart_ledger_amount_positive"),
+        Index(
+            "uix_heart_ledger_initial_grant",
+            "to_user_id",
+            unique=True,
+            postgresql_where=text("type = 'INITIAL_GRANT'"),
+        ),
     )

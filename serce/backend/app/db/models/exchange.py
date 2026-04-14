@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Index, Integer, func
+from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Index, Integer, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -38,6 +38,6 @@ class Exchange(Base):
             "uix_exchange_request_accepted",
             "request_id",
             unique=True,
-            postgresql_where=(status.in_(["ACCEPTED", "COMPLETED"]) & (request_id.isnot(None))),
+            postgresql_where=text("status IN ('ACCEPTED', 'COMPLETED') AND request_id IS NOT NULL"),
         ),
     )

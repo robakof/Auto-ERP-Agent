@@ -36,6 +36,9 @@ class Request(Base):
     status: Mapped[RequestStatus] = mapped_column(Enum(RequestStatus), default=RequestStatus.OPEN)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
     __table_args__ = (
         CheckConstraint("hearts_offered >= 0", name="ck_requests_hearts_offered_non_negative"),

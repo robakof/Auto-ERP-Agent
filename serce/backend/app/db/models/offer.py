@@ -29,6 +29,9 @@ class Offer(Base):
     location_scope: Mapped[LocationScope] = mapped_column(Enum(LocationScope), nullable=False)
     status: Mapped[OfferStatus] = mapped_column(Enum(OfferStatus), default=OfferStatus.ACTIVE)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
     __table_args__ = (
         CheckConstraint("hearts_asked >= 0", name="ck_offers_hearts_asked_non_negative"),
