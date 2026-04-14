@@ -198,6 +198,7 @@ location_id: int (FK Location — skąd prosi)
 location_scope: enum [CITY, VOIVODESHIP, NATIONAL]
 status: enum [OPEN, IN_PROGRESS, DONE, CANCELLED, HIDDEN]  ← HIDDEN = admin hide_content (ADR-004 D3)
 created_at: datetime
+updated_at: datetime (server_default=now(), onupdate=now())   ← decyzja #112
 expires_at: datetime (nullable)
 ```
 
@@ -217,6 +218,7 @@ location_id: int (FK Location)
 location_scope: enum [CITY, VOIVODESHIP, NATIONAL]
 status: enum [ACTIVE, PAUSED, INACTIVE, HIDDEN]  ← HIDDEN = admin hide_content (ADR-004 D3)
 created_at: datetime
+updated_at: datetime (server_default=now(), onupdate=now())   ← decyzja #112
 ```
 
 ### Exchange (wymiana — kontrakt między stronami)
@@ -781,6 +783,10 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 | 108 | Flag na własnym zasobie? | 422 CANNOT_FLAG_OWN_RESOURCE. Zakres: POST /requests/{id}/flag, /offers/{id}/flag, /users/{id}/flag (flagger=target) — blokada. POST /exchanges/{id}/flag — blokada gdy reason_type != 'dispute'; dispute własnego Exchange dozwolony (jedyny kanał sygnalizacji problemu). Eliminuje szum w /admin/flags. |
 | 109 | Category — rozszerzenie modelu o sort_order i active? | Tak. `sort_order: int DEFAULT 0` (kolejność w UI niezależna od ID), `active: bool DEFAULT true` (deaktywacja zamiast DELETE, zachowanie FK z Request/Offer). Feed filtruje `WHERE categories.active=true`. Zmiana nazw/ikonek/przeniesienia — data migration (stabilne ID). |
 | 110 | Category — wymóg wyboru liścia przy Request/Offer? | Tak. Request.category_id i Offer.category_id musi wskazywać podkategorię (`parent_id IS NOT NULL`). Walidacja aplikacyjna przy create/update → 422 CATEGORY_MUST_BE_LEAF. Grupa nadrzędna służy tylko do grupowania w UI i filtrów "pokaż wszystko w Opiece". |
+| 111 | Population na Location? | Nie. Population to dane źródłowe do sortowania przy preloadzie, nie kolumna w modelu. Jeśli kiedyś potrzeba sortowania w UI — Alembic migration. |
+| 112 | updated_at na Request/Offer? | Tak. Dodać przed M1 (initial migration). `updated_at: datetime (server_default=now(), onupdate=now())`. Koszt = 2 linie per model, wartość = diagnostyka PATCH operations. |
+| 113 | Test DB strategy? | testcontainers-python. Izolacja per test-run, CI-ready, brak zależności od zewnętrznego docker-compose. Developer konfiguruje w conftest.py (async PostgreSQL fixture). |
+| 114 | Rate limiter? | slowapi (FastAPI-native, oparty o limits). Na start: in-memory backend. Otwarta furtka na Redis backend gdy potrzeba per-user/distributed rate limiting (Faza 4+). |
 
 ---
 
