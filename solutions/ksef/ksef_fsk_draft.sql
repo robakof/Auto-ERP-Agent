@@ -64,7 +64,7 @@ SELECT
         + '/' + RIGHT('0' + CAST(MONTH(DATEADD(day, orig.TrN_Data2, '1800-12-28')) AS VARCHAR(2)), 2)
         + '/' + RIGHT(CAST(YEAR(DATEADD(day, orig.TrN_Data2, '1800-12-28')) AS VARCHAR(4)), 2)
         + '/' + RTRIM(orig.TrN_TrNSeria)                       AS Kor_NrFaKorygowanej,
-    RTRIM(n.TrN_NrKorekty)                                      AS Kor_PrzyczynaKorekty,
+    RTRIM(CAST(op.TnO_Opis AS VARCHAR(MAX)))                    AS Kor_PrzyczynaKorekty,
 
     -- =========================================================
     -- FA — VAT per stawka (pivot z CDN.TraVat) — kwoty RÓŻNIC (delta)
@@ -189,6 +189,13 @@ SELECT
     n.TrN_GIDFirma                                              AS _GIDFirma
 
 FROM CDN.TraNag n
+
+-- Opis korekty (pole "Opis" na nagłówku ERP XL) -> PrzyczynaKorekty
+LEFT JOIN CDN.TrNOpisy op
+    ON  op.TnO_TrnTyp   = n.TrN_GIDTyp
+    AND op.TnO_TrnFirma = n.TrN_GIDFirma
+    AND op.TnO_TrnNumer = n.TrN_GIDNumer
+    AND op.TnO_TrnLp    = 0
 
 -- Oryginalna faktura (FS) — powiązanie przez ZwrNumer/ZwrTyp
 JOIN CDN.TraNag orig
