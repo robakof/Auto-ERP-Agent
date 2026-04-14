@@ -776,6 +776,66 @@ HTTP 200 (nie 404). Frontend renderuje "Użytkownik usunięty" jako UI concern (
 | 103 | Guardy Exchange creation? | Exchange dozwolony tylko na Request status=OPEN i Offer status=ACTIVE. PAUSED blokuje (semantyka: przerwa). HIDDEN/INACTIVE/CANCELLED/DONE → 422. Reguła #31. |
 | 104 | HeartLedger type=PAYMENT? | Używany przy Exchange completion transfer (requester → helper). Jedyny typ generowany przez flow complete. Reguła #32. |
 | 105 | Exchange.IN_PROGRESS — usunięty? | Usunięty z enum. Brak zdefiniowanego triggera. State machine: PENDING → ACCEPTED → COMPLETED + CANCELLED. Request zachowuje IN_PROGRESS (ustawiany przy accept). Supersedes częściowo #14. |
+| 106 | Lista bazowych kategorii (MVP)? | 9 grup głównych + 26 podkategorii (2-poziomowa hierarchia). Grupy: Dom i otoczenie, Opieka, Nauka i rozwój, Zdrowie i wsparcie, Transport i mobilność, IT i technika, Sprawy urzędowe, Pożyczanie rzeczy, Inne. Pełna lista w sekcji "Bazowe kategorie" poniżej. Rozszerzenie przez Alembic data migration. |
+| 107 | Lista ~100 miast preload? | Top-100 miast Polski wg GUS (stan ludności 2024). Cutoff ok. 60k mieszkańców. Warszawa → Stalowa Wola. Format: (name, voivodeship_parent_id, population). Developer generuje z publicznych danych GUS jako data migration. |
+| 108 | Flag na własnym zasobie? | 422 CANNOT_FLAG_OWN_RESOURCE. Zakres: POST /requests/{id}/flag, /offers/{id}/flag, /users/{id}/flag (flagger=target) — blokada. POST /exchanges/{id}/flag — blokada gdy reason_type != 'dispute'; dispute własnego Exchange dozwolony (jedyny kanał sygnalizacji problemu). Eliminuje szum w /admin/flags. |
+| 109 | Category — rozszerzenie modelu o sort_order i active? | Tak. `sort_order: int DEFAULT 0` (kolejność w UI niezależna od ID), `active: bool DEFAULT true` (deaktywacja zamiast DELETE, zachowanie FK z Request/Offer). Feed filtruje `WHERE categories.active=true`. Zmiana nazw/ikonek/przeniesienia — data migration (stabilne ID). |
+| 110 | Category — wymóg wyboru liścia przy Request/Offer? | Tak. Request.category_id i Offer.category_id musi wskazywać podkategorię (`parent_id IS NOT NULL`). Walidacja aplikacyjna przy create/update → 422 CATEGORY_MUST_BE_LEAF. Grupa nadrzędna służy tylko do grupowania w UI i filtrów "pokaż wszystko w Opiece". |
+
+---
+
+## Bazowe kategorie (preload — M2)
+
+Grupy główne (parent_id=NULL) i podkategorie (parent_id=id grupy). Identyfikatory przydziela Alembic data migration; nazwy stabilne.
+
+```
+Dom i otoczenie
+├── Prace domowe              (sprzątanie, pranie, prasowanie)
+├── Gotowanie                 (pomoc w kuchni, wypieki, domowy obiad)
+├── Naprawy i majsterkowanie  (drobne naprawy, montaż mebli, hydraulika podstawowa)
+├── Ogród i rośliny           (koszenie, pielenie, podlewanie)
+└── Zakupy i sprawunki        (spożywcze, apteka, poczta)
+
+Opieka
+├── Opieka nad dziećmi        (odbiór ze szkoły, niania, zabawa)
+├── Opieka nad seniorami      (towarzystwo, wizyty, zakupy)
+└── Opieka nad zwierzętami    (wyprowadzanie psa, karmienie w wyjeździe)
+
+Nauka i rozwój
+├── Korepetycje szkolne       (matematyka, przedmioty szkolne)
+├── Języki obce
+├── Programowanie i IT        (nauka)
+└── Rękodzieło i hobby        (nauka)
+
+Zdrowie i wsparcie
+├── Wsparcie emocjonalne      (rozmowa, słuchanie, towarzystwo)
+├── Trening i sport           (partner treningowy, rehabilitacja amatorska)
+└── Zdrowie codzienne         (wizyta lekarska, apteka, mierzenie ciśnienia)
+
+Transport i mobilność
+├── Przewóz osoby
+├── Przeprowadzka i transport mebli
+└── Pomoc przy zakupach ciężkich
+
+IT i technika
+├── Naprawa komputera / telefonu
+├── Instalacja oprogramowania
+└── Sieć, WiFi, smart home
+
+Sprawy urzędowe
+├── Wypełnianie pism i dokumentów
+├── Tłumaczenia
+└── Pomoc w e-urzędach / ePUAP
+
+Pożyczanie rzeczy
+├── Narzędzia
+├── Sprzęt sportowy i turystyczny
+└── Książki, filmy, gry
+
+Inne
+```
+
+Razem: **9 grup + 26 podkategorii = 35 rekordów** w tabeli categories po preloadzie.
 
 ---
 
