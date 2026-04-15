@@ -38,6 +38,10 @@ Prompt.md
 # Baza danych (lokalna dla każdej maszyny, synchronizacja w przyszłości)
 mrowisko.db
 jas.db
+data/ksef.db
+data/ksef.db-journal
+data/ksef.db-wal
+data/ksef.db-shm
 
 # Baza danych indeksu dokumentacji (regenerowalna)
 docs.db

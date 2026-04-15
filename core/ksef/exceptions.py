@@ -45,3 +45,19 @@ class KSefAuthError(KSefError):
 
 class KSefAuthTimeoutError(KSefAuthError):
     """Auth status polling exceeded timeout without reaching a terminal state."""
+
+
+class KSefRepoError(KSefError):
+    """Persistence-layer error (shadow DB)."""
+
+
+class ShipmentAlreadyActiveError(KSefRepoError):
+    """Próba utworzenia nowej wysyłki dla (gid, rodzaj) z aktywnym wpisem."""
+
+
+class InvalidTransitionError(KSefRepoError):
+    """Przejście stanu niedozwolone w state machine."""
+
+
+class ShipmentNotFoundError(KSefRepoError):
+    """Brak wiersza o podanym id / (gid, rodzaj)."""
