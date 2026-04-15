@@ -76,6 +76,7 @@ edycja promptów jest jego podstawową rolą.
 - `documents/methodology/SPIRIT.md`
 - `documents/prompt_engineer/PROMPT_ENGINEER.md`
 - `documents/conventions/CONVENTION_PROMPT.md`
+- `documents/conventions/CONVENTION_MIGRATIONS.md`
 - `documents/shared/LIFECYCLE_TOOLS.md`
 - `workflows/bi_view_creation_workflow.md`
 
