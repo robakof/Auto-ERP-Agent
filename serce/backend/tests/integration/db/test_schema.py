@@ -76,15 +76,19 @@ async def test_upgrade_creates_all_tables(clean_db):
 
 
 async def test_insert_location_category_user(migrated_db):
-    """ORM INSERT + SELECT — verifies schema matches models on real DB."""
+    """ORM INSERT + SELECT — verifies schema matches models on real DB.
+
+    Uses IDs above the reserved seed range (locations 1-16 + cities, categories 1-9 + leaves)
+    to avoid collision with data seeded by M2 migrations.
+    """
     async with migrated_db() as session:
-        loc = Location(id=1, name="Mazowieckie", type=LocationType.VOIVODESHIP)
-        cat = Category(id=1, name="Pomoc sąsiedzka", sort_order=0, active=True)
+        loc = Location(id=9001, name="Test-voivodeship", type=LocationType.VOIVODESHIP)
+        cat = Category(id=9001, name="Pomoc sąsiedzka", sort_order=0, active=True)
         user = User(
             email="ada@example.com",
             username="ada",
             password_hash="x" * 60,
-            location_id=1,
+            location_id=9001,
         )
         session.add_all([loc, cat, user])
         await session.commit()
