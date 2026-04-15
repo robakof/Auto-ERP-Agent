@@ -49,23 +49,25 @@ def upgrade() -> None:
         "users",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("email", sa.String(), nullable=False),
-        sa.Column("email_verified", sa.Boolean(), nullable=False),
+        sa.Column("email_verified", sa.Boolean(), nullable=False, server_default=sa.text("false")),
         sa.Column("username", sa.String(), nullable=False),
-        sa.Column("password_hash", sa.String(), nullable=False),
+        sa.Column("password_hash", sa.String(60), nullable=False),
         sa.Column("phone_number", sa.String(), nullable=True),
-        sa.Column("phone_verified", sa.Boolean(), nullable=False),
-        sa.Column("heart_balance", sa.Integer(), nullable=False),
+        sa.Column("phone_verified", sa.Boolean(), nullable=False, server_default=sa.text("false")),
+        sa.Column("heart_balance", sa.Integer(), nullable=False, server_default=sa.text("0")),
         sa.Column("location_id", sa.Integer(), nullable=True),
         sa.Column("bio", sa.String(), nullable=True),
         sa.Column(
             "status",
             sa.Enum("active", "suspended", "deleted", name="userstatus"),
             nullable=False,
+            server_default=sa.text("'active'"),
         ),
         sa.Column(
             "role",
             sa.Enum("user", "admin", name="userrole"),
             nullable=False,
+            server_default=sa.text("'user'"),
         ),
         sa.Column("suspended_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("suspended_until", sa.DateTime(timezone=True), nullable=True),
@@ -74,6 +76,12 @@ def upgrade() -> None:
         sa.Column("anonymized_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column(
             "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
             nullable=False,
@@ -109,7 +117,7 @@ def upgrade() -> None:
         "refresh_tokens",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("user_id", sa.Uuid(), nullable=False),
-        sa.Column("token_hash", sa.String(), nullable=False),
+        sa.Column("token_hash", sa.String(64), nullable=False),
         sa.Column("device_info", sa.String(), nullable=True),
         sa.Column("ip_address", sa.String(), nullable=True),
         sa.Column(
@@ -122,6 +130,7 @@ def upgrade() -> None:
         sa.Column("revoked_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("token_hash", name="uq_refresh_tokens_token_hash"),
     )
 
     # --- password_reset_tokens ---
@@ -129,7 +138,7 @@ def upgrade() -> None:
         "password_reset_tokens",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("user_id", sa.Uuid(), nullable=False),
-        sa.Column("token_hash", sa.String(), nullable=False),
+        sa.Column("token_hash", sa.String(64), nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -140,6 +149,7 @@ def upgrade() -> None:
         sa.Column("used_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("token_hash", name="uq_password_reset_tokens_token_hash"),
     )
 
     # --- email_change_tokens ---
@@ -148,7 +158,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("user_id", sa.Uuid(), nullable=False),
         sa.Column("new_email", sa.String(), nullable=False),
-        sa.Column("token_hash", sa.String(), nullable=False),
+        sa.Column("token_hash", sa.String(64), nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -159,6 +169,7 @@ def upgrade() -> None:
         sa.Column("used_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("token_hash", name="uq_email_change_tokens_token_hash"),
     )
 
     # --- email_verification_tokens ---
@@ -166,7 +177,7 @@ def upgrade() -> None:
         "email_verification_tokens",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("user_id", sa.Uuid(), nullable=False),
-        sa.Column("token_hash", sa.String(), nullable=False),
+        sa.Column("token_hash", sa.String(64), nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -177,6 +188,7 @@ def upgrade() -> None:
         sa.Column("used_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("token_hash", name="uq_email_verification_tokens_token_hash"),
     )
 
     # --- phone_verification_otps ---
@@ -185,7 +197,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("user_id", sa.Uuid(), nullable=False),
         sa.Column("phone_number", sa.String(), nullable=False),
-        sa.Column("code_hash", sa.String(), nullable=False),
+        sa.Column("code_hash", sa.String(64), nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -193,10 +205,11 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("attempts", sa.Integer(), nullable=False),
+        sa.Column("attempts", sa.Integer(), nullable=False, server_default=sa.text("0")),
         sa.Column("used_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("code_hash", name="uq_phone_verification_otps_code_hash"),
     )
 
     # --- user_consents ---
@@ -228,7 +241,7 @@ def upgrade() -> None:
         sa.Column("user_id", sa.Uuid(), nullable=False),
         sa.Column("title", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
-        sa.Column("hearts_offered", sa.Integer(), nullable=False),
+        sa.Column("hearts_offered", sa.Integer(), nullable=False, server_default=sa.text("0")),
         sa.Column("category_id", sa.Integer(), nullable=False),
         sa.Column("location_id", sa.Integer(), nullable=False),
         sa.Column(
@@ -243,6 +256,7 @@ def upgrade() -> None:
                 name="requeststatus",
             ),
             nullable=False,
+            server_default=sa.text("'OPEN'"),
         ),
         sa.Column(
             "created_at",
@@ -273,7 +287,7 @@ def upgrade() -> None:
         sa.Column("user_id", sa.Uuid(), nullable=False),
         sa.Column("title", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
-        sa.Column("hearts_asked", sa.Integer(), nullable=False),
+        sa.Column("hearts_asked", sa.Integer(), nullable=False, server_default=sa.text("0")),
         sa.Column("category_id", sa.Integer(), nullable=False),
         sa.Column("location_id", sa.Integer(), nullable=False),
         sa.Column(
@@ -288,6 +302,7 @@ def upgrade() -> None:
                 name="offerstatus",
             ),
             nullable=False,
+            server_default=sa.text("'ACTIVE'"),
         ),
         sa.Column(
             "created_at",
@@ -319,7 +334,7 @@ def upgrade() -> None:
         sa.Column("requester_id", sa.Uuid(), nullable=False),
         sa.Column("helper_id", sa.Uuid(), nullable=False),
         sa.Column("initiated_by", sa.Uuid(), nullable=False),
-        sa.Column("hearts_agreed", sa.Integer(), nullable=False),
+        sa.Column("hearts_agreed", sa.Integer(), nullable=False, server_default=sa.text("0")),
         sa.Column(
             "status",
             sa.Enum(
@@ -327,6 +342,7 @@ def upgrade() -> None:
                 name="exchangestatus",
             ),
             nullable=False,
+            server_default=sa.text("'PENDING'"),
         ),
         sa.Column(
             "created_at",
@@ -405,7 +421,7 @@ def upgrade() -> None:
         sa.Column("exchange_id", sa.Uuid(), nullable=False),
         sa.Column("sender_id", sa.Uuid(), nullable=False),
         sa.Column("content", sa.String(), nullable=False),
-        sa.Column("is_hidden", sa.Boolean(), nullable=False),
+        sa.Column("is_hidden", sa.Boolean(), nullable=False, server_default=sa.text("false")),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -458,7 +474,7 @@ def upgrade() -> None:
         sa.Column("reason", sa.String(), nullable=True),
         sa.Column("related_exchange_id", sa.Uuid(), nullable=True),
         sa.Column("related_message_id", sa.Uuid(), nullable=True),
-        sa.Column("is_read", sa.Boolean(), nullable=False),
+        sa.Column("is_read", sa.Boolean(), nullable=False, server_default=sa.text("false")),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -498,6 +514,7 @@ def upgrade() -> None:
             "status",
             sa.Enum("open", "resolved", "dismissed", name="flagstatus"),
             nullable=False,
+            server_default=sa.text("'open'"),
         ),
         sa.Column("resolved_by", sa.Uuid(), nullable=True),
         sa.Column("resolved_at", sa.DateTime(timezone=True), nullable=True),
@@ -592,4 +609,4 @@ def downgrade() -> None:
         "userstatus",
         "locationtype",
     ]:
-        sa.Enum(name=enum_name).drop(op.get_bind(), checkfirst=True)
+        op.execute(f"DROP TYPE IF EXISTS {enum_name}")
