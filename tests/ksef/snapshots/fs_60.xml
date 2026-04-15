@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
+  <Naglowek>
+    <KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+    <WariantFormularza>3</WariantFormularza>
+    <DataWytworzeniaFa>2026-04-14T12:00:00Z</DataWytworzeniaFa>
+    <SystemInfo>Comarch ERP XL</SystemInfo>
+  </Naglowek>
+  <Podmiot1>
+    <DaneIdentyfikacyjne>
+      <NIP>7871003063</NIP>
+      <Nazwa>Produkcja Zniczy I Lampionów CEIM MAREK CYPROWSKI</Nazwa>
+    </DaneIdentyfikacyjne>
+    <Adres>
+      <KodKraju>PL</KodKraju>
+      <AdresL1>Leśna 14</AdresL1>
+      <AdresL2>64-551 Otorowo</AdresL2>
+    </Adres>
+  </Podmiot1>
+  <Podmiot2>
+    <DaneIdentyfikacyjne>
+      <NIP>7722298969</NIP>
+      <Nazwa>Przedsiębiorstwo Handlowo- Usługowe "Ave"</Nazwa>
+    </DaneIdentyfikacyjne>
+    <Adres>
+      <KodKraju>PL</KodKraju>
+      <AdresL1>ul. Kościelna 4</AdresL1>
+      <AdresL2>97-565 Lgota Wielka</AdresL2>
+    </Adres>
+    <JST>2</JST>
+    <GV>2</GV>
+  </Podmiot2>
+  <Fa>
+    <KodWaluty>PLN</KodWaluty>
+    <P_1>2026-04-14</P_1>
+    <P_2>FS-60/04/26/SPKR</P_2>
+    <P_13_1>5613.40</P_13_1>
+    <P_14_1>1291.08</P_14_1>
+    <P_15>6904.48</P_15>
+    <Adnotacje>
+      <P_16>2</P_16>
+      <P_17>2</P_17>
+      <P_18>2</P_18>
+      <P_18A>2</P_18A>
+      <Zwolnienie>
+        <P_19N>1</P_19N>
+      </Zwolnienie>
+      <NoweSrodkiTransportu>
+        <P_22N>1</P_22N>
+      </NoweSrodkiTransportu>
+      <P_23>2</P_23>
+      <PMarzy>
+        <P_PMarzyN>1</P_PMarzyN>
+      </PMarzy>
+    </Adnotacje>
+    <RodzajFaktury>VAT</RodzajFaktury>
+    <FaWiersz>
+      <NrWierszaFa>1</NrWierszaFa>
+      <P_7>Wk Zniczomat 1 dzień</P_7>
+      <P_8A>szt.</P_8A>
+      <P_8B>2600</P_8B>
+      <P_9A>1.20</P_9A>
+      <P_11>3120.00</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>2</NrWierszaFa>
+      <P_7>Wk Zniczomat 2 dni</P_7>
+      <P_8A>szt.</P_8A>
+      <P_8B>1820</P_8B>
+      <P_9A>1.37</P_9A>
+      <P_11>2493.40</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <Platnosc>
+      <TerminPlatnosci>
+        <Termin>2026-05-14</Termin>
+      </TerminPlatnosci>
+      <FormaPlatnosci>6</FormaPlatnosci>
+      <RachunekBankowy>
+        <NrRB>65109013910000000039004697</NrRB>
+      </RachunekBankowy>
+    </Platnosc>
+  </Fa>
+</Faktura>

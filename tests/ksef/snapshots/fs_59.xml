@@ -1,0 +1,157 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
+  <Naglowek>
+    <KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+    <WariantFormularza>3</WariantFormularza>
+    <DataWytworzeniaFa>2026-04-14T12:00:00Z</DataWytworzeniaFa>
+    <SystemInfo>Comarch ERP XL</SystemInfo>
+  </Naglowek>
+  <Podmiot1>
+    <DaneIdentyfikacyjne>
+      <NIP>7871003063</NIP>
+      <Nazwa>Produkcja Zniczy I Lampionów CEIM MAREK CYPROWSKI</Nazwa>
+    </DaneIdentyfikacyjne>
+    <Adres>
+      <KodKraju>PL</KodKraju>
+      <AdresL1>Leśna 14</AdresL1>
+      <AdresL2>64-551 Otorowo</AdresL2>
+    </Adres>
+  </Podmiot1>
+  <Podmiot2>
+    <DaneIdentyfikacyjne>
+      <NIP>7822564956</NIP>
+      <Nazwa>INDIRA SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ</Nazwa>
+    </DaneIdentyfikacyjne>
+    <Adres>
+      <KodKraju>PL</KodKraju>
+      <AdresL1>ul. Władysława Jagiełły 4</AdresL1>
+      <AdresL2>41-100 Siemianowice Śląskie</AdresL2>
+    </Adres>
+    <JST>2</JST>
+    <GV>2</GV>
+  </Podmiot2>
+  <Fa>
+    <KodWaluty>PLN</KodWaluty>
+    <P_1>2026-04-14</P_1>
+    <P_2>FS-59/04/26/SPKR</P_2>
+    <P_13_1>754.68</P_13_1>
+    <P_14_1>173.58</P_14_1>
+    <P_15>928.26</P_15>
+    <Adnotacje>
+      <P_16>2</P_16>
+      <P_17>2</P_17>
+      <P_18>2</P_18>
+      <P_18A>2</P_18A>
+      <Zwolnienie>
+        <P_19N>1</P_19N>
+      </Zwolnienie>
+      <NoweSrodkiTransportu>
+        <P_22N>1</P_22N>
+      </NoweSrodkiTransportu>
+      <P_23>2</P_23>
+      <PMarzy>
+        <P_PMarzyN>1</P_PMarzyN>
+      </PMarzy>
+    </Adnotacje>
+    <RodzajFaktury>VAT</RodzajFaktury>
+    <FaWiersz>
+      <NrWierszaFa>1</NrWierszaFa>
+      <P_7>Bis św. zapach. snk80 truskawka</P_7>
+      <GTIN>5906927280738</GTIN>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>8.58</P_9A>
+      <P_11>51.48</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>2</NrWierszaFa>
+      <P_7>Bis podg. zapach.18 szt. wanilia</P_7>
+      <GTIN>5906927120676</GTIN>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>5.67</P_9A>
+      <P_11>34.02</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>3</NrWierszaFa>
+      <P_7>Bis podg. maxi 6 szt. wanilia</P_7>
+      <GTIN>5906927530673</GTIN>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>6.65</P_9A>
+      <P_11>39.90</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>4</NrWierszaFa>
+      <P_7>Olejek zapachowy 12 ml Nature</P_7>
+      <GTIN>5906948848009</GTIN>
+      <P_8A>szt.</P_8A>
+      <P_8B>120</P_8B>
+      <P_9A>3.99</P_9A>
+      <P_11>478.80</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>5</NrWierszaFa>
+      <P_7>Gol Kadzidełka długie Copal</P_7>
+      <GTIN>8901810026742</GTIN>
+      <P_8A>opak.</P_8A>
+      <P_8B>25</P_8B>
+      <P_9A>0.99</P_9A>
+      <P_11>24.75</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>6</NrWierszaFa>
+      <P_7>Gol Kadzidełka długie Kiwi</P_7>
+      <GTIN>8901810021563</GTIN>
+      <P_8A>opak.</P_8A>
+      <P_8B>25</P_8B>
+      <P_9A>0.99</P_9A>
+      <P_11>24.75</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>7</NrWierszaFa>
+      <P_7>Gol Kadzidełka długie Musk</P_7>
+      <GTIN>5904645941009</GTIN>
+      <P_8A>opak.</P_8A>
+      <P_8B>25</P_8B>
+      <P_9A>0.99</P_9A>
+      <P_11>24.75</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>8</NrWierszaFa>
+      <P_7>Gol Kadzidełka długie Precious Chandan</P_7>
+      <GTIN>5904645941009</GTIN>
+      <P_8A>opak.</P_8A>
+      <P_8B>25</P_8B>
+      <P_9A>0.99</P_9A>
+      <P_11>24.75</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>9</NrWierszaFa>
+      <P_7>Bis św. zapach. snk80 wanilia</P_7>
+      <GTIN>5906927280677</GTIN>
+      <P_8A>opak.</P_8A>
+      <P_8B>6</P_8B>
+      <P_9A>8.58</P_9A>
+      <P_11>51.48</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <Platnosc>
+      <TerminPlatnosci>
+        <Termin>2026-05-29</Termin>
+      </TerminPlatnosci>
+      <FormaPlatnosci>6</FormaPlatnosci>
+      <RachunekBankowy>
+        <NrRB>65109013910000000039004697</NrRB>
+      </RachunekBankowy>
+    </Platnosc>
+  </Fa>
+</Faktura>

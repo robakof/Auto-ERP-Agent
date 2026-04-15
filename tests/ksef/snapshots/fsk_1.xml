@@ -1,0 +1,122 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
+  <Naglowek>
+    <KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+    <WariantFormularza>3</WariantFormularza>
+    <DataWytworzeniaFa>2026-04-14T12:00:00Z</DataWytworzeniaFa>
+    <SystemInfo>Comarch ERP XL</SystemInfo>
+  </Naglowek>
+  <Podmiot1>
+    <DaneIdentyfikacyjne>
+      <NIP>7871003063</NIP>
+      <Nazwa>Produkcja Zniczy I Lampionów CEIM MAREK CYPROWSKI</Nazwa>
+    </DaneIdentyfikacyjne>
+    <Adres>
+      <KodKraju>PL</KodKraju>
+      <AdresL1>Leśna 14</AdresL1>
+      <AdresL2>64-551 Otorowo</AdresL2>
+    </Adres>
+  </Podmiot1>
+  <Podmiot2>
+    <DaneIdentyfikacyjne>
+      <NIP>7822508194</NIP>
+      <Nazwa>SOLEI SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ</Nazwa>
+    </DaneIdentyfikacyjne>
+    <Adres>
+      <KodKraju>PL</KodKraju>
+      <AdresL1>Aleja Tysiąclecia 34A</AdresL1>
+      <AdresL2>59-700 Bolesławiec</AdresL2>
+    </Adres>
+    <JST>2</JST>
+    <GV>2</GV>
+  </Podmiot2>
+  <Fa>
+    <KodWaluty>PLN</KodWaluty>
+    <P_1>2026-04-14</P_1>
+    <P_2>FSK-1/04/26/SPKRK</P_2>
+    <P_13_1>-49.10</P_13_1>
+    <P_14_1>-11.29</P_14_1>
+    <P_15>-60.39</P_15>
+    <Adnotacje>
+      <P_16>2</P_16>
+      <P_17>2</P_17>
+      <P_18>2</P_18>
+      <P_18A>2</P_18A>
+      <Zwolnienie>
+        <P_19N>1</P_19N>
+      </Zwolnienie>
+      <NoweSrodkiTransportu>
+        <P_22N>1</P_22N>
+      </NoweSrodkiTransportu>
+      <P_23>2</P_23>
+      <PMarzy>
+        <P_PMarzyN>1</P_PMarzyN>
+      </PMarzy>
+    </Adnotacje>
+    <RodzajFaktury>KOR</RodzajFaktury>
+    <PrzyczynaKorekty>Uszkodzenie towaru</PrzyczynaKorekty>
+    <DaneFaKorygowanej>
+      <DataWystFaKorygowanej>2026-03-25</DataWystFaKorygowanej>
+      <NrFaKorygowanej>FS-228/03/26/SPKR</NrFaKorygowanej>
+      <NrKSeFN>1</NrKSeFN>
+    </DaneFaKorygowanej>
+    <FaWiersz>
+      <NrWierszaFa>12</NrWierszaFa>
+      <P_7>Znicz szklany Z 499 LED sr Kerti</P_7>
+      <Indeks>CZNI26167</Indeks>
+      <GTIN>5903293726167</GTIN>
+      <P_8A>opak.</P_8A>
+      <P_8B>8</P_8B>
+      <P_9B>9.74</P_9B>
+      <P_11A>63.36</P_11A>
+      <P_11Vat>14.57</P_11Vat>
+      <P_12>23</P_12>
+      <StanPrzed>1</StanPrzed>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>12</NrWierszaFa>
+      <P_6A>2026-04-14</P_6A>
+      <P_7>Znicz szklany Z 499 LED sr Kerti</P_7>
+      <Indeks>CZNI26167</Indeks>
+      <GTIN>5903293726167</GTIN>
+      <P_8A>opak.</P_8A>
+      <P_8B>3</P_8B>
+      <P_9B>9.74</P_9B>
+      <P_11A>23.76</P_11A>
+      <P_11Vat>5.46</P_11Vat>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>25</NrWierszaFa>
+      <P_7>Barok ZŁ</P_7>
+      <Indeks>DAVP42263</Indeks>
+      <GTIN>5907702542263</GTIN>
+      <P_8A>opak.</P_8A>
+      <P_8B>8</P_8B>
+      <P_9B>11.69</P_9B>
+      <P_11A>76.00</P_11A>
+      <P_11Vat>17.48</P_11Vat>
+      <P_12>23</P_12>
+      <StanPrzed>1</StanPrzed>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>25</NrWierszaFa>
+      <P_6A>2026-04-14</P_6A>
+      <P_7>Barok ZŁ</P_7>
+      <Indeks>DAVP42263</Indeks>
+      <GTIN>5907702542263</GTIN>
+      <P_8A>opak.</P_8A>
+      <P_8B>7</P_8B>
+      <P_9B>11.69</P_9B>
+      <P_11A>66.50</P_11A>
+      <P_11Vat>15.29</P_11Vat>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <Platnosc>
+      <TerminPlatnosci>
+        <Termin>2026-05-29</Termin>
+      </TerminPlatnosci>
+      <FormaPlatnosci>6</FormaPlatnosci>
+    </Platnosc>
+  </Fa>
+</Faktura>
