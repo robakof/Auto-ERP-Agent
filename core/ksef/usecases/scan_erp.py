@@ -25,7 +25,8 @@ SELECT
     CONVERT(DATE, DATEADD(day, n.TrN_Data2, '1800-12-28'))  AS data_wystawienia
 FROM CDN.TraNag n
 WHERE n.TrN_GIDTyp = 2033
-  AND n.TrN_Bufor = 0
+  AND n.TrN_Stan IN (3, 4, 5)
+  AND n.TrN_Data2 = DATEDIFF(day, '1800-12-28', CAST(GETDATE() AS DATE))
 ORDER BY n.TrN_Data2, n.TrN_GIDNumer
 """
 
@@ -39,7 +40,8 @@ SELECT
     CONVERT(DATE, DATEADD(day, n.TrN_Data2, '1800-12-28'))  AS data_wystawienia
 FROM CDN.TraNag n
 WHERE n.TrN_GIDTyp = 2041
-  AND n.TrN_Bufor = 0
+  AND n.TrN_Stan IN (3, 4, 5)
+  AND n.TrN_Data2 = DATEDIFF(day, '1800-12-28', CAST(GETDATE() AS DATE))
 ORDER BY n.TrN_Data2, n.TrN_GIDNumer
 """
 
