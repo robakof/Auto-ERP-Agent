@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user
+from app.core.rate_limit import limiter
 from app.db.models.user import User
 from app.db.session import get_db
 from app.schemas.auth import (
@@ -29,9 +30,10 @@ def _client_ip(request: Request) -> str:
 
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
+@limiter.limit("5/hour")
 async def register(
-    req: RegisterRequest,
     request: Request,
+    req: RegisterRequest,
     db: AsyncSession = Depends(get_db),
 ):
     user, access, refresh = await auth_service.register_user(
@@ -41,9 +43,10 @@ async def register(
 
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit("10/minute")
 async def login(
-    req: LoginRequest,
     request: Request,
+    req: LoginRequest,
     db: AsyncSession = Depends(get_db),
 ):
     user_agent = request.headers.get("user-agent")
@@ -56,9 +59,10 @@ async def login(
 
 
 @router.post("/refresh", response_model=TokenResponse)
+@limiter.limit("20/minute")
 async def refresh(
-    req: RefreshRequest,
     request: Request,
+    req: RefreshRequest,
     db: AsyncSession = Depends(get_db),
 ):
     access, new_refresh = await auth_service.refresh_tokens(
