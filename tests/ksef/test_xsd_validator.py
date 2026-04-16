@@ -1,11 +1,14 @@
 """Unit tests xsd_validator — walidacja XML przeciw XSD."""
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 
 import pytest
 
+from core.ksef.adapters.xml_builder import XmlBuilder
 from core.ksef.adapters.xsd_validator import validate
+from tests.ksef.fixtures.domain_samples import make_fs_59, make_fsk_1
 
 
 _XSD_MINIMAL = b"""<?xml version="1.0" encoding="UTF-8"?>
@@ -46,3 +49,27 @@ def test_missing_xsd_raises_file_not_found(tmp_path: Path) -> None:
     xml = b'<Root/>'
     with pytest.raises(FileNotFoundError):
         validate(xml, xsd)
+
+
+# --- XSD regression tests (W1: real FA(3) schema) ---
+
+_XSD_FA3 = Path(__file__).resolve().parents[2] / "output" / "schemat.xsd"
+_CLOCK = lambda: datetime(2026, 4, 14, 12, 0, 0)
+
+
+@pytest.mark.skipif(not _XSD_FA3.exists(), reason="XSD schemat.xsd not available")
+def test_fs_validates_against_fa3_xsd() -> None:
+    """FS snapshot XML must pass FA(3) XSD validation."""
+    builder = XmlBuilder(clock=_CLOCK)
+    xml_bytes = builder.build_faktura(make_fs_59())
+    valid, errors = validate(xml_bytes, _XSD_FA3)
+    assert valid, f"FS XSD errors: {errors}"
+
+
+@pytest.mark.skipif(not _XSD_FA3.exists(), reason="XSD schemat.xsd not available")
+def test_fsk_validates_against_fa3_xsd() -> None:
+    """FSK snapshot XML must pass FA(3) XSD validation."""
+    builder = XmlBuilder(clock=_CLOCK)
+    xml_bytes = builder.build_korekta(make_fsk_1())
+    valid, errors = validate(xml_bytes, _XSD_FA3)
+    assert valid, f"FSK XSD errors: {errors}"

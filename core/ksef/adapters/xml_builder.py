@@ -7,7 +7,7 @@ Clock injection dla DataWytworzeniaFa — testy deterministyczne.
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Callable
 
@@ -117,8 +117,8 @@ class XmlBuilder:
             _sub(el, "GV", text="2")
 
     def _build_fa_header(
-        self, fa: etree._Element, kod_waluty: str, data_wyst, numer: str,
-        data_spr,
+        self, fa: etree._Element, kod_waluty: str, data_wyst: date,
+        numer: str, data_spr: date | None,
     ) -> None:
         _sub(fa, "KodWaluty", text=kod_waluty)
         _sub(fa, "P_1", text=_iso(data_wyst))
