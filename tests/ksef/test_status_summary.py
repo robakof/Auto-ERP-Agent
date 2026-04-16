@@ -145,3 +145,26 @@ def test_default_behavior_is_summary(tmp_path: Path) -> None:
     result = _run_status([], db)
     assert result.returncode == 0
     assert "podsumowanie" in result.stdout
+
+
+def test_rodzaj_without_gid_is_rejected(tmp_path: Path) -> None:
+    """W1 fix: --rodzaj wymaga --gid."""
+    db = tmp_path / "ksef.db"
+    repo = ShipmentRepository(db)
+    repo.init_schema()
+    result = _run_status(["--rodzaj", "FS"], db)
+    assert result.returncode == 2
+    assert "--rodzaj wymaga --gid" in result.stderr
+
+
+def test_gid_zero_opens_table_not_summary(tmp_path: Path) -> None:
+    """W2 fix: --gid 0 must use `is not None` check, not truthy."""
+    db = tmp_path / "ksef.db"
+    repo = ShipmentRepository(db)
+    repo.init_schema()
+    result = _run_status(["--gid", "0"], db)
+    assert result.returncode == 0
+    # GID=0 has no rows → "Brak wysylek." message from table branch,
+    # NOT "podsumowanie" header from summary branch.
+    assert "Brak wysylek" in result.stdout
+    assert "podsumowanie" not in result.stdout

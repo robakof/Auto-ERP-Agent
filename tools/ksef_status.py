@@ -57,11 +57,18 @@ def main() -> int:
         print(f"Brak DB: {args.db}. Uruchom: py tools/ksef_init_db.py", file=sys.stderr)
         return 1
 
+    if args.rodzaj is not None and args.gid is None:
+        print("Blad: --rodzaj wymaga --gid", file=sys.stderr)
+        return 2
+
     repo = ShipmentRepository(args.db)
 
     # --summary is the default when no filters are provided.
-    default_summary = not any(
-        (args.status, args.gid, args.today, args.limit != 20)
+    default_summary = not (
+        args.status
+        or args.gid is not None
+        or args.today
+        or args.limit != 20
     )
     if args.summary or default_summary:
         _render_summary(repo)
