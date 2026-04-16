@@ -191,7 +191,8 @@ async def test_accept_terms_no_token(integration_client):
     assert resp.status_code == 401
 
 
-async def test_revoke_session_by_id(integration_client):
+async def test_revoke_current_session_blocked(integration_client):
+    """Cannot revoke the session that issued the current access token."""
     reg = await integration_client.post("/api/v1/auth/register", json=_REG_PAYLOAD)
     access = reg.json()["access_token"]
 
@@ -199,17 +200,48 @@ async def test_revoke_session_by_id(integration_client):
         "/api/v1/auth/sessions",
         headers={"Authorization": f"Bearer {access}"},
     )).json()
-    session_id = sessions[0]["id"]
+    # The most recent session (first in list, ordered by created_at desc)
+    current_session_id = sessions[0]["id"]
 
     resp = await integration_client.delete(
-        f"/api/v1/auth/sessions/{session_id}",
+        f"/api/v1/auth/sessions/{current_session_id}",
         headers={"Authorization": f"Bearer {access}"},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["detail"] == "CANNOT_REVOKE_CURRENT_SESSION"
+
+
+async def test_revoke_other_session_by_id(integration_client):
+    reg = await integration_client.post("/api/v1/auth/register", json=_REG_PAYLOAD)
+    access = reg.json()["access_token"]
+
+    # Create a second session via login
+    login = await integration_client.post("/api/v1/auth/login", json={
+        "email": _REG_PAYLOAD["email"],
+        "password": _REG_PAYLOAD["password"],
+    })
+    access2 = login.json()["access_token"]
+
+    # List sessions from second login (current = second session)
+    sessions = (await integration_client.get(
+        "/api/v1/auth/sessions",
+        headers={"Authorization": f"Bearer {access2}"},
+    )).json()
+    assert len(sessions) >= 2
+
+    # Find a session that is NOT the current one (second login)
+    # The first session in the list is the newest (current for access2)
+    other_session_id = sessions[1]["id"]
+
+    resp = await integration_client.delete(
+        f"/api/v1/auth/sessions/{other_session_id}",
+        headers={"Authorization": f"Bearer {access2}"},
     )
     assert resp.status_code == 200
 
     # Session list should be shorter
     sessions_after = (await integration_client.get(
         "/api/v1/auth/sessions",
-        headers={"Authorization": f"Bearer {access}"},
+        headers={"Authorization": f"Bearer {access2}"},
     )).json()
     assert len(sessions_after) == len(sessions) - 1
