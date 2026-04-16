@@ -126,7 +126,9 @@ def _default_on_tick(tick: int, pending: list[PendingDocument]) -> None:
 
 # ---- CLI wiring -------------------------------------------------------------
 
-def _build_send_factory(dry_run: bool = False):
+def _build_send_factory(
+    run_query, repo: ShipmentRepository, *, dry_run: bool = False,
+):
     """Build a send_factory callable that generates XML + sends."""
     if dry_run:
         return _dry_run_factory
@@ -144,19 +146,12 @@ def _build_send_factory(dry_run: bool = False):
         sys.exit(2)
     encryption = KSeFEncryption(sym_cert.certificate_b64)
 
-    repo = ShipmentRepository(_DB_PATH)
-    repo.init_schema()
-
     uc = SendInvoiceUseCase(
         api=api, auth=auth, repo=repo, encryption=encryption,
         upo_dir=_UPO_DIR,
     )
 
-    def _run_query(sql):
-        from tools.sql_query import run_query
-        return run_query(sql)
-
-    reader = ErpReader(_run_query)
+    reader = ErpReader(run_query)
     builder = XmlBuilder()
 
     def factory(doc: PendingDocument) -> SendResult:
@@ -206,15 +201,15 @@ def main() -> int:
     )
     args = _parse_args()
 
-    def _run_query(sql):
-        from tools.sql_query import run_query
-        return run_query(sql)
+    def run_query(sql):
+        from tools.sql_query import run_query as _rq
+        return _rq(sql)
 
     repo = ShipmentRepository(_DB_PATH)
     repo.init_schema()
 
-    scan = ScanErpUseCase(_run_query, repo)
-    send_factory = _build_send_factory(dry_run=args.dry_run)
+    scan = ScanErpUseCase(run_query, repo)
+    send_factory = _build_send_factory(run_query, repo, dry_run=args.dry_run)
 
     daemon = KSeFDaemon(
         scan=scan,
