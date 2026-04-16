@@ -156,7 +156,7 @@
     },
     "backlog": {
       "enabled": true,
-      "areas": ["Dev", "Arch", "ERP", "Prompts", "Metodolog", "Bot"],
+      "areas": ["Dev", "Arch", "ERP", "Prompts", "Metodolog", "Bot", "Security"],
       "statuses": ["planned"],
       "limit": 30
     },
@@ -173,6 +173,37 @@
       "cross_role": {
         "enabled": true,
         "limit": 30
+      }
+    },
+    "flags_human": {
+      "enabled": true
+    }
+  },
+  "security_specialist": {
+    "inbox": {
+      "enabled": true,
+      "limit": 10,
+      "status": "unread"
+    },
+    "backlog": {
+      "enabled": true,
+      "areas": ["Security"],
+      "statuses": ["planned"],
+      "limit": 15
+    },
+    "session_logs": {
+      "own_full": {
+        "enabled": true,
+        "limit": 3
+      },
+      "own_metadata": {
+        "enabled": true,
+        "offset": 3,
+        "limit": 7
+      },
+      "cross_role": {
+        "enabled": true,
+        "limit": 20
       }
     },
     "flags_human": {

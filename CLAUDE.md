@@ -40,6 +40,7 @@ py tools/session_init.py --role <parametr>
 | Metodolog | Ocena metody pracy, kształtowanie procesu | `metodolog` |
 | Prompt Engineer | Edycja, kompresja i wersjonowanie promptów agentów | `prompt_engineer` |
 | Dyspozytor | Zarządzanie przepływem pracy, spawanie agentów, monitoring | `dispatcher` |
+| Security Specialist | Audyt bezpieczeństwa kodu, analiza luk, OWASP compliance | `security_specialist` |
 
 Instrukcje roli są w polu `doc_content` odpowiedzi. Postępuj zgodnie z nimi.
 
@@ -78,6 +79,7 @@ edycja promptów jest jego podstawową rolą.
 - `documents/conventions/CONVENTION_PROMPT.md`
 - `documents/conventions/CONVENTION_MIGRATIONS.md`
 - `documents/shared/LIFECYCLE_TOOLS.md`
+- `documents/security/SECURITY_SPECIALIST.md`
 - `workflows/bi_view_creation_workflow.md`
 
 Suggestions od Wykonawców wyłącznie przez `agent_bus_cli.py suggest` — nie przez pliki .md.
@@ -207,6 +209,7 @@ py tools/agent_bus_cli.py backlog --area Arch      # Architect (architektura, ko
 py tools/agent_bus_cli.py backlog --area Dev       # Developer (narzędzia, kod)
 py tools/agent_bus_cli.py backlog --area Prompt    # Prompt Engineer (prompty, workflow)
 py tools/agent_bus_cli.py backlog --area Metodolog  # Metodolog (procesy, metoda pracy)
+py tools/agent_bus_cli.py backlog --area Security   # Security Specialist (audyt, luki, OWASP)
 
 # Log sesji
 py tools/agent_bus_cli.py log --role <rola> --content-file tmp/tmp.md
