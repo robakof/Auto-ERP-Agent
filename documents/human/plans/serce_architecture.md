@@ -841,7 +841,7 @@ Pożyczanie rzeczy
 Inne
 ```
 
-Razem: **9 grup + 26 podkategorii = 35 rekordów** w tabeli categories po preloadzie.
+Razem: **9 grup + 27 podkategorii = 36 rekordów** w tabeli categories po preloadzie.
 
 ---
 
