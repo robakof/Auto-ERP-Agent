@@ -70,12 +70,21 @@ async def register_user(
     db.add(user)
     await db.flush()
 
-    # Record consents
-    for doc_type in (DocumentType.TOS, DocumentType.PRIVACY_POLICY):
+    # Record consents — read current versions from SystemConfig
+    config_keys = {
+        DocumentType.TOS: "tos_current_version",
+        DocumentType.PRIVACY_POLICY: "privacy_current_version",
+    }
+    for doc_type, config_key in config_keys.items():
+        result = await db.execute(
+            select(SystemConfig).where(SystemConfig.key == config_key)
+        )
+        config = result.scalar_one_or_none()
+        version = config.value if config else "1.0"
         db.add(UserConsent(
             user_id=user.id,
             document_type=doc_type,
-            document_version="1.0",
+            document_version=version,
             ip_address=ip_address,
         ))
 
