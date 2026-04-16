@@ -10,6 +10,7 @@ class RegisterRequest(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     tos_accepted: bool
     privacy_policy_accepted: bool
+    captcha_token: str | None = None
 
 
 class LoginRequest(BaseModel):

@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.captcha import verify_captcha
 from app.core.deps import get_current_user
 from app.core.rate_limit import limiter
 from app.db.models.user import User
@@ -36,6 +37,7 @@ async def register(
     req: RegisterRequest,
     db: AsyncSession = Depends(get_db),
 ):
+    await verify_captcha(req.captcha_token)
     user, access, refresh = await auth_service.register_user(
         db, req, ip_address=_client_ip(request),
     )
