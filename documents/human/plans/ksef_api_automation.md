@@ -31,7 +31,7 @@ Zero modyfikacji ERP XL. Wszystko co wiemy o wysyłce — w naszej DB.
 | Środowisko startowe | **Demo KSeF** (`ksef-test.mf.gov.pl`) | Bezpieczny start, zero ryzyka na Prod |
 | Certyfikat | **CEiM** — do wyrobienia (pieczęć kwalifikowana firmy) | `msps.pl` to prywatny projekt, nie dotykamy |
 | Strategia auth | **KSeF token** (enrollment przez `/certificates/enrollments` + autoryzacja przez `/auth/ksef-token`) | Prostsza ścieżka niż XAdES — brak konieczności implementacji podpisu XML |
-| Feedback do ERP | **Shadow DB** — nasza baza, bez ingerencji w ERP | ERP XL nietknięty, jedno źródło danych o wysyłkach |
+| Feedback do ERP | **Shadow DB** — nasza baza, bez ingerencji w ERP | ERP XL nietknięty, jedno źródło danych o wysyłkach (aktualizacja 2026-04-16: `ADR-KSEF-001` — czekamy na update Comarch XL z natywnym polem KSeF, nie tworzymy własnej kolumny) |
 | Lokalizacja DB | **Osobny `data/ksef.db`** | Dedykowany backup, separacja księgowego audytu od agent bus |
 | Tryb pracy | **Auto-scan daemon** | Bez udziału operatora, "wystawione w ERP → wysłane do KSeF" |
 | Źródło prawdy | **ERP XL** (dokumenty ze statusem zatwierdzony) | Tylko dokumenty domknięte, brak draftów |

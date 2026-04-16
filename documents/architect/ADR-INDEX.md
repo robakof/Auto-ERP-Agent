@@ -22,6 +22,7 @@ Każda decyzja architektoniczna dokumentowana jako osobny plik `ADR-NNN-<slug>.m
 | [ADR-002](ADR-002-language-policy.md) | Polityka językowa PL/EN | Accepted | 2026-03-22 | Średni — konwencja dokumentacji i promptów |
 | ADR-003 | Runner architecture | Pending | — | Wysoki — wymaga eksperymentów (#114) |
 | ADR-004 | Synchronizacja DB między maszynami | Pending | — | Średni — backlog #90 |
+| [ADR-KSEF-001](ADR-KSEF-001-erp-feedback-strategy.md) | KSeF — strategia feedbacku do ERP Comarch XL (shadow DB, czekamy na update Comarch) | Accepted | 2026-04-16 | Średni — zamraża decyzję "zero modyfikacji schematu Comarch" |
 
 ---
 
