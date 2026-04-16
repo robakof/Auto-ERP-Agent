@@ -7,6 +7,20 @@
 
 ---
 
+## Stan środowiska (krytyczne)
+
+| Warstwa | Środowisko | Uwaga |
+|---|---|---|
+| **Baza ERP Comarch XL** | **Produkcyjna** (prawdziwe dane) | Czytamy realne FS/FSK z `CDN.TraNag` |
+| **KSeF API** | **Demo v2** (`ksef-demo.mf.gov.pl`) | NIE produkcyjny KSeF |
+| **Token KSeF** | Demo | Token od użytkownika, wyłącznie Demo |
+
+Pipeline łączy się z prawdziwą bazą Comarch XL (realne dokumenty), ale faktury wysyła na KSeF Demo. Przejście na KSeF Prod = osobna decyzja człowieka (zabezpieczone przez Prod guard: `KSEF_PROD_CONFIRMED=yes`).
+
+**Moduł potwierdzenia wysyłki w ERP (feedback do Comarch):** uruchamiamy dopiero po podniesieniu wersji Comarch XL, która wprowadzi natywne pole KSeF. Do tego czasu shadow DB = jedyne źródło prawdy.
+
+---
+
 ## Kontekst
 
 Pipeline KSeF (Block 1-7, M0-M6) wysyła faktury FS/FSK z ERP Comarch XL do KSeF API. Kluczowe pytanie architektoniczne z fazy planowania: **gdzie trzymać informację o wysłaniu dokumentu do KSeF?**
