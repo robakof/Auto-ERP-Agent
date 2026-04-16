@@ -20,10 +20,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Callable, Protocol
 
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.x509 import load_der_x509_certificate
-
+from core.ksef.adapters.encryption import rsa_oaep_encrypt
 from core.ksef.adapters.ksef_api import KSeFApiClient
 from core.ksef.exceptions import KSefAuthError, KSefAuthTimeoutError
 from core.ksef.models import AccessToken, PublicKeyCertificate, RefreshToken, TokenPair
@@ -86,7 +83,7 @@ class KSefAuth:
         cert = self._get_token_cert()
         challenge = self._api.get_challenge()
         payload = f"{self._provider.get_token()}|{challenge.timestamp_ms}".encode("utf-8")
-        encrypted = _rsa_oaep_encrypt(cert.certificate_b64, payload)
+        encrypted = rsa_oaep_encrypt(cert.certificate_b64, payload)
         encrypted_b64 = base64.b64encode(encrypted).decode("ascii")
 
         init = self._api.auth_with_token(
@@ -172,20 +169,5 @@ class KSefAuth:
                 )
             self._sleep(interval)
             interval = min(interval * 2, _POLL_MAX_SECONDS)
-
-
-def _rsa_oaep_encrypt(cert_b64: str, data: bytes) -> bytes:
-    """Encrypt `data` with the cert's public key using RSA-OAEP(SHA-256)."""
-    der = base64.b64decode(cert_b64)
-    cert = load_der_x509_certificate(der)
-    public_key = cert.public_key()
-    return public_key.encrypt(
-        data,
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None,
-        ),
-    )
 
 
