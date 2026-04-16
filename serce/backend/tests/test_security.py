@@ -31,8 +31,22 @@ def test_bcrypt_different_hashes_same_input():
 def test_create_and_decode_access_token():
     uid = uuid4()
     token = create_access_token(uid)
-    decoded = decode_access_token(token)
-    assert decoded == uid
+    result = decode_access_token(token)
+    assert result is not None
+    user_id, session_id = result
+    assert user_id == uid
+    assert session_id is None  # no session_id passed
+
+
+def test_create_and_decode_with_session_id():
+    uid = uuid4()
+    sid = uuid4()
+    token = create_access_token(uid, session_id=sid)
+    result = decode_access_token(token)
+    assert result is not None
+    user_id, session_id = result
+    assert user_id == uid
+    assert session_id == sid
 
 
 def test_access_token_expired():

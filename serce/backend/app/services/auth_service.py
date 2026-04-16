@@ -80,14 +80,17 @@ async def register_user(
         ))
 
     # Issue tokens
-    access = create_access_token(user.id)
     raw_refresh, refresh_hash = create_refresh_token()
-    db.add(RefreshToken(
+    rt = RefreshToken(
         user_id=user.id,
         token_hash=refresh_hash,
         ip_address=ip_address,
         expires_at=datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days),
-    ))
+    )
+    db.add(rt)
+    await db.flush()  # get rt.id
+
+    access = create_access_token(user.id, session_id=rt.id)
 
     await db.commit()
     await db.refresh(user)
@@ -115,15 +118,18 @@ async def login_user(
             detail="ACCOUNT_NOT_ACTIVE",
         )
 
-    access = create_access_token(user.id)
     raw_refresh, refresh_hash = create_refresh_token()
-    db.add(RefreshToken(
+    rt = RefreshToken(
         user_id=user.id,
         token_hash=refresh_hash,
         ip_address=ip_address,
         device_info=device_info,
         expires_at=datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days),
-    ))
+    )
+    db.add(rt)
+    await db.flush()
+
+    access = create_access_token(user.id, session_id=rt.id)
     await db.commit()
     await db.refresh(user)
     return user, access, raw_refresh
@@ -158,15 +164,17 @@ async def refresh_tokens(
     token.revoked_at = datetime.now(timezone.utc)
 
     new_raw, new_hash = create_refresh_token()
-    db.add(RefreshToken(
+    new_rt = RefreshToken(
         user_id=token.user_id,
         token_hash=new_hash,
         ip_address=ip_address,
         expires_at=datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days),
-    ))
-    await db.commit()
+    )
+    db.add(new_rt)
+    await db.flush()
 
-    access = create_access_token(token.user_id)
+    access = create_access_token(token.user_id, session_id=new_rt.id)
+    await db.commit()
     return access, new_raw
 
 
@@ -270,8 +278,15 @@ async def revoke_session(
     db: AsyncSession,
     session_id: UUID,
     user_id: UUID,
+    current_session_id: UUID | None = None,
 ) -> None:
-    """Revoke a specific session by ID. Only owner can revoke."""
+    """Revoke a specific session by ID. Only owner can revoke. Cannot revoke current session."""
+    if current_session_id is not None and session_id == current_session_id:
+        raise HTTPException(
+            status_code=422,
+            detail="CANNOT_REVOKE_CURRENT_SESSION",
+        )
+
     result = await db.execute(
         select(RefreshToken).where(
             RefreshToken.id == session_id,

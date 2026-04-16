@@ -1,6 +1,7 @@
 """FastAPI dependencies — auth guards."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
@@ -15,19 +16,28 @@ from app.db.session import get_db
 _bearer = HTTPBearer()
 
 
-async def get_current_user(
+@dataclass
+class AuthContext:
+    """Authenticated user + session metadata from JWT."""
+
+    user: User
+    session_id: UUID | None
+
+
+async def get_auth_context(
     creds: HTTPAuthorizationCredentials = Depends(_bearer),
     db: AsyncSession = Depends(get_db),
-) -> User:
-    """Decode JWT, load user, verify active status."""
-    user_id = decode_access_token(creds.credentials)
-    if user_id is None:
+) -> AuthContext:
+    """Decode JWT, load user, verify active status. Returns AuthContext."""
+    result = decode_access_token(creds.credentials)
+    if result is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="INVALID_TOKEN",
         )
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
+    user_id, session_id = result
+    row = await db.execute(select(User).where(User.id == user_id))
+    user = row.scalar_one_or_none()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -38,4 +48,11 @@ async def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="ACCOUNT_NOT_ACTIVE",
         )
-    return user
+    return AuthContext(user=user, session_id=session_id)
+
+
+async def get_current_user(
+    ctx: AuthContext = Depends(get_auth_context),
+) -> User:
+    """Shorthand — returns just the User (backward-compatible)."""
+    return ctx.user

@@ -26,11 +26,18 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 # ---- JWT ---------------------------------------------------------------------
 
-def create_access_token(user_id: UUID, *, expires_delta: timedelta | None = None) -> str:
+def create_access_token(
+    user_id: UUID,
+    *,
+    session_id: UUID | None = None,
+    expires_delta: timedelta | None = None,
+) -> str:
     expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
     )
-    payload = {"sub": str(user_id), "exp": expire, "type": "access"}
+    payload: dict = {"sub": str(user_id), "exp": expire, "type": "access"}
+    if session_id is not None:
+        payload["sid"] = str(session_id)
     return jwt.encode(payload, settings.secret_key, algorithm=ALGORITHM)
 
 
@@ -41,14 +48,19 @@ def create_refresh_token() -> tuple[str, str]:
     return raw, token_hash
 
 
-def decode_access_token(token: str) -> UUID | None:
-    """Decode JWT and return user_id (UUID). None if invalid/expired."""
+def decode_access_token(token: str) -> tuple[UUID, UUID | None] | None:
+    """Decode JWT and return (user_id, session_id) or None if invalid/expired."""
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[ALGORITHM])
         if payload.get("type") != "access":
             return None
         sub = payload.get("sub")
-        return UUID(sub) if sub else None
+        if not sub:
+            return None
+        user_id = UUID(sub)
+        sid = payload.get("sid")
+        session_id = UUID(sid) if sid else None
+        return user_id, session_id
     except (JWTError, ValueError):
         return None
 

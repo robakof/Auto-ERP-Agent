@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.captcha import verify_captcha
-from app.core.deps import get_current_user
+from app.core.deps import AuthContext, get_auth_context, get_current_user
 from app.core.rate_limit import limiter
 from app.db.models.user import User
 from app.db.session import get_db
@@ -102,10 +102,12 @@ async def list_sessions(
 @router.delete("/sessions/{session_id}", response_model=MessageResponse)
 async def revoke_session(
     session_id: UUID,
-    current_user: User = Depends(get_current_user),
+    ctx: AuthContext = Depends(get_auth_context),
     db: AsyncSession = Depends(get_db),
 ):
-    await auth_service.revoke_session(db, session_id, current_user.id)
+    await auth_service.revoke_session(
+        db, session_id, ctx.user.id, current_session_id=ctx.session_id,
+    )
     return MessageResponse(detail="Sesja uniewazniona.")
 
 
