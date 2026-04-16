@@ -1,8 +1,9 @@
 """KSeF Shadow DB readonly status — podglad stanu wysylek.
 
 Uzycie:
-    py tools/ksef_status.py                              # ostatnie 20 wysylek
-    py tools/ksef_status.py --limit 50
+    py tools/ksef_status.py                              # --summary (default)
+    py tools/ksef_status.py --summary                    # podsumowanie: dzis, 7 dni, total
+    py tools/ksef_status.py --limit 50                   # lista ostatnich
     py tools/ksef_status.py --status ERROR
     py tools/ksef_status.py --gid 123456                 # wszystkie attempts (FS+FSK)
     py tools/ksef_status.py --gid 123456 --rodzaj FS
@@ -14,7 +15,7 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -24,6 +25,18 @@ from core.ksef.domain.shipment import ShipmentStatus, Wysylka
 
 _DEFAULT_DB = Path("data/ksef.db")
 _COLS = ("id", "gid", "rodz", "nr", "status", "ksef_number", "att", "sent_at")
+
+# Status list for summary — logical order (draft/active first, terminal last).
+_SUMMARY_STATUS_ORDER = (
+    ShipmentStatus.ACCEPTED,
+    ShipmentStatus.SENT,
+    ShipmentStatus.AUTH_PENDING,
+    ShipmentStatus.QUEUED,
+    ShipmentStatus.DRAFT,
+    ShipmentStatus.ERROR,
+    ShipmentStatus.REJECTED,
+)
+_ALERT_STATUSES = frozenset({ShipmentStatus.ERROR, ShipmentStatus.REJECTED})
 
 
 def main() -> int:
@@ -35,6 +48,8 @@ def main() -> int:
                         help="zawez do typu dokumentu (tylko razem z --gid)")
     parser.add_argument("--today", action="store_true",
                         help="tylko dzisiejsze (created_at w lokalnej strefie)")
+    parser.add_argument("--summary", action="store_true",
+                        help="podsumowanie: dzis, ostatnie 7 dni, total")
     parser.add_argument("--limit", type=int, default=20)
     args = parser.parse_args()
 
@@ -42,7 +57,17 @@ def main() -> int:
         print(f"Brak DB: {args.db}. Uruchom: py tools/ksef_init_db.py", file=sys.stderr)
         return 1
 
-    rows = _select(ShipmentRepository(args.db), args)
+    repo = ShipmentRepository(args.db)
+
+    # --summary is the default when no filters are provided.
+    default_summary = not any(
+        (args.status, args.gid, args.today, args.limit != 20)
+    )
+    if args.summary or default_summary:
+        _render_summary(repo)
+        return 0
+
+    rows = _select(repo, args)
     if not rows:
         print("Brak wysylek.")
         return 0
@@ -84,6 +109,52 @@ def _render_table(rows: list[Wysylka]) -> None:
     print(sep.join("-" * w for w in widths))
     for r in data:
         print(sep.join(v.ljust(w) for v, w in zip(r, widths, strict=True)))
+
+
+def _render_summary(repo: ShipmentRepository) -> None:
+    now_local = datetime.now().astimezone()
+    today_local = now_local.date()
+    # created_at is naive UTC in DB — convert local boundaries to UTC for query.
+    midnight_local = datetime.combine(today_local, datetime.min.time()).astimezone()
+    since_today_utc = _to_naive_utc(midnight_local)
+    since_week_utc = _to_naive_utc(now_local - timedelta(days=7))
+
+    today = repo.count_by_status(since=since_today_utc)
+    week = repo.count_by_status(since=since_week_utc)
+    total = repo.count_by_status(since=None)
+    recent = repo.list_recent(limit=1)
+
+    print("=== KSeF Shadow DB — podsumowanie ===")
+    print()
+    print(f"Dzis ({today_local.isoformat()}):")
+    _print_status_block(today)
+    print()
+    print("Ostatnie 7 dni:")
+    _print_status_block(week)
+    print()
+    all_total = sum(total.values())
+    print(f"Lacznie w DB:  {all_total}")
+    if recent:
+        last = recent[0]
+        ts = _fmt_dt(last.sent_at or last.created_at)
+        print(
+            f"Ostatnia wysylka: {ts} "
+            f"({last.nr_faktury} -> {last.status.value})"
+        )
+
+
+def _print_status_block(counts: dict[ShipmentStatus, int]) -> None:
+    for status in _SUMMARY_STATUS_ORDER:
+        n = counts.get(status, 0)
+        if n == 0 and status not in _ALERT_STATUSES:
+            continue  # skip empty non-alert rows to reduce noise
+        alert = " <- UWAGA" if status in _ALERT_STATUSES and n > 0 else ""
+        print(f"  {status.value:<13} {n:>3}{alert}")
+
+
+def _to_naive_utc(dt: datetime) -> datetime:
+    """Convert aware datetime to naive UTC (matching repo storage)."""
+    return dt.astimezone(timezone.utc).replace(tzinfo=None)
 
 
 def _to_local_date(naive_utc: datetime):

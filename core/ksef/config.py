@@ -39,6 +39,14 @@ def load_config(dotenv_path: Path | None = None) -> KSefConfig:
             f"KSEF_ENV must be one of {sorted(ALLOWED_ENVS)}, got: {env!r}"
         )
 
+    if env == "prod":
+        confirmed = (os.getenv("KSEF_PROD_CONFIRMED") or "").strip().lower()
+        if confirmed != "yes":
+            raise ValueError(
+                "KSEF_ENV=prod requires KSEF_PROD_CONFIRMED=yes in .env. "
+                "This is a safety measure to prevent accidental production sends."
+            )
+
     base_url = (os.getenv("KSEF_BASE_URL") or "").strip().rstrip("/")
     if not base_url:
         raise ValueError("KSEF_BASE_URL is required")

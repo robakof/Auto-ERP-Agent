@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, call
 import pytest
 
 from core.ksef.domain.shipment import ShipmentStatus
+from core.ksef.guards import ErrorEscalator, RateLimiter
 from core.ksef.usecases.scan_erp import PendingDocument
 from core.ksef.usecases.send_invoice import SendResult
 
@@ -135,3 +136,67 @@ def test_daemon_on_tick_callback(scan, send_factory):
     daemon.run_once()
 
     on_tick.assert_called_once_with(0, [_DOC1])
+
+
+# ---- guards integration ------------------------------------------------------
+
+class _FakeClock:
+    def __init__(self) -> None:
+        self.t = 0.0
+
+    def __call__(self) -> float:
+        return self.t
+
+
+def test_daemon_rate_limiter_blocks_excess(scan, send_factory):
+    scan.scan.return_value = [_DOC1, _DOC2, _DOC3]
+    limiter = RateLimiter(max_per_minute=2, clock=_FakeClock())
+    daemon = KSeFDaemon(
+        scan, send_factory, sleep=lambda _: None, rate_limiter=limiter,
+    )
+
+    results = daemon.run_once()
+
+    # 2 sent, 3rd rate-limited
+    assert len(results) == 2
+    assert send_factory.call_count == 2
+
+
+def test_daemon_rate_limiter_disabled_lets_all_through(scan, send_factory):
+    scan.scan.return_value = [_DOC1, _DOC2, _DOC3]
+    limiter = RateLimiter(max_per_minute=0, clock=_FakeClock())
+    daemon = KSeFDaemon(
+        scan, send_factory, sleep=lambda _: None, rate_limiter=limiter,
+    )
+
+    results = daemon.run_once()
+    assert len(results) == 3
+
+
+def test_daemon_escalator_flags_on_errors(scan):
+    scan.scan.return_value = [_DOC1, _DOC2, _DOC3]
+    factory = MagicMock(return_value=_RESULT_ERR)
+    flag_fn = MagicMock()
+    escalator = ErrorEscalator(threshold=3, flag_fn=flag_fn)
+    daemon = KSeFDaemon(
+        scan, factory, sleep=lambda _: None, error_escalator=escalator,
+    )
+
+    daemon.run_once()
+
+    flag_fn.assert_called_once()
+
+
+def test_daemon_escalator_resets_each_tick(scan):
+    scan.scan.return_value = [_DOC1, _DOC2]
+    factory = MagicMock(return_value=_RESULT_ERR)
+    flag_fn = MagicMock()
+    escalator = ErrorEscalator(threshold=3, flag_fn=flag_fn)
+    daemon = KSeFDaemon(
+        scan, factory, sleep=lambda _: None, error_escalator=escalator,
+    )
+
+    daemon.run_once()  # 2 errors, below threshold
+    daemon.run_once()  # 2 more errors — but counter reset so still below
+
+    flag_fn.assert_not_called()

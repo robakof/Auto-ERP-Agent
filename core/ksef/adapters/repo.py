@@ -148,6 +148,23 @@ class ShipmentRepository:
             ).fetchall()
         return [_row_to_wysylka(r) for r in rows]
 
+    def count_by_status(
+        self, since: datetime | None = None,
+    ) -> dict[ShipmentStatus, int]:
+        """Count shipments per status. `since` filters by created_at >= since."""
+        sql = "SELECT status, COUNT(*) AS n FROM ksef_wysylka"
+        params: list[Any] = []
+        if since is not None:
+            sql += " WHERE created_at >= ?"
+            params.append(since)
+        sql += " GROUP BY status"
+        with self._connect() as conn:
+            rows = conn.execute(sql, params).fetchall()
+        counts = {s: 0 for s in ShipmentStatus}
+        for row in rows:
+            counts[ShipmentStatus(row["status"])] = row["n"]
+        return counts
+
     # ---- mutations ---------------------------------------------------
 
     def create(

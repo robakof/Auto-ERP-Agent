@@ -5,12 +5,15 @@
     py tools/ksef_daemon.py --once              # single scan + send, exit
     py tools/ksef_daemon.py --dry-run           # scan only, show what would be sent
     py tools/ksef_daemon.py --once --dry-run    # single scan, show only
+    py tools/ksef_daemon.py --rate-limit 5      # max 5 dok/min (0 = off)
+    py tools/ksef_daemon.py --error-threshold 0 # disable human escalation
 """
 from __future__ import annotations
 
 import argparse
 import logging
 import signal
+import subprocess
 import sys
 import time
 from datetime import date
@@ -28,14 +31,19 @@ from core.ksef.adapters.xml_builder import XmlBuilder
 from core.ksef.adapters.erp_reader import ErpReader
 from core.ksef.config import load_config
 from core.ksef.domain.shipment import ShipmentStatus
+from core.ksef.guards import ErrorEscalator, RateLimiter
 from core.ksef.usecases.scan_erp import PendingDocument, ScanErpUseCase
 from core.ksef.usecases.send_invoice import SendInvoiceUseCase, SendResult
 
 _LOG = logging.getLogger("ksef.daemon")
 
-_DB_PATH = Path(__file__).resolve().parent.parent / "data" / "ksef.db"
-_OUTPUT_DIR = Path(__file__).resolve().parent.parent / "output" / "ksef"
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_DB_PATH = _PROJECT_ROOT / "data" / "ksef.db"
+_OUTPUT_DIR = _PROJECT_ROOT / "output" / "ksef"
 _UPO_DIR = _OUTPUT_DIR / "upo"
+_TMP_DIR = _PROJECT_ROOT / "tmp"
+_FLAG_REASON_FILE = _TMP_DIR / "ksef_flag.md"
+_AGENT_BUS_CLI = _PROJECT_ROOT / "tools" / "agent_bus_cli.py"
 
 
 class KSeFDaemon:
@@ -49,12 +57,16 @@ class KSeFDaemon:
         interval_s: float = 60.0,
         on_tick: Callable[[int, list[PendingDocument]], None] | None = None,
         sleep: Callable[[float], None] = time.sleep,
+        rate_limiter: RateLimiter | None = None,
+        error_escalator: ErrorEscalator | None = None,
     ) -> None:
         self._scan = scan
         self._send_factory = send_factory
         self._interval = interval_s
         self._on_tick = on_tick or _default_on_tick
         self._sleep = sleep
+        self._rate_limiter = rate_limiter
+        self._escalator = error_escalator
         self._shutdown = False
         self._tick_count = 0
 
@@ -77,13 +89,23 @@ class KSeFDaemon:
     def _tick(self) -> list[SendResult]:
         pending = self._scan.scan()
         self._on_tick(self._tick_count, pending)
+        if self._escalator is not None:
+            self._escalator.reset()
         results = []
         for doc in pending:
             if self._shutdown:
                 break
+            if self._rate_limiter is not None and not self._rate_limiter.acquire():
+                _LOG.warning(
+                    '{"event": "rate_limited", "gid": %d, "rodzaj": "%s"}',
+                    doc.gid, doc.rodzaj,
+                )
+                break
             result = self._process_one(doc)
             if result:
                 results.append(result)
+                if self._escalator is not None:
+                    self._escalator.report(result)
         self._tick_count += 1
         return results
 
@@ -122,6 +144,30 @@ def _default_on_tick(tick: int, pending: list[PendingDocument]) -> None:
     print(f"[{ts}] Tick #{tick}: {len(pending)} pending documents")
     for doc in pending:
         print(f"  {doc.rodzaj} GID={doc.gid} {doc.nr_faktury} ({doc.data_wystawienia})")
+
+
+def _flag_to_human(reason: str) -> None:
+    """Escalate to human via agent_bus flag. Best-effort — never crash daemon."""
+    try:
+        _TMP_DIR.mkdir(parents=True, exist_ok=True)
+        _FLAG_REASON_FILE.write_text(reason, encoding="utf-8")
+        result = subprocess.run(
+            [
+                sys.executable, str(_AGENT_BUS_CLI), "flag",
+                "--from", "daemon",
+                "--reason-file", str(_FLAG_REASON_FILE),
+            ],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode != 0:
+            _LOG.warning(
+                '{"event": "flag_failed", "stderr": "%s"}',
+                result.stderr.strip()[:200],
+            )
+        else:
+            _LOG.info('{"event": "flag_sent"}')
+    except Exception as exc:  # noqa: BLE001 — agent_bus fallback
+        _LOG.warning('{"event": "flag_exception", "error": "%s"}', exc)
 
 
 # ---- CLI wiring -------------------------------------------------------------
@@ -211,10 +257,17 @@ def main() -> int:
     scan = ScanErpUseCase(run_query, repo)
     send_factory = _build_send_factory(run_query, repo, dry_run=args.dry_run)
 
+    rate_limiter = RateLimiter(max_per_minute=args.rate_limit)
+    escalator = ErrorEscalator(
+        threshold=args.error_threshold, flag_fn=_flag_to_human,
+    )
+
     daemon = KSeFDaemon(
         scan=scan,
         send_factory=send_factory,
         interval_s=args.interval,
+        rate_limiter=rate_limiter,
+        error_escalator=escalator,
     )
 
     if args.once:
@@ -233,6 +286,10 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--interval", type=float, default=60.0, help="Sekundy miedzy tickami (default 60)")
     p.add_argument("--once", action="store_true", help="Single scan + send, exit")
     p.add_argument("--dry-run", action="store_true", help="Scan only, show what would be sent")
+    p.add_argument("--rate-limit", type=int, default=10,
+                   help="Max dokumentow/min (0 = wylaczony, default 10)")
+    p.add_argument("--error-threshold", type=int, default=3,
+                   help="ERROR/REJECTED per tick -> flag (0 = wylaczone, default 3)")
     return p.parse_args()
 
 
