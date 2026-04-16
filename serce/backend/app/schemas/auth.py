@@ -27,5 +27,9 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
+class AcceptTermsRequest(BaseModel):
+    document_type: str = Field(pattern=r"^(tos|privacy_policy)$")
+
+
 class MessageResponse(BaseModel):
     detail: str

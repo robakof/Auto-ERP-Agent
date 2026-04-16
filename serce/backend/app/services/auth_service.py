@@ -16,6 +16,7 @@ from app.core.security import (
     hash_token,
     verify_password,
 )
+from app.db.models.admin import SystemConfig
 from app.db.models.user import (
     DocumentType,
     RefreshToken,
@@ -212,6 +213,50 @@ async def list_sessions(
         ).order_by(RefreshToken.created_at.desc())
     )
     return list(result.scalars().all())
+
+
+async def accept_terms(
+    db: AsyncSession,
+    user_id: UUID,
+    document_type_str: str,
+    ip_address: str,
+) -> None:
+    """Record acceptance of current TOS or privacy policy version."""
+    doc_type = DocumentType(document_type_str)
+
+    # Fetch current required version from SystemConfig
+    config_key = (
+        "tos_current_version"
+        if doc_type == DocumentType.TOS
+        else "privacy_current_version"
+    )
+    result = await db.execute(
+        select(SystemConfig).where(SystemConfig.key == config_key)
+    )
+    config = result.scalar_one_or_none()
+    if not config:
+        raise HTTPException(status_code=500, detail="MISSING_CONFIG")
+
+    current_version = config.value
+
+    # Check if already accepted this version
+    existing = await db.execute(
+        select(UserConsent).where(
+            UserConsent.user_id == user_id,
+            UserConsent.document_type == doc_type,
+            UserConsent.document_version == current_version,
+        )
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="ALREADY_ACCEPTED")
+
+    db.add(UserConsent(
+        user_id=user_id,
+        document_type=doc_type,
+        document_version=current_version,
+        ip_address=ip_address,
+    ))
+    await db.commit()
 
 
 async def revoke_session(

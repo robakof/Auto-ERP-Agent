@@ -10,6 +10,7 @@ from app.core.deps import get_current_user
 from app.db.models.user import User
 from app.db.session import get_db
 from app.schemas.auth import (
+    AcceptTermsRequest,
     LoginRequest,
     MessageResponse,
     RefreshRequest,
@@ -100,6 +101,19 @@ async def revoke_session(
 ):
     await auth_service.revoke_session(db, session_id, current_user.id)
     return MessageResponse(detail="Sesja uniewazniona.")
+
+
+@router.post("/accept-terms", response_model=MessageResponse)
+async def accept_terms(
+    req: AcceptTermsRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await auth_service.accept_terms(
+        db, current_user.id, req.document_type, ip_address=_client_ip(request),
+    )
+    return MessageResponse(detail="Zaakceptowano.")
 
 
 @router.get("/me", response_model=UserRead)

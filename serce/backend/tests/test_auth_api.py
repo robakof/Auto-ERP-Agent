@@ -79,3 +79,18 @@ async def test_me_invalid_token(client):
 async def test_sessions_no_token(client):
     resp = await client.get("/api/v1/auth/sessions")
     assert resp.status_code == 401
+
+
+async def test_accept_terms_no_token(client):
+    resp = await client.post("/api/v1/auth/accept-terms", json={
+        "document_type": "tos",
+    })
+    assert resp.status_code == 401
+
+
+async def test_accept_terms_invalid_type_no_token(client):
+    """Without token, auth check fires first → 401 regardless of body."""
+    resp = await client.post("/api/v1/auth/accept-terms", json={
+        "document_type": "invalid",
+    })
+    assert resp.status_code == 401

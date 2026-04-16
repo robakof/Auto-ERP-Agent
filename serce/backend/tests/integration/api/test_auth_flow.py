@@ -169,6 +169,28 @@ async def test_list_sessions(integration_client):
     assert "expires_at" in sessions[0]
 
 
+async def test_accept_terms_tos(integration_client):
+    reg = await integration_client.post("/api/v1/auth/register", json=_REG_PAYLOAD)
+    access = reg.json()["access_token"]
+
+    # Accept current TOS (already accepted at register → should get 409)
+    resp = await integration_client.post(
+        "/api/v1/auth/accept-terms",
+        json={"document_type": "tos"},
+        headers={"Authorization": f"Bearer {access}"},
+    )
+    assert resp.status_code == 409
+    assert resp.json()["detail"] == "ALREADY_ACCEPTED"
+
+
+async def test_accept_terms_no_token(integration_client):
+    resp = await integration_client.post(
+        "/api/v1/auth/accept-terms",
+        json={"document_type": "tos"},
+    )
+    assert resp.status_code == 401
+
+
 async def test_revoke_session_by_id(integration_client):
     reg = await integration_client.post("/api/v1/auth/register", json=_REG_PAYLOAD)
     access = reg.json()["access_token"]
