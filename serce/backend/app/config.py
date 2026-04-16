@@ -1,4 +1,7 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_INSECURE_DEFAULT_KEY = "change-me-to-random-32-char-string"
 
 
 class Settings(BaseSettings):
@@ -12,7 +15,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://serce:serce_dev@localhost:5432/serce"
 
     # JWT
-    secret_key: str = "change-me-to-random-32-char-string"
+    secret_key: str = _INSECURE_DEFAULT_KEY
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 30
 
@@ -27,6 +30,18 @@ class Settings(BaseSettings):
     # Environment
     env: str = "development"
     log_level: str = "INFO"
+
+    # hCaptcha
+    hcaptcha_secret: str = ""
+
+    @model_validator(mode="after")
+    def _check_secret_key_in_prod(self) -> "Settings":
+        if self.env not in ("development", "test") and self.secret_key == _INSECURE_DEFAULT_KEY:
+            raise ValueError(
+                "SECRET_KEY must be set to a secure random value in non-dev environments. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+            )
+        return self
 
     @property
     def cors_origin_list(self) -> list[str]:

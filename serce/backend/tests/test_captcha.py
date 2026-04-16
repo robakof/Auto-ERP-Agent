@@ -9,14 +9,15 @@ from app.core.captcha import verify_captcha
 
 
 async def test_captcha_skipped_when_no_secret():
-    """When HCAPTCHA_SECRET is empty, captcha check is a no-op."""
+    """When hcaptcha_secret is empty, captcha check is a no-op."""
     await verify_captcha(None)  # should not raise
     await verify_captcha("any-token")  # should not raise
 
 
 async def test_captcha_required_when_secret_set():
-    """When HCAPTCHA_SECRET is set, missing token raises 422."""
-    with patch("app.core.captcha._HCAPTCHA_SECRET", "test-secret"):
+    """When hcaptcha_secret is set, missing token raises 422."""
+    with patch("app.core.captcha.settings") as mock_settings:
+        mock_settings.hcaptcha_secret = "test-secret"
         from fastapi import HTTPException
 
         with pytest.raises(HTTPException) as exc_info:
@@ -40,9 +41,10 @@ def _make_mock_client(success: bool):
 async def test_captcha_invalid_token():
     """When hCaptcha API rejects the token, raises 422."""
     with (
-        patch("app.core.captcha._HCAPTCHA_SECRET", "test-secret"),
+        patch("app.core.captcha.settings") as mock_settings,
         patch("httpx.AsyncClient", return_value=_make_mock_client(False)),
     ):
+        mock_settings.hcaptcha_secret = "test-secret"
         from fastapi import HTTPException
 
         with pytest.raises(HTTPException) as exc_info:
@@ -54,7 +56,8 @@ async def test_captcha_invalid_token():
 async def test_captcha_valid_token():
     """When hCaptcha API accepts the token, no exception."""
     with (
-        patch("app.core.captcha._HCAPTCHA_SECRET", "test-secret"),
+        patch("app.core.captcha.settings") as mock_settings,
         patch("httpx.AsyncClient", return_value=_make_mock_client(True)),
     ):
+        mock_settings.hcaptcha_secret = "test-secret"
         await verify_captcha("valid-token")  # should not raise

@@ -1,21 +1,20 @@
 """hCaptcha server-side verification.
 
-In test/development mode (HCAPTCHA_SECRET not set or empty), verification is skipped.
+In test/development mode (hcaptcha_secret not set or empty), verification is skipped.
 In production, the hCaptcha response token is validated against the hCaptcha API.
 """
 from __future__ import annotations
 
-import os
-
 from fastapi import HTTPException
 
-_HCAPTCHA_SECRET = os.getenv("HCAPTCHA_SECRET", "").strip()
+from app.config import settings
+
 _VERIFY_URL = "https://api.hcaptcha.com/siteverify"
 
 
 async def verify_captcha(token: str | None) -> None:
-    """Verify hCaptcha token. No-op if HCAPTCHA_SECRET is not configured."""
-    if not _HCAPTCHA_SECRET:
+    """Verify hCaptcha token. No-op if hcaptcha_secret is not configured."""
+    if not settings.hcaptcha_secret:
         return  # dev/test mode — skip verification
 
     if not token:
@@ -26,7 +25,7 @@ async def verify_captcha(token: str | None) -> None:
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             _VERIFY_URL,
-            data={"secret": _HCAPTCHA_SECRET, "response": token},
+            data={"secret": settings.hcaptcha_secret, "response": token},
         )
     result = resp.json()
     if not result.get("success"):
