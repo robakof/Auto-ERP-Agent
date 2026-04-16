@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.core.email_denylist import is_disposable_email
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -37,6 +38,12 @@ async def register_user(
         raise HTTPException(
             status_code=422,
             detail="Musisz zaakceptowac regulamin i polityke prywatnosci.",
+        )
+
+    if is_disposable_email(req.email):
+        raise HTTPException(
+            status_code=422,
+            detail="DISPOSABLE_EMAIL",
         )
 
     # Check unique email

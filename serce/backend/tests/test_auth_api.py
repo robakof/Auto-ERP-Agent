@@ -58,6 +58,18 @@ async def test_register_short_username(client):
     assert resp.status_code == 422
 
 
+async def test_register_disposable_email(client):
+    resp = await client.post("/api/v1/auth/register", json={
+        "email": "test@mailinator.com",
+        "username": "testuser",
+        "password": "StrongP@ss1",
+        "tos_accepted": True,
+        "privacy_policy_accepted": True,
+    })
+    # Disposable email should be rejected (422 from service or caught earlier)
+    assert resp.status_code == 422
+
+
 async def test_login_no_body(client):
     resp = await client.post("/api/v1/auth/login", json={})
     assert resp.status_code == 422
