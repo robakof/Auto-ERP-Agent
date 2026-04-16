@@ -19,6 +19,7 @@ from core.ksef.adapters.ksef_auth import KSefAuth
 from core.ksef.adapters.repo import ShipmentRepository
 from core.ksef.domain.shipment import ShipmentStatus
 from core.ksef.exceptions import KSefError
+from core.ksef.models import InvoiceStatus
 
 _LOG = logging.getLogger("ksef.send")
 
@@ -108,9 +109,6 @@ class SendInvoiceUseCase:
                 },
             )
             session_ref = session.reference_number
-            self._repo.transition(
-                wid, ShipmentStatus.AUTH_PENDING,  # no-op transition — already AUTH_PENDING
-            ) if False else None  # placeholder — session_ref saved below
 
             encrypted = self._encryption.encrypt_invoice(xml_bytes, session_enc)
             payload = {
@@ -164,7 +162,7 @@ class SendInvoiceUseCase:
 
     def _poll_invoice(
         self, access_token: str, session_ref: str, invoice_ref: str,
-    ):
+    ) -> InvoiceStatus:
         """Poll invoice status until terminal. Returns InvoiceStatus."""
         deadline = time.monotonic() + self._poll_timeout
         interval = _POLL_INITIAL_S

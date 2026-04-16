@@ -97,8 +97,6 @@ def _extract_gid_rodzaj(
     if m_fs:
         return gid_override or int(m_fs.group(1)), rodzaj_override or "FS"
 
-    if gid_override and rodzaj_override:
-        return gid_override, rodzaj_override
     print(f"BLAD: Nie mozna wyciagnac GID/rodzaj z nazwy pliku: {name}")
     print("Uzyj --gid N --rodzaj FS|FSK")
     sys.exit(2)
