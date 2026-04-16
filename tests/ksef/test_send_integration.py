@@ -9,6 +9,9 @@ import os
 from pathlib import Path
 
 import pytest
+from dotenv import load_dotenv
+
+load_dotenv()
 
 _SKIP_REASON = "KSEF_TOKEN not set — skipping real API test"
 _HAS_TOKEN = bool(os.getenv("KSEF_TOKEN"))
@@ -19,7 +22,7 @@ _HAS_TOKEN = bool(os.getenv("KSEF_TOKEN"))
 def test_send_real_fs_to_demo(tmp_path: Path) -> None:
     """Send FS-59 XML to api-demo.ksef.mf.gov.pl, verify ACCEPTED + UPO."""
     from core.ksef.adapters.encryption import KSeFEncryption
-    from core.ksef.adapters.http import KSeFHttp
+    from core.ksef.adapters.http import KSefHttp
     from core.ksef.adapters.ksef_api import KSeFApiClient
     from core.ksef.adapters.ksef_auth import EnvTokenProvider, KSefAuth
     from core.ksef.adapters.repo import ShipmentRepository
@@ -28,7 +31,7 @@ def test_send_real_fs_to_demo(tmp_path: Path) -> None:
     from core.ksef.usecases.send_invoice import SendInvoiceUseCase
 
     cfg = load_config()
-    http = KSeFHttp(base_url=cfg.base_url)
+    http = KSefHttp(base_url=cfg.base_url)
     api = KSeFApiClient(http)
     provider = EnvTokenProvider(token=cfg.ksef_token or "", nip=cfg.nip)
     auth = KSefAuth(api, provider)
