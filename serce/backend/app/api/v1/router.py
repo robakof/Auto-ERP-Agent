@@ -4,6 +4,7 @@ from app.api.v1.auth import router as auth_router
 from app.api.v1.categories import router as categories_router
 from app.api.v1.health import router as health_router
 from app.api.v1.exchanges import router as exchanges_router
+from app.api.v1.flags import router as flags_router
 from app.api.v1.hearts import router as hearts_router
 from app.api.v1.locations import router as locations_router
 from app.api.v1.messages import router as messages_router
@@ -26,5 +27,6 @@ v1_router.include_router(messages_router)
 v1_router.include_router(reviews_router)
 v1_router.include_router(user_resources_router)
 v1_router.include_router(notifications_router)
+v1_router.include_router(flags_router)
 v1_router.include_router(locations_router)
 v1_router.include_router(categories_router)
