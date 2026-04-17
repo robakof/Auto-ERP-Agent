@@ -66,8 +66,15 @@ class ResendEmailService:
             resp.raise_for_status()
 
 
+_email_service: EmailService | None = None
+
+
 def get_email_service() -> EmailService:
-    """DI factory — MockEmailService when resend_api_key empty."""
-    if settings.resend_api_key:
-        return ResendEmailService(settings.resend_api_key, settings.email_from)
-    return MockEmailService()
+    """DI singleton — MockEmailService when resend_api_key empty."""
+    global _email_service
+    if _email_service is None:
+        if settings.resend_api_key:
+            _email_service = ResendEmailService(settings.resend_api_key, settings.email_from)
+        else:
+            _email_service = MockEmailService()
+    return _email_service

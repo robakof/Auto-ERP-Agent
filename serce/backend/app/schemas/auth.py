@@ -33,7 +33,7 @@ class AcceptTermsRequest(BaseModel):
 
 
 class VerifyEmailRequest(BaseModel):
-    token: str
+    token: str = Field(max_length=256)
 
 
 class ResendVerificationRequest(BaseModel):
@@ -54,7 +54,7 @@ class ForgotPasswordRequest(BaseModel):
 
 
 class ResetPasswordRequest(BaseModel):
-    token: str
+    token: str = Field(max_length=256)
     new_password: str = Field(min_length=8, max_length=128)
 
 

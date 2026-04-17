@@ -52,8 +52,15 @@ def generate_otp() -> str:
     return f"{secrets.randbelow(1_000_000):06d}"
 
 
+_sms_service: SmsService | None = None
+
+
 def get_sms_service() -> SmsService:
-    """DI factory — MockSmsService when smsapi_token empty."""
-    if settings.smsapi_token:
-        return SmsApiService(settings.smsapi_token, settings.smsapi_sender)
-    return MockSmsService()
+    """DI singleton — MockSmsService when smsapi_token empty."""
+    global _sms_service
+    if _sms_service is None:
+        if settings.smsapi_token:
+            _sms_service = SmsApiService(settings.smsapi_token, settings.smsapi_sender)
+        else:
+            _sms_service = MockSmsService()
+    return _sms_service

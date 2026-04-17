@@ -49,7 +49,7 @@ async def verify_email(db: AsyncSession, raw_token: str) -> None:
     user = await db.get(User, token.user_id)
     if user:
         user.email_verified = True
-    await db.commit()
+    await db.flush()
 
 
 async def resend_email_verification(
@@ -64,12 +64,11 @@ async def resend_email_verification(
     if not user:
         return None
 
-    # Rate check: count active (unused, non-expired) tokens in last 24h
+    # Rate check: count ALL tokens created in last 24h (not just unused — C1 fix)
     since = datetime.now(timezone.utc) - timedelta(hours=24)
     count_result = await db.execute(
         select(func.count()).select_from(EmailVerificationToken).where(
             EmailVerificationToken.user_id == user.id,
-            EmailVerificationToken.used_at.is_(None),
             EmailVerificationToken.created_at >= since,
         )
     )
@@ -88,7 +87,7 @@ async def resend_email_verification(
         old.used_at = datetime.now(timezone.utc)
 
     raw = await create_email_verification(db, user.id, user.email)
-    await db.commit()
+    await db.flush()
     return raw, user.id
 
 
@@ -137,7 +136,7 @@ async def verify_phone(
         user.phone_number = phone_number
 
     granted = await _grant_initial_hearts(db, user_id)
-    await db.commit()
+    await db.flush()
     return granted
 
 
@@ -214,7 +213,7 @@ async def reset_password(
     for rt in rt_result.scalars().all():
         rt.revoked_at = now
 
-    await db.commit()
+    await db.flush()
 
 
 # ---- INITIAL_GRANT ------------------------------------------------------------

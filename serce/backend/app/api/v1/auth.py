@@ -36,12 +36,9 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 def _client_ip(request: Request) -> str:
-    """Extract real client IP, respecting X-Forwarded-For behind reverse proxy."""
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        # First IP in the chain is the original client
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+    """Extract real client IP — reuses rate_limit._get_client_ip logic."""
+    from app.core.rate_limit import _get_client_ip
+    return _get_client_ip(request)
 
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
@@ -55,11 +52,14 @@ async def register(
     user, access, refresh = await auth_service.register_user(
         db, req, ip_address=_client_ip(request),
     )
-    # Auto-send verification email
-    email_svc = get_email_service()
+    # Auto-send verification email (fire-and-forget — registration succeeds regardless)
     raw_token = await verification_service.create_email_verification(db, user.id, user.email)
     await db.commit()
-    await email_svc.send_verification(user.email, raw_token)
+    try:
+        email_svc = get_email_service()
+        await email_svc.send_verification(user.email, raw_token)
+    except Exception:
+        pass  # token saved in DB, user can resend later
     return TokenResponse(access_token=access, refresh_token=refresh)
 
 
@@ -153,6 +153,7 @@ async def get_me(current_user: User = Depends(get_current_user)):
 @router.post("/verify-email", response_model=MessageResponse)
 async def verify_email(req: VerifyEmailRequest, db: AsyncSession = Depends(get_db)):
     await verification_service.verify_email(db, req.token)
+    await db.commit()
     return MessageResponse(detail="Email zweryfikowany.")
 
 
@@ -166,8 +167,12 @@ async def resend_verification_email(
     result = await verification_service.resend_email_verification(db, req.email)
     if result:
         raw_token, _ = result
+        await db.commit()
         email_svc = get_email_service()
-        await email_svc.send_verification(req.email, raw_token)
+        try:
+            await email_svc.send_verification(req.email, raw_token)
+        except Exception:
+            pass  # fire-and-forget — token saved, email delivery best-effort
     # Always 200 — don't reveal if email exists
     return MessageResponse(detail="Jesli email istnieje, wyslano link weryfikacyjny.")
 
@@ -198,6 +203,7 @@ async def verify_phone_endpoint(
     granted = await verification_service.verify_phone(
         db, current_user.id, req.phone_number, req.code,
     )
+    await db.commit()
     msg = "Telefon zweryfikowany."
     if granted:
         msg += f" Otrzymales {settings.initial_heart_grant} serc na start!"
@@ -226,4 +232,5 @@ async def reset_password_endpoint(
     req: ResetPasswordRequest, db: AsyncSession = Depends(get_db),
 ):
     await verification_service.reset_password(db, req.token, req.new_password)
+    await db.commit()
     return MessageResponse(detail="Haslo zmienione. Zaloguj sie ponownie.")
