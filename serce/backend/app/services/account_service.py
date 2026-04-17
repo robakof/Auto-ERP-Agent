@@ -38,8 +38,11 @@ async def soft_delete_account(
 ) -> list[AffectedParty]:
     """Atomic 8-step account deletion. Returns affected parties for email."""
 
-    # Step 0: Load user + verify password
-    user = await db.get(User, user_id)
+    # Step 0: Load user + verify password (FOR UPDATE — concurrent safety)
+    row = await db.execute(
+        select(User).where(User.id == user_id).with_for_update()
+    )
+    user = row.scalar_one_or_none()
     if not user or user.status != UserStatus.ACTIVE:
         raise HTTPException(status_code=404, detail="USER_NOT_FOUND")
     if not verify_password(password, user.password_hash):
@@ -122,7 +125,10 @@ async def soft_delete_account(
             db.add(ledger)
             user.heart_balance = 0
         elif balance_disposition == "transfer":
-            recipient = await db.get(User, transfer_to_user_id)
+            row = await db.execute(
+                select(User).where(User.id == transfer_to_user_id).with_for_update()
+            )
+            recipient = row.scalar_one_or_none()
             if not recipient or recipient.status != UserStatus.ACTIVE:
                 raise HTTPException(status_code=422, detail="RECIPIENT_NOT_FOUND")
             if recipient.heart_balance + user.heart_balance > settings.heart_balance_cap:

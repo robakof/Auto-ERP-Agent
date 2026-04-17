@@ -17,6 +17,7 @@ from app.db.models.location import Location, LocationType
 from app.db.models.notification import Notification, NotificationType
 from app.db.models.offer import Offer, OfferStatus
 from app.db.models.request import LocationScope, Request, RequestStatus
+from app.db.models.review import Review
 from app.db.models.user import RefreshToken, User, UserRole, UserStatus
 from app.services import account_service
 
@@ -37,7 +38,7 @@ async def db():
         User.__table__, Category.__table__, Location.__table__,
         Request.__table__, Offer.__table__, Exchange.__table__,
         HeartLedger.__table__, Notification.__table__,
-        RefreshToken.__table__,
+        RefreshToken.__table__, Review.__table__,
     ]
     async with engine.begin() as conn:
         await conn.run_sync(lambda sync_conn: Base.metadata.create_all(sync_conn, tables=tables))
@@ -500,3 +501,29 @@ async def test_soft_delete_refund_then_void(db):
     )).scalars().all()
     assert len(void_ledger) == 1
     assert void_ledger[0].amount == 15
+
+
+# ---- Public profile placeholder (W2) ----------------------------------------
+
+@pytest.mark.asyncio
+async def test_public_profile_deleted_user_placeholder(db):
+    from app.services import user_resources_service
+    user = await _user(db, heart_balance=10)
+    await account_service.soft_delete_account(
+        db, user.id, password=PASSWORD_PLAIN, balance_disposition="void",
+    )
+    profile = await user_resources_service.public_profile(db, user.id)
+    assert profile["is_deleted"] is True
+    assert profile["username"] is None
+    assert profile["bio"] is None
+    assert profile["heart_balance"] == 0
+    assert profile["id"] == user.id
+
+
+@pytest.mark.asyncio
+async def test_public_profile_active_user_has_is_deleted_false(db):
+    from app.services import user_resources_service
+    user = await _user(db, heart_balance=5)
+    profile = await user_resources_service.public_profile(db, user.id)
+    assert profile["is_deleted"] is False
+    assert profile["username"] == user.username
