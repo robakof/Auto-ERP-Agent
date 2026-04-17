@@ -12,6 +12,7 @@ from app.db.models.exchange import Exchange
 from app.db.models.user import User
 from app.db.session import get_db
 from app.services.email_service import get_email_service
+from app.services.exchange_service import other_party
 from app.schemas.message import MessageListResponse, MessageRead, SendMessageBody
 from app.services import message_service
 
@@ -35,12 +36,7 @@ async def send_message(
 
     exchange = await db.get(Exchange, exchange_id)
     if exchange:
-        other_id = (
-            exchange.helper_id
-            if current_user.id == exchange.requester_id
-            else exchange.requester_id
-        )
-        other = await db.get(User, other_id)
+        other = await db.get(User, other_party(exchange, current_user.id))
         if other and other.email:
             background_tasks.add_task(
                 get_email_service().send_notification,

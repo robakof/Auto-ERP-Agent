@@ -18,6 +18,11 @@ from app.db.models.user import User
 from app.services import notification_service
 
 
+def other_party(exchange: Exchange, actor_id: UUID) -> UUID:
+    """Return the ID of the other participant (not actor)."""
+    return exchange.helper_id if actor_id == exchange.requester_id else exchange.requester_id
+
+
 async def create_exchange(
     db: AsyncSession,
     current_user_id: UUID,
@@ -95,13 +100,8 @@ async def create_exchange(
     await db.flush()
 
     # Notify the other party (not initiator)
-    recipient_id = (
-        exchange.requester_id
-        if exchange.initiated_by != exchange.requester_id
-        else exchange.helper_id
-    )
     await notification_service.create_notification(
-        db, recipient_id, NotificationType.NEW_EXCHANGE,
+        db, other_party(exchange, exchange.initiated_by), NotificationType.NEW_EXCHANGE,
         related_exchange_id=exchange.id,
     )
     return exchange
@@ -257,13 +257,8 @@ async def cancel_exchange(
     await db.flush()
 
     # Notify the other party (not the canceller)
-    other_id = (
-        exchange.helper_id
-        if current_user_id == exchange.requester_id
-        else exchange.requester_id
-    )
     await notification_service.create_notification(
-        db, other_id, NotificationType.EXCHANGE_CANCELLED,
+        db, other_party(exchange, current_user_id), NotificationType.EXCHANGE_CANCELLED,
         related_exchange_id=exchange.id,
     )
     return exchange

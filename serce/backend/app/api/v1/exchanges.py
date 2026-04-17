@@ -39,12 +39,7 @@ async def create_exchange(
     )
     await db.commit()
 
-    recipient_id = (
-        result.requester_id
-        if result.initiated_by != result.requester_id
-        else result.helper_id
-    )
-    recipient = await db.get(User, recipient_id)
+    recipient = await db.get(User, exchange_service.other_party(result, result.initiated_by))
     if recipient and recipient.email:
         background_tasks.add_task(
             get_email_service().send_notification,
@@ -110,12 +105,7 @@ async def cancel_exchange(
     result = await exchange_service.cancel_exchange(db, exchange_id, current_user.id)
     await db.commit()
 
-    other_id = (
-        result.helper_id
-        if current_user.id == result.requester_id
-        else result.requester_id
-    )
-    other = await db.get(User, other_id)
+    other = await db.get(User, exchange_service.other_party(result, current_user.id))
     if other and other.email:
         background_tasks.add_task(
             get_email_service().send_notification,

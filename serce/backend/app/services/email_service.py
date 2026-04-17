@@ -79,9 +79,20 @@ class ResendEmailService:
         "REQUEST_EXPIRED": "Twoja prosba wygasla — Serce",
     }
 
+    _NOTIFICATION_BODIES: dict[str, str] = {
+        "NEW_EXCHANGE": "Ktos zaproponowal wymiane na Twoja prosbe. Sprawdz szczegoly w aplikacji.",
+        "EXCHANGE_ACCEPTED": "Twoja propozycja wymiany zostala zaakceptowana. Sprawdz szczegoly w aplikacji.",
+        "EXCHANGE_COMPLETED": "Wymiana zostala zakonczona. Sprawdz szczegoly w aplikacji.",
+        "EXCHANGE_CANCELLED": "Wymiana zostala anulowana. Sprawdz szczegoly w aplikacji.",
+        "NEW_MESSAGE": "Masz nowa wiadomosc w wymianie. Sprawdz szczegoly w aplikacji.",
+        "NEW_REVIEW": "Otrzymales/as nowa opinie. Sprawdz szczegoly w aplikacji.",
+        "HEARTS_RECEIVED": "Otrzymales/as serca od innego uzytkownika. Sprawdz szczegoly w aplikacji.",
+        "REQUEST_EXPIRED": "Twoja prosba wygasla. Sprawdz szczegoly w aplikacji.",
+    }
+
     async def send_notification(self, to: str, notification_type: str, reason: str | None) -> None:
         subject = self._NOTIFICATION_SUBJECTS.get(notification_type, "Powiadomienie — Serce")
-        body = f"Typ: {notification_type}"
+        body = self._NOTIFICATION_BODIES.get(notification_type, "Masz nowe powiadomienie w aplikacji Serce.")
         if reason:
             body += f"\n\n{reason}"
         await self._send(to=to, subject=subject, body=body)

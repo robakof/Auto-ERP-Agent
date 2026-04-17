@@ -12,6 +12,7 @@ from app.db.models.message import Message
 from app.db.models.notification import NotificationType
 from app.db.models.user import UserRole
 from app.services import notification_service
+from app.services.exchange_service import other_party
 
 
 async def send_message(
@@ -39,13 +40,8 @@ async def send_message(
     await db.flush()
 
     # Notify other participant
-    other_id = (
-        exchange.helper_id
-        if current_user_id == exchange.requester_id
-        else exchange.requester_id
-    )
     await notification_service.create_notification(
-        db, other_id, NotificationType.NEW_MESSAGE,
+        db, other_party(exchange, current_user_id), NotificationType.NEW_MESSAGE,
         related_exchange_id=exchange_id,
         related_message_id=msg.id,
     )
