@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -62,7 +63,7 @@ class UserAdminRead(BaseModel):
 class GrantHeartsBody(BaseModel):
     user_id: UUID
     amount: int = Field(gt=0)
-    type: str
+    type: Literal["ADMIN_GRANT", "ADMIN_REFUND"]
     reason: str = Field(max_length=1000)
 
 

@@ -175,6 +175,11 @@ async def _get_target_owner(db: AsyncSession, flag: ContentFlag) -> UUID:
         obj = await db.get(Offer, flag.target_id)
         if obj:
             return obj.user_id
+    elif flag.target_type == FlagTargetType.EXCHANGE:
+        raise HTTPException(
+            status_code=422,
+            detail="SUSPEND_VIA_FLAG_NOT_SUPPORTED_FOR_EXCHANGES",
+        )
     raise HTTPException(status_code=422, detail="CANNOT_DETERMINE_OWNER")
 
 
@@ -256,9 +261,6 @@ async def grant_hearts(
     reason: str,
 ) -> HeartLedger:
     """Grant/refund hearts to user. No from_user (system action)."""
-    if ledger_type not in ("ADMIN_GRANT", "ADMIN_REFUND"):
-        raise HTTPException(status_code=422, detail="INVALID_LEDGER_TYPE")
-
     user = await db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="USER_NOT_FOUND")

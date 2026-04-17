@@ -399,15 +399,15 @@ async def test_grant_user_not_found(db):
 
 
 @pytest.mark.asyncio
-async def test_grant_invalid_type(db):
-    admin = await _admin(db)
-    target = await _user(db)
-    from fastapi import HTTPException
-    with pytest.raises(HTTPException) as exc:
-        await admin_service.grant_hearts(
-            db, admin.id, target.id, amount=1, ledger_type="GIFT", reason="wrong type",
+async def test_grant_invalid_type_rejected_by_schema():
+    """Pydantic Literal validates type — invalid value rejected at schema level."""
+    from pydantic import ValidationError
+    from app.schemas.admin import GrantHeartsBody
+    with pytest.raises(ValidationError):
+        GrantHeartsBody(
+            user_id="00000000-0000-0000-0000-000000000001",
+            amount=1, type="GIFT", reason="wrong type",
         )
-    assert exc.value.detail == "INVALID_LEDGER_TYPE"
 
 
 # ---- Audit listing -----------------------------------------------------------
