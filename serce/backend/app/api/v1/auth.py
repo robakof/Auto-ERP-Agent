@@ -221,8 +221,11 @@ async def forgot_password(
     if result:
         raw_token, _ = result
         await db.commit()
-        email_svc = get_email_service()
-        await email_svc.send_password_reset(req.email, raw_token)
+        try:
+            email_svc = get_email_service()
+            await email_svc.send_password_reset(req.email, raw_token)
+        except Exception:
+            pass  # fire-and-forget — token saved, email delivery best-effort
     # Always 200 — don't reveal if email exists
     return MessageResponse(detail="Jesli email istnieje, wyslano link do resetu hasla.")
 
