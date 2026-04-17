@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_access_token
-from app.db.models.user import User, UserStatus
+from app.db.models.user import User, UserRole, UserStatus
 from app.db.session import get_db
 
 _bearer = HTTPBearer()
@@ -55,4 +55,16 @@ async def get_current_user(
     ctx: AuthContext = Depends(get_auth_context),
 ) -> User:
     """Shorthand — returns just the User (backward-compatible)."""
+    return ctx.user
+
+
+async def require_admin(
+    ctx: AuthContext = Depends(get_auth_context),
+) -> User:
+    """Admin-only guard — 403 if not ADMIN role."""
+    if ctx.user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="ADMIN_ONLY",
+        )
     return ctx.user

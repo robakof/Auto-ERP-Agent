@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.v1.admin import router as admin_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.categories import router as categories_router
 from app.api.v1.health import router as health_router
@@ -28,5 +29,6 @@ v1_router.include_router(reviews_router)
 v1_router.include_router(user_resources_router)
 v1_router.include_router(notifications_router)
 v1_router.include_router(flags_router)
+v1_router.include_router(admin_router)
 v1_router.include_router(locations_router)
 v1_router.include_router(categories_router)
