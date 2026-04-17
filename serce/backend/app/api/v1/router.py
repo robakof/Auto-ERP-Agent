@@ -10,6 +10,7 @@ from app.api.v1.messages import router as messages_router
 from app.api.v1.offers import router as offers_router
 from app.api.v1.requests import router as requests_router
 from app.api.v1.reviews import router as reviews_router
+from app.api.v1.user_resources import router as user_resources_router
 from app.api.v1.users import router as users_router
 
 v1_router = APIRouter(prefix="/api/v1")
@@ -22,5 +23,6 @@ v1_router.include_router(offers_router)
 v1_router.include_router(exchanges_router)
 v1_router.include_router(messages_router)
 v1_router.include_router(reviews_router)
+v1_router.include_router(user_resources_router)
 v1_router.include_router(locations_router)
 v1_router.include_router(categories_router)
