@@ -7,6 +7,7 @@ from app.api.v1.exchanges import router as exchanges_router
 from app.api.v1.hearts import router as hearts_router
 from app.api.v1.locations import router as locations_router
 from app.api.v1.messages import router as messages_router
+from app.api.v1.notifications import router as notifications_router
 from app.api.v1.offers import router as offers_router
 from app.api.v1.requests import router as requests_router
 from app.api.v1.reviews import router as reviews_router
@@ -24,5 +25,6 @@ v1_router.include_router(exchanges_router)
 v1_router.include_router(messages_router)
 v1_router.include_router(reviews_router)
 v1_router.include_router(user_resources_router)
+v1_router.include_router(notifications_router)
 v1_router.include_router(locations_router)
 v1_router.include_router(categories_router)

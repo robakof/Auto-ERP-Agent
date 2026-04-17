@@ -3,13 +3,14 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request as FastAPIRequest
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request as FastAPIRequest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user
 from app.core.rate_limit import limiter
 from app.db.models.user import User
 from app.db.session import get_db
+from app.services.email_service import get_email_service
 from app.schemas.review import CreateReviewBody, ReviewListResponse, ReviewRead
 from app.services import review_service
 
@@ -26,6 +27,7 @@ async def create_review(
     request: FastAPIRequest,
     exchange_id: UUID,
     body: CreateReviewBody,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -33,6 +35,13 @@ async def create_review(
         db, exchange_id, current_user.id, comment=body.comment,
     )
     await db.commit()
+
+    reviewed = await db.get(User, result.reviewed_id)
+    if reviewed and reviewed.email:
+        background_tasks.add_task(
+            get_email_service().send_notification,
+            to=reviewed.email, notification_type="NEW_REVIEW", reason=None,
+        )
     return result
 
 

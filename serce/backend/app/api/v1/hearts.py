@@ -1,7 +1,7 @@
 """Hearts endpoints — gift, balance, ledger."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -10,6 +10,7 @@ from app.core.rate_limit import limiter
 from app.db.models.heart import HeartLedgerType
 from app.db.models.user import User
 from app.db.session import get_db
+from app.services.email_service import get_email_service
 from app.schemas.hearts import (
     BalanceResponse,
     GiftRequest,
@@ -26,6 +27,7 @@ router = APIRouter(prefix="/hearts", tags=["hearts"])
 async def gift_hearts(
     request: Request,
     req: GiftRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -33,6 +35,13 @@ async def gift_hearts(
         db, current_user.id, req.to_user_id, req.amount, req.note,
     )
     await db.commit()
+
+    recipient = await db.get(User, req.to_user_id)
+    if recipient and recipient.email:
+        background_tasks.add_task(
+            get_email_service().send_notification,
+            to=recipient.email, notification_type="HEARTS_RECEIVED", reason=req.note,
+        )
     return ledger
 
 

@@ -12,6 +12,7 @@ from sqlalchemy import text
 
 from app.db.base import Base
 from app.db.models.heart import HeartLedger, HeartLedgerType
+from app.db.models.notification import Notification
 from app.db.models.user import User, UserStatus
 from app.services import hearts_service
 
@@ -28,7 +29,7 @@ async def db():
         cursor.execute("PRAGMA foreign_keys=OFF")
         cursor.close()
 
-    tables = [User.__table__, HeartLedger.__table__]
+    tables = [User.__table__, HeartLedger.__table__, Notification.__table__]
     async with engine.begin() as conn:
         await conn.run_sync(lambda sync_conn: Base.metadata.create_all(sync_conn, tables=tables))
         # Drop partial unique index — SQLite doesn't support postgresql_where,

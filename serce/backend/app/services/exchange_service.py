@@ -13,7 +13,9 @@ from app.db.models.exchange import Exchange, ExchangeStatus
 from app.db.models.heart import HeartLedger, HeartLedgerType
 from app.db.models.offer import Offer, OfferStatus
 from app.db.models.request import Request, RequestStatus
+from app.db.models.notification import NotificationType
 from app.db.models.user import User
+from app.services import notification_service
 
 
 async def create_exchange(
@@ -91,6 +93,17 @@ async def create_exchange(
 
     db.add(exchange)
     await db.flush()
+
+    # Notify the other party (not initiator)
+    recipient_id = (
+        exchange.requester_id
+        if exchange.initiated_by != exchange.requester_id
+        else exchange.helper_id
+    )
+    await notification_service.create_notification(
+        db, recipient_id, NotificationType.NEW_EXCHANGE,
+        related_exchange_id=exchange.id,
+    )
     return exchange
 
 
@@ -156,6 +169,11 @@ async def accept_exchange(
 
     exchange.status = ExchangeStatus.ACCEPTED
     await db.flush()
+
+    await notification_service.create_notification(
+        db, exchange.initiated_by, NotificationType.EXCHANGE_ACCEPTED,
+        related_exchange_id=exchange.id,
+    )
     return exchange
 
 
@@ -197,6 +215,11 @@ async def complete_exchange(
     exchange.status = ExchangeStatus.COMPLETED
     exchange.completed_at = datetime.now(timezone.utc)
     await db.flush()
+
+    await notification_service.create_notification(
+        db, exchange.helper_id, NotificationType.EXCHANGE_COMPLETED,
+        related_exchange_id=exchange.id,
+    )
     return exchange
 
 
@@ -232,6 +255,17 @@ async def cancel_exchange(
 
     exchange.status = ExchangeStatus.CANCELLED
     await db.flush()
+
+    # Notify the other party (not the canceller)
+    other_id = (
+        exchange.helper_id
+        if current_user_id == exchange.requester_id
+        else exchange.requester_id
+    )
+    await notification_service.create_notification(
+        db, other_id, NotificationType.EXCHANGE_CANCELLED,
+        related_exchange_id=exchange.id,
+    )
     return exchange
 
 

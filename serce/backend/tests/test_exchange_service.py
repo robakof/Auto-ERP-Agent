@@ -15,6 +15,7 @@ from app.db.models.heart import HeartLedger
 from app.db.models.location import Location, LocationType
 from app.db.models.offer import Offer, OfferStatus
 from app.db.models.request import LocationScope, Request, RequestStatus
+from app.db.models.notification import Notification
 from app.db.models.user import User
 from app.services import exchange_service
 
@@ -34,7 +35,7 @@ async def db():
     tables = [
         User.__table__, Category.__table__, Location.__table__,
         Request.__table__, Offer.__table__, Exchange.__table__,
-        HeartLedger.__table__,
+        HeartLedger.__table__, Notification.__table__,
     ]
     async with engine.begin() as conn:
         await conn.run_sync(lambda sync_conn: Base.metadata.create_all(sync_conn, tables=tables))

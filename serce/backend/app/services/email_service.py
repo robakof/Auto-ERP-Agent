@@ -13,6 +13,7 @@ class EmailService(Protocol):
     async def send_verification(self, to: str, token: str) -> None: ...
     async def send_password_reset(self, to: str, token: str) -> None: ...
     async def send_email_changed_notification(self, to: str, new_email: str) -> None: ...
+    async def send_notification(self, to: str, notification_type: str, reason: str | None) -> None: ...
 
 
 @dataclass
@@ -29,6 +30,9 @@ class MockEmailService:
 
     async def send_email_changed_notification(self, to: str, new_email: str) -> None:
         self.sent.append({"type": "email_changed", "to": to, "new_email": new_email})
+
+    async def send_notification(self, to: str, notification_type: str, reason: str | None) -> None:
+        self.sent.append({"type": "notification", "to": to, "notification_type": notification_type, "reason": reason})
 
 
 class ResendEmailService:
@@ -63,6 +67,24 @@ class ResendEmailService:
                 "Jeśli to nie Ty — skontaktuj się z nami."
             ),
         )
+
+    _NOTIFICATION_SUBJECTS: dict[str, str] = {
+        "NEW_EXCHANGE": "Nowa propozycja wymiany — Serce",
+        "EXCHANGE_ACCEPTED": "Wymiana zaakceptowana — Serce",
+        "EXCHANGE_COMPLETED": "Wymiana zakonczona — Serce",
+        "EXCHANGE_CANCELLED": "Wymiana anulowana — Serce",
+        "NEW_MESSAGE": "Nowa wiadomosc w wymianie — Serce",
+        "NEW_REVIEW": "Otrzymales/as opinie — Serce",
+        "HEARTS_RECEIVED": "Otrzymales/as serca — Serce",
+        "REQUEST_EXPIRED": "Twoja prosba wygasla — Serce",
+    }
+
+    async def send_notification(self, to: str, notification_type: str, reason: str | None) -> None:
+        subject = self._NOTIFICATION_SUBJECTS.get(notification_type, "Powiadomienie — Serce")
+        body = f"Typ: {notification_type}"
+        if reason:
+            body += f"\n\n{reason}"
+        await self._send(to=to, subject=subject, body=body)
 
     async def _send(self, *, to: str, subject: str, body: str) -> None:
         async with httpx.AsyncClient() as client:

@@ -9,7 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.exchange import Exchange, ExchangeStatus
 from app.db.models.message import Message
+from app.db.models.notification import NotificationType
 from app.db.models.user import UserRole
+from app.services import notification_service
 
 
 async def send_message(
@@ -35,6 +37,18 @@ async def send_message(
     )
     db.add(msg)
     await db.flush()
+
+    # Notify other participant
+    other_id = (
+        exchange.helper_id
+        if current_user_id == exchange.requester_id
+        else exchange.requester_id
+    )
+    await notification_service.create_notification(
+        db, other_id, NotificationType.NEW_MESSAGE,
+        related_exchange_id=exchange_id,
+        related_message_id=msg.id,
+    )
     return msg
 
 

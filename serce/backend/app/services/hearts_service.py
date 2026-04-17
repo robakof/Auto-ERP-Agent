@@ -9,7 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db.models.heart import HeartLedger, HeartLedgerType
+from app.db.models.notification import NotificationType
 from app.db.models.user import User, UserStatus
+from app.services import notification_service
 
 
 async def gift_hearts(
@@ -66,6 +68,11 @@ async def gift_hearts(
     )
     db.add(ledger)
     await db.flush()
+
+    await notification_service.create_notification(
+        db, to_user_id, NotificationType.HEARTS_RECEIVED,
+        reason=note,
+    )
     return ledger
 
 

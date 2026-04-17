@@ -8,8 +8,10 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.exchange import Exchange, ExchangeStatus
+from app.db.models.notification import NotificationType
 from app.db.models.review import Review
 from app.db.models.user import User
+from app.services import notification_service
 
 
 async def create_review(
@@ -54,6 +56,11 @@ async def create_review(
     )
     db.add(review)
     await db.flush()
+
+    await notification_service.create_notification(
+        db, reviewed_id, NotificationType.NEW_REVIEW,
+        related_exchange_id=exchange_id,
+    )
     return review
 
 

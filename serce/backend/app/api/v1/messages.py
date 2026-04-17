@@ -3,13 +3,15 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request as FastAPIRequest
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request as FastAPIRequest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user
 from app.core.rate_limit import limiter
+from app.db.models.exchange import Exchange
 from app.db.models.user import User
 from app.db.session import get_db
+from app.services.email_service import get_email_service
 from app.schemas.message import MessageListResponse, MessageRead, SendMessageBody
 from app.services import message_service
 
@@ -22,6 +24,7 @@ async def send_message(
     request: FastAPIRequest,
     exchange_id: UUID,
     body: SendMessageBody,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -29,6 +32,20 @@ async def send_message(
         db, exchange_id, current_user.id, content=body.content,
     )
     await db.commit()
+
+    exchange = await db.get(Exchange, exchange_id)
+    if exchange:
+        other_id = (
+            exchange.helper_id
+            if current_user.id == exchange.requester_id
+            else exchange.requester_id
+        )
+        other = await db.get(User, other_id)
+        if other and other.email:
+            background_tasks.add_task(
+                get_email_service().send_notification,
+                to=other.email, notification_type="NEW_MESSAGE", reason=None,
+            )
     return result
 
 
