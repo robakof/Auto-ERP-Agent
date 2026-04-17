@@ -34,6 +34,20 @@ class Settings(BaseSettings):
     # hCaptcha
     hcaptcha_secret: str = ""
 
+    # Email (Resend.com) — empty api_key = mock mode
+    resend_api_key: str = ""
+    email_from: str = "noreply@serce.app"
+    email_verification_url: str = "http://localhost:3000/verify-email"
+    password_reset_url: str = "http://localhost:3000/reset-password"
+    email_verification_expire_hours: int = 24
+    password_reset_expire_minutes: int = 60
+
+    # SMS (SMSAPI.pl) — empty token = mock mode
+    smsapi_token: str = ""
+    smsapi_sender: str = "Serce"
+    phone_otp_expire_minutes: int = 10
+    phone_otp_max_attempts: int = 5
+
     @model_validator(mode="after")
     def _check_secret_key_in_prod(self) -> "Settings":
         if self.env not in ("development", "test") and self.secret_key == _INSECURE_DEFAULT_KEY:

@@ -13,15 +13,24 @@ from app.db.models.user import User
 from app.db.session import get_db
 from app.schemas.auth import (
     AcceptTermsRequest,
+    ForgotPasswordRequest,
     LoginRequest,
     MessageResponse,
     RefreshRequest,
     RegisterRequest,
+    ResendVerificationRequest,
+    ResetPasswordRequest,
+    SendPhoneOtpRequest,
     TokenResponse,
+    VerifyEmailRequest,
+    VerifyPhoneRequest,
 )
 from app.schemas.session import SessionRead
 from app.schemas.user import UserRead
 from app.services import auth_service
+from app.services.email_service import EmailService, get_email_service
+from app.services.sms_service import SmsService, get_sms_service
+from app.services import verification_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -46,6 +55,11 @@ async def register(
     user, access, refresh = await auth_service.register_user(
         db, req, ip_address=_client_ip(request),
     )
+    # Auto-send verification email
+    email_svc = get_email_service()
+    raw_token = await verification_service.create_email_verification(db, user.id, user.email)
+    await db.commit()
+    await email_svc.send_verification(user.email, raw_token)
     return TokenResponse(access_token=access, refresh_token=refresh)
 
 
@@ -132,3 +146,84 @@ async def accept_terms(
 @router.get("/me", response_model=UserRead)
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+# ---- Verification endpoints (M4) --------------------------------------------
+
+@router.post("/verify-email", response_model=MessageResponse)
+async def verify_email(req: VerifyEmailRequest, db: AsyncSession = Depends(get_db)):
+    await verification_service.verify_email(db, req.token)
+    return MessageResponse(detail="Email zweryfikowany.")
+
+
+@router.post("/resend-verification-email", response_model=MessageResponse)
+@limiter.limit("3/hour")
+async def resend_verification_email(
+    request: Request,
+    req: ResendVerificationRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await verification_service.resend_email_verification(db, req.email)
+    if result:
+        raw_token, _ = result
+        email_svc = get_email_service()
+        await email_svc.send_verification(req.email, raw_token)
+    # Always 200 — don't reveal if email exists
+    return MessageResponse(detail="Jesli email istnieje, wyslano link weryfikacyjny.")
+
+
+@router.post("/send-phone-otp", response_model=MessageResponse)
+@limiter.limit("5/hour")
+async def send_phone_otp(
+    request: Request,
+    req: SendPhoneOtpRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    code = await verification_service.create_phone_otp(db, current_user.id, req.phone_number)
+    await db.commit()
+    sms_svc = get_sms_service()
+    await sms_svc.send_otp(req.phone_number, code)
+    return MessageResponse(detail="Kod SMS wyslany.")
+
+
+@router.post("/verify-phone", response_model=MessageResponse)
+@limiter.limit("10/hour")
+async def verify_phone_endpoint(
+    request: Request,
+    req: VerifyPhoneRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    granted = await verification_service.verify_phone(
+        db, current_user.id, req.phone_number, req.code,
+    )
+    msg = "Telefon zweryfikowany."
+    if granted:
+        msg += f" Otrzymales {settings.initial_heart_grant} serc na start!"
+    return MessageResponse(detail=msg)
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+@limiter.limit("3/hour")
+async def forgot_password(
+    request: Request,
+    req: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await verification_service.create_password_reset(db, req.email)
+    if result:
+        raw_token, _ = result
+        await db.commit()
+        email_svc = get_email_service()
+        await email_svc.send_password_reset(req.email, raw_token)
+    # Always 200 — don't reveal if email exists
+    return MessageResponse(detail="Jesli email istnieje, wyslano link do resetu hasla.")
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+async def reset_password_endpoint(
+    req: ResetPasswordRequest, db: AsyncSession = Depends(get_db),
+):
+    await verification_service.reset_password(db, req.token, req.new_password)
+    return MessageResponse(detail="Haslo zmienione. Zaloguj sie ponownie.")

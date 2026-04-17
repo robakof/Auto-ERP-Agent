@@ -106,3 +106,40 @@ async def test_accept_terms_invalid_type_no_token(client):
         "document_type": "invalid",
     })
     assert resp.status_code == 401
+
+
+# ---- M4: verification endpoint validation ------------------------------------
+
+async def test_verify_email_no_body(client):
+    resp = await client.post("/api/v1/auth/verify-email", json={})
+    assert resp.status_code == 422
+
+
+async def test_verify_phone_no_token(client):
+    """verify-phone requires auth — 401 without token."""
+    resp = await client.post("/api/v1/auth/verify-phone", json={
+        "phone_number": "+48123456789",
+        "code": "123456",
+    })
+    assert resp.status_code == 401
+
+
+async def test_forgot_password_no_body(client):
+    resp = await client.post("/api/v1/auth/forgot-password", json={})
+    assert resp.status_code == 422
+
+
+async def test_reset_password_short_password(client):
+    resp = await client.post("/api/v1/auth/reset-password", json={
+        "token": "sometoken",
+        "new_password": "short",
+    })
+    assert resp.status_code == 422
+
+
+async def test_send_phone_otp_no_token(client):
+    """send-phone-otp requires auth — 401 without token."""
+    resp = await client.post("/api/v1/auth/send-phone-otp", json={
+        "phone_number": "+48123456789",
+    })
+    assert resp.status_code == 401

@@ -32,5 +32,31 @@ class AcceptTermsRequest(BaseModel):
     document_type: str = Field(pattern=r"^(tos|privacy_policy)$")
 
 
+class VerifyEmailRequest(BaseModel):
+    token: str
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
+class SendPhoneOtpRequest(BaseModel):
+    phone_number: str = Field(pattern=r"^\+48\d{9}$")
+
+
+class VerifyPhoneRequest(BaseModel):
+    phone_number: str = Field(pattern=r"^\+48\d{9}$")
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class MessageResponse(BaseModel):
     detail: str
