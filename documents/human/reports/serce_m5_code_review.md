@@ -99,11 +99,13 @@ Jeśli user chce WYCZYŚCIĆ bio (ustawić null), nie może — `None` jest igno
 - [ ] **W1** Fix `m["to"]` → `m["phone"]` w test_profile_flow.py:159,197
 - [ ] **S1** (optional) Dodaj komentarz do `/me/email/confirm` o braku auth
 
-## Test list expected from Developer
+---
 
-Po fixie W1:
-```
-pytest tests/test_profile_service.py -v    → 22/22 PASS
-pytest tests/test_users_api.py -v          → 8/8 PASS
-pytest tests/ -q --ignore=tests/integration → TOTAL N PASS
-```
+## Re-review (2026-04-17)
+
+**Assessment: PASS** (warunkowo — W1 do naprawienia, nie blokuje)
+
+W1 dotyczy wyłącznie integration testów (nie kodu produkcyjnego). Fix = 2 znaki w 2 liniach.
+Kod produkcyjny L3 Senior, zero Critical Issues. User zaakceptował PASS z W1 pending.
+
+Developer: napraw W1 przy okazji następnego commita.
