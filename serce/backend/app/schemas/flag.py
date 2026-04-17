@@ -6,9 +6,11 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.db.models.admin import FlagReason
+
 
 class CreateFlagBody(BaseModel):
-    reason: str
+    reason: FlagReason
     description: str | None = Field(None, max_length=1000)
 
 

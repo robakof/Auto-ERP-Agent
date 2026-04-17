@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user
 from app.core.rate_limit import limiter
-from app.db.models.admin import FlagReason, FlagTargetType
+from app.db.models.admin import FlagTargetType
 from app.db.models.user import User
 from app.db.session import get_db
 from app.schemas.flag import CreateFlagBody, FlagRead
@@ -28,7 +28,7 @@ async def flag_request(
 ):
     result = await flag_service.create_flag(
         db, current_user.id, FlagTargetType.REQUEST, target_id,
-        reason=FlagReason(body.reason), description=body.description,
+        reason=body.reason, description=body.description,
     )
     await db.commit()
     return result
@@ -45,7 +45,7 @@ async def flag_offer(
 ):
     result = await flag_service.create_flag(
         db, current_user.id, FlagTargetType.OFFER, target_id,
-        reason=FlagReason(body.reason), description=body.description,
+        reason=body.reason, description=body.description,
     )
     await db.commit()
     return result
@@ -62,7 +62,7 @@ async def flag_exchange(
 ):
     result = await flag_service.create_flag(
         db, current_user.id, FlagTargetType.EXCHANGE, target_id,
-        reason=FlagReason(body.reason), description=body.description,
+        reason=body.reason, description=body.description,
     )
     await db.commit()
     return result
@@ -79,7 +79,7 @@ async def flag_user(
 ):
     result = await flag_service.create_flag(
         db, current_user.id, FlagTargetType.USER, target_id,
-        reason=FlagReason(body.reason), description=body.description,
+        reason=body.reason, description=body.description,
     )
     await db.commit()
     return result
