@@ -1,12 +1,46 @@
 -- KSeF FA(3) KOR — SELECT źródłowy dla korekt faktur sprzedaży
 -- Granulacja: 2 wiersze = 1 pozycja korekty (StanPrzed + StanPo)
 -- Filtr: TrN_GIDTyp = 2041 (FSK — Korekta Faktury Sprzedaży)
--- Join do oryginału nagłówka: TrN_ZwrNumer/TrN_ZwrTyp → CDN.TraNag (FS)
+-- Join do oryginału: rekurencyjne CTE przechodzi łańcuch ZwrNumer/ZwrTyp
+--   aż do FS (2033) — obsługuje korekty korekt i typ pośredni 2009
 -- Parowanie pozycji (StanPrzed): hybryda
 --   1. Jeśli CDN.TraElem.TrE_*PrzedKorekta wypełnione → użyj bezpośrednio
 --   2. W przeciwnym razie → JOIN do agregacji pozycji oryginału po TwrNumer
 --      (agregacja SUM/MAX bo oryginał może mieć duplikaty towaru)
 -- StanPo = StanPrzed + delta (bieżące wartości z pozycji korekty)
+
+WITH orig_chain AS (
+    -- Anchor: bezpośredni parent korekty
+    SELECT
+        n.TrN_GIDNumer AS fsk_gid,
+        n.TrN_ZwrNumer AS cur_gid,
+        n.TrN_ZwrTyp   AS cur_typ,
+        1               AS depth
+    FROM CDN.TraNag n
+    WHERE n.TrN_GIDTyp = 2041
+      AND n.TrN_ZwrNumer > 0
+
+    UNION ALL
+
+    -- Recursive: idź dalej jeśli cur_typ != 2033 (FS)
+    SELECT
+        oc.fsk_gid,
+        p.TrN_ZwrNumer,
+        p.TrN_ZwrTyp,
+        oc.depth + 1
+    FROM orig_chain oc
+    JOIN CDN.TraNag p
+        ON  p.TrN_GIDNumer = oc.cur_gid
+        AND p.TrN_GIDTyp   = oc.cur_typ
+    WHERE oc.cur_typ != 2033
+      AND p.TrN_ZwrNumer > 0
+      AND oc.depth < 5   -- safety limit
+),
+orig_resolved AS (
+    SELECT fsk_gid, cur_gid AS orig_gid
+    FROM orig_chain
+    WHERE cur_typ = 2033
+)
 
 SELECT
 
@@ -197,12 +231,12 @@ LEFT JOIN CDN.TrNOpisy op
     AND op.TnO_TrnNumer = n.TrN_GIDNumer
     AND op.TnO_TrnLp    = 0
 
--- Oryginalna faktura (FS) — powiązanie przez ZwrNumer/ZwrTyp
+-- Oryginalna faktura (FS) — rekurencyjne CTE przechodzi łańcuch korekt → FS (2033)
+JOIN orig_resolved orr
+    ON  orr.fsk_gid = n.TrN_GIDNumer
 JOIN CDN.TraNag orig
-    ON  orig.TrN_GIDNumer = n.TrN_ZwrNumer
-    AND orig.TrN_GIDTyp   = n.TrN_ZwrTyp
-    AND n.TrN_ZwrNumer    > 0
-    AND orig.TrN_GIDTyp   = 2033       -- oryginał musi być FS (wyklucza self-reference i korekty bez linku)
+    ON  orig.TrN_GIDNumer = orr.orig_gid
+    AND orig.TrN_GIDTyp   = 2033
 
 -- Sprzedawca
 CROSS JOIN (SELECT TOP 1
