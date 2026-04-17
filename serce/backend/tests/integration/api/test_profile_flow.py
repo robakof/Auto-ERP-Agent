@@ -156,7 +156,7 @@ async def test_phone_change_flow_e2e(integration_client):
     assert resp.status_code == 200
 
     # Get OTP from mock
-    sent = [m for m in sms_svc.sent if m["to"] == "+48111222333"]
+    sent = [m for m in sms_svc.sent if m["phone"] == "+48111222333"]
     assert len(sent) >= 1
     code = sent[-1]["code"]
 
@@ -194,7 +194,7 @@ async def test_phone_change_no_initial_grant(integration_client):
     )
     assert resp.status_code == 200
 
-    sent = [m for m in sms_svc.sent if m["to"] == "+48999888777"]
+    sent = [m for m in sms_svc.sent if m["phone"] == "+48999888777"]
     code = sent[-1]["code"]
 
     await integration_client.post(
