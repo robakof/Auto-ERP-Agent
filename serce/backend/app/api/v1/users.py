@@ -1,13 +1,14 @@
 """User profile endpoints — profile, username, email/phone/password change."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user
 from app.core.rate_limit import limiter
 from app.db.models.user import User
 from app.db.session import get_db
+from app.schemas.account import SoftDeleteBody
 from app.schemas.auth import MessageResponse
 from app.schemas.profile import (
     ChangeEmailRequest,
@@ -19,7 +20,7 @@ from app.schemas.profile import (
     VerifyPhoneChangeRequest,
 )
 from app.schemas.user import UserRead
-from app.services import profile_service
+from app.services import account_service, profile_service
 from app.services.email_service import get_email_service
 from app.services.sms_service import get_sms_service
 
@@ -144,3 +145,33 @@ async def change_password(
     )
     await db.commit()
     return MessageResponse(detail="Haslo zmienione. Pozostale sesje uniewaznione.")
+
+
+# ---- Account deletion --------------------------------------------------------
+
+@router.delete("/me", response_model=MessageResponse)
+async def delete_account(
+    body: SoftDeleteBody,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    affected = await account_service.soft_delete_account(
+        db, current_user.id,
+        password=body.password,
+        balance_disposition=body.balance_disposition,
+        transfer_to_user_id=body.transfer_to_user_id,
+    )
+    await db.commit()
+
+    email_svc = get_email_service()
+    for party in affected:
+        user = await db.get(User, party.user_id)
+        if user and user.email:
+            background_tasks.add_task(
+                email_svc.send_notification,
+                to=user.email, notification_type="EXCHANGE_CANCELLED",
+                reason="account_deleted",
+            )
+
+    return MessageResponse(detail="Konto usuniete.")

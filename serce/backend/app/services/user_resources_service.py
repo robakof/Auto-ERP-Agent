@@ -131,9 +131,9 @@ async def public_profile(
     db: AsyncSession,
     user_id: UUID,
 ) -> dict:
-    """Public profile — limited view, active users only."""
+    """Public profile — limited view, active users only. Deleted → placeholder."""
     user = await db.get(User, user_id)
-    if not user or user.status != UserStatus.ACTIVE:
+    if not user:
         raise HTTPException(status_code=404, detail="USER_NOT_FOUND")
 
     participant_filter = (Exchange.requester_id == user_id) | (Exchange.helper_id == user_id)
@@ -150,6 +150,24 @@ async def public_profile(
         )
     )).scalar() or 0
 
+    # Deleted user → placeholder (ADR D5)
+    if user.status == UserStatus.DELETED:
+        return {
+            "id": user.id,
+            "username": None,
+            "bio": None,
+            "location_id": None,
+            "heart_balance": 0,
+            "created_at": user.created_at,
+            "reviews_received": reviews_received,
+            "completed_exchanges": completed_exchanges,
+            "is_deleted": True,
+        }
+
+    # Suspended → 404 (hide from public)
+    if user.status != UserStatus.ACTIVE:
+        raise HTTPException(status_code=404, detail="USER_NOT_FOUND")
+
     return {
         "id": user.id,
         "username": user.username,
@@ -159,4 +177,5 @@ async def public_profile(
         "created_at": user.created_at,
         "reviews_received": reviews_received,
         "completed_exchanges": completed_exchanges,
+        "is_deleted": False,
     }
