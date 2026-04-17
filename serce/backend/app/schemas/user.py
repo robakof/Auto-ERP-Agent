@@ -15,6 +15,9 @@ class UserRead(BaseModel):
     username: str
     email_verified: bool
     phone_verified: bool
+    phone_number: str | None = None
+    bio: str | None = None
+    location_id: int | None = None
     heart_balance: int
     status: str
     role: str

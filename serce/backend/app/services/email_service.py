@@ -12,6 +12,7 @@ from app.config import settings
 class EmailService(Protocol):
     async def send_verification(self, to: str, token: str) -> None: ...
     async def send_password_reset(self, to: str, token: str) -> None: ...
+    async def send_email_changed_notification(self, to: str, new_email: str) -> None: ...
 
 
 @dataclass
@@ -25,6 +26,9 @@ class MockEmailService:
 
     async def send_password_reset(self, to: str, token: str) -> None:
         self.sent.append({"type": "reset", "to": to, "token": token})
+
+    async def send_email_changed_notification(self, to: str, new_email: str) -> None:
+        self.sent.append({"type": "email_changed", "to": to, "new_email": new_email})
 
 
 class ResendEmailService:
@@ -48,6 +52,16 @@ class ResendEmailService:
             to=to,
             subject="Reset hasła — Serce",
             body=f"Kliknij aby zresetować hasło:\n\n{url}\n\nLink ważny 1h.",
+        )
+
+    async def send_email_changed_notification(self, to: str, new_email: str) -> None:
+        await self._send(
+            to=to,
+            subject="Zmiana adresu email — Serce",
+            body=(
+                f"Twój adres email w Serce został zmieniony na {new_email}. "
+                "Jeśli to nie Ty — skontaktuj się z nami."
+            ),
         )
 
     async def _send(self, *, to: str, subject: str, body: str) -> None:
