@@ -100,6 +100,7 @@ Logika profilu w osobnym service (SRP — auth_service = login/tokens, verificat
 | `confirm_email_change(db, raw_token)` | Find valid EmailChangeToken. Check new_email still available. Update User.email + email_verified=False. Mark token used. flush(). Return (old_email, new_email). |
 | `initiate_phone_change(db, user_id, password, new_phone)` | Verify current password. Check new_phone not taken. Create PhoneVerificationOTP for new_phone. flush(). Return code. |
 | `confirm_phone_change(db, user_id, new_phone, code)` | Reuse verification_service._find_valid_otp. Update User.phone_number + phone_verified=True. Mark OTP used. **NO INITIAL_GRANT.** flush(). |
+| `change_password(db, user_id, old_password, new_password)` | Verify old password. Update password_hash. flush(). |
 
 **Kluczowe decyzje:**
 - `email_verified=False` po zmianie email — user musi ponownie zweryfikować nowy email
@@ -141,6 +142,9 @@ router = APIRouter(prefix="/users", tags=["users"])
 # Phone change
 @router.post("/me/phone/change", response_model=MessageResponse)   # password + new_phone → OTP
 @router.post("/me/phone/verify", response_model=MessageResponse)    # phone + code → zmieniony
+
+# Password change
+@router.post("/me/password", response_model=MessageResponse)        # old + new password
 ```
 
 **Migration note:** `GET /auth/me` z auth.py zostaje (backward compat) — obie ścieżki zwracają to samo. W przyszłości `/auth/me` do deprecacji.
@@ -242,8 +246,8 @@ Minimum: **≥6 integration**
 - Profile service: ≥19
 - Users API: ≥8
 - Integration: ≥6
-- **Total nowych: ≥33**
-- **Suite total: ≥115** (82 z M1-M4 + 33 nowych)
+- **Total nowych: ≥36**
+- **Suite total: ≥118** (82 z M1-M4 + 36 nowych)
 
 ---
 
@@ -252,7 +256,7 @@ Minimum: **≥6 integration**
 - **Avatar upload** — osobny scope (storage, CDN)
 - **Public user profile** (`GET /users/{id}`) — M12 (User resources API)
 - **Username change cooldown** — można dodać później jeśli potrzebne
-- **Password change** (bez resetu) — `POST /users/me/password` — rozważyć w M5 lub odłożyć
+- ~~**Password change**~~ — włączony do M5 (decyzja 2026-04-17)
 
 ---
 
@@ -267,11 +271,34 @@ Minimum: **≥6 integration**
 
 ---
 
-## Otwarte pytanie
+## Decyzja: Password change włączony
 
-**Password change (bez resetu):** `POST /users/me/password` (old_password + new_password) — logicznie pasuje do M5. Mały scope (+1 service function, +1 endpoint, +3 testy). Rekomendacja: **włączyć do M5** — user powinien móc zmienić hasło bez procesu reset-by-email.
+**`POST /users/me/password`** (old_password + new_password) — włączony do M5 (decyzja 2026-04-17).
 
-Czekam na decyzję.
+**Schema:**
+```python
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str = Field(min_length=8, max_length=128)
+```
+
+**Logika w profile_service:**
+```python
+async def change_password(db, user_id, old_password, new_password):
+    """Change password. Verify old password first."""
+    user = await db.get(User, user_id)
+    if not verify_password(old_password, user.password_hash):
+        raise HTTPException(400, "INVALID_PASSWORD")
+    user.password_hash = hash_password(new_password)
+    await db.flush()
+```
+
+**Dodatkowe testy (+3):**
+- `test_change_password_valid()`
+- `test_change_password_wrong_old()`
+- `test_change_password_e2e()` (integration)
+
+**Minimum testów zaktualizowany:** ≥36 nowych (22 unit + 8 API + 6 integration).
 
 ---
 
