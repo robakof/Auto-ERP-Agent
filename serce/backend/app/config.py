@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     initial_heart_grant: int = 5
     heart_balance_cap: int = 50
     request_default_expiry_days: int = 30
+    request_expiry_check_interval_minutes: int = 60
 
     # Environment
     env: str = "development"
