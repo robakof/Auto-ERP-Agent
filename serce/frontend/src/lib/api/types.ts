@@ -1,4 +1,4 @@
-/* API response types — mirror of backend Pydantic schemas. */
+/* API types — mirror of backend Pydantic schemas (response + request). */
 
 // ---- Primitives -------------------------------------------------------------
 
@@ -15,6 +15,24 @@ export interface PaginatedResponse<T> {
 export interface TokenResponse {
   access_token: string;
   token_type: string;
+  refresh_token: string;
+}
+
+export interface RegisterRequest {
+  email: string;
+  username: string;
+  password: string;
+  tos_accepted: boolean;
+  privacy_policy_accepted: boolean;
+  captcha_token?: string | null;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface RefreshRequest {
   refresh_token: string;
 }
 
@@ -42,6 +60,16 @@ export interface UserRead {
   created_at: string;
 }
 
+// ---- Session ----------------------------------------------------------------
+
+export interface SessionRead {
+  id: string;
+  device_info: string | null;
+  ip_address: string | null;
+  created_at: string;
+  expires_at: string;
+}
+
 // ---- Category & Location ----------------------------------------------------
 
 export interface CategoryRead {
@@ -67,6 +95,23 @@ export interface LocationRead {
 export type RequestStatus = "OPEN" | "IN_PROGRESS" | "DONE" | "CANCELLED" | "HIDDEN";
 export type LocationScope = "CITY" | "VOIVODESHIP" | "NATIONAL";
 
+export interface CreateRequestBody {
+  title: string;
+  description: string;
+  hearts_offered: number;
+  category_id: number;
+  location_id: number;
+  location_scope: LocationScope;
+  expires_at?: string | null;
+}
+
+export interface UpdateRequestBody {
+  title?: string;
+  description?: string;
+  hearts_offered?: number;
+  expires_at?: string | null;
+}
+
 export interface RequestRead {
   id: string;
   user_id: string;
@@ -82,9 +127,31 @@ export interface RequestRead {
   updated_at: string;
 }
 
+export type RequestListResponse = PaginatedResponse<RequestRead>;
+export interface CancelResponse { id: string; status: string; }
+
 // ---- Offer ------------------------------------------------------------------
 
 export type OfferStatus = "ACTIVE" | "PAUSED" | "INACTIVE" | "HIDDEN";
+
+export interface CreateOfferBody {
+  title: string;
+  description: string;
+  hearts_asked: number;
+  category_id: number;
+  location_id: number;
+  location_scope: LocationScope;
+}
+
+export interface UpdateOfferBody {
+  title?: string;
+  description?: string;
+  hearts_asked?: number;
+}
+
+export interface ChangeOfferStatusBody {
+  status: OfferStatus;
+}
 
 export interface OfferRead {
   id: string;
@@ -100,9 +167,17 @@ export interface OfferRead {
   updated_at: string;
 }
 
+export type OfferListResponse = PaginatedResponse<OfferRead>;
+
 // ---- Exchange ---------------------------------------------------------------
 
 export type ExchangeStatus = "PENDING" | "ACCEPTED" | "COMPLETED" | "CANCELLED";
+
+export interface CreateExchangeBody {
+  request_id?: string | null;
+  offer_id?: string | null;
+  hearts_agreed: number;
+}
 
 export interface ExchangeRead {
   id: string;
@@ -117,7 +192,13 @@ export interface ExchangeRead {
   completed_at: string | null;
 }
 
+export type ExchangeListResponse = PaginatedResponse<ExchangeRead>;
+
 // ---- Message ----------------------------------------------------------------
+
+export interface SendMessageBody {
+  content: string;
+}
 
 export interface MessageRead {
   id: string;
@@ -128,7 +209,13 @@ export interface MessageRead {
   created_at: string;
 }
 
+export type MessageListResponse = PaginatedResponse<MessageRead>;
+
 // ---- Review -----------------------------------------------------------------
+
+export interface CreateReviewBody {
+  comment: string;
+}
 
 export interface ReviewRead {
   id: string;
@@ -138,6 +225,8 @@ export interface ReviewRead {
   comment: string;
   created_at: string;
 }
+
+export type ReviewListResponse = PaginatedResponse<ReviewRead>;
 
 // ---- Notification -----------------------------------------------------------
 
@@ -162,11 +251,17 @@ export interface NotificationRead {
   created_at: string;
 }
 
-export interface UnreadCountResponse {
-  count: number;
-}
+export type NotificationListResponse = PaginatedResponse<NotificationRead>;
+export interface UnreadCountResponse { count: number; }
+export interface MarkAllReadResponse { updated: number; }
 
 // ---- Hearts -----------------------------------------------------------------
+
+export interface GiftRequest {
+  to_user_id: string;
+  amount: number;
+  note?: string | null;
+}
 
 export interface BalanceResponse {
   heart_balance: number;
@@ -179,7 +274,10 @@ export type LedgerType =
   | "INITIAL_GRANT"
   | "ADMIN_GRANT"
   | "ADMIN_REFUND"
-  | "ACCOUNT_DELETED";
+  | "ACCOUNT_DELETED"
+  | "EXCHANGE_ESCROW"
+  | "EXCHANGE_COMPLETE"
+  | "EXCHANGE_REFUND";
 
 export interface LedgerEntryRead {
   id: string;
@@ -191,10 +289,17 @@ export interface LedgerEntryRead {
   created_at: string;
 }
 
+export type LedgerResponse = PaginatedResponse<LedgerEntryRead>;
+
 // ---- Flag -------------------------------------------------------------------
 
 export type FlagReason = "spam" | "scam" | "abuse" | "inappropriate" | "other";
 export type FlagStatus = "open" | "resolved" | "dismissed";
+
+export interface CreateFlagBody {
+  reason: FlagReason;
+  description?: string | null;
+}
 
 export interface FlagRead {
   id: string;
@@ -205,6 +310,77 @@ export interface FlagRead {
   description: string | null;
   status: FlagStatus;
   created_at: string;
+}
+
+// ---- Admin ------------------------------------------------------------------
+
+export type ResolutionAction =
+  | "dismiss"
+  | "warn_user"
+  | "hide_content"
+  | "suspend_user"
+  | "ban_user"
+  | "grant_hearts_refund";
+
+export interface FlagDetailRead extends FlagRead {
+  resolved_by: string | null;
+  resolved_at: string | null;
+  resolution_action: string | null;
+  resolution_reason: string | null;
+}
+
+export type FlagListResponse = PaginatedResponse<FlagDetailRead>;
+
+export interface ResolveFlagBody {
+  action: ResolutionAction;
+  reason: string;
+  params?: Record<string, unknown> | null;
+}
+
+export interface SuspendUserBody {
+  reason: string;
+  duration_days?: number | null;
+}
+
+export interface UserAdminRead {
+  id: string;
+  email: string;
+  username: string;
+  status: string;
+  role: string;
+  suspended_at: string | null;
+  suspended_until: string | null;
+  suspension_reason: string | null;
+  heart_balance: number;
+  created_at: string;
+}
+
+export interface GrantHeartsBody {
+  user_id: string;
+  amount: number;
+  type: "ADMIN_GRANT" | "ADMIN_REFUND";
+  reason: string;
+}
+
+export interface AuditLogRead {
+  id: string;
+  admin_id: string;
+  action: string;
+  target_type: string;
+  target_id: string | null;
+  payload: Record<string, unknown>;
+  reason: string | null;
+  created_at: string;
+}
+
+export type AuditListResponse = PaginatedResponse<AuditLogRead>;
+
+// ---- Account ----------------------------------------------------------------
+
+export interface SoftDeleteBody {
+  password: string;
+  balance_disposition: "void" | "transfer";
+  transfer_to_user_id?: string | null;
 }
 
 // ---- User Resources ---------------------------------------------------------
@@ -230,12 +406,37 @@ export interface PublicProfileRead {
   is_deleted: boolean;
 }
 
-// ---- Session ----------------------------------------------------------------
+// ---- Profile ----------------------------------------------------------------
 
-export interface SessionRead {
-  id: string;
-  device_info: string | null;
-  ip_address: string | null;
-  created_at: string;
-  expires_at: string;
+export interface UpdateProfileRequest {
+  bio?: string | null;
+  location_id?: number | null;
 }
+
+export interface ChangeUsernameRequest {
+  new_username: string;
+}
+
+export interface ChangeEmailRequest {
+  password: string;
+  new_email: string;
+}
+
+export interface ChangePasswordRequest {
+  old_password: string;
+  new_password: string;
+}
+
+export interface ChangePhoneRequest {
+  password: string;
+  new_phone_number: string;
+}
+
+// ---- Verification -----------------------------------------------------------
+
+export interface VerifyEmailRequest { token: string; }
+export interface ResendVerificationRequest { email: string; }
+export interface SendPhoneOtpRequest { phone_number: string; }
+export interface VerifyPhoneRequest { phone_number: string; code: string; }
+export interface ForgotPasswordRequest { email: string; }
+export interface ResetPasswordRequest { token: string; new_password: string; }
