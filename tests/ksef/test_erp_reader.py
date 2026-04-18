@@ -41,7 +41,7 @@ _FS_COLUMNS = [
     "Wiersz_P9A_CenaNettoJedn", "Wiersz_P10_WartoscNetto", "Wiersz_P11_StawkaVAT",
     "Wiersz_P12_KwotaVAT",
     "Plat_TerminPlatnosci", "Plat_KodFormyPlatnosci", "Plat_NrRachunkuBankowego",
-    "_TrN_Brutto",
+    "_OdBrutto",
 ]
 
 

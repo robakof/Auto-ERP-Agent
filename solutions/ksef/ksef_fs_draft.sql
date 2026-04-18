@@ -126,7 +126,7 @@ SELECT
     n.TrN_GIDTyp                                                AS _GIDTyp,
     n.TrN_GIDNumer                                              AS _GIDNumer,
     n.TrN_GIDFirma                                              AS _GIDFirma,
-    n.TrN_Brutto                                                AS _TrN_Brutto
+    CASE WHEN n.TrN_CenaSpr = 3 THEN 1 ELSE 0 END              AS _OdBrutto
 
 FROM CDN.TraNag n
 

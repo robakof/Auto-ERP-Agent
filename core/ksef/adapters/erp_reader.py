@@ -158,7 +158,7 @@ class ErpReader:
         )
 
     def _row_to_pozycja(self, row: dict) -> Pozycja:
-        od_brutto = int(row.get("_TrN_Brutto") or 0) == 1
+        od_brutto = int(row.get("_OdBrutto") or 0) == 1
         return Pozycja(
             nr_pozycji=int(row["Wiersz_NrPozycji"]),
             nazwa_towaru=_as_str(row["Wiersz_P7_NazwaTowaru"]) or "",
