@@ -39,7 +39,9 @@ _FS_COLUMNS = [
     "Wiersz_NrPozycji", "Wiersz_P7_NazwaTowaru", "Wiersz_GTIN",
     "Wiersz_P8A_JM", "Wiersz_P8B_Ilosc",
     "Wiersz_P9A_CenaNettoJedn", "Wiersz_P10_WartoscNetto", "Wiersz_P11_StawkaVAT",
+    "Wiersz_P12_KwotaVAT",
     "Plat_TerminPlatnosci", "Plat_KodFormyPlatnosci", "Plat_NrRachunkuBankowego",
+    "_TrN_Brutto",
 ]
 
 
@@ -57,7 +59,9 @@ def _fs_row(gid: int, nr_poz: int, *, p2_adres_l2: str | None = "41-100 Miasto",
         nr_poz, "Towar A", gtin,
         "szt.", Decimal("1"),
         Decimal("100.00"), Decimal("100.00"), "23",
+        Decimal("23.00"),
         date(2026, 5, 14), "6", "65109013910000000039004697",
+        0,
     ]
 
 
@@ -94,7 +98,8 @@ def test_row_to_pozycja_maps_decimals() -> None:
     poz = faktura.wiersze[0]
     assert isinstance(poz, Pozycja)
     assert poz.ilosc == Decimal("1")
-    assert poz.cena_netto_jedn == Decimal("100.00")
+    assert poz.cena_jedn == Decimal("100.00")
+    assert poz.od_brutto is False
     assert poz.stawka_vat == "23"
     assert poz.gtin == "5906927280738"
 
@@ -103,6 +108,15 @@ def test_row_to_podmiot2_with_none_adres_l2() -> None:
     reader = ErpReader(run_query=_fake_query(_FS_COLUMNS, [_fs_row(60, 1, p2_adres_l2=None)]))
     faktura = reader.fetch_faktury()[0]
     assert faktura.podmiot2.adres_l2 is None
+
+
+def test_row_to_pozycja_od_brutto_flag() -> None:
+    row = _fs_row(61, 1)
+    row[-1] = 1  # _TrN_Brutto = 1
+    reader = ErpReader(run_query=_fake_query(_FS_COLUMNS, [row]))
+    faktura = reader.fetch_faktury()[0]
+    assert faktura.wiersze[0].od_brutto is True
+    assert faktura.wiersze[0].kwota_vat == Decimal("23.00")
 
 
 def test_row_to_pozycja_with_null_gtin() -> None:

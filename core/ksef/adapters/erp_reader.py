@@ -158,15 +158,18 @@ class ErpReader:
         )
 
     def _row_to_pozycja(self, row: dict) -> Pozycja:
+        od_brutto = int(row.get("_TrN_Brutto") or 0) == 1
         return Pozycja(
             nr_pozycji=int(row["Wiersz_NrPozycji"]),
             nazwa_towaru=_as_str(row["Wiersz_P7_NazwaTowaru"]) or "",
             gtin=_as_str(row.get("Wiersz_GTIN")),
             jednostka_miary=_as_str(row["Wiersz_P8A_JM"]) or "",
             ilosc=_as_decimal(row["Wiersz_P8B_Ilosc"]),
-            cena_netto_jedn=_as_decimal(row["Wiersz_P9A_CenaNettoJedn"]),
+            cena_jedn=_as_decimal(row["Wiersz_P9A_CenaNettoJedn"]),
             wartosc_netto=_as_decimal(row["Wiersz_P10_WartoscNetto"]),
+            kwota_vat=_as_decimal_opt(row.get("Wiersz_P12_KwotaVAT")),
             stawka_vat=_as_str(row["Wiersz_P11_StawkaVAT"]) or "",
+            od_brutto=od_brutto,
         )
 
     # ---- FSK mapping -----------------------------------------------------

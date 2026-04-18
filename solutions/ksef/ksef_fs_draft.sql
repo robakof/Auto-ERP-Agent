@@ -125,7 +125,8 @@ SELECT
     -- =========================================================
     n.TrN_GIDTyp                                                AS _GIDTyp,
     n.TrN_GIDNumer                                              AS _GIDNumer,
-    n.TrN_GIDFirma                                              AS _GIDFirma
+    n.TrN_GIDFirma                                              AS _GIDFirma,
+    n.TrN_Brutto                                                AS _TrN_Brutto
 
 FROM CDN.TraNag n
 

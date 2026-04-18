@@ -36,9 +36,11 @@ class Pozycja:
     gtin: str | None
     jednostka_miary: str
     ilosc: Decimal
-    cena_netto_jedn: Decimal
+    cena_jedn: Decimal
     wartosc_netto: Decimal
+    kwota_vat: Decimal | None
     stawka_vat: str
+    od_brutto: bool = False
 
 
 @dataclass(frozen=True)
