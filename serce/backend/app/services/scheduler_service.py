@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+from uuid import UUID
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -65,7 +66,7 @@ async def _fetch_expired_requests(db: AsyncSession) -> list[Request]:
     return list(result.scalars().all())
 
 
-async def _cascade_cancel_exchanges(db: AsyncSession, request_id) -> int:
+async def _cascade_cancel_exchanges(db: AsyncSession, request_id: UUID) -> int:
     """Cancel PENDING exchanges for a given request. Returns count."""
     result = await db.execute(
         update(Exchange)
