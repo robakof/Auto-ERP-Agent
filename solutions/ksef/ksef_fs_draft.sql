@@ -91,7 +91,10 @@ SELECT
     RTRIM(e.TrE_TwrNazwa)                                       AS Wiersz_P7_NazwaTowaru,
     RTRIM(e.TrE_JmZ)                                            AS Wiersz_P8A_JM,
     e.TrE_Ilosc                                                 AS Wiersz_P8B_Ilosc,
-    e.TrE_Cena                                                  AS Wiersz_P9A_CenaNettoJedn,
+    CASE WHEN e.TrE_Ilosc <> 0
+         THEN e.TrE_KsiegowaNetto / e.TrE_Ilosc
+         ELSE e.TrE_Cena
+    END                                                         AS Wiersz_P9A_CenaNettoJedn,
     e.TrE_KsiegowaNetto                                         AS Wiersz_P10_WartoscNetto,
     CASE e.TrE_GrupaPod
         WHEN 'A' THEN '23'
@@ -125,8 +128,7 @@ SELECT
     -- =========================================================
     n.TrN_GIDTyp                                                AS _GIDTyp,
     n.TrN_GIDNumer                                              AS _GIDNumer,
-    n.TrN_GIDFirma                                              AS _GIDFirma,
-    CASE WHEN n.TrN_CenaSpr = 3 THEN 1 ELSE 0 END              AS _OdBrutto
+    n.TrN_GIDFirma                                              AS _GIDFirma
 
 FROM CDN.TraNag n
 

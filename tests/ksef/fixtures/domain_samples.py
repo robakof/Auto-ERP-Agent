@@ -53,8 +53,8 @@ def _poz(nr: int, nazwa: str, gtin: str | None, jm: str, ilosc: str,
     return Pozycja(
         nr_pozycji=nr, nazwa_towaru=nazwa, gtin=gtin,
         jednostka_miary=jm, ilosc=Decimal(ilosc),
-        cena_jedn=Decimal(cena), wartosc_netto=Decimal(wartosc),
-        kwota_vat=None, stawka_vat=vat,
+        cena_netto_jedn=Decimal(cena), wartosc_netto=Decimal(wartosc),
+        stawka_vat=vat,
     )
 
 

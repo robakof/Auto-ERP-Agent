@@ -180,13 +180,8 @@ class XmlBuilder:
             _sub(fw, "GTIN", text=pozycja.gtin)
         _sub(fw, "P_8A", text=pozycja.jednostka_miary)
         _sub(fw, "P_8B", text=self._format_ilosc(pozycja.ilosc))
-        if pozycja.od_brutto:
-            _sub(fw, "P_9B", text=self._format_decimal(pozycja.cena_jedn))
-            _sub(fw, "P_11A", text=self._format_decimal(pozycja.wartosc_netto))
-            _sub(fw, "P_11Vat", text=self._format_decimal(pozycja.kwota_vat))
-        else:
-            _sub(fw, "P_9A", text=self._format_decimal(pozycja.cena_jedn))
-            _sub(fw, "P_11", text=self._format_decimal(pozycja.wartosc_netto))
+        _sub(fw, "P_9A", text=self._format_decimal(pozycja.cena_netto_jedn))
+        _sub(fw, "P_11", text=self._format_decimal(pozycja.wartosc_netto))
         _sub(fw, "P_12", text=pozycja.stawka_vat)
 
     # ---- FSK wiersze -----------------------------------------------------

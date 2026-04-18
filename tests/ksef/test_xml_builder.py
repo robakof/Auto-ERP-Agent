@@ -75,9 +75,8 @@ def _mk_min_faktura(p2: Podmiot) -> Faktura:
         adnotacje=Adnotacje(mpp="2"), rodzaj="VAT",
         wiersze=(Pozycja(nr_pozycji=1, nazwa_towaru="X", gtin=None,
                           jednostka_miary="szt.", ilosc=Decimal("1"),
-                          cena_jedn=Decimal("100"),
-                          wartosc_netto=Decimal("100"), kwota_vat=None,
-                          stawka_vat="23"),),
+                          cena_netto_jedn=Decimal("100"),
+                          wartosc_netto=Decimal("100"), stawka_vat="23"),),
         platnosc=Platnosc(termin_platnosci=None,
                           kod_formy_platnosci=None,
                           nr_rachunku_bankowego=None),
@@ -152,45 +151,6 @@ def test_output_has_correct_namespace(builder: XmlBuilder) -> None:
 
 
 # ---- platnosc ------------------------------------------------------------
-
-# ---- od_brutto (FRA) vs od netto (SPKR) ----------------------------------
-
-def test_od_brutto_emits_p9b_p11a_p11vat(builder: XmlBuilder) -> None:
-    """FRA (od brutto) → P_9B, P_11A, P_11Vat zamiast P_9A, P_11."""
-    import dataclasses
-    base = _mk_min_faktura(Podmiot(nip="1", pelna_nazwa="N", kod_kraju="PL",
-                                    adres_l1="A", adres_l2=None))
-    wiersz_brutto = Pozycja(
-        nr_pozycji=1, nazwa_towaru="X", gtin=None,
-        jednostka_miary="szt.", ilosc=Decimal("1"),
-        cena_jedn=Decimal("123"), wartosc_netto=Decimal("100"),
-        kwota_vat=Decimal("23"), stawka_vat="23", od_brutto=True,
-    )
-    f = dataclasses.replace(base, wiersze=(wiersz_brutto,))
-    xml = builder.build_faktura(f)
-    root = etree.fromstring(xml)
-    fw = root.find(f".//{{{NS}}}FaWiersz")
-    assert fw.find(f"{{{NS}}}P_9B") is not None
-    assert fw.find(f"{{{NS}}}P_9B").text == "123.00"
-    assert fw.find(f"{{{NS}}}P_11A") is not None
-    assert fw.find(f"{{{NS}}}P_11A").text == "100.00"
-    assert fw.find(f"{{{NS}}}P_11Vat") is not None
-    assert fw.find(f"{{{NS}}}P_11Vat").text == "23.00"
-    assert fw.find(f"{{{NS}}}P_9A") is None
-    assert fw.find(f"{{{NS}}}P_11") is None
-
-
-def test_od_netto_emits_p9a_p11(builder: XmlBuilder) -> None:
-    """SPKR (od netto) → P_9A, P_11 — bez P_9B, P_11A, P_11Vat."""
-    f = _mk_min_faktura(Podmiot(nip="1", pelna_nazwa="N", kod_kraju="PL",
-                                 adres_l1="A", adres_l2=None))
-    xml = builder.build_faktura(f)
-    root = etree.fromstring(xml)
-    fw = root.find(f".//{{{NS}}}FaWiersz")
-    assert fw.find(f"{{{NS}}}P_9A") is not None
-    assert fw.find(f"{{{NS}}}P_11") is not None
-    assert fw.find(f"{{{NS}}}P_9B") is None
-    assert fw.find(f"{{{NS}}}P_11A") is None
 
 
 def test_platnosc_empty_emits_empty_element(builder: XmlBuilder) -> None:
