@@ -74,9 +74,9 @@ SELECT
     CAST(jm_karton.TwJ_PrzeliczL  AS BIGINT)  AS [karton],
     CAST(jm_paleta.TwJ_PrzeliczL  AS BIGINT)  AS [paleta],
     ISNULL(zak.CenaZakupu, 0)                 AS [ZAKUP],
-    COALESCE(NULLIF(tc100.TwC_Wartosc, 0),     tc100_fb.TwC_Wartosc)  AS [Cena 100],
-    COALESCE(NULLIF(tc_brico.TwC_Wartosc, 0), tc_brico_fb.TwC_Wartosc) AS [Cena Brico],
-    COALESCE(NULLIF(tc_psb.TwC_Wartosc, 0),   tc_psb_fb.TwC_Wartosc)  AS [Cena PSB]
+    tc100.TwC_Wartosc                         AS [Cena 100],
+    tc_brico.TwC_Wartosc                      AS [Cena Brico],
+    tc_psb.TwC_Wartosc                        AS [Cena PSB]
 FROM CDN.TwrKarty tk
 JOIN Produkty p
     ON tk.Twr_GIDNumer = p.Twr_GIDNumer
@@ -111,47 +111,47 @@ LEFT JOIN (
     GROUP BY TwZ_TwrNumer
 ) zak ON zak.TwZ_TwrNumer = tk.Twr_GIDNumer
 LEFT JOIN (
-    SELECT TwC_TwrNumer, TwC_TwrTyp, MAX(TwC_Wartosc) AS TwC_Wartosc
-    FROM CDN.TwrCeny
-    WHERE TwC_TcnId = 1 AND TwC_KntNumer = 0
-    GROUP BY TwC_TwrNumer, TwC_TwrTyp
+    SELECT TwC_TwrNumer, TwC_TwrTyp, TwC_Wartosc FROM (
+        SELECT tc.TwC_TwrNumer, tc.TwC_TwrTyp, tc.TwC_Wartosc,
+               ROW_NUMBER() OVER (
+                   PARTITION BY tc.TwC_TwrNumer, tc.TwC_TwrTyp
+                   ORDER BY tc.TwC_TcnId DESC
+               ) AS rn
+        FROM CDN.TwrCeny tc
+        JOIN CDN.TwrCenyNag n ON n.TCN_Id = tc.TwC_TcnId
+        WHERE n.TCN_RodzajCeny = 1
+          AND tc.TwC_KntNumer IN (0, 538976288)
+          AND tc.TwC_Wartosc > 0
+    ) x WHERE rn = 1
 ) tc100 ON tc100.TwC_TwrNumer = tk.Twr_GIDNumer AND tc100.TwC_TwrTyp = tk.Twr_GIDTyp
 LEFT JOIN (
-    SELECT TwC_TwrNumer, TwC_TwrTyp, MAX(TwC_Wartosc) AS TwC_Wartosc
-    FROM CDN.TwrCeny
-    WHERE TwC_TcnId = 8 AND TwC_KntNumer = 0
-    GROUP BY TwC_TwrNumer, TwC_TwrTyp
+    SELECT TwC_TwrNumer, TwC_TwrTyp, TwC_Wartosc FROM (
+        SELECT tc.TwC_TwrNumer, tc.TwC_TwrTyp, tc.TwC_Wartosc,
+               ROW_NUMBER() OVER (
+                   PARTITION BY tc.TwC_TwrNumer, tc.TwC_TwrTyp
+                   ORDER BY tc.TwC_TcnId DESC
+               ) AS rn
+        FROM CDN.TwrCeny tc
+        JOIN CDN.TwrCenyNag n ON n.TCN_Id = tc.TwC_TcnId
+        WHERE n.TCN_RodzajCeny = 4
+          AND tc.TwC_KntNumer IN (0, 538976288)
+          AND tc.TwC_Wartosc > 0
+    ) x WHERE rn = 1
 ) tc_brico ON tc_brico.TwC_TwrNumer = tk.Twr_GIDNumer AND tc_brico.TwC_TwrTyp = tk.Twr_GIDTyp
 LEFT JOIN (
-    SELECT TwC_TwrNumer, TwC_TwrTyp, MAX(TwC_Wartosc) AS TwC_Wartosc
-    FROM CDN.TwrCeny
-    WHERE TwC_TcnId = 10 AND TwC_KntNumer = 0
-    GROUP BY TwC_TwrNumer, TwC_TwrTyp
+    SELECT TwC_TwrNumer, TwC_TwrTyp, TwC_Wartosc FROM (
+        SELECT tc.TwC_TwrNumer, tc.TwC_TwrTyp, tc.TwC_Wartosc,
+               ROW_NUMBER() OVER (
+                   PARTITION BY tc.TwC_TwrNumer, tc.TwC_TwrTyp
+                   ORDER BY tc.TwC_TcnId DESC
+               ) AS rn
+        FROM CDN.TwrCeny tc
+        JOIN CDN.TwrCenyNag n ON n.TCN_Id = tc.TwC_TcnId
+        WHERE n.TCN_RodzajCeny = 6
+          AND tc.TwC_KntNumer IN (0, 538976288)
+          AND tc.TwC_Wartosc > 0
+    ) x WHERE rn = 1
 ) tc_psb ON tc_psb.TwC_TwrNumer = tk.Twr_GIDNumer AND tc_psb.TwC_TwrTyp = tk.Twr_GIDTyp
-LEFT JOIN (
-    SELECT TwC_TwrNumer, TwC_TwrTyp, TwC_Wartosc FROM (
-        SELECT tc.TwC_TwrNumer, tc.TwC_TwrTyp, tc.TwC_Wartosc,
-               ROW_NUMBER() OVER (PARTITION BY tc.TwC_TwrNumer, tc.TwC_TwrTyp ORDER BY n.TCN_DataOd DESC) AS rn
-        FROM CDN.TwrCeny tc JOIN CDN.TwrCenyNag n ON n.TCN_Id = tc.TwC_TcnId
-        WHERE n.TCN_RodzajCeny = 1 AND tc.TwC_KntNumer = 0 AND tc.TwC_Wartosc > 0 AND tc.TwC_TcnId <> 1
-    ) x WHERE rn = 1
-) tc100_fb ON tc100_fb.TwC_TwrNumer = tk.Twr_GIDNumer AND tc100_fb.TwC_TwrTyp = tk.Twr_GIDTyp
-LEFT JOIN (
-    SELECT TwC_TwrNumer, TwC_TwrTyp, TwC_Wartosc FROM (
-        SELECT tc.TwC_TwrNumer, tc.TwC_TwrTyp, tc.TwC_Wartosc,
-               ROW_NUMBER() OVER (PARTITION BY tc.TwC_TwrNumer, tc.TwC_TwrTyp ORDER BY n.TCN_DataOd DESC) AS rn
-        FROM CDN.TwrCeny tc JOIN CDN.TwrCenyNag n ON n.TCN_Id = tc.TwC_TcnId
-        WHERE n.TCN_RodzajCeny = 4 AND tc.TwC_KntNumer = 0 AND tc.TwC_Wartosc > 0 AND tc.TwC_TcnId <> 8
-    ) x WHERE rn = 1
-) tc_brico_fb ON tc_brico_fb.TwC_TwrNumer = tk.Twr_GIDNumer AND tc_brico_fb.TwC_TwrTyp = tk.Twr_GIDTyp
-LEFT JOIN (
-    SELECT TwC_TwrNumer, TwC_TwrTyp, TwC_Wartosc FROM (
-        SELECT tc.TwC_TwrNumer, tc.TwC_TwrTyp, tc.TwC_Wartosc,
-               ROW_NUMBER() OVER (PARTITION BY tc.TwC_TwrNumer, tc.TwC_TwrTyp ORDER BY n.TCN_DataOd DESC) AS rn
-        FROM CDN.TwrCeny tc JOIN CDN.TwrCenyNag n ON n.TCN_Id = tc.TwC_TcnId
-        WHERE n.TCN_RodzajCeny = 6 AND tc.TwC_KntNumer = 0 AND tc.TwC_Wartosc > 0 AND tc.TwC_TcnId <> 10
-    ) x WHERE rn = 1
-) tc_psb_fb ON tc_psb_fb.TwC_TwrNumer = tk.Twr_GIDNumer AND tc_psb_fb.TwC_TwrTyp = tk.Twr_GIDTyp
 LEFT JOIN GrupaNazwa tg_path ON tg_path.TwrNumer = tk.Twr_GIDNumer
 ORDER BY tk.Twr_Kod
 """
