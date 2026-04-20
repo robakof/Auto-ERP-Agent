@@ -549,3 +549,54 @@ CDN.Zapisy może mieć wiele wierszy na jeden KAZ_GIDNumer (raporty kasowe).
 | `Okno dokumenty/Magazynowe/filters/Sezon w opisie dokumentu.sql` | Używa `TrN_GIDNumer` zamiast `MaN_GIDNumer` |
 | `Okno zapisy bankowe/Zapisy bankowe/filters/Wartość i numer dokumentu.sql` | Stary format inline bez `@PAR` |
 | `Okno dokumenty/Elementy/columns/Marża.sql` | Brak `WHERE {filtrsql}` |
+
+---
+
+## CDN.TwrCeny — ceny towarów i puste GID (KntNumer)
+
+### Dwa formaty "brak kontrahenta"
+
+Cenniki ogólne (nie powiązane z konkretnym kontrahentem) mogą mieć w TwrCeny **dwa różne zapisy**:
+
+| TwC_KntNumer | TwC_KntTyp | Hex | Semantyka |
+|---|---|---|---|
+| 0 | 0 | 0x00000000 | Stary format — brak kontrahenta |
+| 538976288 | 8224 | 0x20202020 / 0x2020 | Nowy format — puste GID (4 spacje ASCII) |
+
+**Oba oznaczają cenę ogólną.** KntNumer=538976288 nie istnieje w CDN.KntKarty.
+
+Nowsze cenniki (od ~2023) używają formatu 538976288. Starsze (TcnId=1 "CENA 100", TcnId=8 "BRICO") używają 0. W bazie: 90 831 wierszy z KntNumer=0, 8 178 z KntNumer=538976288.
+
+**Prawdziwe ceny kontrahentowe** mają TwC_KntTyp=32 i TwC_KntNumer odpowiadający Knt_GIDNumer z CDN.KntKarty (np. 277=BOLSIUS, 4217=AGA).
+
+### Filtr cenowy — bezpieczny wzorzec
+
+```sql
+-- Ceny ogólne (oba formaty):
+WHERE TwC_KntNumer IN (0, 538976288)
+
+-- Ceny kontrahentowe (do wykluczenia z eksportów ogólnych):
+WHERE TwC_KntTyp = 32  -- prawdziwy kontrahent
+```
+
+### Rozwiązywanie ceny karty towaru
+
+Każdy produkt ma do 9 slotów (TwC_TwrLp = TCN_RodzajCeny). Slot może mieć wiele wierszy (historia cenników). Karta wyświetla cenę z **najnowszego cennika** (najwyższy TwC_TcnId).
+
+```sql
+-- Najnowsza cena ogólna dla RodzajCeny=1:
+SELECT TwC_TwrNumer, TwC_TwrTyp, TwC_Wartosc FROM (
+    SELECT tc.TwC_TwrNumer, tc.TwC_TwrTyp, tc.TwC_Wartosc,
+           ROW_NUMBER() OVER (
+               PARTITION BY tc.TwC_TwrNumer, tc.TwC_TwrTyp
+               ORDER BY tc.TwC_TcnId DESC
+           ) AS rn
+    FROM CDN.TwrCeny tc
+    JOIN CDN.TwrCenyNag n ON n.TCN_Id = tc.TwC_TcnId
+    WHERE n.TCN_RodzajCeny = 1
+      AND tc.TwC_KntNumer IN (0, 538976288)
+      AND tc.TwC_Wartosc > 0
+) x WHERE rn = 1
+```
+
+Sortowanie po TwC_TcnId DESC (nie TCN_DataOd) — TcnId jest sekwencyjny i bardziej niezawodny (7 wyjątków na 7782 slotów multi-row, wszystkie to wkładki CEiM).
