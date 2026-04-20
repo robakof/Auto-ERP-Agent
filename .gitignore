@@ -54,3 +54,12 @@ docs.db
 
 # Błędne pliki systemowe
 nul
+
+# Binaria i dokumentacja Comarch API (1.8GB, nie do gita)
+API Comarch/
+
+# Output generowany przez narzędzia
+output/
+
+# Wzory plików (zawierają klucze, certyfikaty, tokeny)
+documents/Wzory plików/
