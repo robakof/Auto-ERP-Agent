@@ -12,6 +12,7 @@ Użycie:
 
 import argparse
 import json
+import re
 import sys
 from datetime import date
 from pathlib import Path
@@ -25,6 +26,7 @@ from tools.lib.sql_client import SqlClient
 from tools.xl_attribute_set import set_attribute
 
 _NON_AKRONIM = {None, "", "typ", "atrybut", "atrybut / akronim →"}
+_PLACEHOLDER_RE = re.compile(r"^akronim[_\s]*\d+$", re.IGNORECASE)
 
 _QUERY_CLASS_NAMES = """
 SELECT DISTINCT ak.AtK_Nazwa
@@ -66,8 +68,11 @@ def _detect_akronim_cols(header: list) -> list[tuple[int, str]]:
         if i == 0:
             continue
         label = str(h).strip().lower() if h is not None else ""
-        if label not in _NON_AKRONIM and h is not None and str(h).strip():
-            result.append((i, str(h).strip()))
+        if label in _NON_AKRONIM or not label:
+            continue
+        if _PLACEHOLDER_RE.match(label):
+            continue
+        result.append((i, str(h).strip()))
     return result
 
 

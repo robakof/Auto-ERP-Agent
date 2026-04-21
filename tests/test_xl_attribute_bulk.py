@@ -45,6 +45,16 @@ class TestDetectAkronimCols:
         header = ["Atrybut", "Typ"]
         assert xb._detect_akronim_cols(header) == []
 
+    def test_skips_placeholder_akronim_cols(self):
+        header = ["Atrybut", "Typ", "CZNI0010", "Akronim_2", "Akronim_3"]
+        result = xb._detect_akronim_cols(header)
+        assert result == [(2, "CZNI0010")]
+
+    def test_skips_placeholder_case_insensitive(self):
+        header = ["Atrybut", "Typ", "FOTEL-01", "AKRONIM_5", "akronim 6"]
+        result = xb._detect_akronim_cols(header)
+        assert result == [(2, "FOTEL-01")]
+
 
 class TestBulkUpdate:
     def _mock_class_map(self, names):
