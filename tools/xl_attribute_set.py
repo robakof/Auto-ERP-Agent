@@ -1,4 +1,5 @@
-"""Ustawienie wartości atrybutu na obiekcie ERP XL via CDN.XLDodajAktualizujAtr.
+"""Ustawienie wartości atrybutu na obiekcie ERP XL via CDN.XLDodajAktualizujAtr (UPDATE)
+lub bezpośredni INSERT gdy atrybut nie istnieje dla danego obiektu.
 
 Obsługiwane typy obiektów:
   16   = towar       (lookup po Twr_Kod)
@@ -49,6 +50,106 @@ EXEC @ret = CDN.XLDodajAktualizujAtr
 SELECT @ret AS return_code
 """
 
+# Sprawdź czy atrybut istnieje dla obiektu danego typu
+_CHECK_EXISTS_SQL = {
+    16: """
+        SELECT COUNT(*) FROM CDN.Atrybuty a
+        JOIN CDN.TwrKarty t ON t.Twr_GidNumer = a.Atr_ObiNumer
+        JOIN CDN.AtrybutyKlasy k ON k.AtK_ID = a.Atr_AtkId
+        WHERE t.Twr_Kod = ? AND k.AtK_Nazwa = ? AND a.Atr_ObiTyp = 16 AND a.Atr_ObiLp = 0
+    """,
+    32: """
+        SELECT COUNT(*) FROM CDN.Atrybuty a
+        JOIN CDN.KntKarty t ON t.Knt_GidNumer = a.Atr_ObiNumer
+        JOIN CDN.AtrybutyKlasy k ON k.AtK_ID = a.Atr_AtkId
+        WHERE t.Knt_Akronim = ? AND k.AtK_Nazwa = ? AND a.Atr_ObiTyp = 32 AND a.Atr_ObiSubLp = 0
+    """,
+    368: """
+        SELECT COUNT(*) FROM CDN.Atrybuty a
+        JOIN CDN.Srtkarty t ON t.Srt_GidNumer = a.Atr_ObiNumer
+        JOIN CDN.AtrybutyKlasy k ON k.AtK_ID = a.Atr_AtkId
+        WHERE t.Srt_Akronim = ? AND k.AtK_Nazwa = ? AND a.Atr_ObiTyp = 368
+    """,
+}
+
+# INSERT nowego przypisania atrybutu do obiektu
+_INSERT_SQL = {
+    16: """
+        INSERT INTO CDN.Atrybuty (
+            Atr_ObiTyp, Atr_ObiFirma, Atr_ObiNumer, Atr_ObiLp, Atr_ObiSubLp,
+            Atr_AtkId, Atr_Wartosc,
+            Atr_AtrTyp, Atr_AtrFirma, Atr_AtrNumer, Atr_AtrLp, Atr_AtrSubLp,
+            Atr_Pozycja, Atr_GUID, Atr_LastMod
+        )
+        SELECT
+            t.Twr_GIDTyp, t.Twr_GIDFirma, t.Twr_GidNumer, t.Twr_GIDLp, 0,
+            k.AtK_ID, ?,
+            0, 0, 0, 0, 0,
+            ISNULL((SELECT MAX(a2.Atr_Pozycja)+1 FROM CDN.Atrybuty a2
+                    WHERE a2.Atr_ObiNumer=t.Twr_GidNumer AND a2.Atr_ObiTyp=16), 1),
+            NEWID(),
+            DATEDIFF(S, '19900101', GETDATE())
+        FROM CDN.TwrKarty t
+        CROSS JOIN CDN.AtrybutyKlasy k
+        WHERE t.Twr_Kod = ? AND k.AtK_Nazwa = ?
+    """,
+    32: """
+        INSERT INTO CDN.Atrybuty (
+            Atr_ObiTyp, Atr_ObiFirma, Atr_ObiNumer, Atr_ObiLp, Atr_ObiSubLp,
+            Atr_AtkId, Atr_Wartosc,
+            Atr_AtrTyp, Atr_AtrFirma, Atr_AtrNumer, Atr_AtrLp, Atr_AtrSubLp,
+            Atr_Pozycja, Atr_GUID, Atr_LastMod
+        )
+        SELECT
+            t.Knt_GIDTyp, t.Knt_GIDFirma, t.Knt_GidNumer, t.Knt_GIDLp, 0,
+            k.AtK_ID, ?,
+            0, 0, 0, 0, 0,
+            ISNULL((SELECT MAX(a2.Atr_Pozycja)+1 FROM CDN.Atrybuty a2
+                    WHERE a2.Atr_ObiNumer=t.Knt_GidNumer AND a2.Atr_ObiTyp=32), 1),
+            NEWID(),
+            DATEDIFF(S, '19900101', GETDATE())
+        FROM CDN.KntKarty t
+        CROSS JOIN CDN.AtrybutyKlasy k
+        WHERE t.Knt_Akronim = ? AND k.AtK_Nazwa = ?
+    """,
+    368: """
+        INSERT INTO CDN.Atrybuty (
+            Atr_ObiTyp, Atr_ObiFirma, Atr_ObiNumer, Atr_ObiLp, Atr_ObiSubLp,
+            Atr_AtkId, Atr_Wartosc,
+            Atr_AtrTyp, Atr_AtrFirma, Atr_AtrNumer, Atr_AtrLp, Atr_AtrSubLp,
+            Atr_Pozycja, Atr_GUID, Atr_LastMod
+        )
+        SELECT
+            t.Srt_GIDTyp, t.Srt_GIDFirma, t.Srt_GidNumer, t.Srt_GIDLp, 0,
+            k.AtK_ID, ?,
+            0, 0, 0, 0, 0,
+            ISNULL((SELECT MAX(a2.Atr_Pozycja)+1 FROM CDN.Atrybuty a2
+                    WHERE a2.Atr_ObiNumer=t.Srt_GidNumer AND a2.Atr_ObiTyp=368), 1),
+            NEWID(),
+            DATEDIFF(S, '19900101', GETDATE())
+        FROM CDN.Srtkarty t
+        CROSS JOIN CDN.AtrybutyKlasy k
+        WHERE t.Srt_Akronim = ? AND k.AtK_Nazwa = ?
+    """,
+}
+
+
+def _attribute_exists(cursor, class_name: str, akronim: str, obj_type: int) -> bool:
+    check_sql = _CHECK_EXISTS_SQL.get(obj_type)
+    if check_sql is None:
+        return True  # typy 1617/4800 — nie obsługujemy INSERT, tylko UPDATE
+    cursor.execute(check_sql, [akronim, class_name])
+    row = cursor.fetchone()
+    return bool(row and row[0] > 0)
+
+
+def _insert_attribute(cursor, class_name: str, value: str, akronim: str, obj_type: int) -> int:
+    insert_sql = _INSERT_SQL.get(obj_type)
+    if insert_sql is None:
+        return -105  # typ nieobsługiwany dla INSERT
+    cursor.execute(insert_sql, [value, akronim, class_name])
+    return 0 if cursor.rowcount > 0 else -112
+
 
 def set_attribute(
     class_name: str,
@@ -62,8 +163,18 @@ def set_attribute(
         client = SqlClient()
         conn = client.get_connection()
         cursor = conn.cursor()
-        cursor.execute(_PROC_SQL, [class_name, value, akronim, obj_type, operator])
-        row = cursor.fetchone()
+
+        exists = _attribute_exists(cursor, class_name, akronim, obj_type)
+
+        if exists:
+            cursor.execute(_PROC_SQL, [class_name, value, akronim, obj_type, operator])
+            row = cursor.fetchone()
+            return_code = row[0] if row else None
+            action = "updated"
+        else:
+            return_code = _insert_attribute(cursor, class_name, value, akronim, obj_type)
+            action = "inserted"
+
         conn.commit()
         duration_ms = round((time.monotonic() - start) * 1000)
     except Exception as exc:
@@ -75,8 +186,6 @@ def set_attribute(
             "meta": {"duration_ms": duration_ms},
         }
 
-    return_code = row[0] if row else None
-
     if return_code == 0:
         return {
             "ok": True,
@@ -85,6 +194,7 @@ def set_attribute(
                 "value": value,
                 "akronim": akronim,
                 "type": obj_type,
+                "action": action,
             },
             "error": None,
             "meta": {"duration_ms": duration_ms},
@@ -123,7 +233,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--operator", default=None,
-        help="Identyfikator operatora ERP (opcjonalny, wymagany dla atrybutów wielowartościowych)",
+        help="Identyfikator operatora ERP (wymagany dla atrybutów wielowartościowych)",
     )
     args = parser.parse_args()
 

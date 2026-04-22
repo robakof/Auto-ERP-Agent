@@ -1,6 +1,6 @@
 """Testy dla tools/xl_attribute_set.py."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pyodbc
 import pytest
@@ -9,27 +9,37 @@ from tools.lib.sql_client import SqlClient
 import tools.xl_attribute_set as xs
 
 
-def _make_conn(return_code: int) -> MagicMock:
+def _make_conn(proc_return_code: int, exists: bool = True) -> MagicMock:
+    """exists=True → UPDATE path, exists=False → INSERT path."""
     cursor = MagicMock()
-    cursor.fetchone.return_value = (return_code,)
+    exists_row = (1,) if exists else (0,)
+    # fetchone: pierwsze wywołanie to check_exists, drugie to wynik procedury (tylko w UPDATE path)
+    if exists:
+        cursor.fetchone.side_effect = [exists_row, (proc_return_code,)]
+    else:
+        cursor.fetchone.side_effect = [exists_row]
+        cursor.rowcount = 1  # INSERT OK
     conn = MagicMock()
     conn.cursor.return_value = cursor
     return conn
 
 
 class TestSetAttribute:
-    def test_success_returns_ok(self):
-        conn = _make_conn(0)
+    def test_success_update_existing(self):
+        conn = _make_conn(0, exists=True)
         with patch.object(SqlClient, "get_connection", return_value=conn):
             result = xs.set_attribute("WAGA PRODUKTU", "1.5", "FOTEL-01")
         assert result["ok"] is True
         assert result["error"] is None
-        assert result["data"] == {
-            "class": "WAGA PRODUKTU",
-            "value": "1.5",
-            "akronim": "FOTEL-01",
-            "type": 16,
-        }
+        assert result["data"]["class"] == "WAGA PRODUKTU"
+        assert result["data"]["action"] == "updated"
+
+    def test_success_insert_new(self):
+        conn = _make_conn(0, exists=False)
+        with patch.object(SqlClient, "get_connection", return_value=conn):
+            result = xs.set_attribute("WAGA PRODUKTU", "1.5", "FOTEL-01")
+        assert result["ok"] is True
+        assert result["data"]["action"] == "inserted"
 
     def test_success_commits_connection(self):
         conn = _make_conn(0)
@@ -78,19 +88,20 @@ class TestSetAttribute:
         assert result["error"]["type"] == "SQL_ERROR"
 
     def test_kontrahent_type(self):
-        conn = _make_conn(0)
+        conn = _make_conn(0, exists=True)
         with patch.object(SqlClient, "get_connection", return_value=conn):
             result = xs.set_attribute("STATUS CEIM", "VIP", "KOWALSKI", obj_type=32)
         assert result["ok"] is True
         assert result["data"]["type"] == 32
 
     def test_passes_operator_param(self):
-        conn = _make_conn(0)
+        conn = _make_conn(0, exists=True)
         with patch.object(SqlClient, "get_connection", return_value=conn):
             xs.set_attribute("WAGA PRODUKTU", "1.5", "FOTEL-01", operator="ADMIN")
         cursor = conn.cursor.return_value
-        call_params = cursor.execute.call_args[0][1]
-        assert call_params[4] == "ADMIN"
+        # Drugie wywołanie execute to procedura (pierwsze to check_exists)
+        proc_call_params = cursor.execute.call_args_list[1][0][1]
+        assert proc_call_params[4] == "ADMIN"
 
     def test_meta_contains_duration(self):
         conn = _make_conn(0)
@@ -98,3 +109,11 @@ class TestSetAttribute:
             result = xs.set_attribute("WAGA PRODUKTU", "1.5", "FOTEL-01")
         assert "duration_ms" in result["meta"]
         assert isinstance(result["meta"]["duration_ms"], int)
+
+    def test_insert_fail_returns_error(self):
+        conn = _make_conn(0, exists=False)
+        conn.cursor.return_value.rowcount = 0  # INSERT nie wstawił żadnego wiersza
+        with patch.object(SqlClient, "get_connection", return_value=conn):
+            result = xs.set_attribute("WAGA PRODUKTU", "1.5", "KOD-BRAK")
+        assert result["ok"] is False
+        assert result["error"]["type"] == "OBJECT_NOT_FOUND"
