@@ -1,34 +1,25 @@
 @echo off
-setlocal EnableDelayedExpansion
-chcp 65001 >nul
+:: KSeF Demo — daemon z watchdogiem (auto-restart, heartbeat monitoring)
+::
+:: Uzycie:
+::   ksef_wyslij_demo.bat              -> watchdog + daemon, tick co 15 min
+::   ksef_wyslij_demo.bat 300          -> tick co 5 min (sekundy)
+::   ksef_wyslij_demo.bat --once       -> jeden scan + wysylka, potem exit (bez watchdog)
+
 cd /d "%~dp0"
 
-echo ============================================
-echo   KSeF - wysylka faktur na Demo
-echo ============================================
-echo.
-echo [1/2] Skanowanie ERP (dry-run)...
-echo.
-py tools/ksef_daemon.py --once --dry-run
-echo.
-
-set /p CONFIRM="Wyslac powyzsze faktury na KSeF Demo? (t/n): "
-if /i not "!CONFIRM!"=="t" (
-    echo Anulowano.
-    pause
-    exit /b 0
+if "%1"=="--once" (
+    echo [KSeF Demo] Jednorazowy scan + wysylka...
+    py tools/ksef_daemon.py --once
+    goto :eof
 )
 
-echo.
-echo [2/2] Wysylka na KSeF Demo...
-echo.
-py tools/ksef_daemon.py --once
+set INTERVAL=900
+if not "%1"=="" set INTERVAL=%1
 
+echo [KSeF Demo] Watchdog startuje — daemon interval %INTERVAL%s
+echo Auto-restart przy crash lub zawieszeniu
+echo Ctrl+C aby zatrzymac
 echo.
-echo ============================================
-echo   Podsumowanie
-echo ============================================
-echo.
-py tools/ksef_status.py --today
-echo.
-pause
+
+py tools/ksef_watchdog.py --interval %INTERVAL%

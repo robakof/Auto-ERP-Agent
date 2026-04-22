@@ -11,12 +11,14 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
+import os
 import signal
 import subprocess
 import sys
 import time
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Callable
 
@@ -44,6 +46,7 @@ _UPO_DIR = _OUTPUT_DIR / "upo"
 _TMP_DIR = _PROJECT_ROOT / "tmp"
 _FLAG_REASON_FILE = _TMP_DIR / "ksef_flag.md"
 _AGENT_BUS_CLI = _PROJECT_ROOT / "tools" / "agent_bus_cli.py"
+_HEARTBEAT_PATH = _PROJECT_ROOT / "data" / "ksef_heartbeat.json"
 
 
 class KSeFDaemon:
@@ -55,18 +58,24 @@ class KSeFDaemon:
         send_factory: Callable[[PendingDocument], SendResult],
         *,
         interval_s: float = 60.0,
+        tick_timeout_s: float = 300.0,
         on_tick: Callable[[int, list[PendingDocument]], None] | None = None,
         sleep: Callable[[float], None] = time.sleep,
         rate_limiter: RateLimiter | None = None,
         error_escalator: ErrorEscalator | None = None,
+        heartbeat_path: Path = _HEARTBEAT_PATH,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._scan = scan
         self._send_factory = send_factory
         self._interval = interval_s
+        self._tick_timeout = tick_timeout_s
         self._on_tick = on_tick or _default_on_tick
         self._sleep = sleep
         self._rate_limiter = rate_limiter
         self._escalator = error_escalator
+        self._heartbeat_path = heartbeat_path
+        self._clock = clock
         self._shutdown = False
         self._tick_count = 0
 
@@ -76,7 +85,15 @@ class KSeFDaemon:
         signal.signal(signal.SIGTERM, self._handle_shutdown)
         _LOG.info('{"event": "daemon_start", "interval_s": %.1f}', self._interval)
         while not self._shutdown:
+            tick_start = self._clock()
             self._tick()
+            tick_duration = self._clock() - tick_start
+            if tick_duration > self._tick_timeout:
+                _LOG.error(
+                    '{"event": "tick_slow", "tick": %d, "duration_s": %.1f, "timeout_s": %.1f}',
+                    self._tick_count - 1, tick_duration, self._tick_timeout,
+                )
+            self._write_heartbeat(tick_duration)
             if self._shutdown:
                 break
             self._sleep_interruptible(self._interval)
@@ -84,7 +101,10 @@ class KSeFDaemon:
 
     def run_once(self) -> list[SendResult]:
         """Single scan + send. Returns results."""
-        return self._tick()
+        tick_start = self._clock()
+        results = self._tick()
+        self._write_heartbeat(self._clock() - tick_start)
+        return results
 
     def _tick(self) -> list[SendResult]:
         pending = self._scan.scan()
@@ -129,6 +149,23 @@ class KSeFDaemon:
     def _handle_shutdown(self, sig, frame) -> None:
         _LOG.info('{"event": "shutdown_requested", "signal": %d}', sig)
         self._shutdown = True
+
+    def _write_heartbeat(self, tick_duration_s: float) -> None:
+        """Write heartbeat JSON after each tick. Best-effort — never crash daemon."""
+        try:
+            self._heartbeat_path.parent.mkdir(parents=True, exist_ok=True)
+            payload = {
+                "last_tick_utc": datetime.now(timezone.utc).isoformat(),
+                "tick_count": self._tick_count,
+                "last_tick_duration_s": round(tick_duration_s, 2),
+                "status": "ok" if tick_duration_s <= self._tick_timeout else "slow",
+                "pid": os.getpid(),
+            }
+            self._heartbeat_path.write_text(
+                json.dumps(payload, indent=2), encoding="utf-8",
+            )
+        except Exception:
+            _LOG.warning('{"event": "heartbeat_write_failed"}', exc_info=True)
 
     def _sleep_interruptible(self, seconds: float) -> None:
         """Sleep in 1s increments, checking shutdown flag."""
@@ -266,6 +303,7 @@ def main() -> int:
         scan=scan,
         send_factory=send_factory,
         interval_s=args.interval,
+        tick_timeout_s=args.tick_timeout,
         rate_limiter=rate_limiter,
         error_escalator=escalator,
     )
@@ -290,6 +328,8 @@ def _parse_args() -> argparse.Namespace:
                    help="Max dokumentow/min (0 = wylaczony, default 10)")
     p.add_argument("--error-threshold", type=int, default=3,
                    help="ERROR/REJECTED per tick -> flag (0 = wylaczone, default 3)")
+    p.add_argument("--tick-timeout", type=float, default=300.0,
+                   help="Warning jesli tick trwa dluzej niz N sekund (default 300)")
     return p.parse_args()
 
 
