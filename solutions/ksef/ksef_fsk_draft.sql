@@ -149,9 +149,15 @@ SELECT
 
     -- Cena brutto jednostkowa = cena netto * (1 + stawka/100)
     -- Stawka z GrupaPod: A=23, B=8, C=5, F=0, D/E=0
+    -- StanPrzed: jeśli FSK idzie przez bufor 2009, cena = (netto_org + buf_delta) / qty
     CASE WHEN sp.StanPrzed = 1
          THEN ROUND(
-               COALESCE(NULLIF(e.TrE_CenaPrzedKorekta, 0), org_agg.CenaOrg, e.TrE_Cena)
+               (COALESCE(NULLIF(e.TrE_CenaPrzedKorekta, 0),
+                   CASE WHEN buf_elem.TrE_KsiegowaNetto IS NOT NULL
+                        THEN (COALESCE(org_agg.NettoOrg, 0) + buf_elem.TrE_KsiegowaNetto)
+                             / NULLIF(COALESCE(org_agg.IloscOrg, 1), 0)
+                        ELSE org_agg.CenaOrg END,
+                   e.TrE_Cena))
                * (1 + CASE COALESCE(NULLIF(e.TrE_GrupaPodPrzedKorekta, ''), org_agg.GrupaOrg, e.TrE_GrupaPod)
                         WHEN 'A' THEN 0.23 WHEN 'B' THEN 0.08 WHEN 'C' THEN 0.05
                         ELSE 0 END)
@@ -165,21 +171,30 @@ SELECT
     END                                                         AS Wiersz_P9B_CenaBrutto,
 
     -- Wartość netto pozycji
+    -- StanPrzed: oryginalna FS + delta z bufora 2009 (skonto) jeśli istnieje
     CASE WHEN sp.StanPrzed = 1
-         THEN COALESCE(NULLIF(e.TrE_WartoscPrzedKorekta, 0), org_agg.NettoOrg, 0)
-         ELSE COALESCE(NULLIF(e.TrE_WartoscPrzedKorekta, 0), org_agg.NettoOrg, 0) + e.TrE_KsiegowaNetto
+         THEN COALESCE(NULLIF(e.TrE_WartoscPrzedKorekta, 0),
+                       org_agg.NettoOrg, 0)
+              + COALESCE(buf_elem.TrE_KsiegowaNetto, 0)
+         ELSE COALESCE(NULLIF(e.TrE_WartoscPrzedKorekta, 0),
+                       org_agg.NettoOrg, 0)
+              + COALESCE(buf_elem.TrE_KsiegowaNetto, 0)
+              + e.TrE_KsiegowaNetto
     END                                                         AS Wiersz_P11A_WartoscNetto,
 
-    -- Kwota VAT pozycji: wyliczana ze stawki (brak kolumny VatPrzedKorekta)
+    -- Kwota VAT pozycji: wyliczana ze stawki
+    -- StanPrzed netto już zawiera korektę buforową, VAT przeliczamy ze stawki
     CASE WHEN sp.StanPrzed = 1
          THEN ROUND(
-               COALESCE(NULLIF(e.TrE_WartoscPrzedKorekta, 0), org_agg.NettoOrg, 0)
+               (COALESCE(NULLIF(e.TrE_WartoscPrzedKorekta, 0), org_agg.NettoOrg, 0)
+                + COALESCE(buf_elem.TrE_KsiegowaNetto, 0))
                * CASE COALESCE(NULLIF(e.TrE_GrupaPodPrzedKorekta, ''), org_agg.GrupaOrg, e.TrE_GrupaPod)
                    WHEN 'A' THEN 0.23 WHEN 'B' THEN 0.08 WHEN 'C' THEN 0.05
                    ELSE 0 END
              , 2)
          ELSE ROUND(
-               COALESCE(NULLIF(e.TrE_WartoscPrzedKorekta, 0), org_agg.NettoOrg, 0)
+               (COALESCE(NULLIF(e.TrE_WartoscPrzedKorekta, 0), org_agg.NettoOrg, 0)
+                + COALESCE(buf_elem.TrE_KsiegowaNetto, 0))
                * CASE COALESCE(NULLIF(e.TrE_GrupaPodPrzedKorekta, ''), org_agg.GrupaOrg, e.TrE_GrupaPod)
                    WHEN 'A' THEN 0.23 WHEN 'B' THEN 0.08 WHEN 'C' THEN 0.05
                    ELSE 0 END
@@ -279,6 +294,14 @@ LEFT JOIN (
     ON  org_agg.TrE_GIDTyp   = 2033
     AND org_agg.TrE_GIDNumer = orr.orig_gid
     AND org_agg.TrE_TwrNumer = e.TrE_TwrNumer
+
+-- Delta skontowa z bufora 2009 (gdy FSK idzie przez bufor, nie bezpośrednio do FS)
+-- Koryguje StanPrzed o wcześniejsze korekty wartościowe (skonto)
+LEFT JOIN CDN.TraElem buf_elem
+    ON  buf_elem.TrE_GIDTyp   = n.TrN_ZwrTyp
+    AND buf_elem.TrE_GIDNumer = n.TrN_ZwrNumer
+    AND buf_elem.TrE_TwrNumer = e.TrE_TwrNumer
+    AND n.TrN_ZwrTyp          = 2009
 
 -- Dwa wiersze per pozycja (StanPrzed + StanPo)
 CROSS JOIN (VALUES (1), (0)) sp(StanPrzed)
