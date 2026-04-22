@@ -187,27 +187,37 @@ def _flag_to_human(reason: str) -> None:
         _LOG.warning('{"event": "flag_failed"}', exc_info=True)
 
 
+def _env_float(key: str, fallback: float) -> float:
+    val = os.environ.get(key)
+    return float(val) if val else fallback
+
+
+def _env_int(key: str, fallback: int) -> int:
+    val = os.environ.get(key)
+    return int(val) if val else fallback
+
+
 def _parse_args():
     p = argparse.ArgumentParser(description="KSeF watchdog — auto-restart daemon")
-    p.add_argument("--interval", type=float, default=900.0,
-                   help="Daemon tick interval in seconds (passed to daemon)")
-    p.add_argument("--tick-timeout", type=float, default=300.0,
-                   help="Daemon tick timeout in seconds (passed to daemon)")
-    p.add_argument("--max-restarts", type=int, default=_DEFAULT_MAX_RESTARTS_PER_HOUR,
-                   help="Max restarts per hour before stopping (default 5)")
-    p.add_argument("--heartbeat-stale", type=float, default=_DEFAULT_HEARTBEAT_STALE_S,
-                   help="Seconds before heartbeat considered stale (default 1200)")
-    p.add_argument("--dry-run", action="store_true",
-                   help="Pass --dry-run to daemon")
-    p.add_argument("--rate-limit", type=int, default=10,
-                   help="Pass --rate-limit to daemon")
-    p.add_argument("--error-threshold", type=int, default=3,
-                   help="Pass --error-threshold to daemon")
+    p.add_argument("--interval", type=float,
+                   default=_env_float("KSEF_DAEMON_INTERVAL", 900.0))
+    p.add_argument("--tick-timeout", type=float,
+                   default=_env_float("KSEF_DAEMON_TICK_TIMEOUT", 300.0))
+    p.add_argument("--max-restarts", type=int,
+                   default=_env_int("KSEF_WATCHDOG_MAX_RESTARTS", 5))
+    p.add_argument("--heartbeat-stale", type=float,
+                   default=_env_float("KSEF_WATCHDOG_HEARTBEAT_STALE", 1200.0))
+    p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--rate-limit", type=int,
+                   default=_env_int("KSEF_DAEMON_RATE_LIMIT", 10))
+    p.add_argument("--error-threshold", type=int,
+                   default=_env_int("KSEF_DAEMON_ERROR_THRESHOLD", 3))
     return p.parse_args()
 
 
 def main() -> int:
-    import argparse as _ap
+    from dotenv import load_dotenv
+    load_dotenv(override=False)
 
     logging.basicConfig(
         level=logging.INFO,

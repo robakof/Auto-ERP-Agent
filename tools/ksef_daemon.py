@@ -277,6 +277,8 @@ def _dry_run_factory(doc: PendingDocument) -> SendResult:
 
 
 def main() -> int:
+    from dotenv import load_dotenv
+    load_dotenv(override=False)
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(name)s %(message)s",
@@ -319,17 +321,28 @@ def main() -> int:
         return 0
 
 
+def _env_float(key: str, fallback: float) -> float:
+    val = os.environ.get(key)
+    return float(val) if val else fallback
+
+
+def _env_int(key: str, fallback: int) -> int:
+    val = os.environ.get(key)
+    return int(val) if val else fallback
+
+
 def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="KSeF daemon — auto-scan + send")
-    p.add_argument("--interval", type=float, default=60.0, help="Sekundy miedzy tickami (default 60)")
-    p.add_argument("--once", action="store_true", help="Single scan + send, exit")
-    p.add_argument("--dry-run", action="store_true", help="Scan only, show what would be sent")
-    p.add_argument("--rate-limit", type=int, default=10,
-                   help="Max dokumentow/min (0 = wylaczony, default 10)")
-    p.add_argument("--error-threshold", type=int, default=3,
-                   help="ERROR/REJECTED per tick -> flag (0 = wylaczone, default 3)")
-    p.add_argument("--tick-timeout", type=float, default=300.0,
-                   help="Warning jesli tick trwa dluzej niz N sekund (default 300)")
+    p.add_argument("--interval", type=float,
+                   default=_env_float("KSEF_DAEMON_INTERVAL", 60.0))
+    p.add_argument("--once", action="store_true")
+    p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--rate-limit", type=int,
+                   default=_env_int("KSEF_DAEMON_RATE_LIMIT", 10))
+    p.add_argument("--error-threshold", type=int,
+                   default=_env_int("KSEF_DAEMON_ERROR_THRESHOLD", 3))
+    p.add_argument("--tick-timeout", type=float,
+                   default=_env_float("KSEF_DAEMON_TICK_TIMEOUT", 300.0))
     return p.parse_args()
 
 
