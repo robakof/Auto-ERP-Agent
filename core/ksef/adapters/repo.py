@@ -85,6 +85,54 @@ class ShipmentRepository:
         sql = _SCHEMA_PATH.read_text(encoding="utf-8")
         with self._connect() as conn:
             conn.executescript(sql)
+            self._migrate(conn)
+
+    def _migrate(self, conn) -> None:
+        """Run schema migrations beyond v1."""
+        ver = conn.execute(
+            "SELECT MAX(version) FROM schema_version"
+        ).fetchone()[0] or 1
+        if ver < 2:
+            # v2: widen rodzaj CHECK to include FSK_SKONTO
+            # SQLite cannot ALTER CHECK — recreate table
+            conn.executescript("""
+                PRAGMA foreign_keys = OFF;
+                CREATE TABLE IF NOT EXISTS ksef_wysylka_new (
+                    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                    gid_erp           INTEGER NOT NULL,
+                    rodzaj            TEXT    NOT NULL CHECK (rodzaj IN ('FS', 'FSK', 'FSK_SKONTO')),
+                    nr_faktury        TEXT    NOT NULL,
+                    data_wystawienia  DATE    NOT NULL,
+                    xml_path          TEXT    NOT NULL,
+                    xml_hash          TEXT    NOT NULL,
+                    status            TEXT    NOT NULL CHECK (status IN (
+                                          'DRAFT','QUEUED','AUTH_PENDING',
+                                          'SENT','ACCEPTED','REJECTED','ERROR'
+                                      )),
+                    ksef_session_ref  TEXT,
+                    ksef_invoice_ref  TEXT,
+                    ksef_number       TEXT,
+                    upo_path          TEXT,
+                    error_code        TEXT,
+                    error_msg         TEXT,
+                    attempt           INTEGER NOT NULL DEFAULT 1,
+                    created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    queued_at         TIMESTAMP,
+                    sent_at           TIMESTAMP,
+                    accepted_at       TIMESTAMP,
+                    rejected_at       TIMESTAMP,
+                    errored_at        TIMESTAMP,
+                    UNIQUE (gid_erp, rodzaj, attempt)
+                );
+                INSERT OR IGNORE INTO ksef_wysylka_new SELECT * FROM ksef_wysylka;
+                DROP TABLE ksef_wysylka;
+                ALTER TABLE ksef_wysylka_new RENAME TO ksef_wysylka;
+                CREATE INDEX IF NOT EXISTS idx_ksef_status ON ksef_wysylka(status);
+                CREATE INDEX IF NOT EXISTS idx_ksef_gid_rodzaj ON ksef_wysylka(gid_erp, rodzaj);
+                CREATE INDEX IF NOT EXISTS idx_ksef_xml_hash ON ksef_wysylka(xml_hash);
+                INSERT OR IGNORE INTO schema_version(version) VALUES (2);
+                PRAGMA foreign_keys = ON;
+            """)
 
     # ---- queries -----------------------------------------------------
 

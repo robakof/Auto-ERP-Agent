@@ -6,7 +6,7 @@ PRAGMA journal_mode = WAL;
 CREATE TABLE IF NOT EXISTS ksef_wysylka (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,
     gid_erp           INTEGER NOT NULL,
-    rodzaj            TEXT    NOT NULL CHECK (rodzaj IN ('FS', 'FSK')),
+    rodzaj            TEXT    NOT NULL CHECK (rodzaj IN ('FS', 'FSK', 'FSK_SKONTO')),
     nr_faktury        TEXT    NOT NULL,
     data_wystawienia  DATE    NOT NULL,
     xml_path          TEXT    NOT NULL,

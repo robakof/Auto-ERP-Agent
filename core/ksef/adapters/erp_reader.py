@@ -37,6 +37,7 @@ from core.ksef.exceptions import KSefError
 _BASE = Path(__file__).resolve().parents[3]
 SQL_PATH_FS = _BASE / "solutions" / "ksef" / "ksef_fs_draft.sql"
 SQL_PATH_FSK = _BASE / "solutions" / "ksef" / "ksef_fsk_draft.sql"
+SQL_PATH_FSK_SKONTO = _BASE / "solutions" / "ksef" / "ksef_fsk_skonto_draft.sql"
 
 _WHERE_FS = "WHERE n.TrN_GIDTyp = 2033"
 _WHERE_FSK = "WHERE n.TrN_GIDTyp = 2041"
@@ -97,6 +98,22 @@ class ErpReader:
         date_to: date | str | None = None,
     ) -> list[Korekta]:
         rows = self._execute(SQL_PATH_FSK, _WHERE_FSK, _Filters(gids, date_from, date_to))
+        if not rows:
+            return []
+        rows.sort(key=itemgetter("_GIDNumer"))
+        return [self._rows_to_korekta(list(g)) for _, g in groupby(rows, key=itemgetter("_GIDNumer"))]
+
+    def fetch_korekty_skonto(
+        self, *, gids: list[int] | None = None,
+        date_from: date | str | None = None,
+        date_to: date | str | None = None,
+    ) -> list[Korekta]:
+        """Korekty skontowe (rabat wartosciowy, brak TraElem, ZwrNumer=0).
+
+        Pozycje pobierane z bufora 2009, oryginalna FS przez lancuch bufor->FS.
+        Reuse _rows_to_korekta — SQL zwraca identyczna strukture kolumn.
+        """
+        rows = self._execute(SQL_PATH_FSK_SKONTO, _WHERE_FSK, _Filters(gids, date_from, date_to))
         if not rows:
             return []
         rows.sort(key=itemgetter("_GIDNumer"))

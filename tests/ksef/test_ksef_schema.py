@@ -49,13 +49,13 @@ def test_init_schema_is_idempotent(tmp_path: Path) -> None:
     repo.init_schema()  # second run must not raise
     with sqlite3.connect(path) as conn:
         count = conn.execute("SELECT COUNT(*) FROM schema_version").fetchone()[0]
-    assert count == 1
+    assert count == 2  # v1 (base) + v2 (FSK_SKONTO migration)
 
 
-def test_schema_version_is_one(db_path: Path) -> None:
+def test_schema_version_is_current(db_path: Path) -> None:
     with sqlite3.connect(db_path) as conn:
         version = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0]
-    assert version == 1
+    assert version == 2
 
 
 def test_status_check_constraint_rejects_invalid(db_path: Path) -> None:

@@ -252,6 +252,11 @@ def _generate_xml(reader: ErpReader, builder: XmlBuilder, doc: PendingDocument) 
         if not faktury:
             raise ValueError(f"ErpReader zwrocil 0 faktur dla GID={doc.gid}")
         xml_bytes = builder.build_faktura(faktury[0])
+    elif doc.rodzaj == "FSK_SKONTO":
+        korekty = reader.fetch_korekty_skonto(gids=[doc.gid])
+        if not korekty:
+            raise ValueError(f"ErpReader zwrocil 0 korekt-skonto dla GID={doc.gid}")
+        xml_bytes = builder.build_korekta(korekty[0])
     else:
         korekty = reader.fetch_korekty(gids=[doc.gid])
         if not korekty:
@@ -259,7 +264,7 @@ def _generate_xml(reader: ErpReader, builder: XmlBuilder, doc: PendingDocument) 
         xml_bytes = builder.build_korekta(korekty[0])
 
     d = doc.data_wystawienia
-    prefix = "ksef_kor_" if doc.rodzaj == "FSK" else "ksef_"
+    prefix = "ksef_kor_" if doc.rodzaj in ("FSK", "FSK_SKONTO") else "ksef_"
     filename = f"{prefix}{doc.rodzaj}-{doc.gid}_{d.strftime('%m_%y')}_{d.isoformat()}.xml"
     path = _OUTPUT_DIR / filename
     path.write_bytes(xml_bytes)

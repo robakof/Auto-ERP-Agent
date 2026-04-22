@@ -37,7 +37,8 @@ SELECT
         + '/' + RIGHT('0' + CAST(MONTH(DATEADD(day, n.TrN_Data2, '1800-12-28')) AS VARCHAR(2)), 2)
         + '/' + RIGHT(CAST(YEAR(DATEADD(day, n.TrN_Data2, '1800-12-28')) AS VARCHAR(4)), 2)
         + '/' + RTRIM(n.TrN_TrNSeria)                      AS nr_faktury,
-    CONVERT(DATE, DATEADD(day, n.TrN_Data2, '1800-12-28'))  AS data_wystawienia
+    CONVERT(DATE, DATEADD(day, n.TrN_Data2, '1800-12-28'))  AS data_wystawienia,
+    CASE WHEN n.TrN_ZwrNumer = 0 THEN 1 ELSE 0 END         AS is_skonto
 FROM CDN.TraNag n
 WHERE n.TrN_GIDTyp = 2041
   AND n.TrN_Stan IN (3, 4, 5)
@@ -77,10 +78,11 @@ class ScanErpUseCase:
         pending.sort(key=lambda d: d.data_wystawienia)
 
         _LOG.info(
-            '{"event": "scan_complete", "erp_total": %d, "pending": %d, "fs": %d, "fsk": %d}',
+            '{"event": "scan_complete", "erp_total": %d, "pending": %d, "fs": %d, "fsk": %d, "fsk_skonto": %d}',
             len(all_docs), len(pending),
             sum(1 for d in pending if d.rodzaj == "FS"),
             sum(1 for d in pending if d.rodzaj == "FSK"),
+            sum(1 for d in pending if d.rodzaj == "FSK_SKONTO"),
         )
         return pending
 
@@ -98,9 +100,12 @@ class ScanErpUseCase:
         for row in rows:
             row_dict = dict(zip(columns, row)) if isinstance(row, (list, tuple)) else row
             try:
+                actual_rodzaj = rodzaj
+                if rodzaj == "FSK" and int(row_dict.get("is_skonto", 0)):
+                    actual_rodzaj = "FSK_SKONTO"
                 docs.append(PendingDocument(
                     gid=int(row_dict["gid"]),
-                    rodzaj=rodzaj,
+                    rodzaj=actual_rodzaj,
                     nr_faktury=str(row_dict["nr_faktury"]),
                     data_wystawienia=_parse_date(row_dict["data_wystawienia"]),
                 ))
