@@ -162,12 +162,14 @@ class AttributeApp(Tk):
     def _on_run(self):
         if not self._picked_file:
             return
+        operator = self._operator.get().strip() or None
+        if not operator:
+            messagebox.showerror("Brak operatora", "Wpisz identyfikator operatora ERP przed uruchomieniem.")
+            return
         self._run_btn.configure(state="disabled")
         self._open_btn.configure(state="disabled")
         self._status_var.set("Trwa aktualizacja…")
         self.update()
-
-        operator = self._operator.get().strip() or None
         report = _DEFAULT_REPORT
 
         def _worker():
