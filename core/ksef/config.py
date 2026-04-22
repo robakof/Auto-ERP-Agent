@@ -23,6 +23,18 @@ class KSefConfig:
         return self.env == "demo"
 
 
+@dataclass(frozen=True)
+class SmtpConfig:
+    host: str
+    port: int
+    user: str
+    password: str
+    use_ssl: bool
+    report_from: str
+    report_to: str
+    subject_prefix: str
+
+
 def load_config(dotenv_path: Path | None = None) -> KSefConfig:
     """Load KSeF config from .env (or environment already set).
 
@@ -60,4 +72,41 @@ def load_config(dotenv_path: Path | None = None) -> KSefConfig:
         base_url=base_url,
         nip=nip,
         ksef_token=(os.getenv("KSEF_TOKEN") or None),
+    )
+
+
+def load_smtp_config(dotenv_path: Path | None = None) -> SmtpConfig:
+    """Load SMTP config from .env. All KSEF_SMTP_* keys required."""
+    if dotenv_path is not None:
+        load_dotenv(dotenv_path, override=False)
+    else:
+        load_dotenv(override=False)
+
+    host = (os.getenv("KSEF_SMTP_HOST") or "").strip()
+    if not host:
+        raise ValueError("KSEF_SMTP_HOST is required")
+
+    port = int(os.getenv("KSEF_SMTP_PORT") or "465")
+
+    user = (os.getenv("KSEF_SMTP_USER") or "").strip()
+    if not user:
+        raise ValueError("KSEF_SMTP_USER is required")
+
+    password = os.getenv("KSEF_SMTP_PASS") or ""
+    if not password:
+        raise ValueError("KSEF_SMTP_PASS is required")
+
+    use_ssl = (os.getenv("KSEF_SMTP_SSL") or "true").strip().lower() == "true"
+
+    report_from = (os.getenv("KSEF_REPORT_FROM") or user).strip()
+    report_to = (os.getenv("KSEF_REPORT_TO") or "").strip()
+    if not report_to:
+        raise ValueError("KSEF_REPORT_TO is required")
+
+    subject_prefix = (os.getenv("KSEF_REPORT_SUBJECT_PREFIX") or "[KSeF]").strip()
+
+    return SmtpConfig(
+        host=host, port=port, user=user, password=password,
+        use_ssl=use_ssl, report_from=report_from, report_to=report_to,
+        subject_prefix=subject_prefix,
     )

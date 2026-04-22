@@ -51,6 +51,8 @@ docs.db
 
 # Pliki z danymi dostępowymi (credentials)
 **/API JAS.txt
+**/Hasło do raporty.txt
+**/mail raporty dane smtp.png
 
 # Błędne pliki systemowe
 nul
