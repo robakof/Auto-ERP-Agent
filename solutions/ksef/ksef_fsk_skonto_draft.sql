@@ -1,10 +1,10 @@
 -- KSeF FA(3) KOR-SKONTO — SELECT źródłowy dla korekt skontowych (rabat wartościowy)
 -- Korekta skontowa: TrN_GIDTyp = 2041, TrN_ZwrNumer = 0 (brak bezpośredniego linka)
 -- Powiązanie: FSK-skonto → bufor 2009 (po knt+kwocie+dacie) → oryginalna FS (2033)
--- Pozycje z bufora 2009 (TrE_Ilosc=0, TrE_KsiegowaNetto<0 = rabat per towar)
--- StanPrzed = wartości z oryginalnej FS (po TwrNumer)
--- StanPo = StanPrzed + delta z bufora (KsiegowaNetto ujemne = rabat)
--- Granulacja: 2 wiersze per pozycja (CROSS JOIN StanPrzed 1/0)
+-- Agregacja per stawka VAT (nie per towar) — skonto to korekta wartościowa zbiorczaj
+-- StanPrzed = sumy netto/VAT z oryginalnej FS per stawka (TraVat)
+-- StanPo = oryginał + delta ze skonta per stawka
+-- Granulacja: 2 wiersze per stawkę VAT (CROSS JOIN StanPrzed 1/0)
 
 WITH buf_match AS (
     -- Znajdź bufor 2009 powiązany z FSK-skonto
@@ -28,6 +28,38 @@ WITH buf_match AS (
         AND buf.TrN_ZwrTyp    = 2033
     WHERE fsk.TrN_GIDTyp  = 2041
       AND fsk.TrN_ZwrNumer = 0
+),
+
+-- Sumy VAT z oryginalnej FS per stawka
+vat_orig AS (
+    SELECT
+        bm.fsk_gid,
+        ov.TrV_StawkaPod,
+        ov.TrV_FlagaVat,
+        SUM(ov.TrV_NettoR)              AS NettoOrg,
+        SUM(ov.TrV_VatR)                AS VatOrg,
+        ROW_NUMBER() OVER (
+            PARTITION BY bm.fsk_gid
+            ORDER BY ov.TrV_FlagaVat, ov.TrV_StawkaPod DESC
+        ) AS nr_poz
+    FROM buf_match bm
+    JOIN CDN.TraVat ov
+        ON  ov.TrV_GIDTyp   = 2033
+        AND ov.TrV_GIDNumer  = bm.orig_gid
+    WHERE bm.rn = 1
+    GROUP BY bm.fsk_gid, ov.TrV_StawkaPod, ov.TrV_FlagaVat
+),
+
+-- Delta VAT ze skonta per stawka
+vat_delta AS (
+    SELECT
+        TrV_GIDNumer,
+        TrV_StawkaPod,
+        SUM(TrV_NettoR)                 AS NettoDelta,
+        SUM(TrV_VatR)                   AS VatDelta
+    FROM CDN.TraVat
+    WHERE TrV_GIDTyp = 2041
+    GROUP BY TrV_GIDNumer, TrV_StawkaPod
 )
 
 SELECT
@@ -93,18 +125,18 @@ SELECT
     ))                                                          AS Kor_PrzyczynaKorekty,
 
     -- =========================================================
-    -- FA — VAT per stawka (pivot z CDN.TraVat) — kwoty RÓŻNIC (delta)
+    -- FA — VAT per stawka (pivot z CDN.TraVat FSK-skonto) — kwoty RÓŻNIC (delta)
     -- =========================================================
-    v23.NettoR                                                  AS Fa_P13_1_Podstawa23,
-    v23.VatR                                                    AS Fa_P14_1_VAT23,
-    v8.NettoR                                                   AS Fa_P13_2_Podstawa8,
-    v8.VatR                                                     AS Fa_P14_2_VAT8,
-    v5.NettoR                                                   AS Fa_P13_3_Podstawa5,
-    v5.VatR                                                     AS Fa_P14_3_VAT5,
-    v0.NettoR                                                   AS Fa_P13_5_Podstawa0,
-    v0.VatR                                                     AS Fa_P14_5_VAT0,
-    vZW.NettoR                                                  AS Fa_P13_6_PodstawaZW,
-    vNP.NettoR                                                  AS Fa_P13_7_PodstawaNP,
+    sv23.NettoR                                                 AS Fa_P13_1_Podstawa23,
+    sv23.VatR                                                   AS Fa_P14_1_VAT23,
+    sv8.NettoR                                                  AS Fa_P13_2_Podstawa8,
+    sv8.VatR                                                    AS Fa_P14_2_VAT8,
+    sv5.NettoR                                                  AS Fa_P13_3_Podstawa5,
+    sv5.VatR                                                    AS Fa_P14_3_VAT5,
+    sv0.NettoR                                                  AS Fa_P13_5_Podstawa0,
+    sv0.VatR                                                    AS Fa_P14_5_VAT0,
+    svZW.NettoR                                                 AS Fa_P13_6_PodstawaZW,
+    svNP.NettoR                                                 AS Fa_P13_7_PodstawaNP,
 
     n.TrN_NettoR + n.TrN_VatR                                   AS Fa_P15_KwotaNaleznosci,
 
@@ -112,10 +144,10 @@ SELECT
     '2'                                                         AS Fa_P18_SelfBilling,
 
     -- =========================================================
-    -- FaWiersz — para wierszy per pozycja (StanPrzed + StanPo)
-    -- Pozycje z bufora 2009, wartości oryginalne z FS
+    -- FaWiersz — 1 para per stawkę VAT (StanPrzed + StanPo)
+    -- Agregacja per stawka z TraVat oryginalnej FS + delta ze skonta
     -- =========================================================
-    be.TrE_GIDLp                                                AS Wiersz_NrPozycji,
+    vo.nr_poz                                                   AS Wiersz_NrPozycji,
     sp.StanPrzed                                                AS Wiersz_StanPrzed,
 
     -- Data korekty: NULL dla StanPrzed, data wystawienia korekty dla StanPo
@@ -124,62 +156,52 @@ SELECT
          ELSE CONVERT(DATE, DATEADD(day, n.TrN_Data2, '1800-12-28'))
     END                                                         AS Wiersz_DataKorekty,
 
-    -- Atrybuty stałe (takie same w StanPrzed i StanPo)
-    RTRIM(be.TrE_TwrNazwa)                                      AS Wiersz_P7_NazwaTowaru,
-    RTRIM(be.TrE_TwrKod)                                        AS Wiersz_Indeks,
-    NULL                                                        AS Wiersz_PKWiU,
-    RTRIM(be.TrE_JmZ)                                           AS Wiersz_P8A_JM,
-
-    -- Ilość: taka sama przed i po (skonto nie zmienia ilości)
-    COALESCE(oe.IloscOrg, 0)                                    AS Wiersz_P8B_Ilosc,
-
-    -- Cena brutto jednostkowa = cena netto * (1 + stawka/100)
+    -- Nazwa pozycji: StanPrzed = nr faktury korygowanej, StanPo = "Po skoncie"
     CASE WHEN sp.StanPrzed = 1
-         THEN ROUND(
-               COALESCE(oe.CenaOrg, be.TrE_Cena)
-               * (1 + CASE COALESCE(oe.GrupaOrg, be.TrE_GrupaPod)
-                        WHEN 'A' THEN 0.23 WHEN 'B' THEN 0.08 WHEN 'C' THEN 0.05
-                        ELSE 0 END)
-             , 2)
-         ELSE ROUND(
-               (COALESCE(oe.NettoOrg, 0) + be.TrE_KsiegowaNetto)
-               / NULLIF(COALESCE(oe.IloscOrg, 1), 0)
-               * (1 + CASE COALESCE(oe.GrupaOrg, be.TrE_GrupaPod)
-                        WHEN 'A' THEN 0.23 WHEN 'B' THEN 0.08 WHEN 'C' THEN 0.05
-                        ELSE 0 END)
-             , 2)
+         THEN 'FS-' + CAST(orig.TrN_TrNNumer AS VARCHAR(20))
+              + '/' + RIGHT('0' + CAST(MONTH(DATEADD(day, orig.TrN_Data2, '1800-12-28')) AS VARCHAR(2)), 2)
+              + '/' + RIGHT(CAST(YEAR(DATEADD(day, orig.TrN_Data2, '1800-12-28')) AS VARCHAR(4)), 2)
+              + '/' + RTRIM(orig.TrN_TrNSeria)
+         ELSE 'Po skoncie'
+    END                                                         AS Wiersz_P7_NazwaTowaru,
+    NULL                                                        AS Wiersz_Indeks,
+    NULL                                                        AS Wiersz_PKWiU,
+    'szt.'                                                      AS Wiersz_P8A_JM,
+
+    -- Ilość = 1 (pozycja zbiorcza per stawka)
+    CAST(1 AS DECIMAL(18,4))                                    AS Wiersz_P8B_Ilosc,
+
+    -- Cena brutto = (netto + VAT) / 1
+    CASE WHEN sp.StanPrzed = 1
+         THEN ROUND(vo.NettoOrg + vo.VatOrg, 2)
+         ELSE ROUND((vo.NettoOrg + COALESCE(dv.NettoDelta, 0))
+                   + (vo.VatOrg  + COALESCE(dv.VatDelta, 0)), 2)
     END                                                         AS Wiersz_P9B_CenaBrutto,
 
-    -- Wartość netto pozycji
+    -- Wartość netto
     CASE WHEN sp.StanPrzed = 1
-         THEN COALESCE(oe.NettoOrg, 0)
-         ELSE COALESCE(oe.NettoOrg, 0) + be.TrE_KsiegowaNetto
+         THEN ROUND(vo.NettoOrg, 2)
+         ELSE ROUND(vo.NettoOrg + COALESCE(dv.NettoDelta, 0), 2)
     END                                                         AS Wiersz_P11A_WartoscNetto,
 
-    -- Kwota VAT pozycji
+    -- Kwota VAT
     CASE WHEN sp.StanPrzed = 1
-         THEN ROUND(
-               COALESCE(oe.NettoOrg, 0)
-               * CASE COALESCE(oe.GrupaOrg, be.TrE_GrupaPod)
-                   WHEN 'A' THEN 0.23 WHEN 'B' THEN 0.08 WHEN 'C' THEN 0.05
-                   ELSE 0 END
-             , 2)
-         ELSE ROUND(
-               (COALESCE(oe.NettoOrg, 0) + be.TrE_KsiegowaNetto)
-               * CASE COALESCE(oe.GrupaOrg, be.TrE_GrupaPod)
-                   WHEN 'A' THEN 0.23 WHEN 'B' THEN 0.08 WHEN 'C' THEN 0.05
-                   ELSE 0 END
-             , 2)
+         THEN ROUND(vo.VatOrg, 2)
+         ELSE ROUND(vo.VatOrg + COALESCE(dv.VatDelta, 0), 2)
     END                                                         AS Wiersz_P11Vat,
 
     -- Stawka VAT (symbol: 23/8/5/0/ZW/NP)
-    CASE COALESCE(oe.GrupaOrg, be.TrE_GrupaPod)
-        WHEN 'A' THEN '23' WHEN 'B' THEN '8' WHEN 'C' THEN '5'
-        WHEN 'F' THEN '0' WHEN 'D' THEN 'ZW' WHEN 'E' THEN 'NP'
-        ELSE CAST(CAST(be.TrE_StawkaPod AS DECIMAL(5,0)) AS VARCHAR(5))
+    CASE
+        WHEN vo.TrV_StawkaPod = '23.00' THEN '23'
+        WHEN vo.TrV_StawkaPod = '8.00'  THEN '8'
+        WHEN vo.TrV_StawkaPod = '5.00'  THEN '5'
+        WHEN vo.TrV_StawkaPod = '0.00'  THEN '0'
+        WHEN vo.TrV_FlagaVat  = 2       THEN 'ZW'
+        WHEN vo.TrV_FlagaVat  = 0       THEN 'NP'
+        ELSE CAST(CAST(vo.TrV_StawkaPod AS DECIMAL(5,0)) AS VARCHAR(5))
     END                                                         AS Wiersz_P12_StawkaVAT,
 
-    NULLIF(RTRIM(tk.Twr_Ean), '')                               AS Wiersz_GTIN,
+    NULL                                                        AS Wiersz_GTIN,
 
     -- =========================================================
     -- Płatność (CDN.TraPlat + CDN.Rejestry)
@@ -241,37 +263,26 @@ JOIN CDN.KntKarty k
     ON  k.Knt_GIDNumer = n.TrN_KntNumer
     AND k.Knt_GIDTyp   = 32
 
--- Pozycje z bufora 2009
-JOIN CDN.TraElem be
-    ON  be.TrE_GIDTyp   = bm.buf_typ
-    AND be.TrE_GIDNumer  = bm.buf_gid
+-- Sumy VAT z oryginalnej FS (1 wiersz per stawka)
+JOIN vat_orig vo
+    ON  vo.fsk_gid = n.TrN_GIDNumer
 
--- Agregacja pozycji oryginału per TwrNumer (wartości przed korektą)
-LEFT JOIN (
-    SELECT TrE_GIDTyp, TrE_GIDNumer, TrE_TwrNumer,
-           SUM(TrE_Ilosc)                            AS IloscOrg,
-           MAX(TrE_Cena)                             AS CenaOrg,
-           SUM(TrE_KsiegowaNetto)                    AS NettoOrg,
-           SUM(TrE_KsiegowaBrutto - TrE_KsiegowaNetto) AS VatOrg,
-           MAX(TrE_GrupaPod)                         AS GrupaOrg
-    FROM CDN.TraElem
-    GROUP BY TrE_GIDTyp, TrE_GIDNumer, TrE_TwrNumer
-) oe
-    ON  oe.TrE_GIDTyp   = 2033
-    AND oe.TrE_GIDNumer  = bm.orig_gid
-    AND oe.TrE_TwrNumer  = be.TrE_TwrNumer
+-- Delta VAT ze skonta (per stawka)
+LEFT JOIN vat_delta dv
+    ON  dv.TrV_GIDNumer  = n.TrN_GIDNumer
+    AND dv.TrV_StawkaPod = vo.TrV_StawkaPod
 
--- Dwa wiersze per pozycja (StanPrzed + StanPo)
+-- Dwa wiersze per stawkę (StanPrzed + StanPo)
 CROSS JOIN (VALUES (1), (0)) sp(StanPrzed)
 
--- VAT 23%
+-- VAT 23% (z FSK-skonto, dla nagłówka P_13/P_14)
 LEFT JOIN (
     SELECT TrV_GIDTyp, TrV_GIDNumer,
            SUM(TrV_NettoR) AS NettoR, SUM(TrV_VatR) AS VatR
     FROM CDN.TraVat
     WHERE TrV_FlagaVat = 1 AND TrV_StawkaPod = '23.00'
     GROUP BY TrV_GIDTyp, TrV_GIDNumer
-) v23 ON v23.TrV_GIDTyp = n.TrN_GIDTyp AND v23.TrV_GIDNumer = n.TrN_GIDNumer
+) sv23 ON sv23.TrV_GIDTyp = n.TrN_GIDTyp AND sv23.TrV_GIDNumer = n.TrN_GIDNumer
 
 -- VAT 8%
 LEFT JOIN (
@@ -280,7 +291,7 @@ LEFT JOIN (
     FROM CDN.TraVat
     WHERE TrV_FlagaVat = 1 AND TrV_StawkaPod = '8.00'
     GROUP BY TrV_GIDTyp, TrV_GIDNumer
-) v8 ON v8.TrV_GIDTyp = n.TrN_GIDTyp AND v8.TrV_GIDNumer = n.TrN_GIDNumer
+) sv8 ON sv8.TrV_GIDTyp = n.TrN_GIDTyp AND sv8.TrV_GIDNumer = n.TrN_GIDNumer
 
 -- VAT 5%
 LEFT JOIN (
@@ -289,7 +300,7 @@ LEFT JOIN (
     FROM CDN.TraVat
     WHERE TrV_FlagaVat = 1 AND TrV_StawkaPod = '5.00'
     GROUP BY TrV_GIDTyp, TrV_GIDNumer
-) v5 ON v5.TrV_GIDTyp = n.TrN_GIDTyp AND v5.TrV_GIDNumer = n.TrN_GIDNumer
+) sv5 ON sv5.TrV_GIDTyp = n.TrN_GIDTyp AND sv5.TrV_GIDNumer = n.TrN_GIDNumer
 
 -- VAT 0%
 LEFT JOIN (
@@ -298,7 +309,7 @@ LEFT JOIN (
     FROM CDN.TraVat
     WHERE TrV_FlagaVat = 1 AND TrV_StawkaPod = '0.00'
     GROUP BY TrV_GIDTyp, TrV_GIDNumer
-) v0 ON v0.TrV_GIDTyp = n.TrN_GIDTyp AND v0.TrV_GIDNumer = n.TrN_GIDNumer
+) sv0 ON sv0.TrV_GIDTyp = n.TrN_GIDTyp AND sv0.TrV_GIDNumer = n.TrN_GIDNumer
 
 -- VAT ZW (FlagaVat=2)
 LEFT JOIN (
@@ -306,7 +317,7 @@ LEFT JOIN (
     FROM CDN.TraVat
     WHERE TrV_FlagaVat = 2
     GROUP BY TrV_GIDTyp, TrV_GIDNumer
-) vZW ON vZW.TrV_GIDTyp = n.TrN_GIDTyp AND vZW.TrV_GIDNumer = n.TrN_GIDNumer
+) svZW ON svZW.TrV_GIDTyp = n.TrN_GIDTyp AND svZW.TrV_GIDNumer = n.TrN_GIDNumer
 
 -- VAT NP (FlagaVat=0)
 LEFT JOIN (
@@ -314,7 +325,7 @@ LEFT JOIN (
     FROM CDN.TraVat
     WHERE TrV_FlagaVat = 0
     GROUP BY TrV_GIDTyp, TrV_GIDNumer
-) vNP ON vNP.TrV_GIDTyp = n.TrN_GIDTyp AND vNP.TrV_GIDNumer = n.TrN_GIDNumer
+) svNP ON svNP.TrV_GIDTyp = n.TrN_GIDTyp AND svNP.TrV_GIDNumer = n.TrN_GIDNumer
 
 -- Płatność (pierwsza rata)
 LEFT JOIN (
@@ -329,10 +340,7 @@ LEFT JOIN (
     AND p.TrP_GIDNumer  = n.TrN_GIDNumer
     AND p.rn            = 1
 
--- EAN towaru
-LEFT JOIN CDN.TwrKarty tk ON tk.Twr_GIDNumer = be.TrE_TwrNumer
-
 
 WHERE n.TrN_GIDTyp = 2041
 
-ORDER BY n.TrN_GIDNumer, be.TrE_GIDLp, sp.StanPrzed DESC
+ORDER BY n.TrN_GIDNumer, vo.nr_poz, sp.StanPrzed DESC

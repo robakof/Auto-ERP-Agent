@@ -124,7 +124,9 @@ SELECT
     -- FaWiersz — para wierszy per pozycja (StanPrzed + StanPo)
     -- Model: CROSS JOIN VALUES (1),(0) generuje dwa wiersze
     -- =========================================================
-    e.TrE_GIDLp                                                 AS Wiersz_NrPozycji,
+    DENSE_RANK() OVER (
+        PARTITION BY n.TrN_GIDNumer ORDER BY e.TrE_GIDLp
+    )                                                           AS Wiersz_NrPozycji,
     sp.StanPrzed                                                AS Wiersz_StanPrzed,
 
     -- Data korekty: NULL dla StanPrzed, data wystawienia korekty dla StanPo
@@ -274,8 +276,8 @@ LEFT JOIN (
     FROM CDN.TraElem
     GROUP BY TrE_GIDTyp, TrE_GIDNumer, TrE_TwrNumer
 ) org_agg
-    ON  org_agg.TrE_GIDTyp   = n.TrN_ZwrTyp
-    AND org_agg.TrE_GIDNumer = n.TrN_ZwrNumer
+    ON  org_agg.TrE_GIDTyp   = 2033
+    AND org_agg.TrE_GIDNumer = orr.orig_gid
     AND org_agg.TrE_TwrNumer = e.TrE_TwrNumer
 
 -- Dwa wiersze per pozycja (StanPrzed + StanPo)
