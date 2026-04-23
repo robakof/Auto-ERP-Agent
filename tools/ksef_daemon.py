@@ -47,6 +47,7 @@ _TMP_DIR = _PROJECT_ROOT / "tmp"
 _FLAG_REASON_FILE = _TMP_DIR / "ksef_flag.md"
 _AGENT_BUS_CLI = _PROJECT_ROOT / "tools" / "agent_bus_cli.py"
 _HEARTBEAT_PATH = _PROJECT_ROOT / "data" / "ksef_heartbeat.json"
+_DAEMON_LOG = _PROJECT_ROOT / "data" / "ksef_daemon.log"
 
 
 class KSeFDaemon:
@@ -288,6 +289,10 @@ def main() -> int:
         level=logging.INFO,
         format="%(asctime)s %(name)s %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(str(_DAEMON_LOG), encoding="utf-8"),
+        ],
     )
     args = _parse_args()
 
