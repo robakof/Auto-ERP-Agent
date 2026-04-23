@@ -116,6 +116,15 @@ class KSeFWatchdog:
 
     def _start_daemon(self) -> None:
         """Start daemon subprocess."""
+        # Remove stale heartbeat so watchdog doesn't immediately kill the new daemon
+        # (_is_heartbeat_stale returns False when file is missing — gives daemon
+        # time to write its first heartbeat)
+        if self._heartbeat_path.exists():
+            try:
+                self._heartbeat_path.unlink()
+                _LOG.info('{"event": "heartbeat_cleared"}')
+            except OSError:
+                pass
         cmd = [sys.executable, str(_PROJECT_ROOT / "tools" / "ksef_daemon.py")]
         cmd.extend(self._daemon_args)
         _LOG.info('{"event": "daemon_start", "cmd": %s}', json.dumps(cmd))
