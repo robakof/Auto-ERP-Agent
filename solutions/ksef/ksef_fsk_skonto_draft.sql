@@ -1,28 +1,23 @@
 -- KSeF FA(3) KOR-SKONTO — SELECT źródłowy dla korekt skontowych (rabat wartościowy)
 -- Korekta skontowa: TrN_GIDTyp = 2041, TrN_ZwrNumer = 0 (brak bezpośredniego linka)
--- Powiązanie: FSK-skonto → bufor 2009 (po knt+kwocie+dacie) → oryginalna FS (2033)
--- Agregacja per stawka VAT (nie per towar) — skonto to korekta wartościowa zbiorczaj
--- StanPrzed = sumy netto/VAT z oryginalnej FS per stawka (TraVat)
+-- Powiązanie: FSK-skonto → bufor(y) 2009 (po knt+dacie) → oryginalne FS (2033)
+-- UWAGA: 1 FSK-skonto może korygować WIELE oryginalnych FS (zbiorcze skonto)
+-- Agregacja per stawka VAT (nie per towar) — skonto to korekta wartościowa zbiorcza
+-- StanPrzed = sumy netto/VAT z WSZYSTKICH oryginalnych FS per stawka (TraVat)
 -- StanPo = oryginał + delta ze skonta per stawka
 -- Granulacja: 2 wiersze per stawkę VAT (CROSS JOIN StanPrzed 1/0)
 
 WITH buf_match AS (
-    -- Znajdź bufor 2009 powiązany z FSK-skonto
-    -- Matching: ten sam kontrahent, kwota netto, data wystawienia
-    SELECT
+    -- Znajdź bufor(y) 2009 powiązane z FSK-skonto
+    -- Matching: ten sam kontrahent + data wystawienia (bez kwoty — skonto zbiorcze)
+    -- Deduplikacja: DISTINCT orig_gid bo wiele buforów może wskazywać ten sam oryginał
+    SELECT DISTINCT
         fsk.TrN_GIDNumer  AS fsk_gid,
-        buf.TrN_GIDNumer  AS buf_gid,
-        buf.TrN_GIDTyp    AS buf_typ,
-        buf.TrN_ZwrNumer  AS orig_gid,
-        ROW_NUMBER() OVER (
-            PARTITION BY fsk.TrN_GIDNumer
-            ORDER BY ABS(buf.TrN_GIDNumer - fsk.TrN_GIDNumer)
-        ) AS rn
+        buf.TrN_ZwrNumer  AS orig_gid
     FROM CDN.TraNag fsk
     JOIN CDN.TraNag buf
         ON  buf.TrN_GIDTyp   = 2009
         AND buf.TrN_KntNumer  = fsk.TrN_KntNumer
-        AND buf.TrN_NettoR    = fsk.TrN_NettoR
         AND buf.TrN_Data2     = fsk.TrN_Data2
         AND buf.TrN_ZwrNumer  > 0
         AND buf.TrN_ZwrTyp    = 2033
@@ -30,7 +25,16 @@ WITH buf_match AS (
       AND fsk.TrN_ZwrNumer = 0
 ),
 
--- Sumy VAT z oryginalnej FS per stawka
+-- Wybierz jedną FS do nagłówka korekty (najnowsza = max GID)
+orig_header AS (
+    SELECT
+        fsk_gid,
+        MAX(orig_gid) AS orig_gid
+    FROM buf_match
+    GROUP BY fsk_gid
+),
+
+-- Sumy VAT z WSZYSTKICH oryginalnych FS per stawka
 vat_orig AS (
     SELECT
         bm.fsk_gid,
@@ -46,7 +50,6 @@ vat_orig AS (
     JOIN CDN.TraVat ov
         ON  ov.TrV_GIDTyp   = 2033
         AND ov.TrV_GIDNumer  = bm.orig_gid
-    WHERE bm.rn = 1
     GROUP BY bm.fsk_gid, ov.TrV_StawkaPod, ov.TrV_FlagaVat
 ),
 
@@ -226,14 +229,13 @@ SELECT
 
 FROM CDN.TraNag n
 
--- Bufor 2009 → oryginalna FS
-JOIN buf_match bm
-    ON  bm.fsk_gid = n.TrN_GIDNumer
-    AND bm.rn      = 1
+-- Jedna oryginalna FS do nagłówka (najnowsza z powiązanych)
+JOIN orig_header oh
+    ON  oh.fsk_gid = n.TrN_GIDNumer
 
--- Oryginalna faktura FS
+-- Oryginalna faktura FS (do danych nagłówkowych korekty)
 JOIN CDN.TraNag orig
-    ON  orig.TrN_GIDNumer = bm.orig_gid
+    ON  orig.TrN_GIDNumer = oh.orig_gid
     AND orig.TrN_GIDTyp   = 2033
 
 -- Opis korekty
