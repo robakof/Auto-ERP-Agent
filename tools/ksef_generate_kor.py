@@ -1,4 +1,4 @@
-"""Generuje KSeF FA(3) KOR XML dla korekt faktur sprzedazy (FSK) z ERP XL.
+"""Generuje KSeF FA(3) KOR XML dla korekt faktur sprzedazy (FSK + skonto) z ERP XL.
 
 CLI:
     py tools/ksef_generate_kor.py --gid 1
@@ -7,7 +7,7 @@ CLI:
     py tools/ksef_generate_kor.py --validate output/schemat_FA3.xsd --gid 1
     py tools/ksef_generate_kor.py --dry-run --gid 1
 
-Thin wrapper nad core/ksef/ (adapters: erp_reader, xml_builder, xsd_validator).
+Generuje obie: zwykle korekty (ZwrNumer>0) i korekty skontowe (ZwrNumer=0).
 """
 from __future__ import annotations
 
@@ -46,10 +46,16 @@ def main() -> int:
 
     from sql_query import run_query  # noqa: PLC0415 — DI
     reader = ErpReader(run_query=lambda sql: run_query(sql, inject_top=None))
+
     korekty = reader.fetch_korekty(
         gids=args.gid, date_from=args.date_from, date_to=args.date_to or args.date_from,
     )
-    if not korekty:
+    korekty_skonto = reader.fetch_korekty_skonto(
+        gids=args.gid, date_from=args.date_from, date_to=args.date_to or args.date_from,
+    )
+
+    all_korekty = korekty + korekty_skonto
+    if not all_korekty:
         print("Brak korekt dla podanych kryteriow.")
         return 0
 
@@ -59,7 +65,8 @@ def main() -> int:
     xsd_path = Path(args.validate) if args.validate else None
 
     errors: list[tuple[str, list[str]]] = []
-    for k in korekty:
+    n_fsk, n_skonto = len(korekty), len(korekty_skonto)
+    for k in all_korekty:
         xml = builder.build_korekta(k)
         out_path = out_dir / _compose_filename(k.numer_faktury, k.data_wystawienia)
         out_path.write_bytes(xml)
@@ -68,7 +75,7 @@ def main() -> int:
         if xsd_path:
             _validate_and_report(xml, xsd_path, k.numer_faktury, out_path.name, errors)
 
-    print(f"\nWygenerowano {len(korekty)} korekt(y) w {out_dir}")
+    print(f"\nWygenerowano {len(all_korekty)} korekt(y) w {out_dir} (FSK: {n_fsk}, skonto: {n_skonto})")
     return 2 if errors else 0
 
 
