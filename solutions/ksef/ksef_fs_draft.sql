@@ -233,5 +233,6 @@ LEFT JOIN CDN.TwrKarty tk ON tk.Twr_GIDNumer = e.TrE_TwrNumer
 
 
 WHERE n.TrN_GIDTyp = 2033
+  AND n.TrN_Stan IN (3, 4, 5)
 
 ORDER BY n.TrN_GIDNumer, e.TrE_GIDLp

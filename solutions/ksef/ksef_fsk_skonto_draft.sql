@@ -342,5 +342,6 @@ LEFT JOIN (
 
 
 WHERE n.TrN_GIDTyp = 2041
+  AND n.TrN_Stan IN (3, 4, 5)
 
 ORDER BY n.TrN_GIDNumer, vo.nr_poz, sp.StanPrzed DESC
