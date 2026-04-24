@@ -39,15 +39,12 @@ from core.ksef.usecases.send_invoice import SendInvoiceUseCase, SendResult
 
 _LOG = logging.getLogger("ksef.daemon")
 
+from core.ksef import paths as ksef_paths
+
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
-_DB_PATH = _PROJECT_ROOT / "data" / "ksef.db"
-_OUTPUT_DIR = _PROJECT_ROOT / "output" / "ksef"
-_UPO_DIR = _OUTPUT_DIR / "upo"
 _TMP_DIR = _PROJECT_ROOT / "tmp"
 _FLAG_REASON_FILE = _TMP_DIR / "ksef_flag.md"
 _AGENT_BUS_CLI = _PROJECT_ROOT / "tools" / "agent_bus_cli.py"
-_HEARTBEAT_PATH = _PROJECT_ROOT / "data" / "ksef_heartbeat.json"
-_DAEMON_LOG = _PROJECT_ROOT / "data" / "ksef_daemon.log"
 
 
 class KSeFDaemon:
@@ -64,7 +61,7 @@ class KSeFDaemon:
         sleep: Callable[[float], None] = time.sleep,
         rate_limiter: RateLimiter | None = None,
         error_escalator: ErrorEscalator | None = None,
-        heartbeat_path: Path = _HEARTBEAT_PATH,
+        heartbeat_path: Path | None = None,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._scan = scan
@@ -75,7 +72,7 @@ class KSeFDaemon:
         self._sleep = sleep
         self._rate_limiter = rate_limiter
         self._escalator = error_escalator
-        self._heartbeat_path = heartbeat_path
+        self._heartbeat_path = heartbeat_path or ksef_paths.heartbeat_path()
         self._clock = clock
         self._shutdown = False
         self._tick_count = 0
@@ -232,7 +229,7 @@ def _build_send_factory(
 
     uc = SendInvoiceUseCase(
         api=api, auth=auth, repo=repo, encryption=encryption,
-        upo_dir=_UPO_DIR,
+        upo_dir=ksef_paths.upo_dir(),
     )
 
     reader = ErpReader(run_query)
@@ -247,7 +244,8 @@ def _build_send_factory(
 
 def _generate_xml(reader: ErpReader, builder: XmlBuilder, doc: PendingDocument) -> Path:
     """ErpReader -> XmlBuilder -> file on disk."""
-    _OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    _output = ksef_paths.output_dir()
+    _output.mkdir(parents=True, exist_ok=True)
     if doc.rodzaj == "FS":
         faktury = reader.fetch_faktury(gids=[doc.gid])
         if not faktury:
@@ -267,7 +265,7 @@ def _generate_xml(reader: ErpReader, builder: XmlBuilder, doc: PendingDocument) 
     d = doc.data_wystawienia
     prefix = "ksef_kor_" if doc.rodzaj in ("FSK", "FSK_SKONTO") else "ksef_"
     filename = f"{prefix}{doc.rodzaj}-{doc.gid}_{d.strftime('%m_%y')}_{d.isoformat()}.xml"
-    path = _OUTPUT_DIR / filename
+    path = _output / filename
     path.write_bytes(xml_bytes)
     return path
 
@@ -291,7 +289,7 @@ def main() -> int:
         datefmt="%Y-%m-%d %H:%M:%S",
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler(str(_DAEMON_LOG), encoding="utf-8"),
+            logging.FileHandler(str(ksef_paths.daemon_log()), encoding="utf-8"),
         ],
     )
     args = _parse_args()
@@ -300,7 +298,7 @@ def main() -> int:
         from tools.sql_query import run_query as _rq
         return _rq(sql)
 
-    repo = ShipmentRepository(_DB_PATH)
+    repo = ShipmentRepository(ksef_paths.db_path())
     repo.init_schema()
 
     scan = ScanErpUseCase(run_query, repo)

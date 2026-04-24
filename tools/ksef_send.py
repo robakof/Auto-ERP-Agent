@@ -25,12 +25,10 @@ from core.ksef.adapters.http import KSefHttp
 from core.ksef.adapters.ksef_api import KSeFApiClient
 from core.ksef.adapters.ksef_auth import EnvTokenProvider, KSefAuth
 from core.ksef.adapters.repo import ShipmentRepository
+from core.ksef import paths as ksef_paths
 from core.ksef.config import load_config
 from core.ksef.domain.shipment import ShipmentStatus
 from core.ksef.usecases.send_invoice import SendInvoiceUseCase
-
-_DB_PATH = Path(__file__).resolve().parent.parent / "data" / "ksef.db"
-_UPO_DIR = Path(__file__).resolve().parent.parent / "output" / "ksef" / "upo"
 
 _FILENAME_FS = re.compile(r"ksef_FS-(\d+)_")
 _FILENAME_FSK = re.compile(r"ksef_kor_FSK-(\d+)_")
@@ -64,12 +62,12 @@ def _send_one(xml_path, gid, rodzaj, nr, data_wyst, poll_timeout):
     sym_cert = _get_sym_cert(api)
     encryption = KSeFEncryption(sym_cert)
 
-    repo = ShipmentRepository(_DB_PATH)
+    repo = ShipmentRepository(ksef_paths.db_path())
     repo.init_schema()
 
     uc = SendInvoiceUseCase(
         api=api, auth=auth, repo=repo, encryption=encryption,
-        poll_timeout_s=poll_timeout, upo_dir=_UPO_DIR,
+        poll_timeout_s=poll_timeout, upo_dir=ksef_paths.upo_dir(),
     )
     return uc.execute(xml_path, gid, rodzaj, nr, data_wyst)
 

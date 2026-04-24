@@ -38,10 +38,17 @@ Prompt.md
 # Baza danych (lokalna dla każdej maszyny, synchronizacja w przyszłości)
 mrowisko.db
 jas.db
-data/ksef.db
-data/ksef.db-journal
-data/ksef.db-wal
-data/ksef.db-shm
+
+# KSeF runtime data (DB, logs, heartbeat) — per-environment, not code
+ksef_api/*/data/*
+!ksef_api/*/data/.gitkeep
+
+# KSeF generated output (XML, UPO) — per-environment
+ksef_api/*/output/*
+!ksef_api/*/output/.gitkeep
+!ksef_api/*/output/upo/
+ksef_api/*/output/upo/*
+!ksef_api/*/output/upo/.gitkeep
 
 # Baza danych indeksu dokumentacji (regenerowalna)
 docs.db

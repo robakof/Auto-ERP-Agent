@@ -16,29 +16,30 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from core.ksef import paths as ksef_paths
 from core.ksef.adapters.repo import ShipmentRepository
-
-_DEFAULT_DB = Path("data/ksef.db")
 _EXPECTED_TABLES = {"ksef_wysylka", "ksef_transition", "schema_version"}
 _EXPECTED_VERSION = 1
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="KSeF Shadow DB init/check")
-    parser.add_argument("--db", type=Path, default=_DEFAULT_DB)
+    parser.add_argument("--db", type=Path, default=None)
     parser.add_argument("--check", action="store_true", help="tylko weryfikacja, bez zmian")
     args = parser.parse_args()
+    db = args.db or ksef_paths.db_path()
 
     if args.check:
-        return _check(args.db)
+        return _check(db)
 
     try:
-        ShipmentRepository(args.db).init_schema()
+        db.parent.mkdir(parents=True, exist_ok=True)
+        ShipmentRepository(db).init_schema()
     except OSError as exc:
         print(f"I/O error: {exc}", file=sys.stderr)
         return 2
-    print(f"OK: {args.db} — schema v{_EXPECTED_VERSION} gotowa")
-    return _check(args.db)
+    print(f"OK: {db} — schema v{_EXPECTED_VERSION} gotowa")
+    return _check(db)
 
 
 def _check(db_path: Path) -> int:

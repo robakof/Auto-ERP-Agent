@@ -50,7 +50,7 @@ def test_fsk_1_snapshot(builder: XmlBuilder) -> None:
 
 def test_snapshots_match_production_xml_structure() -> None:
     """Sanity check — snapshoty maja struktury zgodne z output/ksef/ (minus DataWytworzeniaFa)."""
-    prod_root = Path(__file__).resolve().parents[2] / "output" / "ksef"
+    prod_root = Path(__file__).resolve().parents[2] / "ksef_api" / "demo" / "output"
     pairs = [
         ("fs_59.xml", "ksef_FS-59_04_26_SPKR_2026-04-14.xml"),
         ("fs_60.xml", "ksef_FS-60_04_26_SPKR_2026-04-14.xml"),

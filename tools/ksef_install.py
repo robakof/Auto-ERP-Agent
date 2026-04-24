@@ -118,7 +118,7 @@ def install(target: Path, *, install_deps: bool = False) -> None:
             print(f"  [NEW]  {rel}")
 
     # Create empty dirs
-    for d in ["data", "output/ksef/upo", "tmp"]:
+    for d in ["ksef_api/demo/data", "ksef_api/demo/output/upo", "ksef_api/prod/data", "ksef_api/prod/output/upo", "tmp"]:
         (target / d).mkdir(parents=True, exist_ok=True)
 
     # Write requirements.txt

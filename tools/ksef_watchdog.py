@@ -23,9 +23,11 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from core.ksef import paths as ksef_paths
+
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
-_HEARTBEAT_PATH = _PROJECT_ROOT / "data" / "ksef_heartbeat.json"
-_WATCHDOG_LOG = _PROJECT_ROOT / "data" / "ksef_watchdog.log"
 _TMP_DIR = _PROJECT_ROOT / "tmp"
 _AGENT_BUS_CLI = _PROJECT_ROOT / "tools" / "agent_bus_cli.py"
 
@@ -43,7 +45,7 @@ class KSeFWatchdog:
         self,
         daemon_args: list[str],
         *,
-        heartbeat_path: Path = _HEARTBEAT_PATH,
+        heartbeat_path: Path | None = None,
         heartbeat_stale_s: float = _DEFAULT_HEARTBEAT_STALE_S,
         max_restarts_per_hour: int = _DEFAULT_MAX_RESTARTS_PER_HOUR,
         cooldown_s: float = _RESTART_COOLDOWN_S,
@@ -52,7 +54,7 @@ class KSeFWatchdog:
         sleep_fn=time.sleep,
     ) -> None:
         self._daemon_args = daemon_args
-        self._heartbeat_path = heartbeat_path
+        self._heartbeat_path = heartbeat_path or ksef_paths.heartbeat_path()
         self._heartbeat_stale_s = heartbeat_stale_s
         self._max_restarts = max_restarts_per_hour
         self._cooldown = cooldown_s
@@ -102,7 +104,7 @@ class KSeFWatchdog:
                            self._max_restarts)
                 self._flag_fn(
                     f"KSeF watchdog: {self._max_restarts} restartow w ciagu godziny. "
-                    f"Daemon zatrzymany. Sprawdz logi: {_WATCHDOG_LOG}"
+                    f"Daemon zatrzymany. Sprawdz logi: {ksef_paths.watchdog_log()}"
                 )
                 return 2
 
@@ -235,7 +237,7 @@ def main() -> int:
         datefmt="%Y-%m-%d %H:%M:%S",
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler(str(_WATCHDOG_LOG), encoding="utf-8"),
+            logging.FileHandler(str(ksef_paths.watchdog_log()), encoding="utf-8"),
         ],
     )
 

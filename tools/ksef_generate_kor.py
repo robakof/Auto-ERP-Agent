@@ -17,11 +17,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from core.ksef import paths as ksef_paths
 from core.ksef.adapters import xsd_validator
 from core.ksef.adapters.erp_reader import ErpReader, build_sql_fsk
 from core.ksef.adapters.xml_builder import XmlBuilder
-
-_OUTPUT_DIR = Path(__file__).resolve().parent.parent / "output" / "ksef"
 
 
 def _utf8_stdout() -> None:
@@ -54,7 +53,7 @@ def main() -> int:
         print("Brak korekt dla podanych kryteriow.")
         return 0
 
-    out_dir = Path(args.output_dir) if args.output_dir else _OUTPUT_DIR
+    out_dir = Path(args.output_dir) if args.output_dir else ksef_paths.output_dir()
     out_dir.mkdir(parents=True, exist_ok=True)
     builder = XmlBuilder()
     xsd_path = Path(args.validate) if args.validate else None

@@ -22,8 +22,9 @@ from core.ksef.adapters.report_renderer import render_html, render_plain, render
 from core.ksef.config import load_smtp_config
 from core.ksef.usecases.report import build_report
 
+from core.ksef import paths as ksef_paths
+
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
-_DB_PATH = _PROJECT_ROOT / "data" / "ksef.db"
 
 
 def _parse_since(value: str) -> datetime:
@@ -63,7 +64,7 @@ def main() -> int:
     )
     args = _parse_args()
 
-    repo = ShipmentRepository(_DB_PATH)
+    repo = ShipmentRepository(ksef_paths.db_path())
     since = _parse_since(args.since)
     report_data = build_report(repo, since=since)
 

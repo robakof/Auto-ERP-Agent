@@ -18,6 +18,7 @@ from core.ksef.adapters.ksef_api import KSeFApiClient
 from core.ksef.adapters.ksef_auth import KSefAuth
 from core.ksef.adapters.repo import ShipmentRepository
 from core.ksef.domain.shipment import ShipmentStatus
+from core.ksef import paths as ksef_paths
 from core.ksef.exceptions import KSefError
 from core.ksef.models import InvoiceStatus
 
@@ -51,7 +52,7 @@ class SendInvoiceUseCase:
         encryption: KSeFEncryption,
         *,
         poll_timeout_s: float = _DEFAULT_POLL_TIMEOUT_S,
-        upo_dir: Path = Path("output/ksef/upo"),
+        upo_dir: Path | None = None,
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         self._api = api
@@ -59,7 +60,7 @@ class SendInvoiceUseCase:
         self._repo = repo
         self._encryption = encryption
         self._poll_timeout = poll_timeout_s
-        self._upo_dir = upo_dir
+        self._upo_dir = upo_dir or ksef_paths.upo_dir()
         self._sleep = sleep
 
     def execute(
