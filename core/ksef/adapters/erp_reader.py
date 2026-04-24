@@ -275,10 +275,15 @@ class ErpReader:
     def _row_to_platnosc(self, row: dict) -> Platnosc:
         termin_raw = row.get("Plat_TerminPlatnosci")
         termin = _as_date(termin_raw) if termin_raw else None
+        kod = _as_str(row.get("Plat_KodFormyPlatnosci"))
+        jest_gotowka = kod == "1"
+        data_wyst_raw = row.get("Fa_P1_DataWystawienia")
         return Platnosc(
             termin_platnosci=termin,
-            kod_formy_platnosci=_as_str(row.get("Plat_KodFormyPlatnosci")),
+            kod_formy_platnosci=kod,
             nr_rachunku_bankowego=_as_str(row.get("Plat_NrRachunkuBankowego")),
+            zaplacono=jest_gotowka,
+            data_zaplaty=_as_date(data_wyst_raw) if jest_gotowka and data_wyst_raw else None,
         )
 
 

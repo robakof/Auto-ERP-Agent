@@ -161,6 +161,10 @@ class XmlBuilder:
         self, fa: etree._Element, plat: Platnosc, *, with_rachunek: bool,
     ) -> None:
         el = _sub(fa, "Platnosc")
+        if plat.zaplacono:
+            _sub(el, "Zaplacono", text="1")
+            if plat.data_zaplaty is not None:
+                _sub(el, "DataZaplaty", text=_iso(plat.data_zaplaty))
         if plat.termin_platnosci is not None:
             termin_el = _sub(el, "TerminPlatnosci")
             _sub(termin_el, "Termin", text=_iso(plat.termin_platnosci))
