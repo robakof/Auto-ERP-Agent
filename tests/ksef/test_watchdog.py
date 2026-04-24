@@ -37,8 +37,10 @@ def test_daemon_writes_heartbeat_on_tick(tmp_path):
     scan.scan.return_value = [_DOC1]
     factory = MagicMock(return_value=_RESULT_OK)
 
+    mock_repo = MagicMock()
+    mock_repo.list_stuck.return_value = []
     daemon = KSeFDaemon(
-        scan, factory,
+        scan, factory, mock_repo,
         sleep=lambda _: None,
         heartbeat_path=hb_path,
     )
@@ -68,8 +70,10 @@ def test_daemon_heartbeat_status_slow_when_tick_exceeds_timeout(tmp_path):
 
     scan.scan.side_effect = slow_scan
 
+    mock_repo = MagicMock()
+    mock_repo.list_stuck.return_value = []
     daemon = KSeFDaemon(
-        scan, MagicMock(),
+        scan, MagicMock(), mock_repo,
         sleep=lambda _: None,
         heartbeat_path=hb_path,
         tick_timeout_s=300.0,
@@ -87,8 +91,10 @@ def test_daemon_heartbeat_updates_each_tick(tmp_path):
     scan = MagicMock()
     scan.scan.return_value = []
 
+    mock_repo = MagicMock()
+    mock_repo.list_stuck.return_value = []
     daemon = KSeFDaemon(
-        scan, MagicMock(),
+        scan, MagicMock(), mock_repo,
         sleep=lambda _: None,
         heartbeat_path=hb_path,
     )

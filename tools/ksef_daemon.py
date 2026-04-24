@@ -54,6 +54,7 @@ class KSeFDaemon:
         self,
         scan: ScanErpUseCase,
         send_factory: Callable[[PendingDocument], SendResult],
+        repo: ShipmentRepository,
         *,
         interval_s: float = 60.0,
         tick_timeout_s: float = 300.0,
@@ -66,6 +67,7 @@ class KSeFDaemon:
     ) -> None:
         self._scan = scan
         self._send_factory = send_factory
+        self._repo = repo
         self._interval = interval_s
         self._tick_timeout = tick_timeout_s
         self._on_tick = on_tick or _default_on_tick
@@ -82,6 +84,7 @@ class KSeFDaemon:
         signal.signal(signal.SIGINT, self._handle_shutdown)
         signal.signal(signal.SIGTERM, self._handle_shutdown)
         _LOG.info('{"event": "daemon_start", "interval_s": %.1f}', self._interval)
+        self._recover_stuck()
         while not self._shutdown:
             tick_start = self._clock()
             self._tick()
@@ -99,6 +102,7 @@ class KSeFDaemon:
 
     def run_once(self) -> list[SendResult]:
         """Single scan + send. Returns results."""
+        self._recover_stuck()
         tick_start = self._clock()
         results = self._tick()
         self._write_heartbeat(self._clock() - tick_start)
@@ -143,6 +147,27 @@ class KSeFDaemon:
                 doc.gid, doc.rodzaj, exc,
             )
             return None
+
+    def _recover_stuck(self) -> None:
+        """Reset stuck QUEUED/AUTH_PENDING/SENT records to DRAFT so they get retried."""
+        stuck = self._repo.list_stuck(stale_minutes=30)
+        if not stuck:
+            return
+        ids = [w.id for w in stuck]
+        _LOG.info('{"event": "recover_stuck", "count": %d, "ids": %s}', len(stuck), ids)
+        for w in stuck:
+            try:
+                self._repo.transition(
+                    w.id, ShipmentStatus.DRAFT, meta={"reason": "daemon_recover_stuck"},
+                )
+                _LOG.info(
+                    '{"event": "recover_one", "wysylka_id": %d, "from": "%s", "nr": "%s"}',
+                    w.id, w.status.value, w.nr_faktury,
+                )
+            except Exception as exc:
+                _LOG.warning(
+                    '{"event": "recover_fail", "wysylka_id": %d, "error": "%s"}', w.id, exc,
+                )
 
     def _handle_shutdown(self, sig, frame) -> None:
         _LOG.info('{"event": "shutdown_requested", "signal": %d}', sig)
@@ -312,6 +337,7 @@ def main() -> int:
     daemon = KSeFDaemon(
         scan=scan,
         send_factory=send_factory,
+        repo=repo,
         interval_s=args.interval,
         tick_timeout_s=args.tick_timeout,
         rate_limiter=rate_limiter,

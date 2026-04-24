@@ -18,12 +18,13 @@ class ShipmentStatus(str, Enum):
 
 _ALLOWED: dict[ShipmentStatus, frozenset[ShipmentStatus]] = {
     ShipmentStatus.DRAFT: frozenset({ShipmentStatus.QUEUED, ShipmentStatus.ERROR}),
-    ShipmentStatus.QUEUED: frozenset({ShipmentStatus.AUTH_PENDING, ShipmentStatus.ERROR}),
-    ShipmentStatus.AUTH_PENDING: frozenset({ShipmentStatus.SENT, ShipmentStatus.ERROR}),
+    ShipmentStatus.QUEUED: frozenset({ShipmentStatus.AUTH_PENDING, ShipmentStatus.ERROR, ShipmentStatus.DRAFT}),
+    ShipmentStatus.AUTH_PENDING: frozenset({ShipmentStatus.SENT, ShipmentStatus.ERROR, ShipmentStatus.DRAFT}),
     ShipmentStatus.SENT: frozenset({
         ShipmentStatus.ACCEPTED,
         ShipmentStatus.REJECTED,
         ShipmentStatus.ERROR,
+        ShipmentStatus.DRAFT,
     }),
     ShipmentStatus.ACCEPTED: frozenset(),
     ShipmentStatus.REJECTED: frozenset(),

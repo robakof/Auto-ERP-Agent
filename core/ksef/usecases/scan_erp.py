@@ -12,6 +12,7 @@ from typing import Callable
 
 from core.ksef.adapters.erp_reader import RunQuery
 from core.ksef.adapters.repo import ShipmentRepository
+from core.ksef.domain.shipment import ShipmentStatus
 
 _LOG = logging.getLogger("ksef.scan")
 
@@ -114,8 +115,11 @@ class ScanErpUseCase:
         return docs
 
     def _is_known(self, gid: int, rodzaj: str) -> bool:
-        """Check if GID already processed (any state in shadow DB)."""
-        return self._repo.get_latest(gid, rodzaj) is not None
+        """Check if GID already processed. DRAFT records are retryable."""
+        latest = self._repo.get_latest(gid, rodzaj)
+        if latest is None:
+            return False
+        return latest.status != ShipmentStatus.DRAFT
 
 
 def _parse_date(value) -> date:

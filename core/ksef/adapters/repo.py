@@ -196,6 +196,19 @@ class ShipmentRepository:
             ).fetchall()
         return [_row_to_wysylka(r) for r in rows]
 
+    def list_stuck(self, stale_minutes: int = 30) -> list[Wysylka]:
+        """Return QUEUED/AUTH_PENDING/SENT records older than stale_minutes."""
+        cutoff = self._clock() - __import__("datetime").timedelta(minutes=stale_minutes)
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM ksef_wysylka"
+                " WHERE status IN ('QUEUED','AUTH_PENDING','SENT')"
+                " AND created_at < ?"
+                " ORDER BY id",
+                (cutoff,),
+            ).fetchall()
+        return [_row_to_wysylka(r) for r in rows]
+
     def count_by_status(
         self, since: datetime | None = None,
     ) -> dict[ShipmentStatus, int]:
