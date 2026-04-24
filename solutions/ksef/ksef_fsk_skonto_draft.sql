@@ -219,6 +219,10 @@ SELECT
     RTRIM(p.TrP_FormaNazwa)                                     AS Plat_FormaPlatnosci_Nazwa,
     CASE WHEN p.TrP_FormaNr = 20 THEN kar.KAR_NrRachunku
          ELSE NULL END                                          AS Plat_NrRachunkuBankowego,
+    p.TrP_Rozliczona                                            AS Plat_Rozliczona,
+    CASE WHEN p.TrP_Rozliczona = 1
+         THEN CONVERT(DATE, DATEADD(day, p.TrP_DataRozliczenia, '1800-12-28'))
+         ELSE NULL END                                          AS Plat_DataRozliczenia,
 
     -- =========================================================
     -- Klucze techniczne
@@ -333,6 +337,7 @@ LEFT JOIN (
 LEFT JOIN (
     SELECT TrP_GIDTyp, TrP_GIDNumer, TrP_Termin,
            TrP_FormaNr, TrP_FormaNazwa,
+           TrP_Rozliczona, TrP_DataRozliczenia,
            ROW_NUMBER() OVER (
                PARTITION BY TrP_GIDTyp, TrP_GIDNumer
                ORDER BY TrP_GIDLp
