@@ -75,22 +75,32 @@ biznesową XL i trafił na produkcję bez kontroli.
 **Stack:**
 ```
 Python 3.13
-  └── pythonnet (clr)
-        └── cdn_api20251.net.dll (.NET 6.0)
-              └── XL Server (remote, operator: AR)
+  └── XlProxy.exe (x86 subprocess, C# + .NET Framework 4.8)
+        └── cdn_api20251.net.dll
+              └── XL Server (remote, operator z .env)
 ```
 
-**Nowe pliki:**
+**Pliki warstwy Pythonowej (dostarczone):**
 ```
-tools/lib/xl_api_client.py     ← XLApiClient (abstrakcja + implementacja pythonnet)
-tools/lib/xl_api_session.py    ← zarządzanie sesją XL (login/logout, singleton)
+tools/xl_proxy/XlProxy.cs      ← x86 subprocess, generyczny invoke przez Reflection
+tools/lib/xl_proxy_client.py   ← subprocess manager (start/send/stop)
+tools/lib/xl_session.py        ← singleton sesji, lazy login z .env
+tools/lib/xl_client.py         ← typed wrapper + invoke() dla wszystkich 150+ metod
 ```
 
-**Migracja przyrostowa:**
+**Migracja — status:**
 ```
-M1 → prereqs (.NET 6, pythonnet) + smoke test połączenia z XL API
-M2 → xl_attribute_set przez API
-M3 → xl_attribute_bulk, template, app
-M4 → sql_query.py + BI
-M5 → usuń sql_client.py (ODBC gone)
+M1 ✓ XlProxy x86 subprocess + DLL load + login/logout smoke test
+M2 ✓ xl_attribute_set przez XL API (XLDodajAtrybut przez generyczny invoke)
+M3 ✓ xl_attribute_bulk — write path przez set_attribute (już na XL API)
+       xl_attribute_template, xl_attribute_app — tylko odczyt, bez zmian
+M4 — ZAMKNIĘTE (Opcja A)
+M5 — ZAMKNIĘTE (Opcja A)
 ```
+
+**Decyzja M4/M5 (2026-04-27):**
+XLWykonajZapytanie nie zwraca wierszy SELECT. Narzędzia sql_query.py, bi_discovery.py,
+excel_export_bi.py i inne używają SqlClient wyłącznie do odczytu (SELECT).
+Odczyt przez ODBC jest dozwolony — problem dotyczył wyłącznie WRITE omijającego warstwę
+biznesową XL. Wszystkie write operations są teraz przez XL API.
+SqlClient pozostaje jako "authorized read client" — nie zostaje usunięty.
