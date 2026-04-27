@@ -4,8 +4,9 @@ using System.Reflection;
 using System.Text;
 
 // Comarch XL API proxy — x86 subprocess, JSON stdin/stdout
-// Komendy: login | logout | dodaj_atrybut | zapytanie | blad
+// Komendy: login | logout | invoke | blad
 // Format: {"cmd":"...","key":"val",...}\n
+// invoke: {"cmd":"invoke","method":"XLNowyDokument","sesja_id":1,"params":{"Wersja":20251,...}}
 
 class XlProxy {
     static object api;
@@ -15,6 +16,9 @@ class XlProxy {
     static void Main(string[] args) {
         dllDir = args.Length > 0 ? args[0] : @"C:\Comarch ERP\Comarch ERP XL 2025.1";
         string dllPath = Path.Combine(dllDir, "cdn_api20251.net.dll");
+
+        Console.OutputEncoding = Encoding.UTF8;
+        Console.InputEncoding  = Encoding.UTF8;
 
         try {
             AppDomain.CurrentDomain.AssemblyResolve += (s, e) => {
@@ -49,8 +53,7 @@ class XlProxy {
             switch (cmd) {
                 case "login":    return CmdLogin(json);
                 case "logout":   return CmdLogout(json);
-                case "atrybut":  return CmdAtrybut(json);
-                case "zapytanie": return CmdZapytanie(json);
+                case "invoke":   return CmdInvoke(json);
                 case "blad":     return CmdBlad();
                 default:         return Err("UNKNOWN_CMD", cmd);
             }
@@ -59,21 +62,99 @@ class XlProxy {
         }
     }
 
+    // --- generyczny invoke przez Reflection ---
+
+    static string CmdInvoke(string json) {
+        string methodName = GetStr(json, "method");
+        if (methodName.Length == 0) return Err("MISSING_METHOD", "");
+
+        MethodInfo m = apiType.GetMethod(methodName);
+        if (m == null) return Err("METHOD_NOT_FOUND", methodName);
+
+        int sesjaID    = GetInt(json, "sesja_id");
+        string paramsJson = GetObject(json, "params");
+
+        ParameterInfo[] pinfos = m.GetParameters();
+        object[] pars = new object[pinfos.Length];
+
+        for (int i = 0; i < pinfos.Length; i++) {
+            Type pt    = pinfos[i].ParameterType;
+            if (pt.IsByRef) pt = pt.GetElementType();
+            string pname = pinfos[i].Name;
+
+            if (pt == typeof(int)) {
+                pars[i] = (pname == "sesjaID") ? sesjaID : GetInt(json, pname);
+            } else {
+                object info = Activator.CreateInstance(pt);
+                // Ustaw Wersja domyślnie
+                FieldInfo fVer = pt.GetField("Wersja");
+                if (fVer != null) fVer.SetValue(info, 20251);
+                // Ustaw pola z params
+                foreach (FieldInfo f in pt.GetFields()) {
+                    string val = GetStr(paramsJson, f.Name);
+                    if (val.Length == 0) continue;
+                    try { f.SetValue(info, Convert.ChangeType(val, f.FieldType)); } catch { }
+                }
+                pars[i] = info;
+            }
+        }
+
+        int ret;
+        try { ret = (int)m.Invoke(api, pars); }
+        catch (Exception ex) { return Err("INVOKE_ERROR", ex.InnerException != null ? ex.InnerException.Message : ex.Message); }
+
+        if (ret != 0) return Err("INVOKE_FAIL", "kod=" + ret + " method=" + methodName);
+
+        // Serializuj pola Info struct z wyniku
+        var sb = new StringBuilder("{\"ok\":true,\"data\":{");
+        bool first = true;
+        for (int i = 0; i < pinfos.Length; i++) {
+            Type pt = pinfos[i].ParameterType;
+            if (pt.IsByRef) pt = pt.GetElementType();
+            if (pt == typeof(int)) continue;
+            object info = pars[i];
+            foreach (FieldInfo f in pt.GetFields()) {
+                if (!first) sb.Append(",");
+                sb.Append(JsonStr(f.Name));
+                sb.Append(":");
+                AppendVal(sb, f.GetValue(info));
+                first = false;
+            }
+        }
+        sb.Append("}}");
+        return sb.ToString();
+    }
+
+    static void AppendVal(StringBuilder sb, object val) {
+        if (val == null) { sb.Append("null"); return; }
+        if (val is string) { sb.Append(JsonStr((string)val)); return; }
+        if (val is bool)   { sb.Append((bool)val ? "true" : "false"); return; }
+        if (val is int || val is long || val is short || val is byte ||
+            val is uint || val is ulong || val is ushort || val is sbyte) {
+            sb.Append(Convert.ToInt64(val)); return;
+        }
+        if (val is double || val is float || val is decimal) {
+            sb.Append(Convert.ToString(val, System.Globalization.CultureInfo.InvariantCulture)); return;
+        }
+        sb.Append(JsonStr(val.ToString()));
+    }
+
+    // --- login / logout / blad ---
+
     static string CmdLogin(string json) {
         object info = CreateInfo("cdn_api.XLLoginInfo_20251");
-        SetField(info, "Wersja", 20251);
+        SetField(info, "Wersja",     20251);
         SetField(info, "TrybWsadowy", 1);
-        SetField(info, "ProgramID", "MrowiSkoAgent");
-        SetField(info, "Baza",     GetStr(json, "baza"));
-        SetField(info, "OpeIdent", GetStr(json, "oper"));
-        SetField(info, "OpeHaslo", GetStr(json, "haslo"));
+        SetField(info, "ProgramID",  "MrowiSkoAgent");
+        SetField(info, "Baza",       GetStr(json, "baza"));
+        SetField(info, "OpeIdent",   GetStr(json, "oper"));
+        SetField(info, "OpeHaslo",   GetStr(json, "haslo"));
         string serwer = GetStr(json, "serwer");
-        if (!string.IsNullOrEmpty(serwer)) SetField(info, "Serwer", serwer);
+        if (serwer.Length > 0) SetField(info, "Serwer", serwer);
 
         int sesjaID = 0;
         object[] pars = new object[] { info, sesjaID };
-        MethodInfo m = apiType.GetMethod("XLLogin");
-        int ret = (int)m.Invoke(api, pars);
+        int ret = (int)apiType.GetMethod("XLLogin").Invoke(api, pars);
         sesjaID = (int)pars[1];
 
         if (ret != 0) return Err("LOGIN_FAIL", "kod=" + ret);
@@ -82,54 +163,15 @@ class XlProxy {
 
     static string CmdLogout(string json) {
         int sesjaID = GetInt(json, "sesja_id");
-        MethodInfo m = apiType.GetMethod("XLLogout");
-        int ret = (int)m.Invoke(api, new object[] { sesjaID });
+        int ret = (int)apiType.GetMethod("XLLogout").Invoke(api, new object[] { sesjaID });
         if (ret != 0) return Err("LOGOUT_FAIL", "kod=" + ret);
         return "{\"ok\":true}";
-    }
-
-    static string CmdAtrybut(string json) {
-        int sesjaID = GetInt(json, "sesja_id");
-        object info = CreateInfo("cdn_api.XLAtrybutInfo_20251");
-        SetField(info, "Wersja",   20251);
-        SetField(info, "GIDTyp",   GetInt(json, "gid_typ"));
-        SetField(info, "GIDNumer", GetInt(json, "gid_numer"));
-        SetField(info, "GIDFirma", GetInt(json, "gid_firma"));
-        SetField(info, "GIDLp",    0);
-        SetField(info, "GIDSubLp", 0);
-        SetField(info, "Klasa",    GetStr(json, "klasa"));
-        SetField(info, "Wartosc",  GetStr(json, "wartosc"));
-
-        MethodInfo m = apiType.GetMethod("XLDodajAtrybut");
-        int ret = (int)m.Invoke(api, new object[] { sesjaID, info });
-
-        if (ret != 0) {
-            string sBlad = (string)GetFieldVal(info, "sBlad");
-            return Err("ATRYBUT_FAIL", "kod=" + ret + " " + (sBlad ?? ""));
-        }
-        return "{\"ok\":true}";
-    }
-
-    static string CmdZapytanie(string json) {
-        object info = CreateInfo("cdn_api.XLZapytanie_20251");
-        SetField(info, "Wersja",    20251);
-        SetField(info, "Zapytanie", GetStr(json, "sql"));
-
-        MethodInfo m = apiType.GetMethod("XLWykonajZapytanie");
-        int ret = (int)m.Invoke(api, new object[] { info });
-
-        string kolumny  = (string)GetFieldVal(info, "Kolumny")  ?? "";
-        string komunikat = (string)GetFieldVal(info, "Komunikat") ?? "";
-
-        if (ret != 0) return Err("ZAPYTANIE_FAIL", "kod=" + ret + " " + komunikat);
-        return "{\"ok\":true,\"kolumny\":" + JsonStr(kolumny) + ",\"wynik\":" + JsonStr(komunikat) + "}";
     }
 
     static string CmdBlad() {
         object info = CreateInfo("cdn_api.XLKomunikatInfo_20251");
         SetField(info, "Wersja", 20251);
-        MethodInfo m = apiType.GetMethod("XLOpisBledu");
-        m.Invoke(api, new object[] { info });
+        apiType.GetMethod("XLOpisBledu").Invoke(api, new object[] { info });
         string opis = (string)GetFieldVal(info, "OpisBledu") ?? "";
         int blad    = (int)(GetFieldVal(info, "Blad") ?? 0);
         return "{\"ok\":true,\"blad\":" + blad + ",\"opis\":" + JsonStr(opis) + "}";
@@ -152,12 +194,14 @@ class XlProxy {
         return f != null ? f.GetValue(obj) : null;
     }
 
+    // Wyciąga string lub liczbę jako string z JSON
     static string GetStr(string json, string key) {
         string search = "\"" + key + "\"";
         int idx = json.IndexOf(search);
         if (idx < 0) return "";
         idx = json.IndexOf(':', idx) + 1;
         while (idx < json.Length && json[idx] == ' ') idx++;
+        if (idx >= json.Length) return "";
         if (json[idx] == '"') {
             idx++;
             var sb = new StringBuilder();
@@ -176,6 +220,31 @@ class XlProxy {
     static int GetInt(string json, string key) {
         string v = GetStr(json, key);
         int i; return int.TryParse(v, out i) ? i : 0;
+    }
+
+    // Wyciąga zagnieżdżony obiekt JSON jako string {"k":"v",...}
+    static string GetObject(string json, string key) {
+        string search = "\"" + key + "\"";
+        int idx = json.IndexOf(search);
+        if (idx < 0) return "{}";
+        idx = json.IndexOf(':', idx) + 1;
+        while (idx < json.Length && json[idx] == ' ') idx++;
+        if (idx >= json.Length || json[idx] != '{') return "{}";
+        int depth = 0, start = idx;
+        bool inStr = false;
+        while (idx < json.Length) {
+            char c = json[idx];
+            if (inStr) {
+                if (c == '\\') idx++;
+                else if (c == '"') inStr = false;
+            } else {
+                if (c == '"') inStr = true;
+                else if (c == '{') depth++;
+                else if (c == '}') { depth--; if (depth == 0) return json.Substring(start, idx - start + 1); }
+            }
+            idx++;
+        }
+        return "{}";
     }
 
     static string JsonStr(string s) {
