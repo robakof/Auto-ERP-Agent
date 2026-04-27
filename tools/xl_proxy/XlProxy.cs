@@ -54,6 +54,7 @@ class XlProxy {
                 case "login":    return CmdLogin(json);
                 case "logout":   return CmdLogout(json);
                 case "invoke":   return CmdInvoke(json);
+                case "describe": return CmdDescribe(json);
                 case "blad":     return CmdBlad();
                 default:         return Err("UNKNOWN_CMD", cmd);
             }
@@ -79,17 +80,19 @@ class XlProxy {
 
         for (int i = 0; i < pinfos.Length; i++) {
             Type pt    = pinfos[i].ParameterType;
-            if (pt.IsByRef) pt = pt.GetElementType();
+            bool byref = pt.IsByRef;
+            if (byref) pt = pt.GetElementType();
             string pname = pinfos[i].Name;
 
             if (pt == typeof(int)) {
-                pars[i] = (pname == "sesjaID") ? sesjaID : GetInt(json, pname);
+                // Comarch nazwy sesji: _SesjaID, _lSesjaID, sesjaID itp.
+                string pLower = pname.ToLower();
+                bool isSesja  = pLower == "sesjaid" || pLower.EndsWith("sesjaid");
+                pars[i] = isSesja ? sesjaID : GetInt(paramsJson, pname);
             } else {
                 object info = Activator.CreateInstance(pt);
-                // Ustaw Wersja domyślnie
                 FieldInfo fVer = pt.GetField("Wersja");
                 if (fVer != null) fVer.SetValue(info, 20251);
-                // Ustaw pola z params
                 foreach (FieldInfo f in pt.GetFields()) {
                     string val = GetStr(paramsJson, f.Name);
                     if (val.Length == 0) continue;
@@ -105,20 +108,30 @@ class XlProxy {
 
         if (ret != 0) return Err("INVOKE_FAIL", "kod=" + ret + " method=" + methodName);
 
-        // Serializuj pola Info struct z wyniku
+        // Serializuj wynik: ref int (out params jak _lDokumentID) + pola struct
         var sb = new StringBuilder("{\"ok\":true,\"data\":{");
         bool first = true;
         for (int i = 0; i < pinfos.Length; i++) {
-            Type pt = pinfos[i].ParameterType;
-            if (pt.IsByRef) pt = pt.GetElementType();
-            if (pt == typeof(int)) continue;
-            object info = pars[i];
-            foreach (FieldInfo f in pt.GetFields()) {
+            Type pt    = pinfos[i].ParameterType;
+            bool byref = pt.IsByRef;
+            if (byref) pt = pt.GetElementType();
+            string pname = pinfos[i].Name;
+            string pLower = pname.ToLower();
+            bool isSesja  = pLower == "sesjaid" || pLower.EndsWith("sesjaid");
+
+            if (pt == typeof(int)) {
+                if (!byref || isSesja) continue;  // pomiń input int i sesja
+                // ref int = out param (np. _lDokumentID) — zwróć wartość
                 if (!first) sb.Append(",");
-                sb.Append(JsonStr(f.Name));
-                sb.Append(":");
-                AppendVal(sb, f.GetValue(info));
+                sb.Append(JsonStr(pname)); sb.Append(":"); sb.Append((int)pars[i]);
                 first = false;
+            } else {
+                object info = pars[i];
+                foreach (FieldInfo f in pt.GetFields()) {
+                    if (!first) sb.Append(",");
+                    sb.Append(JsonStr(f.Name)); sb.Append(":"); AppendVal(sb, f.GetValue(info));
+                    first = false;
+                }
             }
         }
         sb.Append("}}");
@@ -137,6 +150,38 @@ class XlProxy {
             sb.Append(Convert.ToString(val, System.Globalization.CultureInfo.InvariantCulture)); return;
         }
         sb.Append(JsonStr(val.ToString()));
+    }
+
+    // --- describe (diagnostyka) ---
+
+    static string CmdDescribe(string json) {
+        string methodName = GetStr(json, "method");
+        MethodInfo m = methodName.Length > 0 ? apiType.GetMethod(methodName) : null;
+        if (m == null) return Err("METHOD_NOT_FOUND", methodName);
+
+        var sb = new StringBuilder("{\"ok\":true,\"method\":" + JsonStr(methodName) + ",\"params\":[");
+        ParameterInfo[] pinfos = m.GetParameters();
+        for (int i = 0; i < pinfos.Length; i++) {
+            if (i > 0) sb.Append(",");
+            Type pt = pinfos[i].ParameterType;
+            bool byref = pt.IsByRef;
+            if (byref) pt = pt.GetElementType();
+            sb.Append("{\"name\":" + JsonStr(pinfos[i].Name));
+            sb.Append(",\"type\":" + JsonStr(pt.Name));
+            sb.Append(",\"byref\":" + (byref ? "true" : "false"));
+            if (!pt.IsPrimitive && pt != typeof(string)) {
+                sb.Append(",\"fields\":[");
+                FieldInfo[] fields = pt.GetFields();
+                for (int j = 0; j < fields.Length; j++) {
+                    if (j > 0) sb.Append(",");
+                    sb.Append("{\"name\":" + JsonStr(fields[j].Name) + ",\"type\":" + JsonStr(fields[j].FieldType.Name) + "}");
+                }
+                sb.Append("]");
+            }
+            sb.Append("}");
+        }
+        sb.Append("]}");
+        return sb.ToString();
     }
 
     // --- login / logout / blad ---
