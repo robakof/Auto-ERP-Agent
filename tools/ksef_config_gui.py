@@ -69,8 +69,9 @@ SECTIONS = [
     ]),
     ("Raport", [
         ("KSEF_REPORT_FROM", "Nadawca (email)", ""),
-        ("KSEF_REPORT_TO", "Odbiorca (email)", ""),
+        ("KSEF_REPORT_TO", "Odbiorca (email, separator: ;)", ""),
         ("KSEF_REPORT_SUBJECT_PREFIX", "Prefix tematu", "[KSeF]"),
+        ("KSEF_REPORT_TIME", "Godzina wysylki raportu (HH:MM)", "13:30"),
     ]),
     ("Daemon", [
         ("KSEF_DAEMON_INTERVAL", "Interval ticka (sekundy)", "900"),
