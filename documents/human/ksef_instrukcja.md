@@ -154,16 +154,34 @@ Dwuklik z Eksploratora:
 
 | Plik | Co robi |
 |---|---|
+| **`ksef_start.bat`** | **Glowny launcher: daemon + watchdog + raport o 13:30 (jedno okno)** |
 | `ksef_generuj_fs.bat` | Generuje XML z faktur (FS) za dzisiejszy dzien |
 | `ksef_generuj_kor.bat` | Generuje XML z korekt (FSK) za dzisiejszy dzien |
 | `ksef_generuj_skonto.bat` | Generuje XML z korekt skontowych za dzisiejszy dzien |
-| `ksef_wyslij_demo.bat` | Uruchamia daemon+watchdog (demo) — auto wysylka |
+| `ksef_wyslij_demo.bat` | Uruchamia daemon+watchdog (demo) — auto wysylka (bez raportu) |
 | `ksef_raport_dzienny.bat` | Wysyla raport email lub wyswietla w terminalu |
 | `ksef_ustawienia.bat` | Otwiera GUI ustawien (.env) |
 | `test_ksef.bat` | Uruchamia testy automatyczne |
 
 Wszystkie generatory otwieraja dialog wyboru folderu wyjsciowego.
 Mozna tez podac date jako argument: `ksef_generuj_fs.bat 2026-04-01`
+
+### 3.1a Glowny launcher — ksef_start.bat
+
+**Rekomendowany sposob uruchomienia.** Jeden dwuklik startuje caly system:
+- Watchdog monitoruje daemon (auto-restart przy crash/zawieszeniu)
+- Daemon skanuje ERP co 15 min i wysyla faktury na KSeF
+- O 13:30 automatycznie wysyla raport dzienny na email
+
+```
+ksef_start.bat                  -> pelny system (daemon + raport o 13:30)
+ksef_start.bat --once           -> jeden scan + wysylka, potem zamyka
+ksef_start.bat --dry-run        -> podglad (bez wysylki na KSeF)
+ksef_start.bat --no-report      -> daemon bez raportu mailowego
+ksef_start.bat --report-time 17:00  -> raport o innej godzinie
+```
+
+Zamkniecie: **Ctrl+C** w oknie terminala — zamyka daemon, watchdog i scheduler raportu.
 
 ### 3.2 Flow reczny (produkcja)
 
@@ -350,9 +368,48 @@ KSEF_TOKEN=<token demo>
 
 | Plik | Lokalizacja | Co zawiera |
 |---|---|---|
+| Start log | `data/ksef_start.log` | Log startu launchera (bledy uruchomienia) |
 | Daemon log | `ksef_api/<env>/data/ksef_daemon.log` | Kazdy tick, wysylka, blad |
 | Watchdog log | `ksef_api/<env>/data/ksef_watchdog.log` | Restarty, heartbeat |
 | Heartbeat | `ksef_api/<env>/data/ksef_heartbeat.json` | Ostatni tick daemona (JSON) |
+
+### Sprawdzanie czy daemon dziala
+
+```bash
+:: Czy procesy Python sa aktywne (3 procesy = start + watchdog + daemon)
+tasklist /FI "IMAGENAME eq python.exe"
+
+:: Ostatni heartbeat daemona
+more ksef_api\demo\data\ksef_heartbeat.json
+
+:: Log startu (czy launcher nie padl)
+more data\ksef_start.log
+
+:: Status wysylek z dzisiaj
+py tools/ksef_status.py --today
+```
+
+### Autostart (Task Scheduler)
+
+Daemon uruchamia sie automatycznie przy starcie serwera przez Windows Task Scheduler.
+Zadanie: `KSEF DEAMON`, trigger: At system startup.
+
+```bash
+:: Sprawdz status zadania (z CMD admina)
+schtasks /query /tn "KSEF DEAMON" /fo LIST /v
+
+:: Reczne uruchomienie
+schtasks /run /tn "KSEF DEAMON"
+
+:: Zatrzymanie
+schtasks /end /tn "KSEF DEAMON"
+
+:: Restart (zatrzymaj + uruchom)
+schtasks /end /tn "KSEF DEAMON" && schtasks /run /tn "KSEF DEAMON"
+```
+
+Komendy `schtasks` wymagaja terminala z prawami administratora
+(Start → cmd → prawy klik → Uruchom jako administrator).
 
 ---
 
@@ -370,3 +427,108 @@ py -m pytest tests/integration/test_ksef_demo_smoke.py -v
 ```
 
 Przed kazda zmiana w kodzie KSeF — uruchom testy. 100% PASS = jedyny akceptowalny stan.
+
+---
+
+## 8. Spis wszystkich polecen terminalowych
+
+Wszystkie komendy uruchamiasz z glownego katalogu projektu.
+
+### 8.1 Glowny launcher (rekomendowany)
+
+```bash
+py tools/ksef_start.py                         # Pelny system: daemon + watchdog + raport o 13:30
+py tools/ksef_start.py --once                  # Jednorazowy scan + wysylka, potem exit
+py tools/ksef_start.py --once --dry-run        # Podglad co by wyslal (bez wysylki)
+py tools/ksef_start.py --once --rate-limit 1   # Wysylka max 1 faktury (test produkcyjny)
+py tools/ksef_start.py --no-report             # Daemon bez raportu mailowego
+py tools/ksef_start.py --report-time 17:00     # Raport o innej godzinie niz 13:30
+py tools/ksef_start.py --interval 300          # Daemon tick co 5 min (zamiast 15)
+py tools/ksef_start.py --dry-run               # Caly system w trybie podgladu
+```
+
+### 8.2 Generowanie XML z faktur
+
+```bash
+py tools/ksef_generate.py --date-from 2026-04-24           # Faktury (FS) od daty
+py tools/ksef_generate.py --gid 59 60                      # Konkretne GID
+py tools/ksef_generate.py --date-from 2026-04-24 --dry-run # Pokaz SQL, nie generuj
+py tools/ksef_generate.py --date-from 2026-04-24 --output-dir sciezka  # Inny folder
+
+py tools/ksef_generate_kor.py --date-from 2026-04-24       # Korekty (FSK)
+py tools/ksef_generate_kor.py --gid 100 101                # Konkretne GID korekt
+
+py tools/ksef_generate_skonto.py --date-from 2026-04-24    # Korekty skontowe
+```
+
+### 8.3 Reczna wysylka na KSeF
+
+```bash
+py tools/ksef_send.py ksef_api/demo/output/ksef_FS-*.xml   # Wyslij pliki XML
+py tools/ksef_send.py ksef_api/demo/output/*.xml            # Wyslij wszystkie XML
+```
+
+### 8.4 Daemon (samodzielnie, bez launchera)
+
+```bash
+py tools/ksef_daemon.py                        # Ciagly daemon (tick co 15 min)
+py tools/ksef_daemon.py --once                 # Jednorazowy scan + wysylka
+py tools/ksef_daemon.py --once --dry-run       # Podglad bez wysylki
+py tools/ksef_daemon.py --once --rate-limit 1  # Wysylka max 1 faktury
+py tools/ksef_daemon.py --interval 300         # Tick co 5 min
+```
+
+### 8.5 Watchdog (samodzielnie, bez launchera)
+
+```bash
+py tools/ksef_watchdog.py                      # Watchdog + daemon (domyslne ustawienia)
+py tools/ksef_watchdog.py --interval 300       # Daemon tick co 5 min
+py tools/ksef_watchdog.py --max-restarts 3     # Max 3 restarty na godzine
+```
+
+### 8.6 Status i monitoring
+
+```bash
+py tools/ksef_status.py --summary              # Podsumowanie: dzis, 7 dni, total
+py tools/ksef_status.py --today                # Dzisiejsze wysylki
+py tools/ksef_status.py --status ERROR         # Tylko bledy
+py tools/ksef_status.py --status REJECTED      # Tylko odrzucone
+py tools/ksef_status.py --status ACCEPTED      # Tylko zaakceptowane
+py tools/ksef_status.py --gid 123456           # Konkretna faktura po GID
+```
+
+### 8.7 Raport dzienny
+
+```bash
+py tools/ksef_report.py --stdout               # Wyswietl raport w terminalu (dzis)
+py tools/ksef_report.py --stdout --since 7d    # Raport za ostatnie 7 dni
+py tools/ksef_report.py --stdout --since 3d    # Raport za ostatnie 3 dni
+py tools/ksef_report.py --stdout --since 24h   # Raport za ostatnie 24 godziny
+py tools/ksef_report.py --send-email           # Wyslij raport mailem
+py tools/ksef_report.py --file raport.txt      # Zapisz raport do pliku
+```
+
+### 8.8 Konfiguracja
+
+```bash
+py tools/ksef_config_gui.py                    # GUI ustawien (.env) — okno z zakladkami
+py tools/ksef_init_db.py                       # Utworz/sprawdz baze danych shadow DB
+```
+
+### 8.9 Diagnostyka i testy
+
+```bash
+py tools/ksef_smoke.py                         # Smoke test — czy API KSeF odpowiada
+py tools/ksef_validate.py output/schemat_FA3.xsd ksef_api/demo/output/*.xml  # Walidacja XML vs XSD
+py -m pytest tests/ksef/ -v                    # Pelny suite testow
+py -m pytest tests/ksef/ -x -q                 # Szybki test (stop na 1. bledzie)
+py -m pytest tests/integration/test_ksef_demo_smoke.py -v   # Test integracyjny z demo API
+```
+
+### 8.10 Instalacja standalone
+
+```bash
+py tools/ksef_install.py                       # Kopiuj do dist/ksef/
+py tools/ksef_install.py --target D:\KSeF      # Kopiuj do wybranego katalogu
+py tools/ksef_install.py --install-deps        # Kopiuj + zainstaluj pip dependencies
+```

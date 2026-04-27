@@ -17,11 +17,14 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 # Files to copy (relative to project root)
 _FILES = [
     # Launchers
+    "ksef_start.bat",
+    "ksef_service.bat",
     "ksef_wyslij_demo.bat",
     "ksef_raport_dzienny.bat",
     "ksef_ustawienia.bat",
 
     # Tools
+    "tools/ksef_start.py",
     "tools/ksef_daemon.py",
     "tools/ksef_watchdog.py",
     "tools/ksef_report.py",
@@ -39,6 +42,7 @@ _FILES = [
     "core/ksef/guards.py",
     "core/ksef/exceptions.py",
     "core/ksef/models.py",
+    "core/ksef/paths.py",
     "core/ksef/schema.sql",
 
     # Core — domain
@@ -118,7 +122,7 @@ def install(target: Path, *, install_deps: bool = False) -> None:
             print(f"  [NEW]  {rel}")
 
     # Create empty dirs
-    for d in ["ksef_api/demo/data", "ksef_api/demo/output/upo", "ksef_api/prod/data", "ksef_api/prod/output/upo", "tmp"]:
+    for d in ["data", "ksef_api/demo/data", "ksef_api/demo/output/upo", "ksef_api/prod/data", "ksef_api/prod/output/upo", "tmp"]:
         (target / d).mkdir(parents=True, exist_ok=True)
 
     # Write requirements.txt
@@ -152,12 +156,11 @@ Nastepne kroki:
 2. Zainstaluj zaleznosci (jesli nie --install-deps):
    pip install -r {req_path}
 
-3. Uruchom daemon:
-   ksef_wyslij_demo.bat
+3. Uruchom system:
+   ksef_start.bat
 
-4. Zarejestruj w Task Scheduler:
-   - ksef_wyslij_demo.bat  -> przy starcie komputera
-   - ksef_raport_dzienny.bat -> codziennie 13:30
+4. Task Scheduler (autostart przy starcie serwera):
+   schtasks /create /tn "KSEF DEAMON" /tr "{target / 'ksef_start.bat'}" /sc onstart /ru CEIM\\CEIMAdmin /f
 """)
 
 
