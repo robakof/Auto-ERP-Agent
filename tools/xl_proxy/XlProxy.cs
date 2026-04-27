@@ -189,7 +189,8 @@ class XlProxy {
     static string CmdLogin(string json) {
         object info = CreateInfo("cdn_api.XLLoginInfo_20251");
         SetField(info, "Wersja",     20251);
-        SetField(info, "TrybWsadowy", 1);
+        string trybStr = GetStr(json, "tryb_wsadowy");
+        SetField(info, "TrybWsadowy", trybStr == "0" ? 0 : 1);
         SetField(info, "ProgramID",  "MrowiSkoAgent");
         SetField(info, "Baza",       GetStr(json, "baza"));
         SetField(info, "OpeIdent",   GetStr(json, "oper"));

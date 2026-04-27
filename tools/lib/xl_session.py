@@ -15,11 +15,12 @@ _client: XlProxyClient | None = None
 _sesja_id: int = 0
 
 _DEFAULTS = {
-    "XL_DLL_DIR": r"C:\Comarch ERP\Comarch ERP XL 2025.1",
-    "XL_BAZA":    "",
-    "XL_LOGIN":   "",
-    "XL_PASSWORD": "",
-    "XL_SERWER":  "",
+    "XL_DLL_DIR":       r"C:\Comarch ERP\Comarch ERP XL 2025.1",
+    "XL_BAZA":          "",
+    "XL_LOGIN":         "",
+    "XL_PASSWORD":      "",
+    "XL_SERWER":        "",
+    "XL_TRYB_WSADOWY":  "0",
 }
 
 
@@ -53,11 +54,12 @@ def _login() -> tuple[XlProxyClient, int]:
     client = XlProxyClient(_env("XL_DLL_DIR"))
     client.start()
     result = client.send({
-        "cmd":    "login",
-        "baza":   _env("XL_BAZA"),
-        "oper":   _env("XL_LOGIN"),
-        "haslo":  _env("XL_PASSWORD"),
-        "serwer": _env("XL_SERWER"),
+        "cmd":           "login",
+        "baza":          _env("XL_BAZA"),
+        "oper":          _env("XL_LOGIN"),
+        "haslo":         _env("XL_PASSWORD"),
+        "serwer":        _env("XL_SERWER"),
+        "tryb_wsadowy":  _env("XL_TRYB_WSADOWY"),
     })
     if not result.get("ok"):
         client.stop()
