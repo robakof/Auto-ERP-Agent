@@ -43,10 +43,11 @@ class SmtpEmailSender:
         html: str,
         plain: str,
     ) -> None:
-        """Send multipart email. Raises on failure."""
+        """Send multipart email. Multiple recipients: separate with ; or ,"""
+        recipients = [r.strip() for r in to.replace(",", ";").split(";") if r.strip()]
         msg = self._build_message(to=to, from_=from_, subject=subject,
                                    html=html, plain=plain)
-        self._send_smtp(to, from_, msg)
+        self._send_smtp(recipients, from_, msg)
         _LOG.info('{"event": "email_sent", "to": "%s", "subject": "%s"}',
                   to, subject[:80])
 
@@ -61,15 +62,15 @@ class SmtpEmailSender:
         msg.attach(MIMEText(html, "html", "utf-8"))
         return msg
 
-    def _send_smtp(self, to: str, from_: str, msg: MIMEMultipart) -> None:
+    def _send_smtp(self, to: list[str], from_: str, msg: MIMEMultipart) -> None:
         if self._use_ssl:
             with smtplib.SMTP_SSL(self._host, self._port,
                                    timeout=self._timeout) as smtp:
                 smtp.login(self._user, self._password)
-                smtp.sendmail(from_, [to], msg.as_string())
+                smtp.sendmail(from_, to, msg.as_string())
         else:
             with smtplib.SMTP(self._host, self._port,
                               timeout=self._timeout) as smtp:
                 smtp.starttls()
                 smtp.login(self._user, self._password)
-                smtp.sendmail(from_, [to], msg.as_string())
+                smtp.sendmail(from_, to, msg.as_string())
