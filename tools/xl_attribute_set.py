@@ -1,16 +1,10 @@
 """Ustawienie wartości atrybutu na obiekcie ERP XL.
 
-Zapis przez CDN.XLDodajAktualizujAtr — Comarch SP obsługuje INSERT i UPDATE.
-XLDodajAtrybut (XL API) nie działa w trybie wsadowym — pominięte.
-
-Wymagane: GRANT EXECUTE ON CDN.XLDodajAktualizujAtr TO Arek_Demo
+Zapis przez XLDodajAtrybut (Comarch XL API DLL) — tylko INSERT nowych atrybutów.
+Jeśli atrybut już istnieje → zwraca action="skipped" (UPDATE = podprojekt).
 
 Obsługiwane typy obiektów:
-  16   = towar         (akronim = Twr_Kod)
-  32   = kontrahent    (akronim = Knt_Akronim)
-  368  = srodek_trwaly (akronim = Srt_Akronim)
-  1617 = dokument      (akronim = numeryczny TrN_GIDNumer jako string)
-  4800 = umowa         (akronim = numeryczny UmN_Id jako string)
+  16 = towar (akronim = Twr_Kod)
 """
 
 import argparse
@@ -22,39 +16,18 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.lib.sql_client import SqlClient
+from tools.lib.xl_client import XlClient
 
-_SUPPORTED_TYPES = {16, 32, 368, 1617, 4800}
-
-_SP_SQL = """
-DECLARE @ret INT
-EXEC @ret = CDN.XLDodajAktualizujAtr
-    @AtK_Nazwa    = ?,
-    @Atr_Wartosc  = ?,
-    @Akronim      = ?,
-    @Typ          = ?,
-    @OpeIden      = ?,
-    @IgnorujBledy = 1
-SELECT @ret AS return_code
+_GID_SQL = """
+    SELECT Twr_GIDNumer, Twr_GIDFirma, Twr_GIDTyp
+    FROM CDN.TwrKarty WHERE Twr_Kod = ?
 """
 
-_SP_ERRORS = {
-    -101: ("MISSING_CLASS_NAME",    "Nie podano nazwy klasy atrybutu"),
-    -102: ("MISSING_VALUE",         "Nie podano wartości atrybutu"),
-    -103: ("MISSING_AKRONIM",       "Nie podano akronimu obiektu"),
-    -104: ("MISSING_TYPE",          "Nie podano typu obiektu"),
-    -105: ("UNSUPPORTED_TYPE",      "Nieobsługiwany typ obiektu"),
-    -106: ("UNSUPPORTED_ATTRIBUTE", "Atrybut nieobsługiwany przez procedurę"),
-    -107: ("PRODUCT_NOT_FOUND",     "Nie znaleziono towaru o podanym kodzie"),
-    -108: ("CONTRACTOR_NOT_FOUND",  "Nie znaleziono kontrahenta o podanym akronimie"),
-    -109: ("VALUE_ALREADY_EXISTS",  "Wartość już istnieje (atrybut wielowartościowy)"),
-    -110: ("VALUE_NOT_ON_LIST",     "Wartość nie jest na liście dozwolonych"),
-    -111: ("AKRONIM_NOT_NUMERIC",   "Identyfikator dokumentu musi być liczbą"),
-    -112: ("OBJECT_NOT_FOUND",      "Nie znaleziono obiektu"),
-    -113: ("CLASS_NOT_FOUND",       "Nie znaleziono klasy atrybutu o podanej nazwie"),
-    -1100: ("DB_HIST_ERROR",        "Błąd zapisu historii atrybutu"),
-    -1101: ("DB_WARTOSC_ERROR",     "Błąd zapisu do AtrybutyWartosci"),
-    -1102: ("DB_UPDATE_ERROR",      "Błąd aktualizacji tabeli Atrybuty"),
-}
+_EXISTS_SQL = """
+    SELECT COUNT(*) FROM CDN.Atrybuty a
+    JOIN CDN.AtrybutyKlasy k ON a.Atr_AtkId = k.AtK_Id
+    WHERE a.Atr_ObiNumer = ? AND a.Atr_ObiTyp = ? AND k.AtK_Nazwa = ?
+"""
 
 
 def _err(err_type: str, msg: str, start: float) -> dict:
@@ -74,55 +47,71 @@ def set_attribute(
 ) -> dict:
     start = time.monotonic()
 
-    if obj_type not in _SUPPORTED_TYPES:
-        return _err("UNSUPPORTED_TYPE", "Nieobsługiwany typ obiektu", start)
-
-    if obj_type in {1617, 4800}:
-        try:
-            int(akronim)
-        except ValueError:
-            return _err("OBJECT_NOT_FOUND", "Identyfikator dokumentu musi być liczbą", start)
+    if obj_type != 16:
+        return _err("UNSUPPORTED_TYPE", "Tylko typ 16 (towar) obsługiwany — pozostałe typy: podprojekt", start)
 
     try:
         conn = SqlClient().get_connection()
         cursor = conn.cursor()
-        cursor.execute(_SP_SQL, [class_name, value, akronim, obj_type, operator])
+
+        cursor.execute(_GID_SQL, [akronim])
         row = cursor.fetchone()
-        return_code = row[0] if row else None
-        conn.commit()
+        if not row:
+            return _err("OBJECT_NOT_FOUND", f"Nie znaleziono towaru: {akronim}", start)
+        gid_numer, gid_firma, gid_typ = int(row[0]), int(row[1]), int(row[2])
+
+        cursor.execute(_EXISTS_SQL, [gid_numer, gid_typ, class_name])
+        exists = cursor.fetchone()[0] > 0
+
     except Exception as exc:
         return _err("SQL_ERROR", str(exc), start)
 
+    if exists:
+        return {
+            "ok": True,
+            "data": {"class": class_name, "value": value, "akronim": akronim,
+                     "type": obj_type, "action": "skipped"},
+            "error": None,
+            "meta": {"duration_ms": round((time.monotonic() - start) * 1000)},
+        }
+
+    try:
+        result = XlClient().dodaj_atrybut(
+            gid_typ=gid_typ,
+            gid_numer=gid_numer,
+            gid_firma=gid_firma,
+            klasa=class_name,
+            wartosc=value,
+        )
+    except Exception as exc:
+        return _err("XL_API_ERROR", str(exc), start)
+
     duration_ms = round((time.monotonic() - start) * 1000)
 
-    if return_code != 0:
-        err_type, err_msg = _SP_ERRORS.get(
-            return_code,
-            ("UNKNOWN_ERROR", f"Nieznany kod błędu procedury: {return_code}"),
-        )
-        return {"ok": False, "data": None,
-                "error": {"type": err_type, "message": err_msg, "code": return_code},
-                "meta": {"duration_ms": duration_ms}}
+    if not result.get("ok"):
+        return {
+            "ok": False, "data": None,
+            "error": result.get("error", {"type": "XL_API_ERROR", "message": "Nieznany błąd XL API"}),
+            "meta": {"duration_ms": duration_ms},
+        }
 
     return {
         "ok": True,
         "data": {"class": class_name, "value": value, "akronim": akronim,
-                 "type": obj_type, "action": "upserted"},
+                 "type": obj_type, "action": "inserted"},
         "error": None,
         "meta": {"duration_ms": duration_ms},
     }
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Ustaw lub zaktualizuj atrybut na obiekcie ERP XL")
+    parser = argparse.ArgumentParser(description="Dodaj nowy atrybut na obiekcie ERP XL przez XL API")
     parser.add_argument("--class-name", required=True, help="Nazwa klasy atrybutu")
     parser.add_argument("--value", required=True, help="Wartość atrybutu")
-    parser.add_argument("--akronim", required=True,
-                        help="Kod towaru / akronim kontrahenta / numeryczny ID dokumentu")
-    parser.add_argument("--type", type=int, default=16, choices=[16, 32, 368, 1617, 4800],
+    parser.add_argument("--akronim", required=True, help="Kod towaru")
+    parser.add_argument("--type", type=int, default=16, choices=[16],
                         dest="obj_type", help="Typ obiektu (domyślnie: 16 = towar)")
-    parser.add_argument("--operator", default=None,
-                        help="Identyfikator operatora ERP")
+    parser.add_argument("--operator", default=None, help="Identyfikator operatora ERP")
     args = parser.parse_args()
 
     result = set_attribute(args.class_name, args.value, args.akronim, args.obj_type, args.operator)
