@@ -33,7 +33,7 @@ _FONT_HINT = ("Segoe UI", 9)
 def format_summary(data: dict) -> str:
     """Zwraca jednolinijkowe podsumowanie wyników bulk update."""
     return (
-        f"✓ {data['success']} zaktualizowanych   "
+        f"✓ {data['success']} dodanych   "
         f"✗ {data['failed']} błędów   "
         f"— {data['skipped']} pominiętych"
     )
@@ -83,10 +83,13 @@ class AttributeApp(Tk):
 
     def _build_step2(self):
         step = _Step(self,
-                     "KROK 2 — Aktualizuj atrybuty",
-                     "Wskaż wypełniony plik Excel i uruchom aktualizację.",
+                     "KROK 2 — Dodaj atrybuty",
+                     "Wskaż wypełniony plik Excel i uruchom import przez XL API.",
                      _BG_STEP2, "#1A3C1A")
         step.pack(fill="x", pady=(0, 10))
+
+        Label(step, text="⚠  Przed uruchomieniem zamknij Comarch ERP XL.",
+              font=_FONT_HINT, bg=_BG_STEP2, fg="#B45309").pack(anchor="w", pady=(4, 0))
 
         row_file = Frame(step, bg=_BG_STEP2)
         row_file.pack(fill="x", pady=(8, 0))
@@ -98,15 +101,7 @@ class AttributeApp(Tk):
         Label(row_file, textvariable=self._file_label, font=_FONT,
               bg=_BG_STEP2, fg="#333", wraplength=330).pack(side="left", padx=(10, 0))
 
-        row_ope = Frame(step, bg=_BG_STEP2)
-        row_ope.pack(fill="x", pady=(8, 0))
-        Label(row_ope, text="Operator ERP:", font=_FONT, bg=_BG_STEP2).pack(side="left")
-        self._operator = StringVar()
-        Entry(row_ope, textvariable=self._operator, width=12, font=_FONT).pack(side="left", padx=(6, 0))
-        Label(row_ope, text="(opcjonalnie)", font=_FONT_HINT,
-              bg=_BG_STEP2, fg="#888").pack(side="left", padx=(4, 0))
-
-        self._run_btn = Button(step, text="▶  Uruchom aktualizację", font=_FONT_BOLD,
+        self._run_btn = Button(step, text="▶  Uruchom import", font=_FONT_BOLD,
                                command=self._on_run,
                                bg="#15803D", fg="white", relief="flat",
                                padx=14, pady=7, state="disabled")
@@ -162,18 +157,14 @@ class AttributeApp(Tk):
     def _on_run(self):
         if not self._picked_file:
             return
-        operator = self._operator.get().strip() or None
-        if not operator:
-            messagebox.showerror("Brak operatora", "Wpisz identyfikator operatora ERP przed uruchomieniem.")
-            return
         self._run_btn.configure(state="disabled")
         self._open_btn.configure(state="disabled")
-        self._status_var.set("Trwa aktualizacja…")
+        self._status_var.set("Trwa import…")
         self.update()
         report = _DEFAULT_REPORT
 
         def _worker():
-            result = bulk_update(self._picked_file, operator=operator, report=report)
+            result = bulk_update(self._picked_file, operator=None, report=report)
             self.after(0, lambda: self._on_done(result, report))
 
         threading.Thread(target=_worker, daemon=True).start()
@@ -182,7 +173,7 @@ class AttributeApp(Tk):
         self._run_btn.configure(state="normal")
         if not result["ok"]:
             self._status_var.set(f"✗ Błąd: {result['error']['message']}")
-            messagebox.showerror("Błąd aktualizacji", result["error"]["message"])
+            messagebox.showerror("Błąd importu", result["error"]["message"])
             return
         summary = format_summary(result["data"])
         self._status_var.set(f"{summary}\nRaport: {report}")
