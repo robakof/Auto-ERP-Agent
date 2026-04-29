@@ -96,6 +96,16 @@ def generate_template(output: Path) -> dict:
     h_typ.font = _HEADER_FONT
     h_typ.alignment = Alignment(horizontal="center")
 
+    h_val1 = ws.cell(1, 4, "Wartość 1")
+    h_val1.fill = PatternFill("solid", fgColor="375623")
+    h_val1.font = Font(bold=True, color="FFFFFF", size=11)
+    h_val1.alignment = Alignment(horizontal="center")
+
+    h_val2 = ws.cell(1, 5, "Wartość 2")
+    h_val2.fill = PatternFill("solid", fgColor="375623")
+    h_val2.font = Font(bold=True, color="FFFFFF", size=11)
+    h_val2.alignment = Alignment(horizontal="center")
+
     # --- Wiersze danych: jeden wiersz = jeden produkt × jeden atrybut ---
     row_idx = 2
     for prod_i, (twr_kod, twr_nazwa) in enumerate(products):
@@ -135,8 +145,8 @@ def generate_template(output: Path) -> dict:
     ws.column_dimensions["A"].width = 16
     ws.column_dimensions["B"].width = 38
     ws.column_dimensions["C"].width = 22
-    ws.column_dimensions["D"].width = 20
-    ws.column_dimensions["E"].width = 20
+    ws.column_dimensions["D"].width = 22
+    ws.column_dimensions["E"].width = 22
 
     ws.freeze_panes = "D2"
     ws.row_dimensions[1].height = 22
