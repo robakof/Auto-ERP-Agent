@@ -12,14 +12,17 @@ Użycie:
 
 import argparse
 import json
+import os
 import sys
 from collections import defaultdict
 from pathlib import Path
 
+from dotenv import load_dotenv
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+load_dotenv()
 
 from tools.lib.sql_client import SqlClient
 
@@ -35,11 +38,34 @@ WHERE ao.AtO_GIDTyp = 16
 ORDER BY ak.AtK_Nazwa
 """
 
-_QUERY_PRODUCTS = """
+_QUERY_PRODUCTS_ALL = """
 SELECT Twr_Kod, Twr_Nazwa1
 FROM CDN.TwrKarty
 WHERE Twr_Archiwalny = 0
 ORDER BY Twr_Kod
+"""
+
+_QUERY_PRODUCTS_GROUP = """
+WITH GTree AS (
+    SELECT TwG_GIDNumer, TwG_GIDTyp
+    FROM CDN.TwrGrupy
+    WHERE TwG_GIDNumer = {group_id} AND TwG_GIDTyp = -16
+    UNION ALL
+    SELECT g.TwG_GIDNumer, g.TwG_GIDTyp
+    FROM CDN.TwrGrupy g
+    INNER JOIN GTree gt
+        ON g.TwG_GrONumer = gt.TwG_GIDNumer
+        AND g.TwG_GrOTyp  = gt.TwG_GIDTyp
+        AND g.TwG_GIDTyp  = -16
+)
+SELECT DISTINCT tk.Twr_Kod, tk.Twr_Nazwa1
+FROM CDN.TwrKarty tk
+JOIN CDN.TwrGrupy tg
+    ON tk.Twr_GIDNumer = tg.TwG_GIDNumer AND tk.Twr_GIDTyp = tg.TwG_GIDTyp
+JOIN GTree gt2
+    ON tg.TwG_GrONumer = gt2.TwG_GIDNumer AND tg.TwG_GrOTyp = gt2.TwG_GIDTyp
+WHERE tk.Twr_Archiwalny = 0
+ORDER BY tk.Twr_Kod
 """
 
 _QUERY_EXISTING_VALUES = """
@@ -71,8 +97,14 @@ def _fetch(client: SqlClient, query: str) -> list:
 def generate_template(output: Path) -> dict:
     client = SqlClient()
 
+    group_id_raw = os.getenv("XL_ATTR_GROUP_ID", "").strip()
+    if group_id_raw.isdigit():
+        query_products = _QUERY_PRODUCTS_GROUP.format(group_id=int(group_id_raw))
+    else:
+        query_products = _QUERY_PRODUCTS_ALL
+
     attrs = _fetch(client, _QUERY_ATTRS)
-    products = _fetch(client, _QUERY_PRODUCTS)
+    products = _fetch(client, query_products)
     existing_raw = _fetch(client, _QUERY_EXISTING_VALUES)
 
     # {(twr_kod, attr_name): [val1, val2, ...]}
