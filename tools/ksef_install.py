@@ -22,6 +22,9 @@ _FILES = [
     "ksef_wyslij_demo.bat",
     "ksef_raport_dzienny.bat",
     "ksef_ustawienia.bat",
+    "ksef_generuj_fs.bat",
+    "ksef_generuj_kor.bat",
+    "ksef_generuj_skonto.bat",
 
     # Tools
     "tools/ksef_start.py",
@@ -29,6 +32,9 @@ _FILES = [
     "tools/ksef_watchdog.py",
     "tools/ksef_report.py",
     "tools/ksef_config_gui.py",
+    "tools/ksef_generate.py",
+    "tools/ksef_generate_kor.py",
+    "tools/ksef_generate_skonto.py",
     "tools/sql_query.py",
     "tools/lib/__init__.py",
     "tools/lib/sql_client.py",
@@ -70,6 +76,11 @@ _FILES = [
     "core/ksef/usecases/scan_erp.py",
     "core/ksef/usecases/send_invoice.py",
     "core/ksef/usecases/report.py",
+
+    # SQL drafts (ERP queries for invoice generation)
+    "solutions/ksef/ksef_fs_draft.sql",
+    "solutions/ksef/ksef_fsk_draft.sql",
+    "solutions/ksef/ksef_fsk_skonto_draft.sql",
 
     # XSD schema
     "output/schemat_FA3.xsd",

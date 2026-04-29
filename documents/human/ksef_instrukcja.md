@@ -148,6 +148,36 @@ KSEF_DAEMON_TICK_TIMEOUT=300
 
 ## 3. Codzienne uzytkowanie
 
+### 3.0 Szybka kontrola — czy wszystko dziala?
+
+**Nie musisz czytac logow.** Wystarczy jedno polecenie:
+
+```
+py tools/ksef_report.py --stdout --since 1d
+```
+
+Widzisz **"WSZYSTKIE FAKTURY WYSLANE"** → jest OK. Koniec.
+
+**A jeszcze lepiej:** raport mailowy przychodzi codziennie o 13:30 na skonfigurowane
+adresy email. Jak mail przyszedl i status jest OK — nie musisz robic nic.
+
+**Kiedy reagowac:**
+
+| Co widzisz | Co to znaczy | Co zrobic |
+|---|---|---|
+| "WSZYSTKIE FAKTURY WYSLANE" | Wszystko OK | Nic |
+| "Oczekujace: N" | Faktury czekaja na wysylke | Poczekaj na nastepny tick (15 min) |
+| "Bledy: N" | Blad techniczny (siec, API) | Daemon ponowi automatycznie |
+| "Odrzucone: N" | KSeF odrzucil fakture | Sprawdz: `py tools/ksef_status.py --status REJECTED` |
+| Brak maila o 13:30 | Daemon nie dziala | Sprawdz: `py tools/ksef_start.py` lub Task Scheduler |
+
+**Sprawdzenie za konkretny dzien:**
+
+```
+py tools/ksef_report.py --stdout --since 3d    :: ostatnie 3 dni
+py tools/ksef_report.py --stdout --since 7d    :: ostatni tydzien
+```
+
 ### 3.1 Skroty Windows (*.bat)
 
 Dwuklik z Eksploratora:
