@@ -13,7 +13,9 @@ from tkinter import (
     Button, Entry, Frame, Label, StringVar, Tk, filedialog, messagebox,
 )
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+_PROJECT_ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(_PROJECT_ROOT))
+os.chdir(_PROJECT_ROOT)
 
 from tools.xl_attribute_bulk import bulk_update
 from tools.xl_attribute_template import generate_template
@@ -50,11 +52,17 @@ class AttributeApp(Tk):
     def __init__(self):
         super().__init__()
         self.title("Atrybuty Produktów — CEiM")
-        self.resizable(False, False)
         self.configure(padx=20, pady=20, bg=_BG)
         self._picked_file: Path | None = None
         self._report_path: Path | None = None
         self._build()
+        self.resizable(False, False)
+        self.update_idletasks()
+        w, h = self.winfo_reqwidth(), self.winfo_reqheight()
+        sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
+        self.geometry(f"{w}x{h}+{(sw - w) // 2}+{(sh - h) // 2}")
+        self.lift()
+        self.focus_force()
 
     # ------------------------------------------------------------------ build
 
@@ -134,7 +142,7 @@ class AttributeApp(Tk):
             return
         self._status_var.set("Generowanie template…")
         self.update()
-        result = generate_template(Path(path), akronim_cols=10)
+        result = generate_template(Path(path))
         if result["ok"]:
             self._template_label.set(Path(path).name)
             self._status_var.set(f"✓ Template zapisany: {path}")
