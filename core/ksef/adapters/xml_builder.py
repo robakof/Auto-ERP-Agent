@@ -184,7 +184,7 @@ class XmlBuilder:
             _sub(fw, "GTIN", text=pozycja.gtin)
         _sub(fw, "P_8A", text=pozycja.jednostka_miary)
         _sub(fw, "P_8B", text=self._format_ilosc(pozycja.ilosc))
-        _sub(fw, "P_9A", text=self._format_decimal(pozycja.cena_netto_jedn))
+        _sub(fw, "P_9A", text=self._format_decimal(pozycja.cena_netto_jedn, places=6))
         _sub(fw, "P_11", text=self._format_decimal(pozycja.wartosc_netto))
         _sub(fw, "P_12", text=pozycja.stawka_vat)
 
@@ -224,7 +224,7 @@ class XmlBuilder:
             _sub(fw, "PKWiU", text=w.pkwiu)
         _sub(fw, "P_8A", text=w.jednostka_miary)
         _sub(fw, "P_8B", text=self._format_ilosc(w.ilosc))
-        _sub(fw, "P_9B", text=self._format_decimal(w.cena_brutto_jedn))
+        _sub(fw, "P_9B", text=self._format_decimal(w.cena_brutto_jedn, places=6))
         _sub(fw, "P_11A", text=self._format_decimal(w.wartosc_netto))
         _sub(fw, "P_11Vat", text=self._format_decimal(w.kwota_vat))
         _sub(fw, "P_12", text=w.stawka_vat)
