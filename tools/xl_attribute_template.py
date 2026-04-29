@@ -38,7 +38,7 @@ ORDER BY ak.AtK_Nazwa
 _QUERY_PRODUCTS = """
 SELECT Twr_Kod, Twr_Nazwa1
 FROM CDN.TwrKarty
-WHERE Twr_Aktywny = 1
+WHERE Twr_Archiwalny = 0
 ORDER BY Twr_Kod
 """
 
