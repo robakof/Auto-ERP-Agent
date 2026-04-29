@@ -1,18 +1,17 @@
-"""Testy dla tools/xl_attribute_bulk.py."""
+"""Testy dla tools/xl_attribute_bulk.py.
+
+Format pliku: wiersz 1 = nagłówek, wiersze 2+ = KOD_XL | ATRYBUT | TYP | wartość1 | ...
+"""
 
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
-from tools.lib.sql_client import SqlClient
 import tools.xl_attribute_bulk as xb
 
 _DEL_OK = {"ok": True, "data": {"deleted": 0}, "error": None, "meta": {"duration_ms": 1}}
-
-
-def _make_class_map(*names):
-    return {n.strip().lower(): n for n in names}
+_SET_OK = {"ok": True, "data": {}, "error": None}
 
 
 def _make_excel(header, rows, tmp_path):
@@ -27,63 +26,40 @@ def _make_excel(header, rows, tmp_path):
     return path
 
 
-class TestDetectAttrCols:
-    def test_skips_first_col(self):
-        header = ["Kod XL", "KOLOR", "WAGA PRODUKTU"]
-        result = xb._detect_attr_cols(header)
-        assert result == [(1, "KOLOR"), (2, "WAGA PRODUKTU")]
-
-    def test_skips_empty_header(self):
-        header = ["Kod XL", None, "KOLOR"]
-        result = xb._detect_attr_cols(header)
-        assert result == [(2, "KOLOR")]
-
-    def test_no_attrs(self):
-        header = ["Kod XL"]
-        assert xb._detect_attr_cols(header) == []
-
-    def test_all_empty_skipped(self):
-        header = ["Kod XL", "", None]
-        assert xb._detect_attr_cols(header) == []
+def _cls(*names):
+    return {n.strip().lower(): n for n in names}, None
 
 
 class TestBulkUpdate:
-    def _mock_class_map(self, names):
-        return {n.strip().lower(): n for n in names}
-
-    def test_success(self, tmp_path):
+    def test_success_single(self, tmp_path):
         path = _make_excel(
-            ["Kod XL", "WAGA PRODUKTU"],
-            [["FOTEL-01", "1.5"]],
+            [None, "Atrybut / Akronim →", "Typ"],
+            [["FOTEL-01", "WAGA PRODUKTU", "liczba", "1.5"]],
             tmp_path,
         )
-        with patch.object(xb, "_load_class_map",
-                          return_value=(self._mock_class_map(["WAGA PRODUKTU"]), None)):
+        with patch.object(xb, "_load_class_map", return_value=_cls("WAGA PRODUKTU")):
             with patch.object(xb, "delete_attributes", return_value=_DEL_OK):
-                with patch.object(xb, "set_attribute",
-                                  return_value={"ok": True, "data": {}, "error": None}):
+                with patch.object(xb, "set_attribute", return_value=_SET_OK):
                     result = xb.bulk_update(path)
         assert result["ok"] is True
         assert result["data"]["success"] == 1
         assert result["data"]["failed"] == 0
-        assert result["data"]["skipped"] == 0
 
-    def test_empty_cell_skipped(self, tmp_path):
+    def test_empty_value_skipped(self, tmp_path):
         path = _make_excel(
-            ["Kod XL", "WAGA PRODUKTU"],
-            [["FOTEL-01", None]],
+            [None, "Atrybut / Akronim →", "Typ"],
+            [["FOTEL-01", "WAGA PRODUKTU", "liczba"]],
             tmp_path,
         )
-        with patch.object(xb, "_load_class_map",
-                          return_value=(self._mock_class_map(["WAGA PRODUKTU"]), None)):
+        with patch.object(xb, "_load_class_map", return_value=_cls("WAGA PRODUKTU")):
             result = xb.bulk_update(path)
         assert result["data"]["skipped"] == 1
         assert result["data"]["success"] == 0
 
-    def test_unknown_class_reported_as_failed(self, tmp_path):
+    def test_unknown_class_failed(self, tmp_path):
         path = _make_excel(
-            ["Kod XL", "NIEISTNIEJACY"],
-            [["FOTEL-01", "wartość"]],
+            [None, "Atrybut / Akronim →", "Typ"],
+            [["FOTEL-01", "NIEZNANY", "tekst", "wartość"]],
             tmp_path,
         )
         with patch.object(xb, "_load_class_map", return_value=({}, None)):
@@ -92,39 +68,54 @@ class TestBulkUpdate:
         assert result["data"]["failed"] == 1
         assert result["data"]["results"][0]["status"] == "BŁĄD"
 
-    def test_set_attribute_failure_counted(self, tmp_path):
+    def test_set_attribute_failure(self, tmp_path):
         path = _make_excel(
-            ["Kod XL", "WAGA PRODUKTU"],
-            [["FOTEL-01", "1.5"]],
+            [None, "Atrybut / Akronim →", "Typ"],
+            [["FOTEL-01", "WAGA PRODUKTU", "liczba", "1.5"]],
             tmp_path,
         )
-        with patch.object(xb, "_load_class_map",
-                          return_value=(self._mock_class_map(["WAGA PRODUKTU"]), None)):
+        _fail = {"ok": False, "data": None, "error": {"type": "X", "message": "brak"}}
+        with patch.object(xb, "_load_class_map", return_value=_cls("WAGA PRODUKTU")):
             with patch.object(xb, "delete_attributes", return_value=_DEL_OK):
-                with patch.object(xb, "set_attribute",
-                                  return_value={"ok": False, "data": None,
-                                                "error": {"type": "OBJECT_NOT_FOUND", "message": "brak"}}):
+                with patch.object(xb, "set_attribute", return_value=_fail):
                     result = xb.bulk_update(path)
         assert result["data"]["failed"] == 1
 
     def test_multiple_products_multiple_attrs(self, tmp_path):
         path = _make_excel(
-            ["Kod XL", "WAGA PRODUKTU", "KOLOR"],
+            [None, "Atrybut / Akronim →", "Typ"],
             [
-                ["FOTEL-01", "1.5", "czarny"],
-                ["FOTEL-02", "2.0", None],
+                ["FOTEL-01", "WAGA PRODUKTU", "liczba", "1.5"],
+                ["FOTEL-01", "KOLOR", "tekst", "czarny"],
+                ["FOTEL-02", "WAGA PRODUKTU", "liczba", "2.0"],
+                ["FOTEL-02", "KOLOR", "tekst"],   # pusta = skip
             ],
             tmp_path,
         )
-        with patch.object(xb, "_load_class_map",
-                          return_value=(self._mock_class_map(["WAGA PRODUKTU", "KOLOR"]), None)):
+        with patch.object(xb, "_load_class_map", return_value=_cls("WAGA PRODUKTU", "KOLOR")):
             with patch.object(xb, "delete_attributes", return_value=_DEL_OK):
-                with patch.object(xb, "set_attribute",
-                                  return_value={"ok": True, "data": {}, "error": None}):
+                with patch.object(xb, "set_attribute", return_value=_SET_OK):
                     result = xb.bulk_update(path)
         assert result["data"]["total"] == 4
         assert result["data"]["success"] == 3
         assert result["data"]["skipped"] == 1
+
+    def test_multival_inserts_each(self, tmp_path):
+        path = _make_excel(
+            [None, "Atrybut / Akronim →", "Typ"],
+            [["FOTEL-01", "KOLOR", "lista*", "czerwony", "niebieski"]],
+            tmp_path,
+        )
+        calls = []
+        def fake_set(name, val, akr, **kw):
+            calls.append(val)
+            return _SET_OK
+        with patch.object(xb, "_load_class_map", return_value=_cls("KOLOR")):
+            with patch.object(xb, "delete_attributes", return_value=_DEL_OK):
+                with patch.object(xb, "set_attribute", side_effect=fake_set):
+                    result = xb.bulk_update(path)
+        assert calls == ["czerwony", "niebieski"]
+        assert result["data"]["success"] == 1
 
     def test_empty_file_returns_error(self, tmp_path):
         from openpyxl import Workbook
@@ -133,24 +124,27 @@ class TestBulkUpdate:
         result = xb.bulk_update(path)
         assert result["ok"] is False
 
-    def test_no_attrs_returns_error(self, tmp_path):
-        path = _make_excel(["Kod XL"], [["FOTEL-01"]], tmp_path)
-        with patch.object(xb, "_load_class_map", return_value=({}, None)):
+    def test_all_empty_rows_all_skipped(self, tmp_path):
+        path = _make_excel(
+            [None, "Atrybut / Akronim →", "Typ"],
+            [["FOTEL-01", "WAGA PRODUKTU", "liczba"]],
+            tmp_path,
+        )
+        with patch.object(xb, "_load_class_map", return_value=_cls("WAGA PRODUKTU")):
             result = xb.bulk_update(path)
-        assert result["ok"] is False
-        assert result["error"]["type"] == "NO_ATTRS"
+        assert result["ok"] is True
+        assert result["data"]["skipped"] == 1
+        assert result["data"]["success"] == 0
 
     def test_report_written(self, tmp_path):
         path = _make_excel(
-            ["Kod XL", "WAGA PRODUKTU"],
-            [["FOTEL-01", "1.5"]],
+            [None, "Atrybut / Akronim →", "Typ"],
+            [["FOTEL-01", "WAGA PRODUKTU", "liczba", "1.5"]],
             tmp_path,
         )
         report_path = tmp_path / "raport.xlsx"
-        with patch.object(xb, "_load_class_map",
-                          return_value=(self._mock_class_map(["WAGA PRODUKTU"]), None)):
+        with patch.object(xb, "_load_class_map", return_value=_cls("WAGA PRODUKTU")):
             with patch.object(xb, "delete_attributes", return_value=_DEL_OK):
-                with patch.object(xb, "set_attribute",
-                                  return_value={"ok": True, "data": {}, "error": None}):
+                with patch.object(xb, "set_attribute", return_value=_SET_OK):
                     xb.bulk_update(path, report=report_path)
         assert report_path.exists()

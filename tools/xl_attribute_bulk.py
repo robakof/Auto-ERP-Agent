@@ -1,13 +1,14 @@
 """Bulk update atrybutów produktów z pliku Excel.
 
-Format pliku:
-  Wiersz 1: "Kod XL" | nazwa_atrybutu_1 | nazwa_atrybutu_2 | ...
-  Wiersze 2+: twr_kod | wartość_1 | wartość_2 | ...
-  Pusta komórka = pomiń (nie aktualizuj).
+Format pliku (zgodny ze wzorem):
+  Wiersz 1:  (puste) | "Atrybut / Akronim →" | "Typ" | ...
+  Wiersze 2+: KOD_XL | NAZWA_ATRYBUTU | TYP | wartość1 | wartość2 | ...
+  (jeden wiersz = jeden produkt × jeden atrybut)
+  Brak wartości w D+ = pomiń (nie aktualizuj).
 
 Użycie:
   python tools/xl_attribute_bulk.py --file atrybuty.xlsx
-  python tools/xl_attribute_bulk.py --file atrybuty.xlsx --operator ADMIN --report raport.xlsx
+  python tools/xl_attribute_bulk.py --file atrybuty.xlsx --report raport.xlsx
 """
 
 import argparse
@@ -55,18 +56,6 @@ def _parse_excel(path: Path) -> tuple[list, list]:
     return list(rows[0]), [list(r) for r in rows[1:]]
 
 
-def _detect_attr_cols(header: list) -> list[tuple[int, str]]:
-    """Zwraca [(col_idx, attr_name), ...] dla kolumn 1+ (pomija kolumnę 0 = Kod XL)."""
-    result = []
-    for i, h in enumerate(header):
-        if i == 0:
-            continue
-        if h is None or str(h).strip() == "":
-            continue
-        result.append((i, str(h).strip()))
-    return result
-
-
 def _write_report(path: Path, results: list) -> None:
     wb = Workbook()
     ws = wb.active
@@ -101,30 +90,23 @@ def bulk_update(file: Path, operator: str | None = None, report: Path | None = N
     if not header or not data_rows:
         return {"ok": False, "data": None, "error": {"type": "EMPTY_FILE", "message": "Plik jest pusty"}}
 
-    attr_cols = _detect_attr_cols(header)
-    if not attr_cols:
-        return {"ok": False, "data": None, "error": {"type": "NO_ATTRS", "message": "Brak kolumn z atrybutami w wierszu 1"}}
-
     client = SqlClient()
     class_map, err = _load_class_map(client)
     if err:
         return {"ok": False, "data": None, "error": err}
 
-    resolved: list[tuple[int, str | None, str]] = [
-        (col_idx, class_map.get(raw.lower()), raw)
-        for col_idx, raw in attr_cols
-    ]
-
-    # Faza 1: ustal które produkty mają conajmniej jedną niepustą wartość
+    # Faza 1: ustal które produkty mają niepuste wartości
     akronimy_to_update: set[str] = set()
     for row in data_rows:
         if not row or row[0] is None or str(row[0]).strip() == "":
             continue
-        akronim = str(row[0]).strip()
-        for col_idx, _, _ in resolved:
-            value = row[col_idx] if col_idx < len(row) else None
-            if value is not None and str(value).strip() != "":
-                akronimy_to_update.add(akronim)
+        # wartości od kolumny D (indeks 3) wzwyż
+        has_value = any(
+            row[i] is not None and str(row[i]).strip() != ""
+            for i in range(3, len(row))
+        )
+        if has_value:
+            akronimy_to_update.add(str(row[0]).strip())
 
     # Faza 2: usuń wszystkie atrybuty dla tych produktów
     failed_akronimy: set[str] = set()
@@ -140,39 +122,54 @@ def bulk_update(file: Path, operator: str | None = None, report: Path | None = N
     for row in data_rows:
         if not row or row[0] is None or str(row[0]).strip() == "":
             continue
+
         akronim = str(row[0]).strip()
+        attr_raw = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
 
-        for col_idx, exact_name, attr_raw in resolved:
-            value = row[col_idx] if col_idx < len(row) else None
-            total += 1
+        if not attr_raw:
+            continue
 
-            if value is None or str(value).strip() == "":
-                skipped += 1
-                results.append({"akronim": akronim, "class": attr_raw, "value": None, "status": "POMINIĘTY"})
-                continue
+        # wartości od kolumny D (indeks 3) wzwyż — zbierz wszystkie niepuste
+        values = [
+            str(row[i]).strip()
+            for i in range(3, len(row))
+            if row[i] is not None and str(row[i]).strip() != ""
+        ]
 
-            value_str = str(value).strip()
+        total += 1
 
-            if akronim in failed_akronimy:
+        if not values:
+            skipped += 1
+            results.append({"akronim": akronim, "class": attr_raw, "value": None, "status": "POMINIĘTY"})
+            continue
+
+        if akronim in failed_akronimy:
+            failed += 1
+            results.append({"akronim": akronim, "class": attr_raw, "value": ", ".join(values),
+                             "status": "BŁĄD", "message": f"Błąd usuwania atrybutów: {akronim}"})
+            continue
+
+        exact_name = class_map.get(attr_raw.lower())
+        if exact_name is None:
+            failed += 1
+            results.append({"akronim": akronim, "class": attr_raw, "value": ", ".join(values),
+                             "status": "BŁĄD", "message": f"Nieznana klasa atrybutu: '{attr_raw}'"})
+            continue
+
+        # wstaw każdą wartość osobno (obsługa wielowartościowych)
+        row_ok = True
+        for v in values:
+            res = set_attribute(exact_name, v, akronim, obj_type=16, operator=operator)
+            if not res["ok"]:
+                row_ok = False
                 failed += 1
-                results.append({"akronim": akronim, "class": attr_raw, "value": value_str,
-                                 "status": "BŁĄD", "message": f"Błąd usuwania atrybutów: {akronim}"})
-                continue
-
-            if exact_name is None:
-                failed += 1
-                results.append({"akronim": akronim, "class": attr_raw, "value": value_str,
-                                 "status": "BŁĄD", "message": f"Nieznana klasa atrybutu: '{attr_raw}'"})
-                continue
-
-            res = set_attribute(exact_name, value_str, akronim, obj_type=16, operator=operator)
-            if res["ok"]:
-                success += 1
-                results.append({"akronim": akronim, "class": attr_raw, "value": value_str, "status": "OK"})
-            else:
-                failed += 1
-                results.append({"akronim": akronim, "class": attr_raw, "value": value_str,
+                results.append({"akronim": akronim, "class": attr_raw, "value": v,
                                  "status": "BŁĄD", "message": res["error"]["message"]})
+
+        if row_ok:
+            success += 1
+            results.append({"akronim": akronim, "class": attr_raw,
+                             "value": ", ".join(values), "status": "OK"})
 
     if report:
         _write_report(path=report, results=results)
@@ -193,10 +190,9 @@ def main() -> None:
     default_report = Path(f"documents/human/reports/xl_attribute_bulk_{today}.xlsx")
 
     parser = argparse.ArgumentParser(description="Bulk update atrybutów produktów z Excel")
-    parser.add_argument("--file", required=True, type=Path, help="Ścieżka do pliku Excel z danymi")
-    parser.add_argument("--operator", default=None, help="Identyfikator operatora ERP (opcjonalny)")
-    parser.add_argument("--report", type=Path, default=default_report,
-                        help=f"Ścieżka raportu wynikowego (domyślnie: {default_report})")
+    parser.add_argument("--file", required=True, type=Path)
+    parser.add_argument("--operator", default=None)
+    parser.add_argument("--report", type=Path, default=default_report)
     args = parser.parse_args()
 
     result = bulk_update(args.file, args.operator, args.report)
