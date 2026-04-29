@@ -29,11 +29,37 @@ _EXISTS_SQL = """
     WHERE a.Atr_ObiNumer = ? AND a.Atr_ObiTyp = ? AND k.AtK_Nazwa = ?
 """
 
+_DELETE_SQL = "DELETE FROM CDN.Atrybuty WHERE Atr_ObiNumer = ? AND Atr_ObiTyp = ? AND Atr_ObiLp = 0"
+
 
 def _err(err_type: str, msg: str, start: float) -> dict:
     return {
         "ok": False, "data": None,
         "error": {"type": err_type, "message": msg},
+        "meta": {"duration_ms": round((time.monotonic() - start) * 1000)},
+    }
+
+
+def delete_attributes(akronim: str, obj_type: int = 16) -> dict:
+    """Usuwa wszystkie atrybuty towaru z CDN.Atrybuty. Zwraca liczbę usuniętych wierszy."""
+    start = time.monotonic()
+    try:
+        conn = SqlClient().get_connection()
+        cursor = conn.cursor()
+        cursor.execute(_GID_SQL, [akronim])
+        row = cursor.fetchone()
+        if not row:
+            return _err("OBJECT_NOT_FOUND", f"Nie znaleziono towaru: {akronim}", start)
+        gid_numer, _, gid_typ = int(row[0]), int(row[1]), int(row[2])
+        cursor.execute(_DELETE_SQL, [gid_numer, gid_typ])
+        deleted = cursor.rowcount
+        conn.commit()
+    except Exception as exc:
+        return _err("SQL_ERROR", str(exc), start)
+    return {
+        "ok": True,
+        "data": {"akronim": akronim, "deleted": deleted},
+        "error": None,
         "meta": {"duration_ms": round((time.monotonic() - start) * 1000)},
     }
 

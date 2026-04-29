@@ -23,7 +23,7 @@ from openpyxl.styles import Font, PatternFill
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.lib.sql_client import SqlClient
-from tools.xl_attribute_set import set_attribute
+from tools.xl_attribute_set import delete_attributes, set_attribute
 
 _NON_AKRONIM = {None, "", "typ", "atrybut", "atrybut / akronim →"}
 _PLACEHOLDER_RE = re.compile(r"^akronim[_\s]*\d+$", re.IGNORECASE)
@@ -119,6 +119,24 @@ def bulk_update(file: Path, operator: str | None = None, report: Path | None = N
     if err:
         return {"ok": False, "data": None, "error": err}
 
+    # Faza 1: ustal które produkty mają conajmniej jedną niepustą wartość do wpisania
+    akronimy_to_update: set[str] = set()
+    for row in data_rows:
+        if not row or row[0] is None or str(row[0]).strip() == "":
+            continue
+        for col_idx, akronim in akronim_cols:
+            value = row[col_idx] if col_idx < len(row) else None
+            if value is not None and str(value).strip() != "":
+                akronimy_to_update.add(akronim)
+
+    # Faza 2: usuń wszystkie atrybuty dla każdego produktu do aktualizacji
+    failed_akronimy: set[str] = set()
+    for akronim in akronimy_to_update:
+        del_res = delete_attributes(akronim)
+        if not del_res["ok"]:
+            failed_akronimy.add(akronim)
+
+    # Faza 3: wstaw wartości z pliku
     results = []
     total = success = skipped = failed = 0
 
@@ -139,6 +157,12 @@ def bulk_update(file: Path, operator: str | None = None, report: Path | None = N
                 continue
 
             value_str = str(value).strip()
+
+            if akronim in failed_akronimy:
+                failed += 1
+                results.append({"akronim": akronim, "class": attr_raw, "value": value_str,
+                                 "status": "BŁĄD", "message": f"Błąd usuwania atrybutów produktu: {akronim}"})
+                continue
 
             if exact_name is None:
                 failed += 1
