@@ -1,7 +1,7 @@
 """Testy dla tools/xl_attribute_bulk.py."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -27,35 +27,24 @@ def _make_excel(header, rows, tmp_path):
     return path
 
 
-class TestDetectAkronimCols:
+class TestDetectAttrCols:
     def test_skips_first_col(self):
-        header = ["Atrybut / Akronim →", "Typ", "FOTEL-01", "FOTEL-02"]
-        result = xb._detect_akronim_cols(header)
-        assert [(2, "FOTEL-01"), (3, "FOTEL-02")] == result
-
-    def test_skips_typ_col(self):
-        header = [None, "Typ", "CZNI001"]
-        result = xb._detect_akronim_cols(header)
-        assert result == [(2, "CZNI001")]
+        header = ["Kod XL", "KOLOR", "WAGA PRODUKTU"]
+        result = xb._detect_attr_cols(header)
+        assert result == [(1, "KOLOR"), (2, "WAGA PRODUKTU")]
 
     def test_skips_empty_header(self):
-        header = ["Atrybut", None, "FOTEL-01"]
-        result = xb._detect_akronim_cols(header)
-        assert result == [(2, "FOTEL-01")]
+        header = ["Kod XL", None, "KOLOR"]
+        result = xb._detect_attr_cols(header)
+        assert result == [(2, "KOLOR")]
 
-    def test_no_akronimy(self):
-        header = ["Atrybut", "Typ"]
-        assert xb._detect_akronim_cols(header) == []
+    def test_no_attrs(self):
+        header = ["Kod XL"]
+        assert xb._detect_attr_cols(header) == []
 
-    def test_skips_placeholder_akronim_cols(self):
-        header = ["Atrybut", "Typ", "CZNI0010", "Akronim_2", "Akronim_3"]
-        result = xb._detect_akronim_cols(header)
-        assert result == [(2, "CZNI0010")]
-
-    def test_skips_placeholder_case_insensitive(self):
-        header = ["Atrybut", "Typ", "FOTEL-01", "AKRONIM_5", "akronim 6"]
-        result = xb._detect_akronim_cols(header)
-        assert result == [(2, "FOTEL-01")]
+    def test_all_empty_skipped(self):
+        header = ["Kod XL", "", None]
+        assert xb._detect_attr_cols(header) == []
 
 
 class TestBulkUpdate:
@@ -64,8 +53,8 @@ class TestBulkUpdate:
 
     def test_success(self, tmp_path):
         path = _make_excel(
-            ["Atrybut", "Typ", "FOTEL-01"],
-            [["WAGA PRODUKTU", "liczba", "1.5"]],
+            ["Kod XL", "WAGA PRODUKTU"],
+            [["FOTEL-01", "1.5"]],
             tmp_path,
         )
         with patch.object(xb, "_load_class_map",
@@ -81,8 +70,8 @@ class TestBulkUpdate:
 
     def test_empty_cell_skipped(self, tmp_path):
         path = _make_excel(
-            ["Atrybut", "Typ", "FOTEL-01"],
-            [["WAGA PRODUKTU", "liczba", None]],
+            ["Kod XL", "WAGA PRODUKTU"],
+            [["FOTEL-01", None]],
             tmp_path,
         )
         with patch.object(xb, "_load_class_map",
@@ -93,8 +82,8 @@ class TestBulkUpdate:
 
     def test_unknown_class_reported_as_failed(self, tmp_path):
         path = _make_excel(
-            ["Atrybut", "Typ", "FOTEL-01"],
-            [["NIEISTNIEJACY", "tekst", "wartość"]],
+            ["Kod XL", "NIEISTNIEJACY"],
+            [["FOTEL-01", "wartość"]],
             tmp_path,
         )
         with patch.object(xb, "_load_class_map", return_value=({}, None)):
@@ -105,8 +94,8 @@ class TestBulkUpdate:
 
     def test_set_attribute_failure_counted(self, tmp_path):
         path = _make_excel(
-            ["Atrybut", "Typ", "FOTEL-01"],
-            [["WAGA PRODUKTU", "liczba", "1.5"]],
+            ["Kod XL", "WAGA PRODUKTU"],
+            [["FOTEL-01", "1.5"]],
             tmp_path,
         )
         with patch.object(xb, "_load_class_map",
@@ -120,10 +109,10 @@ class TestBulkUpdate:
 
     def test_multiple_products_multiple_attrs(self, tmp_path):
         path = _make_excel(
-            ["Atrybut", "Typ", "FOTEL-01", "FOTEL-02"],
+            ["Kod XL", "WAGA PRODUKTU", "KOLOR"],
             [
-                ["WAGA PRODUKTU", "liczba", "1.5", "2.0"],
-                ["KOLOR", "tekst", "czarny", None],
+                ["FOTEL-01", "1.5", "czarny"],
+                ["FOTEL-02", "2.0", None],
             ],
             tmp_path,
         )
@@ -144,17 +133,17 @@ class TestBulkUpdate:
         result = xb.bulk_update(path)
         assert result["ok"] is False
 
-    def test_no_akronimy_returns_error(self, tmp_path):
-        path = _make_excel(["Atrybut", "Typ"], [["WAGA PRODUKTU", "liczba"]], tmp_path)
+    def test_no_attrs_returns_error(self, tmp_path):
+        path = _make_excel(["Kod XL"], [["FOTEL-01"]], tmp_path)
         with patch.object(xb, "_load_class_map", return_value=({}, None)):
             result = xb.bulk_update(path)
         assert result["ok"] is False
-        assert result["error"]["type"] == "NO_AKRONIMY"
+        assert result["error"]["type"] == "NO_ATTRS"
 
     def test_report_written(self, tmp_path):
         path = _make_excel(
-            ["Atrybut", "Typ", "FOTEL-01"],
-            [["WAGA PRODUKTU", "liczba", "1.5"]],
+            ["Kod XL", "WAGA PRODUKTU"],
+            [["FOTEL-01", "1.5"]],
             tmp_path,
         )
         report_path = tmp_path / "raport.xlsx"

@@ -1,7 +1,8 @@
 """Generuje Excel template z atrybutami produktów z CDN.AtrybutyKlasy (GIDTyp=16).
 
-Kolumny = wszystkie aktywne kartoteki z CDN.TwrKarty (Twr_Kod).
-Istniejące wartości atrybutów są wstępnie wypełnione.
+Format:
+  Wiersz 1: "Kod XL" | nazwa_atrybutu_1 | nazwa_atrybutu_2 | ...
+  Wiersze 2+: twr_kod | wartość_1 | wartość_2 | ...
 
 Użycie:
   python tools/xl_attribute_template.py
@@ -62,8 +63,6 @@ ORDER BY tk.Twr_Kod, ak.AtK_Nazwa
 
 _HEADER_FILL = PatternFill("solid", fgColor="1F4E79")
 _HEADER_FONT = Font(bold=True, color="FFFFFF", size=11)
-_TYPE_FILL   = PatternFill("solid", fgColor="D6E4F0")
-_TYPE_FONT   = Font(italic=True, color="2F5597", size=10)
 _LIST_FILL   = PatternFill("solid", fgColor="FFF2CC")
 
 
@@ -94,64 +93,54 @@ def generate_template(output: Path) -> dict:
     ws = wb.active
     ws.title = "Atrybuty produktów"
 
-    # --- Wiersz 1: nagłówek ---
-    fixed_cell = ws.cell(1, 1, "Atrybut / Akronim →")
-    fixed_cell.fill = PatternFill("solid", fgColor="2E75B6")
-    fixed_cell.font = Font(bold=True, color="FFFFFF", size=11)
+    # --- Wiersz 1: "Kod XL" | attr_name_1 | attr_name_2 | ... ---
+    code_cell = ws.cell(1, 1, "Kod XL")
+    code_cell.fill = PatternFill("solid", fgColor="2E75B6")
+    code_cell.font = Font(bold=True, color="FFFFFF", size=11)
+    code_cell.alignment = Alignment(horizontal="center")
 
-    type_cell = ws.cell(1, 2, "Typ")
-    type_cell.fill = PatternFill("solid", fgColor="2E75B6")
-    type_cell.font = Font(bold=True, color="FFFFFF", size=11)
-
-    for i, (twr_kod, twr_nazwa) in enumerate(products):
-        col = 3 + i
-        cell = ws.cell(1, col, twr_kod)
+    for col_idx, (name, typ, wielowart, zamknieta) in enumerate(attrs, start=2):
+        type_label = TYPE_LABELS.get(typ, str(typ))
+        cell = ws.cell(1, col_idx, name)
         cell.fill = _HEADER_FILL
         cell.font = _HEADER_FONT
         cell.alignment = Alignment(horizontal="center")
+
+        comment_lines = [f"Typ: {type_label}"]
+        if zamknieta:
+            comment_lines.append("(lista zamknięta)")
+        if typ == 4 and name.strip() in list_values:
+            values = list_values[name.strip()]
+            comment_lines.append("Dopuszczalne wartości:")
+            comment_lines.extend(f"• {v}" for v in values)
+        comment = Comment("\n".join(comment_lines), "System")
+        comment.width = 250
+        comment.height = min(300, 20 + len(comment_lines) * 16)
+        cell.comment = comment
+
+    # --- Wiersze 2+: twr_kod | wartości atrybutów ---
+    for row_idx, (twr_kod, twr_nazwa) in enumerate(products, start=2):
+        kod_cell = ws.cell(row_idx, 1, twr_kod)
+        kod_cell.font = Font(bold=True, size=10)
         if twr_nazwa and twr_nazwa.strip():
             comment = Comment(twr_nazwa.strip(), "System")
             comment.width = 200
             comment.height = 40
-            cell.comment = comment
+            kod_cell.comment = comment
 
-    # --- Wiersze 2+: atrybuty ---
-    for row_idx, (name, typ, wielowart, zamknieta) in enumerate(attrs, start=2):
-        type_label = TYPE_LABELS.get(typ, str(typ))
-        if zamknieta:
-            type_label += " (zamknięta)"
-
-        name_cell = ws.cell(row_idx, 1, name)
-        name_cell.font = Font(bold=True, size=10)
-
-        type_cell = ws.cell(row_idx, 2, type_label)
-        type_cell.fill = _TYPE_FILL
-        type_cell.font = _TYPE_FONT
-        type_cell.alignment = Alignment(horizontal="center")
-
-        if typ == 4 and name.strip() in list_values:
-            values = list_values[name.strip()]
-            comment_text = "Dopuszczalne wartości:\n" + "\n".join(f"• {v}" for v in values)
-            comment = Comment(comment_text, "System")
-            comment.width = 250
-            comment.height = min(300, 20 + len(values) * 16)
-            type_cell.comment = comment
-
-        for i, (twr_kod, _) in enumerate(products):
-            col = 3 + i
+        for col_idx, (name, typ, wielowart, zamknieta) in enumerate(attrs, start=2):
             if typ == 4:
-                ws.cell(row_idx, col).fill = _LIST_FILL
+                ws.cell(row_idx, col_idx).fill = _LIST_FILL
             vals = existing.get((twr_kod.strip(), name.strip()), [])
             if vals:
-                ws.cell(row_idx, col, ", ".join(str(v) for v in vals if v))
+                ws.cell(row_idx, col_idx, ", ".join(str(v) for v in vals if v))
 
     # --- Wymiary kolumn ---
-    ws.column_dimensions["A"].width = 36
-    ws.column_dimensions["B"].width = 20
-    for i in range(len(products)):
-        ws.column_dimensions[get_column_letter(3 + i)].width = 18
+    ws.column_dimensions["A"].width = 18
+    for i in range(len(attrs)):
+        ws.column_dimensions[get_column_letter(2 + i)].width = 20
 
-    ws.freeze_panes = "C2"
+    ws.freeze_panes = "B2"
     ws.row_dimensions[1].height = 22
 
     output.parent.mkdir(parents=True, exist_ok=True)

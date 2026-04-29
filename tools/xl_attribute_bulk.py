@@ -1,8 +1,8 @@
 """Bulk update atrybutów produktów z pliku Excel.
 
 Format pliku:
-  Wiersz 1: [etykieta, "Typ", Akronim_1, Akronim_2, ...]
-  Wiersze 2+: [nazwa_atrybutu, typ_info, wartość_1, wartość_2, ...]
+  Wiersz 1: "Kod XL" | nazwa_atrybutu_1 | nazwa_atrybutu_2 | ...
+  Wiersze 2+: twr_kod | wartość_1 | wartość_2 | ...
   Pusta komórka = pomiń (nie aktualizuj).
 
 Użycie:
@@ -12,7 +12,6 @@ Użycie:
 
 import argparse
 import json
-import re
 import sys
 from datetime import date
 from pathlib import Path
@@ -24,9 +23,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.lib.sql_client import SqlClient
 from tools.xl_attribute_set import delete_attributes, set_attribute
-
-_NON_AKRONIM = {None, "", "typ", "atrybut", "atrybut / akronim →"}
-_PLACEHOLDER_RE = re.compile(r"^akronim[_\s]*\d+$", re.IGNORECASE)
 
 _QUERY_CLASS_NAMES = """
 SELECT DISTINCT ak.AtK_Nazwa
@@ -43,7 +39,6 @@ _STATUS_FILLS = {
 
 
 def _load_class_map(client: SqlClient) -> tuple[dict, dict | None]:
-    """Zwraca {trimmed_lower → original_name} lub (None, error)."""
     result = client.execute(_QUERY_CLASS_NAMES, inject_top=None)
     if not result["ok"]:
         return {}, result["error"]
@@ -51,7 +46,6 @@ def _load_class_map(client: SqlClient) -> tuple[dict, dict | None]:
 
 
 def _parse_excel(path: Path) -> tuple[list, list]:
-    """Zwraca (header_row, data_rows) jako listy wartości."""
     wb = load_workbook(path, read_only=True, data_only=True)
     ws = wb.active
     rows = list(ws.iter_rows(values_only=True))
@@ -61,16 +55,13 @@ def _parse_excel(path: Path) -> tuple[list, list]:
     return list(rows[0]), [list(r) for r in rows[1:]]
 
 
-def _detect_akronim_cols(header: list) -> list[tuple[int, str]]:
-    """Zwraca [(col_idx, akronim), ...] pomijając kolumny niebędące akronimami."""
+def _detect_attr_cols(header: list) -> list[tuple[int, str]]:
+    """Zwraca [(col_idx, attr_name), ...] dla kolumn 1+ (pomija kolumnę 0 = Kod XL)."""
     result = []
     for i, h in enumerate(header):
         if i == 0:
             continue
-        label = str(h).strip().lower() if h is not None else ""
-        if label in _NON_AKRONIM or not label:
-            continue
-        if _PLACEHOLDER_RE.match(label):
+        if h is None or str(h).strip() == "":
             continue
         result.append((i, str(h).strip()))
     return result
@@ -91,7 +82,7 @@ def _write_report(path: Path, results: list) -> None:
         ws.cell(row_idx, 1, r["akronim"])
         ws.cell(row_idx, 2, r["class"])
         ws.cell(row_idx, 3, r["value"] if r["value"] is not None else "(pusta)")
-        status_cell = ws.cell(row_idx, 4, r["status"])
+        ws.cell(row_idx, 4, r["status"])
         ws.cell(row_idx, 5, r.get("message", ""))
         fill = _STATUS_FILLS.get(r["status"])
         if fill:
@@ -110,26 +101,32 @@ def bulk_update(file: Path, operator: str | None = None, report: Path | None = N
     if not header or not data_rows:
         return {"ok": False, "data": None, "error": {"type": "EMPTY_FILE", "message": "Plik jest pusty"}}
 
-    akronim_cols = _detect_akronim_cols(header)
-    if not akronim_cols:
-        return {"ok": False, "data": None, "error": {"type": "NO_AKRONIMY", "message": "Brak kolumn z akronimami produktów w wierszu 1"}}
+    attr_cols = _detect_attr_cols(header)
+    if not attr_cols:
+        return {"ok": False, "data": None, "error": {"type": "NO_ATTRS", "message": "Brak kolumn z atrybutami w wierszu 1"}}
 
     client = SqlClient()
     class_map, err = _load_class_map(client)
     if err:
         return {"ok": False, "data": None, "error": err}
 
-    # Faza 1: ustal które produkty mają conajmniej jedną niepustą wartość do wpisania
+    resolved: list[tuple[int, str | None, str]] = [
+        (col_idx, class_map.get(raw.lower()), raw)
+        for col_idx, raw in attr_cols
+    ]
+
+    # Faza 1: ustal które produkty mają conajmniej jedną niepustą wartość
     akronimy_to_update: set[str] = set()
     for row in data_rows:
         if not row or row[0] is None or str(row[0]).strip() == "":
             continue
-        for col_idx, akronim in akronim_cols:
+        akronim = str(row[0]).strip()
+        for col_idx, _, _ in resolved:
             value = row[col_idx] if col_idx < len(row) else None
             if value is not None and str(value).strip() != "":
                 akronimy_to_update.add(akronim)
 
-    # Faza 2: usuń wszystkie atrybuty dla każdego produktu do aktualizacji
+    # Faza 2: usuń wszystkie atrybuty dla tych produktów
     failed_akronimy: set[str] = set()
     for akronim in akronimy_to_update:
         del_res = delete_attributes(akronim)
@@ -143,11 +140,9 @@ def bulk_update(file: Path, operator: str | None = None, report: Path | None = N
     for row in data_rows:
         if not row or row[0] is None or str(row[0]).strip() == "":
             continue
+        akronim = str(row[0]).strip()
 
-        attr_raw = str(row[0]).strip()
-        exact_name = class_map.get(attr_raw.lower())
-
-        for col_idx, akronim in akronim_cols:
+        for col_idx, exact_name, attr_raw in resolved:
             value = row[col_idx] if col_idx < len(row) else None
             total += 1
 
@@ -161,7 +156,7 @@ def bulk_update(file: Path, operator: str | None = None, report: Path | None = N
             if akronim in failed_akronimy:
                 failed += 1
                 results.append({"akronim": akronim, "class": attr_raw, "value": value_str,
-                                 "status": "BŁĄD", "message": f"Błąd usuwania atrybutów produktu: {akronim}"})
+                                 "status": "BŁĄD", "message": f"Błąd usuwania atrybutów: {akronim}"})
                 continue
 
             if exact_name is None:
@@ -180,7 +175,7 @@ def bulk_update(file: Path, operator: str | None = None, report: Path | None = N
                                  "status": "BŁĄD", "message": res["error"]["message"]})
 
     if report:
-        _write_report(report, results)
+        _write_report(path=report, results=results)
 
     return {
         "ok": True,
