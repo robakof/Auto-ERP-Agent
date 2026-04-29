@@ -98,7 +98,11 @@ SELECT
         + '/' + RIGHT('0' + CAST(MONTH(DATEADD(day, orig.TrN_Data2, '1800-12-28')) AS VARCHAR(2)), 2)
         + '/' + RIGHT(CAST(YEAR(DATEADD(day, orig.TrN_Data2, '1800-12-28')) AS VARCHAR(4)), 2)
         + '/' + RTRIM(orig.TrN_TrNSeria)                       AS Kor_NrFaKorygowanej,
-    RTRIM(CAST(op.TnO_Opis AS VARCHAR(MAX)))                    AS Kor_PrzyczynaKorekty,
+    RTRIM(COALESCE(
+        NULLIF(CAST(op.TnO_Opis AS VARCHAR(MAX)), ''),
+        NULLIF(n.TrN_PrzyczynaKorekty, ''),
+        'Korekta'
+    ))                                                          AS Kor_PrzyczynaKorekty,
 
     -- =========================================================
     -- FA — VAT per stawka (pivot z CDN.TraVat) — kwoty RÓŻNIC (delta)
