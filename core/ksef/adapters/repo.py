@@ -226,6 +226,19 @@ class ShipmentRepository:
             counts[ShipmentStatus(row["status"])] = row["n"]
         return counts
 
+    def tracked_gids(
+        self, since: date | None = None,
+    ) -> set[tuple[int, str]]:
+        """Return set of (gid_erp, rodzaj) ever tracked, optionally filtered by date."""
+        sql = "SELECT DISTINCT gid_erp, rodzaj FROM ksef_wysylka"
+        params: list[Any] = []
+        if since is not None:
+            sql += " WHERE data_wystawienia >= ?"
+            params.append(str(since))
+        with self._connect() as conn:
+            rows = conn.execute(sql, params).fetchall()
+        return {(row["gid_erp"], row["rodzaj"]) for row in rows}
+
     # ---- mutations ---------------------------------------------------
 
     def create(

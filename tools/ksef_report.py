@@ -4,6 +4,7 @@
     py tools/ksef_report.py --stdout               # print to terminal
     py tools/ksef_report.py --file raport.txt      # save to file
     py tools/ksef_report.py --since 7d --stdout    # last 7 days
+    py tools/ksef_report.py --no-coverage --stdout  # skip ERP coverage check
 """
 from __future__ import annotations
 
@@ -25,6 +26,7 @@ from core.ksef.usecases.report import build_report
 from core.ksef import paths as ksef_paths
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_LOG = logging.getLogger(__name__)
 
 
 def _parse_since(value: str) -> datetime:
@@ -56,6 +58,20 @@ def _send_email(report_data) -> None:
     print(f"Email sent to {cfg.report_to}")
 
 
+def _try_fetch_eligible(since: datetime):
+    """Try to fetch eligible docs from Comarch ERP. Returns list or None on failure."""
+    try:
+        from sql_query import run_query  # noqa: PLC0415
+        from core.ksef.adapters.erp_counter import fetch_eligible
+        return fetch_eligible(
+            lambda sql: run_query(sql, inject_top=None),
+            since=since.date(),
+        )
+    except Exception as exc:
+        _LOG.warning("ERP coverage check skipped: %s", exc)
+        return None
+
+
 def main() -> int:
     logging.basicConfig(
         level=logging.INFO,
@@ -66,7 +82,12 @@ def main() -> int:
 
     repo = ShipmentRepository(ksef_paths.db_path())
     since = _parse_since(args.since)
-    report_data = build_report(repo, since=since)
+
+    erp_eligible = None
+    if not args.no_coverage:
+        erp_eligible = _try_fetch_eligible(since)
+
+    report_data = build_report(repo, since=since, erp_eligible=erp_eligible)
 
     if args.send_email:
         _send_email(report_data)
@@ -90,6 +111,8 @@ def _parse_args() -> argparse.Namespace:
                       help="Print to terminal (default)")
     p.add_argument("--since", type=str, default="today",
                    help="Time range: 'today' (default), '24h', '7d', or ISO date")
+    p.add_argument("--no-coverage", action="store_true",
+                   help="Skip ERP coverage check (Comarch vs KSeF)")
     return p.parse_args()
 
 

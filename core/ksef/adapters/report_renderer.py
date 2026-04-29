@@ -5,7 +5,7 @@ No template engine. Python f-strings + loops. Zero external deps.
 from __future__ import annotations
 
 from core.ksef.domain.shipment import ShipmentStatus, Wysylka
-from core.ksef.usecases.report import ReportData
+from core.ksef.usecases.report import CoverageData, ReportData
 
 
 def render_subject(report: ReportData, prefix: str = "[KSeF]") -> str:
@@ -14,11 +14,14 @@ def render_subject(report: ReportData, prefix: str = "[KSeF]") -> str:
     if report.has_problems:
         n_err = len(report.errors) + len(report.rejected)
         n_pending = len(report.pending)
+        n_missing = report.coverage.total_missing if report.coverage else 0
         parts = []
         if n_err:
             parts.append(f"{n_err} bledow")
         if n_pending:
             parts.append(f"{n_pending} oczekujacych")
+        if n_missing:
+            parts.append(f"{n_missing} brakujacych")
         detail = ", ".join(parts)
         return f"{prefix} Raport {date_str} — x {detail}"
     return f"{prefix} Raport {date_str} — wszystkie wyslane"
@@ -38,6 +41,8 @@ def render_plain(report: ReportData) -> str:
         lines.append(_errors_plain(report.rejected, "Odrzucone"))
     if report.pending:
         lines.append(_pending_plain(report.pending))
+    if report.coverage is not None:
+        lines.append(_coverage_plain(report.coverage))
     lines.append(_footer_plain(report))
     return "\n".join(lines)
 
@@ -53,6 +58,7 @@ def render_html(report: ReportData) -> str:
         f"{_errors_html(report.errors, 'Bledy') if report.errors else ''}"
         f"{_errors_html(report.rejected, 'Odrzucone') if report.rejected else ''}"
         f"{_pending_html(report.pending) if report.pending else ''}"
+        f"{_coverage_html(report.coverage) if report.coverage is not None else ''}"
         f"{_footer_html(report)}"
         "</body></html>"
     )
@@ -70,7 +76,7 @@ def _header_plain(r: ReportData) -> str:
 
 
 def _status_line(r: ReportData) -> str:
-    if r.all_sent_today:
+    if not r.has_problems:
         return "  Status dnia: WSZYSTKIE FAKTURY WYSLANE"
     parts = []
     if r.errors:
@@ -79,6 +85,8 @@ def _status_line(r: ReportData) -> str:
         parts.append(f"{len(r.rejected)} odrzuconych")
     if r.pending:
         parts.append(f"{len(r.pending)} oczekujacych")
+    if r.coverage and r.coverage.has_gap:
+        parts.append(f"{r.coverage.total_missing} brakujacych")
     detail = ", ".join(parts)
     return f"  Status dnia: UWAGA: {detail}!"
 
@@ -121,6 +129,27 @@ def _pending_plain(items: list[Wysylka]) -> str:
     return "\n".join(lines)
 
 
+def _coverage_plain(c: CoverageData) -> str:
+    lines = ["  -- Pokrycie Comarch vs KSeF -----------"]
+    lines.append(f"  {'Typ':<14} {'Comarch':>7}  {'KSeF':>4}  {'Brak':>4}")
+    for r in ("FS", "FSK", "FSK_SKONTO"):
+        erp = c.erp_counts.get(r, 0)
+        ksef = c.ksef_counts.get(r, 0)
+        miss = erp - ksef
+        lines.append(f"  {r:<14} {erp:>7}  {ksef:>4}  {miss:>4}")
+    lines.append(f"  {'-' * 37}")
+    lines.append(
+        f"  {'Razem':<14} {c.total_erp:>7}  {c.total_ksef:>4}  {c.total_missing:>4}"
+    )
+    lines.append("")
+    if c.missing:
+        lines.append(f"  -- Brakujace ({c.total_missing}) ----------------------")
+        for doc in c.missing:
+            lines.append(f"  GID={doc.gid:<6} {doc.nr_faktury}")
+        lines.append("")
+    return "\n".join(lines)
+
+
 def _footer_plain(r: ReportData) -> str:
     gen = r.generated_at.strftime("%Y-%m-%d %H:%M:%S")
     return (
@@ -141,7 +170,7 @@ def _header_html(r: ReportData) -> str:
 
 
 def _status_html(r: ReportData) -> str:
-    if r.all_sent_today:
+    if not r.has_problems:
         return (
             "<p style='color:green;font-weight:bold;font-size:16px'>"
             "Status: WSZYSTKIE FAKTURY WYSLANE</p>"
@@ -153,6 +182,8 @@ def _status_html(r: ReportData) -> str:
         parts.append(f"{len(r.rejected)} odrzuconych")
     if r.pending:
         parts.append(f"{len(r.pending)} oczekujacych")
+    if r.coverage and r.coverage.has_gap:
+        parts.append(f"{r.coverage.total_missing} brakujacych")
     detail = ", ".join(parts)
     return (
         f"<p style='color:red;font-weight:bold;font-size:16px'>"
@@ -211,6 +242,50 @@ def _pending_html(items: list[Wysylka]) -> str:
         f"<table style='border-collapse:collapse;width:100%;font-size:13px'>"
         f"{rows}</table>"
     )
+
+
+def _coverage_html(c: CoverageData) -> str:
+    color = "red" if c.has_gap else "green"
+    title = f"<h3 style='color:{color}'>Pokrycie Comarch vs KSeF</h3>"
+    rows = ""
+    for r in ("FS", "FSK", "FSK_SKONTO"):
+        erp = c.erp_counts.get(r, 0)
+        ksef = c.ksef_counts.get(r, 0)
+        miss = erp - ksef
+        rc = "red" if miss > 0 else "#333"
+        rows += (
+            f"<tr><td>{r}</td>"
+            f"<td style='text-align:right'>{erp}</td>"
+            f"<td style='text-align:right'>{ksef}</td>"
+            f"<td style='text-align:right;color:{rc};font-weight:bold'>{miss}</td></tr>"
+        )
+    rows += (
+        f"<tr style='border-top:1px solid #999;font-weight:bold'>"
+        f"<td>Razem</td>"
+        f"<td style='text-align:right'>{c.total_erp}</td>"
+        f"<td style='text-align:right'>{c.total_ksef}</td>"
+        f"<td style='text-align:right;color:{color}'>{c.total_missing}</td></tr>"
+    )
+    table = (
+        "<table style='border-collapse:collapse;width:100%'>"
+        "<tr style='border-bottom:1px solid #999'>"
+        "<th style='text-align:left'>Typ</th>"
+        "<th style='text-align:right'>Comarch</th>"
+        "<th style='text-align:right'>KSeF</th>"
+        "<th style='text-align:right'>Brak</th></tr>"
+        f"{rows}</table>"
+    )
+    missing_html = ""
+    if c.missing:
+        m_rows = ""
+        for doc in c.missing:
+            m_rows += f"<tr><td>GID={doc.gid}</td><td>{doc.nr_faktury}</td></tr>"
+        missing_html = (
+            f"<h3 style='color:red'>Brakujace ({c.total_missing})</h3>"
+            f"<table style='border-collapse:collapse;width:100%;font-size:13px'>"
+            f"{m_rows}</table>"
+        )
+    return title + table + missing_html
 
 
 def _footer_html(r: ReportData) -> str:

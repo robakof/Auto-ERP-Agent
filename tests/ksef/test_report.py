@@ -6,8 +6,9 @@ from pathlib import Path
 
 import pytest
 
+from core.ksef.adapters.erp_counter import EligibleDoc
 from core.ksef.domain.shipment import ShipmentStatus, Wysylka
-from core.ksef.usecases.report import ReportData, build_report
+from core.ksef.usecases.report import CoverageData, ReportData, build_report
 
 
 # ---- helpers -----------------------------------------------------------------
@@ -52,6 +53,13 @@ class FakeRepo:
 
     def list_recent(self, limit=50):
         return sorted(self._all, key=lambda w: w.id, reverse=True)[:limit]
+
+    def tracked_gids(self, since=None):
+        result = set()
+        for w in self._all:
+            if since is None or w.data_wystawienia >= since:
+                result.add((w.gid_erp, w.rodzaj))
+        return result
 
 
 # ---- tests -------------------------------------------------------------------
@@ -168,3 +176,90 @@ def test_mixed_scenario():
     assert report.has_problems is True
     assert len(report.errors) == 1
     assert len(report.pending) == 1
+
+
+# ---- coverage tests ----------------------------------------------------------
+
+def _eligible(gid: int, rodzaj: str = "FS", nr: str = "") -> EligibleDoc:
+    return EligibleDoc(
+        gid=gid,
+        rodzaj=rodzaj,
+        nr_faktury=nr or f"{rodzaj}-{gid}/04/26",
+        data_wystawienia=date(2026, 4, 22),
+    )
+
+
+def test_coverage_no_gap():
+    """All ERP docs tracked — no missing."""
+    wysylki = [
+        _wysylka(1, ShipmentStatus.ACCEPTED, gid_erp=101),
+        _wysylka(2, ShipmentStatus.ACCEPTED, gid_erp=102, rodzaj="FSK"),
+    ]
+    erp = [_eligible(101, "FS"), _eligible(102, "FSK")]
+    repo = FakeRepo(wysylki)
+    report = build_report(repo, since=_SINCE, clock=_NOW, erp_eligible=erp)
+
+    assert report.coverage is not None
+    assert report.coverage.total_missing == 0
+    assert report.coverage.has_gap is False
+    assert report.has_problems is False
+
+
+def test_coverage_with_gap():
+    """One ERP doc not tracked — should be in missing."""
+    wysylki = [
+        _wysylka(1, ShipmentStatus.ACCEPTED, gid_erp=101),
+    ]
+    erp = [
+        _eligible(101, "FS"),
+        _eligible(102, "FSK"),  # not tracked
+    ]
+    repo = FakeRepo(wysylki)
+    report = build_report(repo, since=_SINCE, clock=_NOW, erp_eligible=erp)
+
+    assert report.coverage is not None
+    assert report.coverage.total_missing == 1
+    assert report.coverage.missing[0].gid == 102
+    assert report.coverage.has_gap is True
+    assert report.has_problems is True
+
+
+def test_coverage_counts_by_rodzaj():
+    """Counts broken down by FS / FSK / FSK_SKONTO."""
+    wysylki = [
+        _wysylka(1, ShipmentStatus.ACCEPTED, gid_erp=10),
+        _wysylka(2, ShipmentStatus.ACCEPTED, gid_erp=11),
+        _wysylka(3, ShipmentStatus.ACCEPTED, gid_erp=20, rodzaj="FSK"),
+    ]
+    erp = [
+        _eligible(10, "FS"), _eligible(11, "FS"), _eligible(12, "FS"),
+        _eligible(20, "FSK"), _eligible(21, "FSK"),
+        _eligible(30, "FSK_SKONTO"),
+    ]
+    repo = FakeRepo(wysylki)
+    report = build_report(repo, since=_SINCE, clock=_NOW, erp_eligible=erp)
+
+    c = report.coverage
+    assert c.erp_counts == {"FS": 3, "FSK": 2, "FSK_SKONTO": 1}
+    assert c.ksef_counts == {"FS": 2, "FSK": 1, "FSK_SKONTO": 0}
+    assert c.total_missing == 3  # gids 12, 21, 30
+
+
+def test_coverage_none_when_no_erp_data():
+    """Coverage is None when erp_eligible is not provided."""
+    repo = FakeRepo([])
+    report = build_report(repo, since=_SINCE, clock=_NOW)
+
+    assert report.coverage is None
+
+
+def test_coverage_empty_erp():
+    """Zero docs in ERP — coverage shows 0/0."""
+    repo = FakeRepo([])
+    report = build_report(repo, since=_SINCE, clock=_NOW, erp_eligible=[])
+
+    assert report.coverage is not None
+    assert report.coverage.total_erp == 0
+    assert report.coverage.total_ksef == 0
+    assert report.coverage.total_missing == 0
+    assert report.coverage.has_gap is False
