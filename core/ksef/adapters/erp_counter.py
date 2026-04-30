@@ -4,7 +4,7 @@
     docs = fetch_eligible(run_query, since=date(2026, 4, 1))
 
 Returns list[EligibleDoc] — one per document in Comarch matching KSeF criteria.
-Classification (FS / FSK / FSK_SKONTO) based on TrN_GIDTyp + TrN_ZwrNumer.
+Classification (FS / FSK / FSK_RABAT) based on TrN_GIDTyp + TrN_ZwrNumer.
 """
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ _WHERE_MARKER = "AND n.TrN_Stan IN (3, 4, 5)"
 class EligibleDoc:
     """One eligible document from Comarch ERP."""
     gid: int
-    rodzaj: str          # 'FS' | 'FSK' | 'FSK_SKONTO'
+    rodzaj: str          # 'FS' | 'FSK' | 'FSK_RABAT'
     nr_faktury: str
     data_wystawienia: date
 
@@ -47,12 +47,12 @@ def _build_sql(since: date | None) -> str:
     return base.replace(_WHERE_MARKER, _WHERE_MARKER + extra)
 
 
-def _classify(typ: int, zwr_numer: int) -> str:
+def _classify(typ: int, zwr_numer: int, gid: int) -> str:
     if typ == 2033:
         return "FS"
-    if zwr_numer > 0:
-        return "FSK"
-    return "FSK_SKONTO"
+    if zwr_numer == 0 or zwr_numer == gid:
+        return "FSK_RABAT"
+    return "FSK"
 
 
 def _parse_rows(columns: list[str], rows: list[list]) -> list[EligibleDoc]:
@@ -64,7 +64,7 @@ def _parse_rows(columns: list[str], rows: list[list]) -> list[EligibleDoc]:
             d = date.fromisoformat(d[:10])
         result.append(EligibleDoc(
             gid=int(rec["gid"]),
-            rodzaj=_classify(int(rec["typ"]), int(rec["zwr_numer"])),
+            rodzaj=_classify(int(rec["typ"]), int(rec["zwr_numer"]), int(rec["gid"])),
             nr_faktury=str(rec["nr_faktury"]).strip(),
             data_wystawienia=d,
         ))

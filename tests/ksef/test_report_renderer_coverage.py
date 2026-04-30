@@ -30,8 +30,8 @@ def _report(coverage: CoverageData | None = None) -> ReportData:
 
 def _coverage(missing=None):
     return CoverageData(
-        erp_counts={"FS": 5, "FSK": 2, "FSK_SKONTO": 1},
-        ksef_counts={"FS": 5, "FSK": 1, "FSK_SKONTO": 1},
+        erp_counts={"FS": 5, "FSK": 2, "FSK_RABAT": 1},
+        ksef_counts={"FS": 5, "FSK": 1, "FSK_RABAT": 1},
         missing=missing or [],
     )
 
@@ -71,8 +71,8 @@ def test_plain_missing_listed():
 
 def test_plain_no_missing_section():
     cov = CoverageData(
-        erp_counts={"FS": 3, "FSK": 0, "FSK_SKONTO": 0},
-        ksef_counts={"FS": 3, "FSK": 0, "FSK_SKONTO": 0},
+        erp_counts={"FS": 3, "FSK": 0, "FSK_RABAT": 0},
+        ksef_counts={"FS": 3, "FSK": 0, "FSK_RABAT": 0},
         missing=[],
     )
     text = render_plain(_report(coverage=cov))
@@ -104,8 +104,8 @@ def test_html_missing_red():
 
 def test_html_no_gap_green():
     cov = CoverageData(
-        erp_counts={"FS": 3, "FSK": 0, "FSK_SKONTO": 0},
-        ksef_counts={"FS": 3, "FSK": 0, "FSK_SKONTO": 0},
+        erp_counts={"FS": 3, "FSK": 0, "FSK_RABAT": 0},
+        ksef_counts={"FS": 3, "FSK": 0, "FSK_RABAT": 0},
         missing=[],
     )
     html = render_html(_report(coverage=cov))

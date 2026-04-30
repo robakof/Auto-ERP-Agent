@@ -15,7 +15,9 @@ from lxml import etree
 
 from core.ksef.domain.correction import (
     DaneFaKorygowanej,
+    DodatkowyOpis,
     Korekta,
+    KorektaRabatowa,
     PozycjaKorekta,
     StanPo,
     StanPrzed,
@@ -85,6 +87,42 @@ class XmlBuilder:
 
         return _serialize(root)
 
+    def build_korekta_rabatowa(self, kor: KorektaRabatowa) -> bytes:
+        """Korekta wartosciowa (skonto/rabat) — bez FaWiersz, wiele DaneFaKorygowanej."""
+        root = self._root()
+        self._build_naglowek(root, kor.naglowek)
+        self._build_podmiot(root, kor.podmiot1, tag="Podmiot1", with_jst_gv=False,
+                            with_prefiks=True)
+        self._build_podmiot(root, kor.podmiot2, tag="Podmiot2", with_jst_gv=True)
+
+        fa = _sub(root, "Fa")
+        _sub(fa, "KodWaluty", text=kor.kod_waluty)
+        _sub(fa, "P_1", text=_iso(kor.data_wystawienia))
+        if kor.miejsce_wystawienia:
+            _sub(fa, "P_1M", text=kor.miejsce_wystawienia)
+        _sub(fa, "P_2", text=kor.numer_faktury)
+        self._build_podsumowanie(fa, kor.podsumowanie)
+        self._build_adnotacje(fa, kor.adnotacje)
+        _sub(fa, "RodzajFaktury", text="KOR")
+        if kor.przyczyna_korekty:
+            _sub(fa, "PrzyczynaKorekty", text=kor.przyczyna_korekty)
+        for d in kor.dane_fa_korygowanych:
+            self._build_dane_fa_korygowanej(fa, d)
+        if kor.okres_fa_korygowanej:
+            _sub(fa, "OkresFaKorygowanej", text=kor.okres_fa_korygowanej)
+        if kor.dodatkowy_opis:
+            for do in kor.dodatkowy_opis:
+                self._build_dodatkowy_opis(fa, do)
+        self._build_platnosc(fa, kor.platnosc, with_rachunek=False)
+
+        return _serialize(root)
+
+    def _build_dodatkowy_opis(self, fa: etree._Element, do: DodatkowyOpis) -> None:
+        el = _sub(fa, "DodatkowyOpis")
+        _sub(el, "NrWiersza", text=str(do.nr_wiersza))
+        _sub(el, "Klucz", text=do.klucz)
+        _sub(el, "Wartosc", text=do.wartosc)
+
     # ---- shared helpers --------------------------------------------------
 
     def _root(self) -> etree._Element:
@@ -100,9 +138,11 @@ class XmlBuilder:
 
     def _build_podmiot(
         self, parent: etree._Element, p: Podmiot, *,
-        tag: str, with_jst_gv: bool,
+        tag: str, with_jst_gv: bool, with_prefiks: bool = False,
     ) -> None:
         el = _sub(parent, tag)
+        if with_prefiks:
+            _sub(el, "PrefiksPodatnika", text=p.kod_kraju or "PL")
         di = _sub(el, "DaneIdentyfikacyjne")
         if p.nip is not None:
             _sub(di, "NIP", text=p.nip)
@@ -224,9 +264,8 @@ class XmlBuilder:
             _sub(fw, "PKWiU", text=w.pkwiu)
         _sub(fw, "P_8A", text=w.jednostka_miary)
         _sub(fw, "P_8B", text=self._format_ilosc(w.ilosc))
-        _sub(fw, "P_9B", text=self._format_decimal(w.cena_brutto_jedn, places=6))
-        _sub(fw, "P_11A", text=self._format_decimal(w.wartosc_netto))
-        _sub(fw, "P_11Vat", text=self._format_decimal(w.kwota_vat))
+        _sub(fw, "P_9A", text=self._format_decimal(w.cena_netto_jedn, places=6))
+        _sub(fw, "P_11", text=self._format_decimal(w.wartosc_netto))
         _sub(fw, "P_12", text=w.stawka_vat)
         if w.stan_przed:
             _sub(fw, "StanPrzed", text="1")

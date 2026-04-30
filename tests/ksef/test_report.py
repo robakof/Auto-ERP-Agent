@@ -225,7 +225,7 @@ def test_coverage_with_gap():
 
 
 def test_coverage_counts_by_rodzaj():
-    """Counts broken down by FS / FSK / FSK_SKONTO."""
+    """Counts broken down by FS / FSK / FSK_RABAT."""
     wysylki = [
         _wysylka(1, ShipmentStatus.ACCEPTED, gid_erp=10),
         _wysylka(2, ShipmentStatus.ACCEPTED, gid_erp=11),
@@ -234,14 +234,14 @@ def test_coverage_counts_by_rodzaj():
     erp = [
         _eligible(10, "FS"), _eligible(11, "FS"), _eligible(12, "FS"),
         _eligible(20, "FSK"), _eligible(21, "FSK"),
-        _eligible(30, "FSK_SKONTO"),
+        _eligible(30, "FSK_RABAT"),
     ]
     repo = FakeRepo(wysylki)
     report = build_report(repo, since=_SINCE, clock=_NOW, erp_eligible=erp)
 
     c = report.coverage
-    assert c.erp_counts == {"FS": 3, "FSK": 2, "FSK_SKONTO": 1}
-    assert c.ksef_counts == {"FS": 2, "FSK": 1, "FSK_SKONTO": 0}
+    assert c.erp_counts == {"FS": 3, "FSK": 2, "FSK_RABAT": 1}
+    assert c.ksef_counts == {"FS": 2, "FSK": 1, "FSK_RABAT": 0}
     assert c.total_missing == 3  # gids 12, 21, 30
 
 

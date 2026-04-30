@@ -26,8 +26,8 @@ from core.ksef.domain.invoice import (
 
 @dataclass(frozen=True)
 class PozycjaKorekta:
-    """Wiersz korekty FSK — inne pola niz FS (P_9B, P_11A, P_11Vat, opcjonalny
-    P_6A/Indeks/PKWiU/StanPrzed)."""
+    """Wiersz korekty FSK — model netto (P_9A/P_11) identyczny jak FS,
+    plus P_6A/Indeks/PKWiU/StanPrzed."""
     nr_pozycji: int
     nazwa_towaru: str
     indeks: str | None
@@ -35,9 +35,8 @@ class PozycjaKorekta:
     pkwiu: str | None
     jednostka_miary: str
     ilosc: Decimal
-    cena_brutto_jedn: Decimal
+    cena_netto_jedn: Decimal
     wartosc_netto: Decimal
-    kwota_vat: Decimal
     stawka_vat: str
     stan_przed: bool
     data_korekty: date | None
@@ -75,4 +74,35 @@ class Korekta:
     dane_fa_korygowanej: DaneFaKorygowanej
     stan_przed: StanPrzed
     stan_po: StanPo
+    platnosc: Platnosc
+
+
+@dataclass(frozen=True)
+class DodatkowyOpis:
+    nr_wiersza: int
+    klucz: str
+    wartosc: str
+
+
+@dataclass(frozen=True)
+class KorektaRabatowa:
+    """Korekta wartosciowa (skonto/rabat transakcyjny) — bez FaWiersz.
+
+    Prostsza struktura niz Korekta: brak StanPrzed/StanPo, wiele DaneFaKorygowanej,
+    opcjonalny OkresFaKorygowanej i DodatkowyOpis.
+    """
+    gid_numer: int
+    naglowek: Naglowek
+    podmiot1: Podmiot
+    podmiot2: Podmiot
+    kod_waluty: str
+    data_wystawienia: date
+    numer_faktury: str
+    miejsce_wystawienia: str | None
+    podsumowanie: PodsumowanieVat
+    adnotacje: Adnotacje
+    przyczyna_korekty: str
+    dane_fa_korygowanych: tuple[DaneFaKorygowanej, ...]
+    okres_fa_korygowanej: str | None
+    dodatkowy_opis: tuple[DodatkowyOpis, ...] | None
     platnosc: Platnosc

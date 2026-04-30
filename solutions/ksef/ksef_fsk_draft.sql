@@ -151,28 +151,17 @@ SELECT
          ELSE COALESCE(NULLIF(e.TrE_IloscPrzedKorekta, 0), org_agg.IloscOrg, 0) + e.TrE_Ilosc
     END                                                         AS Wiersz_P8B_Ilosc,
 
-    -- Cena brutto jednostkowa = cena netto * (1 + stawka/100)
-    -- Stawka z GrupaPod: A=23, B=8, C=5, F=0, D/E=0
+    -- Cena netto jednostkowa (model netto P_9A — taki sam jak FS)
     -- StanPrzed: jeśli FSK idzie przez bufor 2009, cena = (netto_org + buf_delta) / qty
     CASE WHEN sp.StanPrzed = 1
-         THEN ROUND(
-               (COALESCE(NULLIF(e.TrE_CenaPrzedKorekta, 0),
+         THEN COALESCE(NULLIF(e.TrE_CenaPrzedKorekta, 0),
                    CASE WHEN buf_elem.TrE_KsiegowaNetto IS NOT NULL
                         THEN (COALESCE(org_agg.NettoOrg, 0) + buf_elem.TrE_KsiegowaNetto)
                              / NULLIF(COALESCE(org_agg.IloscOrg, 1), 0)
                         ELSE org_agg.CenaOrg END,
-                   e.TrE_Cena))
-               * (1 + CASE COALESCE(NULLIF(e.TrE_GrupaPodPrzedKorekta, ''), org_agg.GrupaOrg, e.TrE_GrupaPod)
-                        WHEN 'A' THEN 0.23 WHEN 'B' THEN 0.08 WHEN 'C' THEN 0.05
-                        ELSE 0 END)
-             , 2)
-         ELSE ROUND(
-               e.TrE_Cena
-               * (1 + CASE e.TrE_GrupaPod
-                        WHEN 'A' THEN 0.23 WHEN 'B' THEN 0.08 WHEN 'C' THEN 0.05
-                        ELSE 0 END)
-             , 2)
-    END                                                         AS Wiersz_P9B_CenaBrutto,
+                   e.TrE_Cena)
+         ELSE e.TrE_Cena
+    END                                                         AS Wiersz_P9A_CenaNettoJedn,
 
     -- Wartość netto pozycji
     -- StanPrzed: oryginalna FS + delta z bufora 2009 (skonto) jeśli istnieje
@@ -184,27 +173,7 @@ SELECT
                        org_agg.NettoOrg, 0)
               + COALESCE(buf_elem.TrE_KsiegowaNetto, 0)
               + e.TrE_KsiegowaNetto
-    END                                                         AS Wiersz_P11A_WartoscNetto,
-
-    -- Kwota VAT pozycji: wyliczana ze stawki
-    -- StanPrzed netto już zawiera korektę buforową, VAT przeliczamy ze stawki
-    CASE WHEN sp.StanPrzed = 1
-         THEN ROUND(
-               (COALESCE(NULLIF(e.TrE_WartoscPrzedKorekta, 0), org_agg.NettoOrg, 0)
-                + COALESCE(buf_elem.TrE_KsiegowaNetto, 0))
-               * CASE COALESCE(NULLIF(e.TrE_GrupaPodPrzedKorekta, ''), org_agg.GrupaOrg, e.TrE_GrupaPod)
-                   WHEN 'A' THEN 0.23 WHEN 'B' THEN 0.08 WHEN 'C' THEN 0.05
-                   ELSE 0 END
-             , 2)
-         ELSE ROUND(
-               (COALESCE(NULLIF(e.TrE_WartoscPrzedKorekta, 0), org_agg.NettoOrg, 0)
-                + COALESCE(buf_elem.TrE_KsiegowaNetto, 0))
-               * CASE COALESCE(NULLIF(e.TrE_GrupaPodPrzedKorekta, ''), org_agg.GrupaOrg, e.TrE_GrupaPod)
-                   WHEN 'A' THEN 0.23 WHEN 'B' THEN 0.08 WHEN 'C' THEN 0.05
-                   ELSE 0 END
-             , 2)
-             + (e.TrE_KsiegowaBrutto - e.TrE_KsiegowaNetto)
-    END                                                         AS Wiersz_P11Vat,
+    END                                                         AS Wiersz_P11_WartoscNetto,
 
     -- Stawka VAT (symbol: 23/8/5/0/ZW/NP)
     CASE WHEN sp.StanPrzed = 1

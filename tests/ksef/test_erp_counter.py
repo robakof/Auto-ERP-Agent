@@ -15,10 +15,13 @@ from core.ksef.adapters.erp_counter import EligibleDoc, _classify, _parse_rows, 
     (2033, 99, "FS"),        # FS regardless of ZwrNumer
     (2041, 1, "FSK"),
     (2041, 42, "FSK"),
-    (2041, 0, "FSK_SKONTO"),
+    (2041, 0, "FSK_RABAT"),
+    (2041, 999, "FSK_RABAT"),  # self-ref (gid=999 == zwr_numer=999) → FSK_RABAT
 ])
 def test_classify(typ, zwr, expected):
-    assert _classify(typ, zwr) == expected
+    # For the self-ref test (gid=999, zwr=999) we need gid matching zwr
+    gid = zwr if zwr == 999 else 777
+    assert _classify(typ, zwr, gid) == expected
 
 
 # ---- _parse_rows -------------------------------------------------------------
@@ -36,7 +39,7 @@ def test_parse_rows_basic():
     assert len(docs) == 3
     assert docs[0] == EligibleDoc(gid=101, rodzaj="FS", nr_faktury="FS-1/04/26/S", data_wystawienia=date(2026, 4, 22))
     assert docs[1].rodzaj == "FSK"
-    assert docs[2].rodzaj == "FSK_SKONTO"
+    assert docs[2].rodzaj == "FSK_RABAT"
 
 
 def test_parse_rows_empty():

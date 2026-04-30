@@ -132,7 +132,7 @@ def _pending_plain(items: list[Wysylka]) -> str:
 def _coverage_plain(c: CoverageData) -> str:
     lines = ["  -- Pokrycie Comarch vs KSeF -----------"]
     lines.append(f"  {'Typ':<14} {'Comarch':>7}  {'KSeF':>4}  {'Brak':>4}")
-    for r in ("FS", "FSK", "FSK_SKONTO"):
+    for r in ("FS", "FSK", "FSK_RABAT"):
         erp = c.erp_counts.get(r, 0)
         ksef = c.ksef_counts.get(r, 0)
         miss = erp - ksef
@@ -248,7 +248,7 @@ def _coverage_html(c: CoverageData) -> str:
     color = "red" if c.has_gap else "green"
     title = f"<h3 style='color:{color}'>Pokrycie Comarch vs KSeF</h3>"
     rows = ""
-    for r in ("FS", "FSK", "FSK_SKONTO"):
+    for r in ("FS", "FSK", "FSK_RABAT"):
         erp = c.erp_counts.get(r, 0)
         ksef = c.ksef_counts.get(r, 0)
         miss = erp - ksef

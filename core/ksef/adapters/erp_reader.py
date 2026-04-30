@@ -19,6 +19,7 @@ from typing import Callable
 from core.ksef.domain.correction import (
     DaneFaKorygowanej,
     Korekta,
+    KorektaRabatowa,
     PozycjaKorekta,
     StanPo,
     StanPrzed,
@@ -38,6 +39,7 @@ _BASE = Path(__file__).resolve().parents[3]
 SQL_PATH_FS = _BASE / "solutions" / "ksef" / "ksef_fs_draft.sql"
 SQL_PATH_FSK = _BASE / "solutions" / "ksef" / "ksef_fsk_draft.sql"
 SQL_PATH_FSK_SKONTO = _BASE / "solutions" / "ksef" / "ksef_fsk_skonto_draft.sql"
+SQL_PATH_FSK_RABAT = _BASE / "solutions" / "ksef" / "ksef_fsk_rabat_draft.sql"
 
 _WHERE_FS = "WHERE n.TrN_GIDTyp = 2033"
 _WHERE_FSK = "WHERE n.TrN_GIDTyp = 2041"
@@ -112,12 +114,30 @@ class ErpReader:
 
         Pozycje pobierane z bufora 2009, oryginalna FS przez lancuch bufor->FS.
         Reuse _rows_to_korekta — SQL zwraca identyczna strukture kolumn.
+        DEPRECATED: use fetch_korekty_rabat() instead.
         """
         rows = self._execute(SQL_PATH_FSK_SKONTO, _WHERE_FSK, _Filters(gids, date_from, date_to))
         if not rows:
             return []
         rows.sort(key=itemgetter("_GIDNumer"))
         return [self._rows_to_korekta(list(g)) for _, g in groupby(rows, key=itemgetter("_GIDNumer"))]
+
+    def fetch_korekty_rabat(
+        self, *, gids: list[int] | None = None,
+        date_from: date | str | None = None,
+        date_to: date | str | None = None,
+    ) -> list[KorektaRabatowa]:
+        """Korekty rabatowe (skonto + rabat transakcyjny) — unified.
+
+        SQL zwraca 1 wiersz per oryginalna FS (N wierszy per FSK).
+        Brak FaWiersz — tylko nagłówek + DaneFaKorygowanej.
+        """
+        rows = self._execute(SQL_PATH_FSK_RABAT, _WHERE_FSK, _Filters(gids, date_from, date_to))
+        if not rows:
+            return []
+        rows.sort(key=itemgetter("_GIDNumer"))
+        return [self._rows_to_korekta_rabat(list(g))
+                for _, g in groupby(rows, key=itemgetter("_GIDNumer"))]
 
     # ---- SQL execution ---------------------------------------------------
 
@@ -229,12 +249,41 @@ class ErpReader:
             pkwiu=_as_str(row.get("Wiersz_PKWiU")),
             jednostka_miary=_as_str(row["Wiersz_P8A_JM"]) or "",
             ilosc=_as_decimal(row["Wiersz_P8B_Ilosc"]),
-            cena_brutto_jedn=_as_decimal(row["Wiersz_P9B_CenaBrutto"]),
-            wartosc_netto=_as_decimal(row["Wiersz_P11A_WartoscNetto"]),
-            kwota_vat=_as_decimal(row["Wiersz_P11Vat"]),
+            cena_netto_jedn=_as_decimal(row["Wiersz_P9A_CenaNettoJedn"]),
+            wartosc_netto=_as_decimal(row["Wiersz_P11_WartoscNetto"]),
             stawka_vat=_as_str(row["Wiersz_P12_StawkaVAT"]) or "",
             stan_przed=stan_przed,
             data_korekty=data_kor if not stan_przed else None,
+        )
+
+    # ---- FSK-RABAT mapping ------------------------------------------------
+
+    def _rows_to_korekta_rabat(self, rows: list[dict]) -> KorektaRabatowa:
+        r = rows[0]
+        dane_fa = tuple(
+            DaneFaKorygowanej(
+                data_wystawienia_org=_as_date(row["Kor_DataWystFaKorygowanej"]),
+                numer_faktury_org=_as_str(row["Kor_NrFaKorygowanej"]) or "",
+            )
+            for row in rows
+            if row.get("Kor_DataWystFaKorygowanej") is not None
+        )
+        return KorektaRabatowa(
+            gid_numer=int(r["_GIDNumer"]),
+            naglowek=Naglowek(),
+            podmiot1=self._row_to_podmiot1(r),
+            podmiot2=self._row_to_podmiot2(r),
+            kod_waluty=str(r["Fa_KodWaluty"]).strip(),
+            data_wystawienia=_as_date(r["Fa_P1_DataWystawienia"]),
+            numer_faktury=str(r["Fa_P2A_NumerFaktury"]).strip(),
+            miejsce_wystawienia=_as_str(r.get("P1_Miasto")),
+            podsumowanie=self._rows_to_podsumowanie(r),
+            adnotacje=Adnotacje(mpp=_as_str(r.get("Fa_P16_MPP")) or "2"),
+            przyczyna_korekty=_as_str(r.get("Kor_PrzyczynaKorekty")) or "",
+            dane_fa_korygowanych=dane_fa,
+            okres_fa_korygowanej=None,
+            dodatkowy_opis=None,
+            platnosc=self._row_to_platnosc(r),
         )
 
     # ---- shared mapping --------------------------------------------------

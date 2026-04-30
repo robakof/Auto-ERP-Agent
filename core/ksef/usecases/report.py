@@ -13,7 +13,7 @@ from core.ksef.adapters.erp_counter import EligibleDoc
 from core.ksef.adapters.repo import ShipmentRepository
 from core.ksef.domain.shipment import ShipmentStatus, Wysylka
 
-_RODZAJE = ("FS", "FSK", "FSK_SKONTO")
+_RODZAJE = ("FS", "FSK", "FSK_RABAT")
 
 
 @dataclass(frozen=True)

@@ -80,8 +80,8 @@ def test_fetch_korekty_empty_returns_empty_list() -> None:
     cols = _FS_COLUMNS + ["Kor_PrzyczynaKorekty", "Kor_DataWystFaKorygowanej",
                           "Kor_NrFaKorygowanej", "Wiersz_StanPrzed",
                           "Wiersz_DataKorekty", "Wiersz_Indeks", "Wiersz_PKWiU",
-                          "Wiersz_P9B_CenaBrutto", "Wiersz_P11A_WartoscNetto",
-                          "Wiersz_P11Vat", "Wiersz_P12_StawkaVAT"]
+                          "Wiersz_P9A_CenaNettoJedn", "Wiersz_P11_WartoscNetto",
+                          "Wiersz_P12_StawkaVAT"]
     reader = ErpReader(run_query=_fake_query(cols, []))
     assert reader.fetch_korekty() == []
 
@@ -152,7 +152,7 @@ _FSK_COLUMNS = [
     "Wiersz_NrPozycji", "Wiersz_StanPrzed", "Wiersz_DataKorekty",
     "Wiersz_P7_NazwaTowaru", "Wiersz_Indeks", "Wiersz_GTIN", "Wiersz_PKWiU",
     "Wiersz_P8A_JM", "Wiersz_P8B_Ilosc",
-    "Wiersz_P9B_CenaBrutto", "Wiersz_P11A_WartoscNetto", "Wiersz_P11Vat",
+    "Wiersz_P9A_CenaNettoJedn", "Wiersz_P11_WartoscNetto",
     "Wiersz_P12_StawkaVAT",
     "Plat_TerminPlatnosci", "Plat_KodFormyPlatnosci", "Plat_NrRachunkuBankowego",
 ]
@@ -172,7 +172,7 @@ def _fsk_row(gid: int, nr_poz: int, stan_przed: int, data_kor: date | None = Non
         nr_poz, stan_przed, data_kor,
         "Towar", "IDX1", "5903293726167", None,
         "opak.", Decimal("1"),
-        Decimal("9.74"), Decimal("10.00"), Decimal("2.30"),
+        Decimal("9.74"), Decimal("10.00"),
         "23",
         date(2026, 5, 29), "6", None,
     ]

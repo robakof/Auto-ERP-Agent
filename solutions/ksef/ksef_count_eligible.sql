@@ -1,7 +1,7 @@
 -- KSeF coverage check — lista dokumentów kwalifikujących się do wysyłki
 -- Używane przez raport do porównania: Comarch vs ksef_wysylka
 -- Filtr daty: wstrzykiwany przez Python (WHERE_EXTRA)
--- Rodzaj klasyfikacji: FS / FSK / FSK_SKONTO (po stronie Python na podstawie typ + zwr_numer)
+-- Rodzaj klasyfikacji: FS / FSK / FSK_RABAT (po stronie Python na podstawie typ + zwr_numer)
 
 SELECT
     n.TrN_GIDNumer                                              AS gid,
