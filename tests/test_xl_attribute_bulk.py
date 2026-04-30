@@ -130,6 +130,45 @@ class TestBulkUpdate:
         assert result["data"]["skipped"] == 1
         assert result["data"]["success"] == 0
 
+    def test_update_mode_calls_delete(self, tmp_path):
+        path = _make_excel(
+            [None, "Atrybut / Akronim →", "Typ"],
+            [["FOTEL-01", "WAGA PRODUKTU", "liczba", "1.5"]],
+            tmp_path,
+        )
+        _del_ok = {"ok": True, "data": {"deleted": 2}, "error": None, "meta": {"duration_ms": 1}}
+        with patch.object(xb, "_load_class_map", return_value=_cls("WAGA PRODUKTU")):
+            with patch.object(xb, "delete_attributes", return_value=_del_ok) as mock_del:
+                with patch.object(xb, "set_attribute", return_value=_SET_OK):
+                    result = xb.bulk_update(path, update=True)
+        mock_del.assert_called_once_with("FOTEL-01")
+        assert result["data"]["success"] == 1
+
+    def test_no_update_mode_skips_delete(self, tmp_path):
+        path = _make_excel(
+            [None, "Atrybut / Akronim →", "Typ"],
+            [["FOTEL-01", "WAGA PRODUKTU", "liczba", "1.5"]],
+            tmp_path,
+        )
+        with patch.object(xb, "_load_class_map", return_value=_cls("WAGA PRODUKTU")):
+            with patch.object(xb, "delete_attributes") as mock_del:
+                with patch.object(xb, "set_attribute", return_value=_SET_OK):
+                    xb.bulk_update(path, update=False)
+        mock_del.assert_not_called()
+
+    def test_update_delete_failure_marks_row_error(self, tmp_path):
+        path = _make_excel(
+            [None, "Atrybut / Akronim →", "Typ"],
+            [["FOTEL-01", "WAGA PRODUKTU", "liczba", "1.5"]],
+            tmp_path,
+        )
+        _del_fail = {"ok": False, "data": None, "error": {"type": "SQL_ERROR", "message": "brak"}, "meta": {}}
+        with patch.object(xb, "_load_class_map", return_value=_cls("WAGA PRODUKTU")):
+            with patch.object(xb, "delete_attributes", return_value=_del_fail):
+                result = xb.bulk_update(path, update=True)
+        assert result["data"]["failed"] == 1
+        assert "usuwania" in result["data"]["results"][0]["message"]
+
     def test_report_written(self, tmp_path):
         path = _make_excel(
             [None, "Atrybut / Akronim →", "Typ"],

@@ -23,7 +23,7 @@ from openpyxl.styles import Font, PatternFill
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.lib.sql_client import SqlClient
-from tools.xl_attribute_set import set_attribute
+from tools.xl_attribute_set import delete_attributes, set_attribute
 
 _QUERY_CLASS_NAMES = """
 SELECT DISTINCT ak.AtK_Nazwa
@@ -84,7 +84,8 @@ def _write_report(path: Path, results: list) -> None:
     wb.save(path)
 
 
-def bulk_update(file: Path, operator: str | None = None, report: Path | None = None) -> dict:
+def bulk_update(file: Path, operator: str | None = None, report: Path | None = None,
+                update: bool = False) -> dict:
     header, data_rows = _parse_excel(file)
 
     if not header or not data_rows:
@@ -95,7 +96,24 @@ def bulk_update(file: Path, operator: str | None = None, report: Path | None = N
     if err:
         return {"ok": False, "data": None, "error": err}
 
-    # Wstaw wartości z pliku (pomija istniejące atrybuty, nie usuwa)
+    # Tryb --update: ustal produkty do podmiany i usuń ich atrybuty przed insertem
+    failed_akronimy: set[str] = set()
+    if update:
+        akronimy_to_update: set[str] = set()
+        for row in data_rows:
+            if not row or row[0] is None or str(row[0]).strip() == "":
+                continue
+            has_value = any(
+                row[i] is not None and str(row[i]).strip() != ""
+                for i in range(3, len(row))
+            )
+            if has_value:
+                akronimy_to_update.add(str(row[0]).strip())
+        for akronim in akronimy_to_update:
+            del_res = delete_attributes(akronim)
+            if not del_res["ok"]:
+                failed_akronimy.add(akronim)
+
     results = []
     total = success = skipped = failed = 0
 
@@ -121,6 +139,12 @@ def bulk_update(file: Path, operator: str | None = None, report: Path | None = N
         if not values:
             skipped += 1
             results.append({"akronim": akronim, "class": attr_raw, "value": None, "status": "POMINIĘTY"})
+            continue
+
+        if akronim in failed_akronimy:
+            failed += 1
+            results.append({"akronim": akronim, "class": attr_raw, "value": ", ".join(values) if values else None,
+                             "status": "BŁĄD", "message": f"Błąd usuwania atrybutów: {akronim}"})
             continue
 
         exact_name = class_map.get(attr_raw.lower())
@@ -167,9 +191,11 @@ def main() -> None:
     parser.add_argument("--file", required=True, type=Path)
     parser.add_argument("--operator", default=None)
     parser.add_argument("--report", type=Path, default=default_report)
+    parser.add_argument("--update", action="store_true",
+                        help="Tryb aktualizacji: usuń istniejące atrybuty przed insertem")
     args = parser.parse_args()
 
-    result = bulk_update(args.file, args.operator, args.report)
+    result = bulk_update(args.file, args.operator, args.report, args.update)
     print(json.dumps(result, ensure_ascii=False))
 
 
