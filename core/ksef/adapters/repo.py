@@ -135,9 +135,10 @@ class ShipmentRepository:
             """)
         if ver < 3:
             # v3: rename FSK_SKONTO → FSK_RABAT (unified rabat/skonto)
+            # NOTE: cannot UPDATE in-place — old CHECK constraint rejects FSK_RABAT
+            # Strategy: create new table with new CHECK, copy with REPLACE, drop old
             conn.executescript("""
                 PRAGMA foreign_keys = OFF;
-                UPDATE ksef_wysylka SET rodzaj = 'FSK_RABAT' WHERE rodzaj = 'FSK_SKONTO';
                 CREATE TABLE IF NOT EXISTS ksef_wysylka_new (
                     id                INTEGER PRIMARY KEY AUTOINCREMENT,
                     gid_erp           INTEGER NOT NULL,
@@ -165,7 +166,15 @@ class ShipmentRepository:
                     errored_at        TIMESTAMP,
                     UNIQUE (gid_erp, rodzaj, attempt)
                 );
-                INSERT OR IGNORE INTO ksef_wysylka_new SELECT * FROM ksef_wysylka;
+                INSERT OR IGNORE INTO ksef_wysylka_new
+                    SELECT id, gid_erp,
+                           CASE WHEN rodzaj = 'FSK_SKONTO' THEN 'FSK_RABAT' ELSE rodzaj END,
+                           nr_faktury, data_wystawienia, xml_path, xml_hash, status,
+                           ksef_session_ref, ksef_invoice_ref, ksef_number,
+                           upo_path, error_code, error_msg, attempt,
+                           created_at, queued_at, sent_at, accepted_at,
+                           rejected_at, errored_at
+                    FROM ksef_wysylka;
                 DROP TABLE ksef_wysylka;
                 ALTER TABLE ksef_wysylka_new RENAME TO ksef_wysylka;
                 CREATE INDEX IF NOT EXISTS idx_ksef_status ON ksef_wysylka(status);
