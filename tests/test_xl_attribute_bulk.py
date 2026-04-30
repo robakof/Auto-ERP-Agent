@@ -10,7 +10,6 @@ import pytest
 
 import tools.xl_attribute_bulk as xb
 
-_DEL_OK = {"ok": True, "data": {"deleted": 0}, "error": None, "meta": {"duration_ms": 1}}
 _SET_OK = {"ok": True, "data": {}, "error": None}
 
 
@@ -38,9 +37,8 @@ class TestBulkUpdate:
             tmp_path,
         )
         with patch.object(xb, "_load_class_map", return_value=_cls("WAGA PRODUKTU")):
-            with patch.object(xb, "delete_attributes", return_value=_DEL_OK):
-                with patch.object(xb, "set_attribute", return_value=_SET_OK):
-                    result = xb.bulk_update(path)
+            with patch.object(xb, "set_attribute", return_value=_SET_OK):
+                result = xb.bulk_update(path)
         assert result["ok"] is True
         assert result["data"]["success"] == 1
         assert result["data"]["failed"] == 0
@@ -63,8 +61,7 @@ class TestBulkUpdate:
             tmp_path,
         )
         with patch.object(xb, "_load_class_map", return_value=({}, None)):
-            with patch.object(xb, "delete_attributes", return_value=_DEL_OK):
-                result = xb.bulk_update(path)
+            result = xb.bulk_update(path)
         assert result["data"]["failed"] == 1
         assert result["data"]["results"][0]["status"] == "BŁĄD"
 
@@ -76,9 +73,8 @@ class TestBulkUpdate:
         )
         _fail = {"ok": False, "data": None, "error": {"type": "X", "message": "brak"}}
         with patch.object(xb, "_load_class_map", return_value=_cls("WAGA PRODUKTU")):
-            with patch.object(xb, "delete_attributes", return_value=_DEL_OK):
-                with patch.object(xb, "set_attribute", return_value=_fail):
-                    result = xb.bulk_update(path)
+            with patch.object(xb, "set_attribute", return_value=_fail):
+                result = xb.bulk_update(path)
         assert result["data"]["failed"] == 1
 
     def test_multiple_products_multiple_attrs(self, tmp_path):
@@ -93,9 +89,8 @@ class TestBulkUpdate:
             tmp_path,
         )
         with patch.object(xb, "_load_class_map", return_value=_cls("WAGA PRODUKTU", "KOLOR")):
-            with patch.object(xb, "delete_attributes", return_value=_DEL_OK):
-                with patch.object(xb, "set_attribute", return_value=_SET_OK):
-                    result = xb.bulk_update(path)
+            with patch.object(xb, "set_attribute", return_value=_SET_OK):
+                result = xb.bulk_update(path)
         assert result["data"]["total"] == 4
         assert result["data"]["success"] == 3
         assert result["data"]["skipped"] == 1
@@ -111,9 +106,8 @@ class TestBulkUpdate:
             calls.append(val)
             return _SET_OK
         with patch.object(xb, "_load_class_map", return_value=_cls("KOLOR")):
-            with patch.object(xb, "delete_attributes", return_value=_DEL_OK):
-                with patch.object(xb, "set_attribute", side_effect=fake_set):
-                    result = xb.bulk_update(path)
+            with patch.object(xb, "set_attribute", side_effect=fake_set):
+                result = xb.bulk_update(path)
         assert calls == ["czerwony", "niebieski"]
         assert result["data"]["success"] == 1
 
@@ -144,7 +138,6 @@ class TestBulkUpdate:
         )
         report_path = tmp_path / "raport.xlsx"
         with patch.object(xb, "_load_class_map", return_value=_cls("WAGA PRODUKTU")):
-            with patch.object(xb, "delete_attributes", return_value=_DEL_OK):
-                with patch.object(xb, "set_attribute", return_value=_SET_OK):
-                    xb.bulk_update(path, report=report_path)
+            with patch.object(xb, "set_attribute", return_value=_SET_OK):
+                xb.bulk_update(path, report=report_path)
         assert report_path.exists()

@@ -23,7 +23,7 @@ from openpyxl.styles import Font, PatternFill
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.lib.sql_client import SqlClient
-from tools.xl_attribute_set import delete_attributes, set_attribute
+from tools.xl_attribute_set import set_attribute
 
 _QUERY_CLASS_NAMES = """
 SELECT DISTINCT ak.AtK_Nazwa
@@ -95,27 +95,7 @@ def bulk_update(file: Path, operator: str | None = None, report: Path | None = N
     if err:
         return {"ok": False, "data": None, "error": err}
 
-    # Faza 1: ustal które produkty mają niepuste wartości
-    akronimy_to_update: set[str] = set()
-    for row in data_rows:
-        if not row or row[0] is None or str(row[0]).strip() == "":
-            continue
-        # wartości od kolumny D (indeks 3) wzwyż
-        has_value = any(
-            row[i] is not None and str(row[i]).strip() != ""
-            for i in range(3, len(row))
-        )
-        if has_value:
-            akronimy_to_update.add(str(row[0]).strip())
-
-    # Faza 2: usuń wszystkie atrybuty dla tych produktów
-    failed_akronimy: set[str] = set()
-    for akronim in akronimy_to_update:
-        del_res = delete_attributes(akronim)
-        if not del_res["ok"]:
-            failed_akronimy.add(akronim)
-
-    # Faza 3: wstaw wartości z pliku
+    # Wstaw wartości z pliku (pomija istniejące atrybuty, nie usuwa)
     results = []
     total = success = skipped = failed = 0
 
@@ -141,12 +121,6 @@ def bulk_update(file: Path, operator: str | None = None, report: Path | None = N
         if not values:
             skipped += 1
             results.append({"akronim": akronim, "class": attr_raw, "value": None, "status": "POMINIĘTY"})
-            continue
-
-        if akronim in failed_akronimy:
-            failed += 1
-            results.append({"akronim": akronim, "class": attr_raw, "value": ", ".join(values),
-                             "status": "BŁĄD", "message": f"Błąd usuwania atrybutów: {akronim}"})
             continue
 
         exact_name = class_map.get(attr_raw.lower())
