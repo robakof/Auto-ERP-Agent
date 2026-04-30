@@ -212,11 +212,18 @@ JOIN CDN.KntKarty k
 LEFT JOIN sv
     ON  sv.TrV_GIDNumer = n.TrN_GIDNumer
 
--- Płatność (pierwsza rata)
-LEFT JOIN CDN.TraPlat p
-    ON  p.TrP_GIDNumer = n.TrN_GIDNumer
-    AND p.TrP_GIDTyp   = n.TrN_GIDTyp
-    AND p.TrP_Lp       = 1
+-- Płatność (pierwsza rata — ROW_NUMBER by TrP_GIDLp)
+LEFT JOIN (
+    SELECT TrP_GIDTyp, TrP_GIDNumer, TrP_Termin,
+           TrP_FormaNr, TrP_FormaNazwa,
+           ROW_NUMBER() OVER (
+               PARTITION BY TrP_GIDTyp, TrP_GIDNumer
+               ORDER BY TrP_GIDLp
+           ) AS rn
+    FROM CDN.TraPlat
+) p ON  p.TrP_GIDTyp   = n.TrN_GIDTyp
+    AND p.TrP_GIDNumer  = n.TrN_GIDNumer
+    AND p.rn = 1
 
 WHERE n.TrN_GIDTyp = 2041
   AND (n.TrN_ZwrNumer = 0 OR n.TrN_ZwrNumer = n.TrN_GIDNumer)
