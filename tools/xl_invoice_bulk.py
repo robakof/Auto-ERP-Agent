@@ -19,6 +19,7 @@ from openpyxl.styles import Font, PatternFill
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from tools.lib import xl_session
 from tools.xl_invoice_parser import parse_ksef_xml
 from tools.xl_invoice_set import set_invoice
 
@@ -65,51 +66,57 @@ def bulk_import(dir_path: Path, report: Path | None = None) -> dict:
     rows = []
     inserted = skipped = failed = 0
 
-    for xml_path in xml_files:
-        parse_result = parse_ksef_xml(xml_path)
+    try:
+        for xml_path in xml_files:
+            parse_result = parse_ksef_xml(xml_path)
 
-        if not parse_result["ok"]:
-            failed += 1
-            rows.append({
-                "plik": xml_path.name,
-                "status": "BŁĄD",
-                "komunikat": parse_result["error"],
-            })
-            continue
+            if not parse_result["ok"]:
+                failed += 1
+                rows.append({
+                    "plik": xml_path.name,
+                    "status": "BŁĄD",
+                    "komunikat": parse_result["error"],
+                })
+                continue
 
-        inv = parse_result["data"]
-        set_result = set_invoice(inv)
+            inv = parse_result["data"]
+            set_result = set_invoice(inv)
 
-        if not set_result["ok"]:
-            failed += 1
+            if not set_result["ok"]:
+                failed += 1
+                rows.append({
+                    "plik": xml_path.name,
+                    "nr_obcy": inv.nr_obcy,
+                    "nip": inv.nip_sprzedawcy,
+                    "kwota_brutto": str(inv.suma_brutto),
+                    "status": "BŁĄD",
+                    "komunikat": set_result["error"]["message"],
+                })
+                continue
+
+            action = set_result["data"]["action"]
+            if action == "skipped":
+                skipped += 1
+                status = "POMINIĘTO"
+                komunikat = "Faktura już istnieje w ERP"
+            else:
+                inserted += 1
+                status = "OK"
+                komunikat = f"doc_id={set_result['data']['doc_id']}"
+
             rows.append({
                 "plik": xml_path.name,
                 "nr_obcy": inv.nr_obcy,
                 "nip": inv.nip_sprzedawcy,
                 "kwota_brutto": str(inv.suma_brutto),
-                "status": "BŁĄD",
-                "komunikat": set_result["error"]["message"],
+                "status": status,
+                "komunikat": komunikat,
             })
-            continue
-
-        action = set_result["data"]["action"]
-        if action == "skipped":
-            skipped += 1
-            status = "POMINIĘTO"
-            komunikat = "Faktura już istnieje w ERP"
-        else:
-            inserted += 1
-            status = "OK"
-            komunikat = f"doc_id={set_result['data']['doc_id']}"
-
-        rows.append({
-            "plik": xml_path.name,
-            "nr_obcy": inv.nr_obcy,
-            "nip": inv.nip_sprzedawcy,
-            "kwota_brutto": str(inv.suma_brutto),
-            "status": status,
-            "komunikat": komunikat,
-        })
+    finally:
+        try:
+            xl_session.logout()
+        except Exception:
+            pass
 
     if report:
         _write_report(report, rows)
