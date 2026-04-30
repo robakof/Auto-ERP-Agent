@@ -35,7 +35,7 @@ _NIP_SQL = """
 _EXISTS_SQL = """
     SELECT COUNT(*)
     FROM CDN.TraNag
-    WHERE TrN_NrObcy = ? AND TrN_Typ = ?
+    WHERE TrN_DokumentObcy = ? AND RTRIM(TrN_TrNSeria) = ?
 """
 
 
@@ -71,7 +71,7 @@ def set_invoice(invoice: FzInvoice) -> dict:
                         start)
         knt_numer, knt_firma = int(row[0]), int(row[1])
 
-        cursor.execute(_EXISTS_SQL, [invoice.nr_obcy, _DOC_TYP])
+        cursor.execute(_EXISTS_SQL, [invoice.nr_obcy, _SERIA])
         if cursor.fetchone()[0] > 0:
             return {
                 "ok": True,
