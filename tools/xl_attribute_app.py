@@ -10,7 +10,8 @@ import threading
 from datetime import date
 from pathlib import Path
 from tkinter import (
-    Button, Entry, Frame, Label, StringVar, Tk, filedialog, messagebox,
+    BooleanVar, Button, Checkbutton, Entry, Frame, Label,
+    StringVar, Text, Tk, filedialog, messagebox, scrolledtext,
 )
 
 _PROJECT_ROOT = Path(__file__).parent.parent
@@ -18,7 +19,7 @@ sys.path.insert(0, str(_PROJECT_ROOT))
 os.chdir(_PROJECT_ROOT)
 
 from tools.xl_attribute_bulk import bulk_update
-from tools.xl_attribute_template import generate_template
+from tools.xl_attribute_template import generate_for_akronimy, generate_template
 
 _DEFAULT_REPORT = Path(f"documents/human/reports/xl_attribute_bulk_{date.today().strftime('%Y%m%d')}.xlsx")
 
@@ -33,7 +34,6 @@ _FONT_HINT = ("Segoe UI", 9)
 
 
 def format_summary(data: dict) -> str:
-    """Zwraca jednolinijkowe podsumowanie wyników bulk update."""
     return (
         f"✓ {data['success']} dodanych   "
         f"✗ {data['failed']} błędów   "
@@ -73,25 +73,38 @@ class AttributeApp(Tk):
 
     def _build_step1(self):
         step = _Step(self,
-                     "KROK 1 — Generuj template",
-                     "Tworzy plik Excel z atrybutami z bazy ERP.",
+                     "KROK 1 — Generuj plik do edycji",
+                     "Wpisz kody produktów, pobierz aktualne wartości z ERP.",
                      _BG_STEP1, "#1E3A5F")
         step.pack(fill="x", pady=(0, 10))
 
-        row = Frame(step, bg=_BG_STEP1)
-        row.pack(fill="x", pady=(8, 0))
+        Label(step, text="Kody produktów (oddzielone przecinkami lub nowa linia):",
+              font=_FONT, bg=_BG_STEP1, fg="#333").pack(anchor="w", pady=(8, 2))
 
-        self._template_label = StringVar(value="(nie wybrano)")
-        Button(row, text="Generuj i zapisz jako…", font=_FONT,
-               command=self._on_generate,
+        self._akronimy_text = Text(step, height=3, width=52, font=_FONT,
+                                   bd=1, relief="solid", wrap="word")
+        self._akronimy_text.pack(anchor="w")
+
+        row_btns = Frame(step, bg=_BG_STEP1)
+        row_btns.pack(fill="x", pady=(8, 0))
+
+        Button(row_btns, text="Generuj plik dla wybranych…", font=_FONT,
+               command=self._on_generate_selected,
                bg="#2563EB", fg="white", relief="flat", padx=10, pady=5
                ).pack(side="left")
-        Label(row, textvariable=self._template_label, font=_FONT,
-              bg=_BG_STEP1, fg="#333", wraplength=330).pack(side="left", padx=(10, 0))
+
+        Button(row_btns, text="Generuj pełny template…", font=_FONT,
+               command=self._on_generate_all,
+               bg="#64748B", fg="white", relief="flat", padx=10, pady=5
+               ).pack(side="left", padx=(8, 0))
+
+        self._template_label = StringVar(value="")
+        Label(step, textvariable=self._template_label, font=_FONT_HINT,
+              bg=_BG_STEP1, fg="#1E3A5F", wraplength=460).pack(anchor="w", pady=(4, 0))
 
     def _build_step2(self):
         step = _Step(self,
-                     "KROK 2 — Dodaj atrybuty",
+                     "KROK 2 — Importuj atrybuty",
                      "Wskaż wypełniony plik Excel i uruchom import przez XL API.",
                      _BG_STEP2, "#1A3C1A")
         step.pack(fill="x", pady=(0, 10))
@@ -108,6 +121,16 @@ class AttributeApp(Tk):
                ).pack(side="left")
         Label(row_file, textvariable=self._file_label, font=_FONT,
               bg=_BG_STEP2, fg="#333", wraplength=330).pack(side="left", padx=(10, 0))
+
+        self._update_var = BooleanVar(value=False)
+        Checkbutton(step, text="Tryb aktualizacji — podmień istniejące atrybuty",
+                    variable=self._update_var, font=_FONT,
+                    bg=_BG_STEP2, fg="#1A3C1A", activebackground=_BG_STEP2,
+                    selectcolor="#D1FAE5"
+                    ).pack(anchor="w", pady=(8, 0))
+        Label(step,
+              text="(bez tej opcji program tylko dopisuje brakujące, nie zmienia istniejących)",
+              font=_FONT_HINT, bg=_BG_STEP2, fg="#6B7280").pack(anchor="w")
 
         self._run_btn = Button(step, text="▶  Uruchom import", font=_FONT_BOLD,
                                command=self._on_run,
@@ -131,20 +154,53 @@ class AttributeApp(Tk):
 
     # --------------------------------------------------------------- handlers
 
-    def _on_generate(self):
+    def _get_akronimy(self) -> list[str]:
+        raw = self._akronimy_text.get("1.0", "end").strip()
+        parts = [p.strip() for line in raw.splitlines() for p in line.split(",")]
+        return [p for p in parts if p]
+
+    def _on_generate_selected(self):
+        akronimy = self._get_akronimy()
+        if not akronimy:
+            messagebox.showwarning("Brak kodów", "Wpisz co najmniej jeden kod produktu.")
+            return
         path = filedialog.asksaveasfilename(
-            title="Zapisz template jako…",
+            title="Zapisz plik jako…",
+            defaultextension=".xlsx",
+            initialfile=f"atrybuty_wybrane_{date.today().strftime('%Y%m%d')}.xlsx",
+            filetypes=[("Excel (.xlsx)", "*.xlsx")],
+        )
+        if not path:
+            return
+        self._status_var.set(f"Generowanie dla {len(akronimy)} produktów…")
+        self.update()
+        result = generate_for_akronimy(akronimy, Path(path))
+        if result["ok"]:
+            d = result["data"]
+            info = f"✓ Plik zapisany: {Path(path).name}  ({d['products']} produktów)"
+            if d.get("not_found"):
+                info += f"\n⚠ Nie znaleziono: {', '.join(d['not_found'])}"
+            self._template_label.set(info)
+            self._status_var.set(info.splitlines()[0])
+        else:
+            messagebox.showerror("Błąd", result["error"]["message"])
+            self._status_var.set("✗ Błąd generowania.")
+
+    def _on_generate_all(self):
+        from tools.xl_attribute_template import DEFAULT_OUTPUT
+        path = filedialog.asksaveasfilename(
+            title="Zapisz pełny template jako…",
             defaultextension=".xlsx",
             initialfile="Atrybuty produktów - template.xlsx",
             filetypes=[("Excel (.xlsx)", "*.xlsx")],
         )
         if not path:
             return
-        self._status_var.set("Generowanie template…")
+        self._status_var.set("Generowanie pełnego template…")
         self.update()
         result = generate_template(Path(path))
         if result["ok"]:
-            self._template_label.set(Path(path).name)
+            self._template_label.set(f"✓ Template zapisany: {Path(path).name}")
             self._status_var.set(f"✓ Template zapisany: {path}")
         else:
             messagebox.showerror("Błąd generowania", result["error"]["message"])
@@ -165,6 +221,14 @@ class AttributeApp(Tk):
     def _on_run(self):
         if not self._picked_file:
             return
+        update_mode = self._update_var.get()
+        if update_mode:
+            if not messagebox.askyesno(
+                "Tryb aktualizacji",
+                "Tryb aktualizacji usunie istniejące atrybuty dla produktów z pliku "
+                "i zastąpi je wartościami z pliku.\n\nKontynuować?"
+            ):
+                return
         self._run_btn.configure(state="disabled")
         self._open_btn.configure(state="disabled")
         self._status_var.set("Trwa import…")
@@ -172,7 +236,8 @@ class AttributeApp(Tk):
         report = _DEFAULT_REPORT
 
         def _worker():
-            result = bulk_update(self._picked_file, operator=None, report=report)
+            result = bulk_update(self._picked_file, operator=None,
+                                 report=report, update=update_mode)
             self.after(0, lambda: self._on_done(result, report))
 
         threading.Thread(target=_worker, daemon=True).start()
