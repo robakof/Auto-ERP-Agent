@@ -11,12 +11,14 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
+import os
 import signal
 import subprocess
 import sys
 import time
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Callable
 
@@ -37,10 +39,9 @@ from core.ksef.usecases.send_invoice import SendInvoiceUseCase, SendResult
 
 _LOG = logging.getLogger("ksef.daemon")
 
+from core.ksef import paths as ksef_paths
+
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
-_DB_PATH = _PROJECT_ROOT / "data" / "ksef.db"
-_OUTPUT_DIR = _PROJECT_ROOT / "output" / "ksef"
-_UPO_DIR = _OUTPUT_DIR / "upo"
 _TMP_DIR = _PROJECT_ROOT / "tmp"
 _FLAG_REASON_FILE = _TMP_DIR / "ksef_flag.md"
 _AGENT_BUS_CLI = _PROJECT_ROOT / "tools" / "agent_bus_cli.py"
@@ -53,20 +54,28 @@ class KSeFDaemon:
         self,
         scan: ScanErpUseCase,
         send_factory: Callable[[PendingDocument], SendResult],
+        repo: ShipmentRepository,
         *,
         interval_s: float = 60.0,
+        tick_timeout_s: float = 300.0,
         on_tick: Callable[[int, list[PendingDocument]], None] | None = None,
         sleep: Callable[[float], None] = time.sleep,
         rate_limiter: RateLimiter | None = None,
         error_escalator: ErrorEscalator | None = None,
+        heartbeat_path: Path | None = None,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._scan = scan
         self._send_factory = send_factory
+        self._repo = repo
         self._interval = interval_s
+        self._tick_timeout = tick_timeout_s
         self._on_tick = on_tick or _default_on_tick
         self._sleep = sleep
         self._rate_limiter = rate_limiter
         self._escalator = error_escalator
+        self._heartbeat_path = heartbeat_path or ksef_paths.heartbeat_path()
+        self._clock = clock
         self._shutdown = False
         self._tick_count = 0
 
@@ -75,8 +84,17 @@ class KSeFDaemon:
         signal.signal(signal.SIGINT, self._handle_shutdown)
         signal.signal(signal.SIGTERM, self._handle_shutdown)
         _LOG.info('{"event": "daemon_start", "interval_s": %.1f}', self._interval)
+        self._recover_stuck()
         while not self._shutdown:
+            tick_start = self._clock()
             self._tick()
+            tick_duration = self._clock() - tick_start
+            if tick_duration > self._tick_timeout:
+                _LOG.error(
+                    '{"event": "tick_slow", "tick": %d, "duration_s": %.1f, "timeout_s": %.1f}',
+                    self._tick_count - 1, tick_duration, self._tick_timeout,
+                )
+            self._write_heartbeat(tick_duration)
             if self._shutdown:
                 break
             self._sleep_interruptible(self._interval)
@@ -84,7 +102,11 @@ class KSeFDaemon:
 
     def run_once(self) -> list[SendResult]:
         """Single scan + send. Returns results."""
-        return self._tick()
+        self._recover_stuck()
+        tick_start = self._clock()
+        results = self._tick()
+        self._write_heartbeat(self._clock() - tick_start)
+        return results
 
     def _tick(self) -> list[SendResult]:
         pending = self._scan.scan()
@@ -126,9 +148,47 @@ class KSeFDaemon:
             )
             return None
 
+    def _recover_stuck(self) -> None:
+        """Reset stuck QUEUED/AUTH_PENDING/SENT records to DRAFT so they get retried."""
+        stuck = self._repo.list_stuck(stale_minutes=30)
+        if not stuck:
+            return
+        ids = [w.id for w in stuck]
+        _LOG.info('{"event": "recover_stuck", "count": %d, "ids": %s}', len(stuck), ids)
+        for w in stuck:
+            try:
+                self._repo.transition(
+                    w.id, ShipmentStatus.DRAFT, meta={"reason": "daemon_recover_stuck"},
+                )
+                _LOG.info(
+                    '{"event": "recover_one", "wysylka_id": %d, "from": "%s", "nr": "%s"}',
+                    w.id, w.status.value, w.nr_faktury,
+                )
+            except Exception as exc:
+                _LOG.warning(
+                    '{"event": "recover_fail", "wysylka_id": %d, "error": "%s"}', w.id, exc,
+                )
+
     def _handle_shutdown(self, sig, frame) -> None:
         _LOG.info('{"event": "shutdown_requested", "signal": %d}', sig)
         self._shutdown = True
+
+    def _write_heartbeat(self, tick_duration_s: float) -> None:
+        """Write heartbeat JSON after each tick. Best-effort — never crash daemon."""
+        try:
+            self._heartbeat_path.parent.mkdir(parents=True, exist_ok=True)
+            payload = {
+                "last_tick_utc": datetime.now(timezone.utc).isoformat(),
+                "tick_count": self._tick_count,
+                "last_tick_duration_s": round(tick_duration_s, 2),
+                "status": "ok" if tick_duration_s <= self._tick_timeout else "slow",
+                "pid": os.getpid(),
+            }
+            self._heartbeat_path.write_text(
+                json.dumps(payload, indent=2), encoding="utf-8",
+            )
+        except Exception:
+            _LOG.warning('{"event": "heartbeat_write_failed"}', exc_info=True)
 
     def _sleep_interruptible(self, seconds: float) -> None:
         """Sleep in 1s increments, checking shutdown flag."""
@@ -194,7 +254,7 @@ def _build_send_factory(
 
     uc = SendInvoiceUseCase(
         api=api, auth=auth, repo=repo, encryption=encryption,
-        upo_dir=_UPO_DIR,
+        upo_dir=ksef_paths.upo_dir(),
     )
 
     reader = ErpReader(run_query)
@@ -209,12 +269,18 @@ def _build_send_factory(
 
 def _generate_xml(reader: ErpReader, builder: XmlBuilder, doc: PendingDocument) -> Path:
     """ErpReader -> XmlBuilder -> file on disk."""
-    _OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    _output = ksef_paths.output_dir()
+    _output.mkdir(parents=True, exist_ok=True)
     if doc.rodzaj == "FS":
         faktury = reader.fetch_faktury(gids=[doc.gid])
         if not faktury:
             raise ValueError(f"ErpReader zwrocil 0 faktur dla GID={doc.gid}")
         xml_bytes = builder.build_faktura(faktury[0])
+    elif doc.rodzaj == "FSK_RABAT":
+        korekty = reader.fetch_korekty_rabat(gids=[doc.gid])
+        if not korekty:
+            raise ValueError(f"ErpReader zwrocil 0 korekt-rabat dla GID={doc.gid}")
+        xml_bytes = builder.build_korekta_rabatowa(korekty[0])
     else:
         korekty = reader.fetch_korekty(gids=[doc.gid])
         if not korekty:
@@ -222,9 +288,9 @@ def _generate_xml(reader: ErpReader, builder: XmlBuilder, doc: PendingDocument) 
         xml_bytes = builder.build_korekta(korekty[0])
 
     d = doc.data_wystawienia
-    prefix = "ksef_kor_" if doc.rodzaj == "FSK" else "ksef_"
+    prefix = "ksef_kor_" if doc.rodzaj in ("FSK", "FSK_RABAT") else "ksef_"
     filename = f"{prefix}{doc.rodzaj}-{doc.gid}_{d.strftime('%m_%y')}_{d.isoformat()}.xml"
-    path = _OUTPUT_DIR / filename
+    path = _output / filename
     path.write_bytes(xml_bytes)
     return path
 
@@ -240,10 +306,16 @@ def _dry_run_factory(doc: PendingDocument) -> SendResult:
 
 
 def main() -> int:
+    from dotenv import load_dotenv
+    load_dotenv(override=False)
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(name)s %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(str(ksef_paths.daemon_log()), encoding="utf-8"),
+        ],
     )
     args = _parse_args()
 
@@ -251,7 +323,7 @@ def main() -> int:
         from tools.sql_query import run_query as _rq
         return _rq(sql)
 
-    repo = ShipmentRepository(_DB_PATH)
+    repo = ShipmentRepository(ksef_paths.db_path())
     repo.init_schema()
 
     scan = ScanErpUseCase(run_query, repo)
@@ -265,7 +337,9 @@ def main() -> int:
     daemon = KSeFDaemon(
         scan=scan,
         send_factory=send_factory,
+        repo=repo,
         interval_s=args.interval,
+        tick_timeout_s=args.tick_timeout,
         rate_limiter=rate_limiter,
         error_escalator=escalator,
     )
@@ -281,15 +355,28 @@ def main() -> int:
         return 0
 
 
+def _env_float(key: str, fallback: float) -> float:
+    val = os.environ.get(key)
+    return float(val) if val else fallback
+
+
+def _env_int(key: str, fallback: int) -> int:
+    val = os.environ.get(key)
+    return int(val) if val else fallback
+
+
 def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="KSeF daemon — auto-scan + send")
-    p.add_argument("--interval", type=float, default=60.0, help="Sekundy miedzy tickami (default 60)")
-    p.add_argument("--once", action="store_true", help="Single scan + send, exit")
-    p.add_argument("--dry-run", action="store_true", help="Scan only, show what would be sent")
-    p.add_argument("--rate-limit", type=int, default=10,
-                   help="Max dokumentow/min (0 = wylaczony, default 10)")
-    p.add_argument("--error-threshold", type=int, default=3,
-                   help="ERROR/REJECTED per tick -> flag (0 = wylaczone, default 3)")
+    p.add_argument("--interval", type=float,
+                   default=_env_float("KSEF_DAEMON_INTERVAL", 60.0))
+    p.add_argument("--once", action="store_true")
+    p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--rate-limit", type=int,
+                   default=_env_int("KSEF_DAEMON_RATE_LIMIT", 10))
+    p.add_argument("--error-threshold", type=int,
+                   default=_env_int("KSEF_DAEMON_ERROR_THRESHOLD", 3))
+    p.add_argument("--tick-timeout", type=float,
+                   default=_env_float("KSEF_DAEMON_TICK_TIMEOUT", 300.0))
     return p.parse_args()
 
 

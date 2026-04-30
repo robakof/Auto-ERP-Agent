@@ -12,6 +12,7 @@ from typing import Callable
 
 from core.ksef.adapters.erp_reader import RunQuery
 from core.ksef.adapters.repo import ShipmentRepository
+from core.ksef.domain.shipment import ShipmentStatus
 
 _LOG = logging.getLogger("ksef.scan")
 
@@ -37,7 +38,9 @@ SELECT
         + '/' + RIGHT('0' + CAST(MONTH(DATEADD(day, n.TrN_Data2, '1800-12-28')) AS VARCHAR(2)), 2)
         + '/' + RIGHT(CAST(YEAR(DATEADD(day, n.TrN_Data2, '1800-12-28')) AS VARCHAR(4)), 2)
         + '/' + RTRIM(n.TrN_TrNSeria)                      AS nr_faktury,
-    CONVERT(DATE, DATEADD(day, n.TrN_Data2, '1800-12-28'))  AS data_wystawienia
+    CONVERT(DATE, DATEADD(day, n.TrN_Data2, '1800-12-28'))  AS data_wystawienia,
+    CASE WHEN n.TrN_ZwrNumer = 0 OR n.TrN_ZwrNumer = n.TrN_GIDNumer
+         THEN 1 ELSE 0 END                                     AS is_rabat
 FROM CDN.TraNag n
 WHERE n.TrN_GIDTyp = 2041
   AND n.TrN_Stan IN (3, 4, 5)
@@ -77,10 +80,11 @@ class ScanErpUseCase:
         pending.sort(key=lambda d: d.data_wystawienia)
 
         _LOG.info(
-            '{"event": "scan_complete", "erp_total": %d, "pending": %d, "fs": %d, "fsk": %d}',
+            '{"event": "scan_complete", "erp_total": %d, "pending": %d, "fs": %d, "fsk": %d, "fsk_skonto": %d}',
             len(all_docs), len(pending),
             sum(1 for d in pending if d.rodzaj == "FS"),
             sum(1 for d in pending if d.rodzaj == "FSK"),
+            sum(1 for d in pending if d.rodzaj == "FSK_RABAT"),
         )
         return pending
 
@@ -98,9 +102,12 @@ class ScanErpUseCase:
         for row in rows:
             row_dict = dict(zip(columns, row)) if isinstance(row, (list, tuple)) else row
             try:
+                actual_rodzaj = rodzaj
+                if rodzaj == "FSK" and int(row_dict.get("is_rabat", 0)):
+                    actual_rodzaj = "FSK_RABAT"
                 docs.append(PendingDocument(
                     gid=int(row_dict["gid"]),
-                    rodzaj=rodzaj,
+                    rodzaj=actual_rodzaj,
                     nr_faktury=str(row_dict["nr_faktury"]),
                     data_wystawienia=_parse_date(row_dict["data_wystawienia"]),
                 ))
@@ -109,8 +116,11 @@ class ScanErpUseCase:
         return docs
 
     def _is_known(self, gid: int, rodzaj: str) -> bool:
-        """Check if GID already processed (any state in shadow DB)."""
-        return self._repo.get_latest(gid, rodzaj) is not None
+        """Check if GID already processed. DRAFT records are retryable."""
+        latest = self._repo.get_latest(gid, rodzaj)
+        if latest is None:
+            return False
+        return latest.status != ShipmentStatus.DRAFT
 
 
 def _parse_date(value) -> date:

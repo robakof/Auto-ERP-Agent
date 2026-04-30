@@ -85,6 +85,104 @@ class ShipmentRepository:
         sql = _SCHEMA_PATH.read_text(encoding="utf-8")
         with self._connect() as conn:
             conn.executescript(sql)
+            self._migrate(conn)
+
+    def _migrate(self, conn) -> None:
+        """Run schema migrations beyond v1."""
+        ver = conn.execute(
+            "SELECT MAX(version) FROM schema_version"
+        ).fetchone()[0] or 1
+        if ver < 2:
+            # v2: widen rodzaj CHECK to include FSK_SKONTO
+            # SQLite cannot ALTER CHECK — recreate table
+            conn.executescript("""
+                PRAGMA foreign_keys = OFF;
+                CREATE TABLE IF NOT EXISTS ksef_wysylka_new (
+                    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                    gid_erp           INTEGER NOT NULL,
+                    rodzaj            TEXT    NOT NULL CHECK (rodzaj IN ('FS', 'FSK', 'FSK_SKONTO')),
+                    nr_faktury        TEXT    NOT NULL,
+                    data_wystawienia  DATE    NOT NULL,
+                    xml_path          TEXT    NOT NULL,
+                    xml_hash          TEXT    NOT NULL,
+                    status            TEXT    NOT NULL CHECK (status IN (
+                                          'DRAFT','QUEUED','AUTH_PENDING',
+                                          'SENT','ACCEPTED','REJECTED','ERROR'
+                                      )),
+                    ksef_session_ref  TEXT,
+                    ksef_invoice_ref  TEXT,
+                    ksef_number       TEXT,
+                    upo_path          TEXT,
+                    error_code        TEXT,
+                    error_msg         TEXT,
+                    attempt           INTEGER NOT NULL DEFAULT 1,
+                    created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    queued_at         TIMESTAMP,
+                    sent_at           TIMESTAMP,
+                    accepted_at       TIMESTAMP,
+                    rejected_at       TIMESTAMP,
+                    errored_at        TIMESTAMP,
+                    UNIQUE (gid_erp, rodzaj, attempt)
+                );
+                INSERT OR IGNORE INTO ksef_wysylka_new SELECT * FROM ksef_wysylka;
+                DROP TABLE ksef_wysylka;
+                ALTER TABLE ksef_wysylka_new RENAME TO ksef_wysylka;
+                CREATE INDEX IF NOT EXISTS idx_ksef_status ON ksef_wysylka(status);
+                CREATE INDEX IF NOT EXISTS idx_ksef_gid_rodzaj ON ksef_wysylka(gid_erp, rodzaj);
+                CREATE INDEX IF NOT EXISTS idx_ksef_xml_hash ON ksef_wysylka(xml_hash);
+                INSERT OR IGNORE INTO schema_version(version) VALUES (2);
+                PRAGMA foreign_keys = ON;
+            """)
+        if ver < 3:
+            # v3: rename FSK_SKONTO → FSK_RABAT (unified rabat/skonto)
+            # NOTE: cannot UPDATE in-place — old CHECK constraint rejects FSK_RABAT
+            # Strategy: create new table with new CHECK, copy with REPLACE, drop old
+            conn.executescript("""
+                PRAGMA foreign_keys = OFF;
+                CREATE TABLE IF NOT EXISTS ksef_wysylka_new (
+                    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                    gid_erp           INTEGER NOT NULL,
+                    rodzaj            TEXT    NOT NULL CHECK (rodzaj IN ('FS', 'FSK', 'FSK_RABAT')),
+                    nr_faktury        TEXT    NOT NULL,
+                    data_wystawienia  DATE    NOT NULL,
+                    xml_path          TEXT    NOT NULL,
+                    xml_hash          TEXT    NOT NULL,
+                    status            TEXT    NOT NULL CHECK (status IN (
+                                          'DRAFT','QUEUED','AUTH_PENDING',
+                                          'SENT','ACCEPTED','REJECTED','ERROR'
+                                      )),
+                    ksef_session_ref  TEXT,
+                    ksef_invoice_ref  TEXT,
+                    ksef_number       TEXT,
+                    upo_path          TEXT,
+                    error_code        TEXT,
+                    error_msg         TEXT,
+                    attempt           INTEGER NOT NULL DEFAULT 1,
+                    created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    queued_at         TIMESTAMP,
+                    sent_at           TIMESTAMP,
+                    accepted_at       TIMESTAMP,
+                    rejected_at       TIMESTAMP,
+                    errored_at        TIMESTAMP,
+                    UNIQUE (gid_erp, rodzaj, attempt)
+                );
+                INSERT OR IGNORE INTO ksef_wysylka_new
+                    SELECT id, gid_erp,
+                           CASE WHEN rodzaj = 'FSK_SKONTO' THEN 'FSK_RABAT' ELSE rodzaj END,
+                           nr_faktury, data_wystawienia, xml_path, xml_hash, status,
+                           ksef_session_ref, ksef_invoice_ref, ksef_number,
+                           upo_path, error_code, error_msg, attempt,
+                           created_at, queued_at, sent_at, accepted_at,
+                           rejected_at, errored_at
+                    FROM ksef_wysylka;
+                DROP TABLE ksef_wysylka;
+                ALTER TABLE ksef_wysylka_new RENAME TO ksef_wysylka;
+                CREATE INDEX IF NOT EXISTS idx_ksef_status ON ksef_wysylka(status);
+                CREATE INDEX IF NOT EXISTS idx_ksef_gid_rodzaj ON ksef_wysylka(gid_erp, rodzaj);
+                CREATE INDEX IF NOT EXISTS idx_ksef_xml_hash ON ksef_wysylka(xml_hash);
+                INSERT OR IGNORE INTO schema_version(version) VALUES (3);
+                PRAGMA foreign_keys = ON;
+            """)
 
     # ---- queries -----------------------------------------------------
 
@@ -148,6 +246,19 @@ class ShipmentRepository:
             ).fetchall()
         return [_row_to_wysylka(r) for r in rows]
 
+    def list_stuck(self, stale_minutes: int = 30) -> list[Wysylka]:
+        """Return QUEUED/AUTH_PENDING/SENT records older than stale_minutes."""
+        cutoff = self._clock() - __import__("datetime").timedelta(minutes=stale_minutes)
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM ksef_wysylka"
+                " WHERE status IN ('QUEUED','AUTH_PENDING','SENT')"
+                " AND created_at < ?"
+                " ORDER BY id",
+                (cutoff,),
+            ).fetchall()
+        return [_row_to_wysylka(r) for r in rows]
+
     def count_by_status(
         self, since: datetime | None = None,
     ) -> dict[ShipmentStatus, int]:
@@ -164,6 +275,19 @@ class ShipmentRepository:
         for row in rows:
             counts[ShipmentStatus(row["status"])] = row["n"]
         return counts
+
+    def tracked_gids(
+        self, since: date | None = None,
+    ) -> set[tuple[int, str]]:
+        """Return set of (gid_erp, rodzaj) ever tracked, optionally filtered by date."""
+        sql = "SELECT DISTINCT gid_erp, rodzaj FROM ksef_wysylka"
+        params: list[Any] = []
+        if since is not None:
+            sql += " WHERE data_wystawienia >= ?"
+            params.append(str(since))
+        with self._connect() as conn:
+            rows = conn.execute(sql, params).fetchall()
+        return {(row["gid_erp"], row["rodzaj"]) for row in rows}
 
     # ---- mutations ---------------------------------------------------
 

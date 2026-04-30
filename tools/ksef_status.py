@@ -20,10 +20,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from core.ksef import paths as ksef_paths
 from core.ksef.adapters.repo import ShipmentRepository
 from core.ksef.domain.shipment import ShipmentStatus, Wysylka
-
-_DEFAULT_DB = Path("data/ksef.db")
 _COLS = ("id", "gid", "rodz", "nr", "status", "ksef_number", "att", "sent_at")
 
 # Status list for summary — logical order (draft/active first, terminal last).
@@ -41,7 +40,7 @@ _ALERT_STATUSES = frozenset({ShipmentStatus.ERROR, ShipmentStatus.REJECTED})
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="KSeF Shadow DB status")
-    parser.add_argument("--db", type=Path, default=_DEFAULT_DB)
+    parser.add_argument("--db", type=Path, default=None)
     parser.add_argument("--status", type=str, default=None, help="filtr po statusie")
     parser.add_argument("--gid", type=int, default=None, help="filtr po gid_erp")
     parser.add_argument("--rodzaj", choices=["FS", "FSK"], default=None,
@@ -52,6 +51,7 @@ def main() -> int:
                         help="podsumowanie: dzis, ostatnie 7 dni, total")
     parser.add_argument("--limit", type=int, default=20)
     args = parser.parse_args()
+    args.db = args.db or ksef_paths.db_path()
 
     if not args.db.exists():
         print(f"Brak DB: {args.db}. Uruchom: py tools/ksef_init_db.py", file=sys.stderr)

@@ -1,7 +1,7 @@
 """Contract tests KSeFDaemon — full mock scan + send_factory."""
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from unittest.mock import MagicMock, call
 
 import pytest
@@ -34,15 +34,22 @@ def scan():
 
 
 @pytest.fixture
+def repo():
+    r = MagicMock()
+    r.list_stuck.return_value = []
+    return r
+
+
+@pytest.fixture
 def send_factory():
     return MagicMock(return_value=_RESULT_OK)
 
 
 # ---- tests -------------------------------------------------------------------
 
-def test_daemon_once_processes_all_pending(scan, send_factory):
+def test_daemon_once_processes_all_pending(scan, send_factory, repo):
     scan.scan.return_value = [_DOC1, _DOC2]
-    daemon = KSeFDaemon(scan, send_factory, sleep=lambda _: None)
+    daemon = KSeFDaemon(scan, send_factory, repo, sleep=lambda _: None)
 
     results = daemon.run_once()
 
@@ -50,10 +57,10 @@ def test_daemon_once_processes_all_pending(scan, send_factory):
     assert send_factory.call_count == 2
 
 
-def test_daemon_once_returns_results(scan, send_factory):
+def test_daemon_once_returns_results(scan, send_factory, repo):
     scan.scan.return_value = [_DOC1]
     send_factory.return_value = _RESULT_OK
-    daemon = KSeFDaemon(scan, send_factory, sleep=lambda _: None)
+    daemon = KSeFDaemon(scan, send_factory, repo, sleep=lambda _: None)
 
     results = daemon.run_once()
 
@@ -61,10 +68,10 @@ def test_daemon_once_returns_results(scan, send_factory):
     assert results[0].ksef_number == "KSeF-123"
 
 
-def test_daemon_dry_run_no_send(scan):
+def test_daemon_dry_run_no_send(scan, repo):
     scan.scan.return_value = [_DOC1, _DOC2]
     factory = MagicMock(return_value=SendResult(0, None, None, ShipmentStatus.DRAFT))
-    daemon = KSeFDaemon(scan, factory, sleep=lambda _: None)
+    daemon = KSeFDaemon(scan, factory, repo, sleep=lambda _: None)
 
     results = daemon.run_once()
 
@@ -73,7 +80,7 @@ def test_daemon_dry_run_no_send(scan):
     assert all(r.status == ShipmentStatus.DRAFT for r in results)
 
 
-def test_daemon_graceful_shutdown_mid_batch(scan, send_factory):
+def test_daemon_graceful_shutdown_mid_batch(scan, send_factory, repo):
     scan.scan.return_value = [_DOC1, _DOC2, _DOC3]
 
     call_count = 0
@@ -84,14 +91,14 @@ def test_daemon_graceful_shutdown_mid_batch(scan, send_factory):
             daemon._shutdown = True  # signal shutdown after first doc
         return _RESULT_OK
 
-    daemon = KSeFDaemon(scan, factory_with_shutdown, sleep=lambda _: None)
+    daemon = KSeFDaemon(scan, factory_with_shutdown, repo, sleep=lambda _: None)
     results = daemon.run_once()
 
     # Should process only 1 doc (shutdown after first)
     assert len(results) == 1
 
 
-def test_daemon_error_one_continues_next(scan):
+def test_daemon_error_one_continues_next(scan, repo):
     scan.scan.return_value = [_DOC1, _DOC2]
 
     def factory_first_fails(doc):
@@ -99,7 +106,7 @@ def test_daemon_error_one_continues_next(scan):
             raise RuntimeError("API down")
         return _RESULT_OK
 
-    daemon = KSeFDaemon(scan, factory_first_fails, sleep=lambda _: None)
+    daemon = KSeFDaemon(scan, factory_first_fails, repo, sleep=lambda _: None)
     results = daemon.run_once()
 
     # First doc errored (None), second processed
@@ -107,9 +114,9 @@ def test_daemon_error_one_continues_next(scan):
     assert results[0].status == ShipmentStatus.ACCEPTED
 
 
-def test_daemon_empty_scan_no_send(scan, send_factory):
+def test_daemon_empty_scan_no_send(scan, send_factory, repo):
     scan.scan.return_value = []
-    daemon = KSeFDaemon(scan, send_factory, sleep=lambda _: None)
+    daemon = KSeFDaemon(scan, send_factory, repo, sleep=lambda _: None)
 
     results = daemon.run_once()
 
@@ -117,9 +124,9 @@ def test_daemon_empty_scan_no_send(scan, send_factory):
     send_factory.assert_not_called()
 
 
-def test_daemon_tick_count_increments(scan, send_factory):
+def test_daemon_tick_count_increments(scan, send_factory, repo):
     scan.scan.return_value = []
-    daemon = KSeFDaemon(scan, send_factory, sleep=lambda _: None)
+    daemon = KSeFDaemon(scan, send_factory, repo, sleep=lambda _: None)
 
     daemon.run_once()
     daemon.run_once()
@@ -128,10 +135,10 @@ def test_daemon_tick_count_increments(scan, send_factory):
     assert daemon._tick_count == 3
 
 
-def test_daemon_on_tick_callback(scan, send_factory):
+def test_daemon_on_tick_callback(scan, send_factory, repo):
     scan.scan.return_value = [_DOC1]
     on_tick = MagicMock()
-    daemon = KSeFDaemon(scan, send_factory, on_tick=on_tick, sleep=lambda _: None)
+    daemon = KSeFDaemon(scan, send_factory, repo, on_tick=on_tick, sleep=lambda _: None)
 
     daemon.run_once()
 
@@ -148,11 +155,11 @@ class _FakeClock:
         return self.t
 
 
-def test_daemon_rate_limiter_blocks_excess(scan, send_factory):
+def test_daemon_rate_limiter_blocks_excess(scan, send_factory, repo):
     scan.scan.return_value = [_DOC1, _DOC2, _DOC3]
     limiter = RateLimiter(max_per_minute=2, clock=_FakeClock())
     daemon = KSeFDaemon(
-        scan, send_factory, sleep=lambda _: None, rate_limiter=limiter,
+        scan, send_factory, repo, sleep=lambda _: None, rate_limiter=limiter,
     )
 
     results = daemon.run_once()
@@ -162,24 +169,24 @@ def test_daemon_rate_limiter_blocks_excess(scan, send_factory):
     assert send_factory.call_count == 2
 
 
-def test_daemon_rate_limiter_disabled_lets_all_through(scan, send_factory):
+def test_daemon_rate_limiter_disabled_lets_all_through(scan, send_factory, repo):
     scan.scan.return_value = [_DOC1, _DOC2, _DOC3]
     limiter = RateLimiter(max_per_minute=0, clock=_FakeClock())
     daemon = KSeFDaemon(
-        scan, send_factory, sleep=lambda _: None, rate_limiter=limiter,
+        scan, send_factory, repo, sleep=lambda _: None, rate_limiter=limiter,
     )
 
     results = daemon.run_once()
     assert len(results) == 3
 
 
-def test_daemon_escalator_flags_on_errors(scan):
+def test_daemon_escalator_flags_on_errors(scan, repo):
     scan.scan.return_value = [_DOC1, _DOC2, _DOC3]
     factory = MagicMock(return_value=_RESULT_ERR)
     flag_fn = MagicMock()
     escalator = ErrorEscalator(threshold=3, flag_fn=flag_fn)
     daemon = KSeFDaemon(
-        scan, factory, sleep=lambda _: None, error_escalator=escalator,
+        scan, factory, repo, sleep=lambda _: None, error_escalator=escalator,
     )
 
     daemon.run_once()
@@ -187,16 +194,50 @@ def test_daemon_escalator_flags_on_errors(scan):
     flag_fn.assert_called_once()
 
 
-def test_daemon_escalator_resets_each_tick(scan):
+def test_daemon_escalator_resets_each_tick(scan, repo):
     scan.scan.return_value = [_DOC1, _DOC2]
     factory = MagicMock(return_value=_RESULT_ERR)
     flag_fn = MagicMock()
     escalator = ErrorEscalator(threshold=3, flag_fn=flag_fn)
     daemon = KSeFDaemon(
-        scan, factory, sleep=lambda _: None, error_escalator=escalator,
+        scan, factory, repo, sleep=lambda _: None, error_escalator=escalator,
     )
 
     daemon.run_once()  # 2 errors, below threshold
     daemon.run_once()  # 2 more errors — but counter reset so still below
 
     flag_fn.assert_not_called()
+
+
+# ---- recover stuck -----------------------------------------------------------
+
+def test_daemon_recover_stuck_resets_to_draft(scan, send_factory, repo):
+    from core.ksef.domain.shipment import Wysylka
+    stuck = Wysylka(
+        id=99, gid_erp=9884508, rodzaj="FS", nr_faktury="FS-117/04/26/FRA",
+        data_wystawienia=date(2026, 4, 23), xml_path="x.xml", xml_hash="a" * 64,
+        status=ShipmentStatus.QUEUED, ksef_session_ref=None, ksef_invoice_ref=None,
+        ksef_number=None, upo_path=None, error_code=None, error_msg=None,
+        attempt=1, created_at=datetime(2026, 4, 23, 6, 2),
+        queued_at=datetime(2026, 4, 23, 6, 2), sent_at=None,
+        accepted_at=None, rejected_at=None, errored_at=None,
+    )
+    repo.list_stuck.return_value = [stuck]
+    scan.scan.return_value = []
+
+    daemon = KSeFDaemon(scan, send_factory, repo, sleep=lambda _: None)
+    daemon.run_once()
+
+    repo.transition.assert_called_once_with(
+        99, ShipmentStatus.DRAFT, meta={"reason": "daemon_recover_stuck"},
+    )
+
+
+def test_daemon_recover_stuck_empty_does_nothing(scan, send_factory, repo):
+    repo.list_stuck.return_value = []
+    scan.scan.return_value = []
+
+    daemon = KSeFDaemon(scan, send_factory, repo, sleep=lambda _: None)
+    daemon.run_once()
+
+    repo.transition.assert_not_called()

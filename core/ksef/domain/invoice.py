@@ -74,6 +74,8 @@ class Platnosc:
     termin_platnosci: date | None
     kod_formy_platnosci: str | None
     nr_rachunku_bankowego: str | None
+    zaplacono: bool = False
+    data_zaplaty: date | None = None
 
 
 @dataclass(frozen=True)

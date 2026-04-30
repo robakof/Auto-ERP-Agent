@@ -63,7 +63,9 @@ def test_dry_run_daemon_run_once_makes_no_http_calls(tmp_path: Path) -> None:
         from unittest.mock import MagicMock
         scan = MagicMock()
         scan.scan.return_value = [_DOC]
-        daemon = KSeFDaemon(scan=scan, send_factory=factory, sleep=lambda _: None)
+        mock_repo = MagicMock()
+        mock_repo.list_stuck.return_value = []
+        daemon = KSeFDaemon(scan=scan, send_factory=factory, repo=mock_repo, sleep=lambda _: None)
         results = daemon.run_once()
 
         http_mock.assert_not_called()

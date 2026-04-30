@@ -1,13 +1,13 @@
 """Generuje KSeF FA(3) KOR XML dla korekt faktur sprzedazy (FSK) z ERP XL.
 
+Tylko korekty zwykle (ZwrNumer>0). Korekty skontowe -> ksef_generate_skonto.py.
+
 CLI:
     py tools/ksef_generate_kor.py --gid 1
     py tools/ksef_generate_kor.py --gid 1 2
     py tools/ksef_generate_kor.py --date-from 2026-04-01 --date-to 2026-04-14
     py tools/ksef_generate_kor.py --validate output/schemat_FA3.xsd --gid 1
     py tools/ksef_generate_kor.py --dry-run --gid 1
-
-Thin wrapper nad core/ksef/ (adapters: erp_reader, xml_builder, xsd_validator).
 """
 from __future__ import annotations
 
@@ -17,11 +17,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from core.ksef import paths as ksef_paths
 from core.ksef.adapters import xsd_validator
 from core.ksef.adapters.erp_reader import ErpReader, build_sql_fsk
 from core.ksef.adapters.xml_builder import XmlBuilder
-
-_OUTPUT_DIR = Path(__file__).resolve().parent.parent / "output" / "ksef"
 
 
 def _utf8_stdout() -> None:
@@ -47,14 +46,16 @@ def main() -> int:
 
     from sql_query import run_query  # noqa: PLC0415 — DI
     reader = ErpReader(run_query=lambda sql: run_query(sql, inject_top=None))
+
     korekty = reader.fetch_korekty(
         gids=args.gid, date_from=args.date_from, date_to=args.date_to or args.date_from,
     )
+
     if not korekty:
         print("Brak korekt dla podanych kryteriow.")
         return 0
 
-    out_dir = Path(args.output_dir) if args.output_dir else _OUTPUT_DIR
+    out_dir = Path(args.output_dir) if args.output_dir else ksef_paths.output_dir()
     out_dir.mkdir(parents=True, exist_ok=True)
     builder = XmlBuilder()
     xsd_path = Path(args.validate) if args.validate else None

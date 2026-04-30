@@ -60,13 +60,13 @@ def _poz(nr: int, nazwa: str, gtin: str | None, jm: str, ilosc: str,
 
 def _poz_kor(nr: int, *, stan_przed: bool, data_kor: date | None,
              nazwa: str, indeks: str | None, gtin: str | None,
-             ilosc: str, cena_brutto: str, wartosc_netto: str, kwota_vat: str) -> PozycjaKorekta:
+             ilosc: str, cena_netto: str, wartosc_netto: str) -> PozycjaKorekta:
     return PozycjaKorekta(
         nr_pozycji=nr, nazwa_towaru=nazwa, indeks=indeks, gtin=gtin, pkwiu=None,
         jednostka_miary="opak.", ilosc=Decimal(ilosc),
-        cena_brutto_jedn=Decimal(cena_brutto),
+        cena_netto_jedn=Decimal(cena_netto),
         wartosc_netto=Decimal(wartosc_netto),
-        kwota_vat=Decimal(kwota_vat), stawka_vat="23",
+        stawka_vat="23",
         stan_przed=stan_przed, data_korekty=data_kor,
     )
 
@@ -185,23 +185,23 @@ def make_fsk_1() -> Korekta:
         _poz_kor(12, stan_przed=True, data_kor=None,
                  nazwa="Znicz szklany Z 499 LED sr Kerti",
                  indeks="CZNI26167", gtin="5903293726167",
-                 ilosc="8", cena_brutto="9.74",
-                 wartosc_netto="63.36", kwota_vat="14.57"),
+                 ilosc="8", cena_netto="7.92",
+                 wartosc_netto="63.36"),
         _poz_kor(25, stan_przed=True, data_kor=None,
                  nazwa="Barok ZŁ", indeks="DAVP42263", gtin="5907702542263",
-                 ilosc="8", cena_brutto="11.69",
-                 wartosc_netto="76.00", kwota_vat="17.48"),
+                 ilosc="8", cena_netto="9.50",
+                 wartosc_netto="76.00"),
     )
     po = (
         _poz_kor(12, stan_przed=False, data_kor=date(2026, 4, 14),
                  nazwa="Znicz szklany Z 499 LED sr Kerti",
                  indeks="CZNI26167", gtin="5903293726167",
-                 ilosc="3", cena_brutto="9.74",
-                 wartosc_netto="23.76", kwota_vat="5.46"),
+                 ilosc="3", cena_netto="7.92",
+                 wartosc_netto="23.76"),
         _poz_kor(25, stan_przed=False, data_kor=date(2026, 4, 14),
                  nazwa="Barok ZŁ", indeks="DAVP42263", gtin="5907702542263",
-                 ilosc="7", cena_brutto="11.69",
-                 wartosc_netto="66.50", kwota_vat="15.29"),
+                 ilosc="7", cena_netto="9.50",
+                 wartosc_netto="66.50"),
     )
     return Korekta(
         gid_numer=1, naglowek=_NAGLOWEK,

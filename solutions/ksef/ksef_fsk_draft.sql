@@ -98,7 +98,11 @@ SELECT
         + '/' + RIGHT('0' + CAST(MONTH(DATEADD(day, orig.TrN_Data2, '1800-12-28')) AS VARCHAR(2)), 2)
         + '/' + RIGHT(CAST(YEAR(DATEADD(day, orig.TrN_Data2, '1800-12-28')) AS VARCHAR(4)), 2)
         + '/' + RTRIM(orig.TrN_TrNSeria)                       AS Kor_NrFaKorygowanej,
-    RTRIM(CAST(op.TnO_Opis AS VARCHAR(MAX)))                    AS Kor_PrzyczynaKorekty,
+    RTRIM(COALESCE(
+        NULLIF(CAST(op.TnO_Opis AS VARCHAR(MAX)), ''),
+        NULLIF(n.TrN_PrzyczynaKorekty, ''),
+        'Korekta'
+    ))                                                          AS Kor_PrzyczynaKorekty,
 
     -- =========================================================
     -- FA — VAT per stawka (pivot z CDN.TraVat) — kwoty RÓŻNIC (delta)
@@ -124,7 +128,9 @@ SELECT
     -- FaWiersz — para wierszy per pozycja (StanPrzed + StanPo)
     -- Model: CROSS JOIN VALUES (1),(0) generuje dwa wiersze
     -- =========================================================
-    e.TrE_GIDLp                                                 AS Wiersz_NrPozycji,
+    DENSE_RANK() OVER (
+        PARTITION BY n.TrN_GIDNumer ORDER BY e.TrE_GIDLp
+    )                                                           AS Wiersz_NrPozycji,
     sp.StanPrzed                                                AS Wiersz_StanPrzed,
 
     -- Data korekty: NULL dla StanPrzed, data wystawienia korekty dla StanPo
@@ -145,45 +151,29 @@ SELECT
          ELSE COALESCE(NULLIF(e.TrE_IloscPrzedKorekta, 0), org_agg.IloscOrg, 0) + e.TrE_Ilosc
     END                                                         AS Wiersz_P8B_Ilosc,
 
-    -- Cena brutto jednostkowa = cena netto * (1 + stawka/100)
-    -- Stawka z GrupaPod: A=23, B=8, C=5, F=0, D/E=0
+    -- Cena netto jednostkowa (model netto P_9A — taki sam jak FS)
+    -- StanPrzed: jeśli FSK idzie przez bufor 2009, cena = (netto_org + buf_delta) / qty
     CASE WHEN sp.StanPrzed = 1
-         THEN ROUND(
-               COALESCE(NULLIF(e.TrE_CenaPrzedKorekta, 0), org_agg.CenaOrg, e.TrE_Cena)
-               * (1 + CASE COALESCE(NULLIF(e.TrE_GrupaPodPrzedKorekta, ''), org_agg.GrupaOrg, e.TrE_GrupaPod)
-                        WHEN 'A' THEN 0.23 WHEN 'B' THEN 0.08 WHEN 'C' THEN 0.05
-                        ELSE 0 END)
-             , 2)
-         ELSE ROUND(
-               e.TrE_Cena
-               * (1 + CASE e.TrE_GrupaPod
-                        WHEN 'A' THEN 0.23 WHEN 'B' THEN 0.08 WHEN 'C' THEN 0.05
-                        ELSE 0 END)
-             , 2)
-    END                                                         AS Wiersz_P9B_CenaBrutto,
+         THEN COALESCE(NULLIF(e.TrE_CenaPrzedKorekta, 0),
+                   CASE WHEN buf_elem.TrE_KsiegowaNetto IS NOT NULL
+                        THEN (COALESCE(org_agg.NettoOrg, 0) + buf_elem.TrE_KsiegowaNetto)
+                             / NULLIF(COALESCE(org_agg.IloscOrg, 1), 0)
+                        ELSE org_agg.CenaOrg END,
+                   e.TrE_Cena)
+         ELSE e.TrE_Cena
+    END                                                         AS Wiersz_P9A_CenaNettoJedn,
 
     -- Wartość netto pozycji
+    -- StanPrzed: oryginalna FS + delta z bufora 2009 (skonto) jeśli istnieje
     CASE WHEN sp.StanPrzed = 1
-         THEN COALESCE(NULLIF(e.TrE_WartoscPrzedKorekta, 0), org_agg.NettoOrg, 0)
-         ELSE COALESCE(NULLIF(e.TrE_WartoscPrzedKorekta, 0), org_agg.NettoOrg, 0) + e.TrE_KsiegowaNetto
-    END                                                         AS Wiersz_P11A_WartoscNetto,
-
-    -- Kwota VAT pozycji: wyliczana ze stawki (brak kolumny VatPrzedKorekta)
-    CASE WHEN sp.StanPrzed = 1
-         THEN ROUND(
-               COALESCE(NULLIF(e.TrE_WartoscPrzedKorekta, 0), org_agg.NettoOrg, 0)
-               * CASE COALESCE(NULLIF(e.TrE_GrupaPodPrzedKorekta, ''), org_agg.GrupaOrg, e.TrE_GrupaPod)
-                   WHEN 'A' THEN 0.23 WHEN 'B' THEN 0.08 WHEN 'C' THEN 0.05
-                   ELSE 0 END
-             , 2)
-         ELSE ROUND(
-               COALESCE(NULLIF(e.TrE_WartoscPrzedKorekta, 0), org_agg.NettoOrg, 0)
-               * CASE COALESCE(NULLIF(e.TrE_GrupaPodPrzedKorekta, ''), org_agg.GrupaOrg, e.TrE_GrupaPod)
-                   WHEN 'A' THEN 0.23 WHEN 'B' THEN 0.08 WHEN 'C' THEN 0.05
-                   ELSE 0 END
-             , 2)
-             + (e.TrE_KsiegowaBrutto - e.TrE_KsiegowaNetto)
-    END                                                         AS Wiersz_P11Vat,
+         THEN COALESCE(NULLIF(e.TrE_WartoscPrzedKorekta, 0),
+                       org_agg.NettoOrg, 0)
+              + COALESCE(buf_elem.TrE_KsiegowaNetto, 0)
+         ELSE COALESCE(NULLIF(e.TrE_WartoscPrzedKorekta, 0),
+                       org_agg.NettoOrg, 0)
+              + COALESCE(buf_elem.TrE_KsiegowaNetto, 0)
+              + e.TrE_KsiegowaNetto
+    END                                                         AS Wiersz_P11_WartoscNetto,
 
     -- Stawka VAT (symbol: 23/8/5/0/ZW/NP)
     CASE WHEN sp.StanPrzed = 1
@@ -214,6 +204,10 @@ SELECT
     RTRIM(p.TrP_FormaNazwa)                                     AS Plat_FormaPlatnosci_Nazwa,
     CASE WHEN p.TrP_FormaNr = 20 THEN kar.KAR_NrRachunku
          ELSE NULL END                                          AS Plat_NrRachunkuBankowego,
+    p.TrP_Rozliczona                                            AS Plat_Rozliczona,
+    CASE WHEN p.TrP_Rozliczona = 1
+         THEN CONVERT(DATE, DATEADD(day, p.TrP_DataRozliczenia, '1800-12-28'))
+         ELSE NULL END                                          AS Plat_DataRozliczenia,
 
     -- =========================================================
     -- Klucze techniczne
@@ -274,9 +268,17 @@ LEFT JOIN (
     FROM CDN.TraElem
     GROUP BY TrE_GIDTyp, TrE_GIDNumer, TrE_TwrNumer
 ) org_agg
-    ON  org_agg.TrE_GIDTyp   = n.TrN_ZwrTyp
-    AND org_agg.TrE_GIDNumer = n.TrN_ZwrNumer
+    ON  org_agg.TrE_GIDTyp   = 2033
+    AND org_agg.TrE_GIDNumer = orr.orig_gid
     AND org_agg.TrE_TwrNumer = e.TrE_TwrNumer
+
+-- Delta skontowa z bufora 2009 (gdy FSK idzie przez bufor, nie bezpośrednio do FS)
+-- Koryguje StanPrzed o wcześniejsze korekty wartościowe (skonto)
+LEFT JOIN CDN.TraElem buf_elem
+    ON  buf_elem.TrE_GIDTyp   = n.TrN_ZwrTyp
+    AND buf_elem.TrE_GIDNumer = n.TrN_ZwrNumer
+    AND buf_elem.TrE_TwrNumer = e.TrE_TwrNumer
+    AND n.TrN_ZwrTyp          = 2009
 
 -- Dwa wiersze per pozycja (StanPrzed + StanPo)
 CROSS JOIN (VALUES (1), (0)) sp(StanPrzed)
@@ -337,6 +339,7 @@ LEFT JOIN (
 LEFT JOIN (
     SELECT TrP_GIDTyp, TrP_GIDNumer, TrP_Termin,
            TrP_FormaNr, TrP_FormaNazwa,
+           TrP_Rozliczona, TrP_DataRozliczenia,
            ROW_NUMBER() OVER (
                PARTITION BY TrP_GIDTyp, TrP_GIDNumer
                ORDER BY TrP_GIDLp
@@ -351,5 +354,6 @@ LEFT JOIN CDN.TwrKarty tk ON tk.Twr_GIDNumer = e.TrE_TwrNumer
 
 
 WHERE n.TrN_GIDTyp = 2041
+  AND n.TrN_Stan IN (3, 4, 5)
 
 ORDER BY n.TrN_GIDNumer, e.TrE_GIDLp, sp.StanPrzed DESC
