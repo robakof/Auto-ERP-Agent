@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
+  <Podmiot1>
+    <DaneIdentyfikacyjne>
+      <NIP>1234567890</NIP>
+      <Nazwa>Dostawca Sp. z o.o.</Nazwa>
+    </DaneIdentyfikacyjne>
+  </Podmiot1>
+  <Podmiot2>
+    <DaneIdentyfikacyjne>
+      <NIP>7871003063</NIP>
+      <Nazwa>CEIM</Nazwa>
+    </DaneIdentyfikacyjne>
+  </Podmiot2>
+  <Fa>
+    <KodWaluty>PLN</KodWaluty>
+    <P_1>2026-04-01</P_1>
+    <P_2>FV/1/2026</P_2>
+    <P_13_1>30.00</P_13_1>
+    <P_14_1>6.90</P_14_1>
+    <P_15>36.90</P_15>
+    <RodzajFaktury>VAT</RodzajFaktury>
+    
+    <FaWiersz>
+      <NrWierszaFa>1</NrWierszaFa>
+      <P_7>Towar stary</P_7><P_8A>szt</P_8A><P_8B>5</P_8B>
+      <P_9B>10.00</P_9B><P_11A>50.00</P_11A><P_11Vat>11.50</P_11Vat>
+      <P_12>23</P_12><StanPrzed>1</StanPrzed>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>1</NrWierszaFa>
+      <P_7>Towar nowy</P_7><P_8A>szt</P_8A><P_8B>3</P_8B>
+      <P_9B>10.00</P_9B><P_11A>30.00</P_11A><P_11Vat>6.90</P_11Vat>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <Platnosc>
+      <TerminPlatnosci>
+        <Termin>2026-04-15</Termin>
+      </TerminPlatnosci>
+    </Platnosc>
+  </Fa>
+</Faktura>
