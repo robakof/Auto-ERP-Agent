@@ -51,8 +51,27 @@ class XlProxyClient:
                 self._proc.kill()
             self._proc = None
 
-    def _readline(self) -> dict:
-        raw = self._proc.stdout.readline()
-        if not raw:
-            raise XlProxyError("XlProxy zamknął stdout nieoczekiwanie")
-        return json.loads(raw)
+    def _readline(self, timeout: float = 30.0) -> dict:
+        bucket: list = []
+
+        def _read():
+            try:
+                raw = self._proc.stdout.readline()
+                bucket.append(("ok", json.loads(raw)) if raw
+                              else ("err", "XlProxy zamknął stdout nieoczekiwanie"))
+            except Exception as exc:
+                bucket.append(("err", str(exc)))
+
+        t = threading.Thread(target=_read, daemon=True)
+        t.start()
+        t.join(timeout)
+
+        if t.is_alive():
+            self.stop()
+            raise XlProxyError(
+                f"XlProxy timeout ({timeout}s) — upewnij się że Comarch ERP XL jest zamknięty"
+            )
+        tag, val = bucket[0]
+        if tag == "err":
+            raise XlProxyError(val)
+        return val
