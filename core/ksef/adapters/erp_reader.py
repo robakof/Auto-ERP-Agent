@@ -284,6 +284,8 @@ class ErpReader:
             okres_fa_korygowanej=None,
             dodatkowy_opis=None,
             platnosc=self._row_to_platnosc(r),
+            netto_przed=_as_decimal_opt(r.get("Wiersz_NettoOrg")),
+            netto_po=_as_decimal_opt(r.get("Wiersz_NettoPo")),
         )
 
     # ---- shared mapping --------------------------------------------------

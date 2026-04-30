@@ -86,10 +86,11 @@ class DodatkowyOpis:
 
 @dataclass(frozen=True)
 class KorektaRabatowa:
-    """Korekta wartosciowa (skonto/rabat transakcyjny) — bez FaWiersz.
+    """Korekta wartosciowa (skonto/rabat transakcyjny).
 
-    Prostsza struktura niz Korekta: brak StanPrzed/StanPo, wiele DaneFaKorygowanej,
+    Prostsza struktura niz Korekta: wiele DaneFaKorygowanej,
     opcjonalny OkresFaKorygowanej i DodatkowyOpis.
+    Jedna pozycja FaWiersz (StanPrzed/StanPo) z sumą netto przed i po korekcie.
     """
     gid_numer: int
     naglowek: Naglowek
@@ -106,3 +107,5 @@ class KorektaRabatowa:
     okres_fa_korygowanej: str | None
     dodatkowy_opis: tuple[DodatkowyOpis, ...] | None
     platnosc: Platnosc
+    netto_przed: Decimal | None = None
+    netto_po: Decimal | None = None

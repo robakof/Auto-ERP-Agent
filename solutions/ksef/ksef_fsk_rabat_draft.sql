@@ -59,6 +59,18 @@ linked_fs AS (
     SELECT fsk_gid, fs_gid, fs_data, fs_numer FROM linked_fs_rabat
 ),
 
+-- Suma netto z WSZYSTKICH oryginalnych FS (do FaWiersz StanPrzed/StanPo)
+orig_netto AS (
+    SELECT
+        lf.fsk_gid,
+        SUM(ov.TrV_NettoR) AS NettoOrg
+    FROM linked_fs lf
+    JOIN CDN.TraVat ov
+        ON  ov.TrV_GIDTyp   = 2033
+        AND ov.TrV_GIDNumer  = lf.fs_gid
+    GROUP BY lf.fsk_gid
+),
+
 -- Pivot TraVat per stawka (różnice netto/VAT ze skonta/rabatu)
 sv AS (
     SELECT
@@ -169,6 +181,12 @@ SELECT
          ELSE NULL END                                          AS Plat_NrRachunkuBankowego,
 
     -- =========================================================
+    -- FaWiersz — podsumowanie StanPrzed / StanPo
+    -- =========================================================
+    onn.NettoOrg                                                AS Wiersz_NettoOrg,
+    onn.NettoOrg + n.TrN_NettoR                                 AS Wiersz_NettoPo,
+
+    -- =========================================================
     -- Klucze techniczne
     -- =========================================================
     n.TrN_GIDTyp                                                AS _GIDTyp,
@@ -211,6 +229,10 @@ JOIN CDN.KntKarty k
 -- TraVat pivot
 LEFT JOIN sv
     ON  sv.TrV_GIDNumer = n.TrN_GIDNumer
+
+-- Suma netto oryginałów (FaWiersz)
+LEFT JOIN orig_netto onn
+    ON  onn.fsk_gid = n.TrN_GIDNumer
 
 -- Płatność (pierwsza rata — ROW_NUMBER by TrP_GIDLp)
 LEFT JOIN (

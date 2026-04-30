@@ -110,6 +110,8 @@ class XmlBuilder:
             self._build_dane_fa_korygowanej(fa, d)
         if kor.okres_fa_korygowanej:
             _sub(fa, "OkresFaKorygowanej", text=kor.okres_fa_korygowanej)
+        if kor.netto_przed is not None:
+            self._build_wiersz_rabat_summary(fa, kor)
         if kor.dodatkowy_opis:
             for do in kor.dodatkowy_opis:
                 self._build_dodatkowy_opis(fa, do)
@@ -122,6 +124,29 @@ class XmlBuilder:
         _sub(el, "NrWiersza", text=str(do.nr_wiersza))
         _sub(el, "Klucz", text=do.klucz)
         _sub(el, "Wartosc", text=do.wartosc)
+
+    def _build_wiersz_rabat_summary(self, fa: etree._Element, kor: KorektaRabatowa) -> None:
+        """Jedna pozycja podsumowująca: StanPrzed (netto oryginałów) + StanPo (po korekcie)."""
+        # StanPrzed
+        fw = _sub(fa, "FaWiersz")
+        _sub(fw, "NrWierszaFa", text="1")
+        _sub(fw, "P_7", text="Suma faktur korygowanych")
+        _sub(fw, "P_8A", text="szt.")
+        _sub(fw, "P_8B", text="1")
+        _sub(fw, "P_9A", text=self._format_decimal(kor.netto_przed))
+        _sub(fw, "P_11", text=self._format_decimal(kor.netto_przed))
+        _sub(fw, "P_12", text="23")
+        _sub(fw, "StanPrzed", text="1")
+        # StanPo
+        fw2 = _sub(fa, "FaWiersz")
+        _sub(fw2, "NrWierszaFa", text="1")
+        _sub(fw2, "P_6A", text=_iso(kor.data_wystawienia))
+        _sub(fw2, "P_7", text="Po korekcie")
+        _sub(fw2, "P_8A", text="szt.")
+        _sub(fw2, "P_8B", text="1")
+        _sub(fw2, "P_9A", text=self._format_decimal(kor.netto_po))
+        _sub(fw2, "P_11", text=self._format_decimal(kor.netto_po))
+        _sub(fw2, "P_12", text="23")
 
     # ---- shared helpers --------------------------------------------------
 
