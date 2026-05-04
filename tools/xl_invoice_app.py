@@ -19,6 +19,9 @@ os.chdir(_PROJECT_ROOT)
 
 from tools.xl_invoice_bulk import bulk_import
 
+_MAGAZYN_CSV   = _PROJECT_ROOT / "config" / "fz_magazyn.csv"
+_AVISTA_MAP_CSV = _PROJECT_ROOT / "config" / "fz_avista_map.csv"
+
 def _report_path() -> Path:
     from datetime import datetime
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -66,9 +69,31 @@ class InvoiceApp(Tk):
         self.focus_force()
 
     def _build(self):
+        self._build_config()
         self._build_step1()
         self._build_step2()
         self._build_results()
+
+    def _build_config(self):
+        frame = Frame(self, bg="#F1F5F9", bd=1, relief="solid", padx=14, pady=10)
+        frame.pack(fill="x", pady=(0, 10))
+        Label(frame, text="Konfiguracja", font=_FONT_BOLD, bg="#F1F5F9", fg="#475569").pack(anchor="w")
+        row = Frame(frame, bg="#F1F5F9")
+        row.pack(fill="x", pady=(6, 0))
+        Button(row, text="Magazyny (NIP → magazyn)",
+               font=_FONT, command=lambda: self._open_csv(_MAGAZYN_CSV),
+               bg="#475569", fg="white", relief="flat", padx=8, pady=4
+               ).pack(side="left", padx=(0, 8))
+        Button(row, text="Produkty (nazwa → kartoteka)",
+               font=_FONT, command=lambda: self._open_csv(_AVISTA_MAP_CSV),
+               bg="#475569", fg="white", relief="flat", padx=8, pady=4
+               ).pack(side="left")
+
+    def _open_csv(self, path: Path):
+        if not path.exists():
+            messagebox.showwarning("Brak pliku", f"Nie znaleziono:\n{path}")
+            return
+        os.startfile(str(path))
 
     def _build_step1(self):
         step = _Step(self,
