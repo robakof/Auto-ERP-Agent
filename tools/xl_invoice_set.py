@@ -152,7 +152,7 @@ def set_invoice(invoice: FzInvoice) -> dict:
                             f"XLDodajPozycje [{poz.nr}]: {resp.get('error', {}).get('message', resp)}",
                             start)
 
-        resp = client.zamknij_dokument(lDokumentID=doc_id)
+        resp = client.zamknij_dokument(lDokumentID=doc_id, Tryb=1)
         if not resp.get("ok"):
             api_msg = resp.get("error", {}).get("message", str(resp))
             blad = client.opis_bledu()
