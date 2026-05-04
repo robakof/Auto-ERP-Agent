@@ -144,8 +144,12 @@ def set_invoice(invoice: FzInvoice) -> dict:
 
         resp = client.zamknij_dokument(lDokumentID=doc_id)
         if not resp.get("ok"):
+            api_msg = resp.get("error", {}).get("message", str(resp))
+            blad = client.opis_bledu()
+            opis = blad.get("opis", "")
+            detail = f" | ERP: {opis}" if opis else ""
             return _err("XL_API_ERROR",
-                        f"XLZamknijDokument: {resp.get('error', {}).get('message', resp)}", start)
+                        f"XLZamknijDokument: {api_msg}{detail}", start)
 
     except Exception as exc:
         return _err("XL_API_ERROR", str(exc), start)
