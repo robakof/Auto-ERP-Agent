@@ -126,6 +126,16 @@ def set_invoice(invoice: FzInvoice) -> dict:
                         f"XLNowyDokument: {resp.get('error', {}).get('message', resp)}", start)
         doc_id = int(resp.get("data", {}).get("_lDokumentID", 0))
 
+        resp = client.invoke(
+            "XLModyfikujNaglowek",
+            _lDokumentID=doc_id,
+            MagazynD=magazyn,
+            DataMag=data_epoch,
+        )
+        if not resp.get("ok"):
+            return _err("XL_API_ERROR",
+                        f"XLModyfikujNaglowek: {resp.get('error', {}).get('message', resp)}", start)
+
         for poz in invoice.pozycje:
             resp = client.invoke(
                 "XLDodajPozycje",

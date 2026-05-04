@@ -64,13 +64,18 @@ def _mock_sql(knt_row=(12345, 1464833), exists_count=0):
     return conn
 
 
-def _mock_xl(doc=_OK_DOC, poz=_OK_POZ, zamknij=_OK_ZAM):
+_OK_MOD = {"ok": True, "data": {}}
+
+
+def _mock_xl(doc=_OK_DOC, poz=_OK_POZ, mod=_OK_MOD, zamknij=_OK_ZAM):
     client = MagicMock()
     def _invoke(method, **params):
         if method == "XLNowyDokument":
             return doc
         if method == "XLDodajPozycje":
             return poz
+        if method == "XLModyfikujNaglowek":
+            return mod
         return zamknij
     client.invoke.side_effect = _invoke
     client.zamknij_dokument.return_value = zamknij
@@ -168,6 +173,16 @@ class TestSetInvoice:
         assert result["ok"] is False
         assert result["error"]["type"] == "XL_API_ERROR"
         assert "XLDodajPozycje" in result["error"]["message"]
+
+    def test_xl_api_error_modyfikuj(self):
+        with patch("tools.xl_invoice_set.SqlClient") as MockSql, \
+             patch("tools.xl_invoice_set.XlClient") as MockXl:
+            MockSql.return_value.get_connection.return_value = _mock_sql()
+            MockXl.return_value = _mock_xl(mod=_ERR)
+            result = set_invoice(_INV)
+        assert result["ok"] is False
+        assert result["error"]["type"] == "XL_API_ERROR"
+        assert "XLModyfikujNaglowek" in result["error"]["message"]
 
     def test_xl_api_error_zamknij(self):
         with patch("tools.xl_invoice_set.SqlClient") as MockSql, \
