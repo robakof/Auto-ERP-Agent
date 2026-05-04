@@ -63,7 +63,7 @@ _TOWAR_SQL = """
     FROM CDN.TwrKody t
     JOIN CDN.TwrKodyKnt tk ON t.TwK_Id = tk.TKK_TwKId
     JOIN CDN.TwrKarty tw ON t.TwK_TwrNumer = tw.Twr_GIDNumer
-    WHERE tk.TKK_KntNumer = ? AND t.TwK_Kod = ?
+    WHERE tk.TKK_KntNumer = ? AND UPPER(LTRIM(RTRIM(t.TwK_Kod))) = UPPER(LTRIM(RTRIM(?)))
 """
 
 
