@@ -103,6 +103,11 @@ def bulk_import(dir_path: Path, report: Path | None = None) -> dict:
                 inserted += 1
                 status = "OK"
                 komunikat = f"doc_id={set_result['data']['doc_id']}"
+                av = set_result["data"].get("avista", [])
+                if av:
+                    preview = ", ".join(av[:3])
+                    suffix = f" (+{len(av) - 3})" if len(av) > 3 else ""
+                    komunikat += f" | A-VISTA: {preview}{suffix}"
 
             rows.append({
                 "plik": xml_path.name,

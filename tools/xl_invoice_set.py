@@ -1,10 +1,11 @@
 """Import faktury zakupowej FZ do Comarch XL przez XL API.
 
 Wejście: FzInvoice (z xl_invoice_parser.py)
-Wyjście: dict {ok, data: {doc_id, nr_obcy, action}, error, meta}
+Wyjście: dict {ok, data: {doc_id, nr_obcy, action, avista}, error, meta}
 
 Obsługiwane: FZ kosztowa surowcowa (seria ZSKR), waluta PLN.
 action: "inserted" | "skipped" (duplikat po nr_obcy).
+avista: lista nazw pozycji niezmapowanych na kartotekę towaru.
 """
 
 from __future__ import annotations
@@ -57,6 +58,14 @@ _EXISTS_SQL = """
     WHERE TrN_DokumentObcy = ? AND RTRIM(TrN_TrNSeria) = ?
 """
 
+_TOWAR_SQL = """
+    SELECT TOP 1 tw.Twr_Kod
+    FROM CDN.TwrKody t
+    JOIN CDN.TwrKodyKnt tk ON t.TwK_Id = tk.TKK_TwKId
+    JOIN CDN.TwrKarty tw ON t.TwK_TwrNumer = tw.Twr_GIDNumer
+    WHERE tk.TKK_KntNumer = ? AND t.TwK_Kod = ?
+"""
+
 
 def _to_epoch(d: date) -> int:
     return d.toordinal() - _EPOCH_OFFSET
@@ -68,6 +77,13 @@ def _err(err_type: str, msg: str, start: float) -> dict:
         "error": {"type": err_type, "message": msg},
         "meta": {"duration_ms": round((time.monotonic() - start) * 1000)},
     }
+
+
+def _resolve_towar_kod(cursor, knt_numer: int, nazwa: str) -> str | None:
+    """Zwraca Twr_Kod dla pozycji na podstawie GIDNumer kontrahenta i nazwy z faktury."""
+    cursor.execute(_TOWAR_SQL, [knt_numer, nazwa])
+    row = cursor.fetchone()
+    return str(row[0]) if row else None
 
 
 def set_invoice(invoice: FzInvoice) -> dict:
@@ -95,7 +111,7 @@ def set_invoice(invoice: FzInvoice) -> dict:
         if cursor.fetchone()[0] > 0:
             return {
                 "ok": True,
-                "data": {"nr_obcy": invoice.nr_obcy, "action": "skipped"},
+                "data": {"nr_obcy": invoice.nr_obcy, "action": "skipped", "avista": []},
                 "error": None,
                 "meta": {"duration_ms": round((time.monotonic() - start) * 1000)},
             }
@@ -136,17 +152,24 @@ def set_invoice(invoice: FzInvoice) -> dict:
             return _err("XL_API_ERROR",
                         f"XLModyfikujNaglowek: {resp.get('error', {}).get('message', resp)}", start)
 
+        avista = []
         for poz in invoice.pozycje:
-            resp = client.invoke(
-                "XLDodajPozycje",
-                _lDokumentID=doc_id,
-                TowarNazwa=poz.nazwa,
-                Ilosc=str(poz.ilosc),
-                Cena=str(poz.cena_netto),
-                Vat=poz.stawka_vat,
-                JmZ=poz.jm,
-                Magazyn=magazyn,
-            )
+            towar_kod = _resolve_towar_kod(cursor, knt_numer, poz.nazwa)
+            poz_params = {
+                "_lDokumentID": doc_id,
+                "TowarNazwa":   poz.nazwa,
+                "Ilosc":        str(poz.ilosc),
+                "Cena":         str(poz.cena_netto),
+                "Vat":          poz.stawka_vat,
+                "JmZ":          poz.jm,
+                "Magazyn":      magazyn,
+            }
+            if towar_kod:
+                poz_params["TowarKod"] = towar_kod
+            else:
+                avista.append(poz.nazwa)
+
+            resp = client.invoke("XLDodajPozycje", **poz_params)
             if not resp.get("ok"):
                 return _err("XL_API_ERROR",
                             f"XLDodajPozycje [{poz.nr}]: {resp.get('error', {}).get('message', resp)}",
@@ -166,7 +189,8 @@ def set_invoice(invoice: FzInvoice) -> dict:
 
     return {
         "ok": True,
-        "data": {"doc_id": doc_id, "nr_obcy": invoice.nr_obcy, "action": "inserted"},
+        "data": {"doc_id": doc_id, "nr_obcy": invoice.nr_obcy, "action": "inserted",
+                 "avista": avista},
         "error": None,
         "meta": {"duration_ms": round((time.monotonic() - start) * 1000)},
     }

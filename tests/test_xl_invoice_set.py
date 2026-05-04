@@ -12,7 +12,9 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.xl_invoice_parser import FzInvoice, FzPozycja
-from tools.xl_invoice_set import _EPOCH_OFFSET, _resolve_magazyn, _to_epoch, set_invoice
+from tools.xl_invoice_set import (
+    _EPOCH_OFFSET, _resolve_magazyn, _resolve_towar_kod, _to_epoch, set_invoice,
+)
 
 # --- fixtures ---
 
@@ -56,11 +58,32 @@ _OK_ZAM = {"ok": True, "data": {}}
 _ERR = {"ok": False, "error": {"type": "INVOKE_FAIL", "message": "kod=-1"}}
 
 
-def _mock_sql(knt_row=(12345, 1464833), exists_count=0):
+def _mock_sql(knt_row=(12345, 1464833), exists_count=0, towar_rows=None):
+    """towar_rows: dict {nazwa: Twr_Kod} dla pozycji — None = nie znaleziono."""
     conn = MagicMock()
     cursor = MagicMock()
     conn.cursor.return_value = cursor
-    cursor.fetchone.side_effect = [knt_row, (exists_count,)]
+
+    towar_map = towar_rows or {}
+    call_idx = [0]
+    fixed = [knt_row, (exists_count,)]
+
+    def _fetchone():
+        idx = call_idx[0]
+        call_idx[0] += 1
+        if idx < len(fixed):
+            return fixed[idx]
+        # kolejne wywołania to _resolve_towar_kod — zwróć wynik lub None
+        # execute() poprzedza fetchone() więc sprawdzamy ostatnie args execute
+        last_args = cursor.execute.call_args
+        if last_args:
+            params = last_args[0][1] if len(last_args[0]) > 1 else []
+            nazwa = params[1] if len(params) > 1 else ""
+            kod = towar_map.get(nazwa)
+            return (kod,) if kod else None
+        return None
+
+    cursor.fetchone.side_effect = _fetchone
     return conn
 
 
@@ -83,6 +106,25 @@ def _mock_xl(doc=_OK_DOC, poz=_OK_POZ, mod=_OK_MOD, zamknij=_OK_ZAM):
 
 
 # --- testy ---
+
+class TestResolveTowarKod:
+    def test_found_returns_kod(self):
+        cursor = MagicMock()
+        cursor.fetchone.return_value = ("AP0189",)
+        assert _resolve_towar_kod(cursor, 12345, "Aplikacja wz. 1") == "AP0189"
+
+    def test_not_found_returns_none(self):
+        cursor = MagicMock()
+        cursor.fetchone.return_value = None
+        assert _resolve_towar_kod(cursor, 12345, "Nieznany towar") is None
+
+    def test_passes_knt_numer_and_nazwa(self):
+        cursor = MagicMock()
+        cursor.fetchone.return_value = None
+        _resolve_towar_kod(cursor, 99, "Towar X")
+        args = cursor.execute.call_args[0]
+        assert args[1] == [99, "Towar X"]
+
 
 class TestResolveMagazyn:
     def test_nip_found_in_csv(self, tmp_path):
@@ -241,6 +283,39 @@ class TestSetInvoice:
         poz_call = next(c for c in xl.invoke.call_args_list
                         if c.args and c.args[0] == "XLDodajPozycje")
         assert poz_call.kwargs["Magazyn"] == "Pias_SUR"
+
+    def test_towar_kod_passed_when_found(self):
+        towar_rows = {"Surowiec A": "AP0189", "Surowiec B": "AP0190"}
+        with patch("tools.xl_invoice_set.SqlClient") as MockSql, \
+             patch("tools.xl_invoice_set.XlClient") as MockXl:
+            MockSql.return_value.get_connection.return_value = _mock_sql(towar_rows=towar_rows)
+            xl = _mock_xl()
+            MockXl.return_value = xl
+            result = set_invoice(_INV)
+        poz_call = next(c for c in xl.invoke.call_args_list
+                        if c.args and c.args[0] == "XLDodajPozycje")
+        assert poz_call.kwargs.get("TowarKod") == "AP0189"
+        assert result["data"]["avista"] == []
+
+    def test_avista_when_towar_not_found(self):
+        with patch("tools.xl_invoice_set.SqlClient") as MockSql, \
+             patch("tools.xl_invoice_set.XlClient") as MockXl:
+            MockSql.return_value.get_connection.return_value = _mock_sql()
+            MockXl.return_value = _mock_xl()
+            result = set_invoice(_INV)
+        assert "Surowiec A" in result["data"]["avista"]
+        assert "Surowiec B" in result["data"]["avista"]
+
+    def test_no_towar_kod_when_not_found(self):
+        with patch("tools.xl_invoice_set.SqlClient") as MockSql, \
+             patch("tools.xl_invoice_set.XlClient") as MockXl:
+            MockSql.return_value.get_connection.return_value = _mock_sql()
+            xl = _mock_xl()
+            MockXl.return_value = xl
+            set_invoice(_INV)
+        poz_call = next(c for c in xl.invoke.call_args_list
+                        if c.args and c.args[0] == "XLDodajPozycje")
+        assert "TowarKod" not in poz_call.kwargs
 
     def test_result_has_duration_ms(self):
         with patch("tools.xl_invoice_set.SqlClient") as MockSql, \
