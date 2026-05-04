@@ -19,7 +19,10 @@ os.chdir(_PROJECT_ROOT)
 
 from tools.xl_invoice_bulk import bulk_import
 
-_DEFAULT_REPORT = Path(f"documents/human/reports/xl_invoice_bulk_{date.today().strftime('%Y%m%d')}.xlsx")
+def _report_path() -> Path:
+    from datetime import datetime
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return Path(f"documents/human/reports/xl_invoice_bulk_{ts}.xlsx")
 
 _BG        = "#F0F4F8"
 _BG_STEP1  = "#DBEAFE"
@@ -132,7 +135,7 @@ class InvoiceApp(Tk):
         self._open_btn.configure(state="disabled")
         self._status_var.set("Trwa import…")
         self.update()
-        report = _DEFAULT_REPORT
+        report = _report_path()
 
         def _worker():
             result = bulk_import(self._xml_dir, report=report)

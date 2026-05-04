@@ -136,8 +136,9 @@ def bulk_import(dir_path: Path, report: Path | None = None) -> dict:
 
 
 def main() -> None:
-    today = date.today().strftime("%Y%m%d")
-    default_report = Path(f"documents/human/reports/xl_invoice_bulk_{today}.xlsx")
+    from datetime import datetime
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    default_report = Path(f"documents/human/reports/xl_invoice_bulk_{ts}.xlsx")
 
     parser = argparse.ArgumentParser(description="Wsadowy import FZ z katalogu XML do Comarch XL")
     parser.add_argument("--dir", required=True, type=Path, help="Katalog z plikami XML")
