@@ -1,5 +1,6 @@
 """Testy dla tools/xl_invoice_set.py."""
 
+import os
 import sys
 from datetime import date
 from decimal import Decimal
@@ -11,7 +12,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.xl_invoice_parser import FzInvoice, FzPozycja
-from tools.xl_invoice_set import _EPOCH_OFFSET, _to_epoch, set_invoice
+from tools.xl_invoice_set import _EPOCH_OFFSET, _resolve_magazyn, _to_epoch, set_invoice
 
 # --- fixtures ---
 
@@ -77,6 +78,40 @@ def _mock_xl(doc=_OK_DOC, poz=_OK_POZ, zamknij=_OK_ZAM):
 
 
 # --- testy ---
+
+class TestResolveMagazyn:
+    def test_nip_found_in_csv(self, tmp_path):
+        csv_path = tmp_path / "fz_magazyn.csv"
+        csv_path.write_text("nip,magazyn\n7811921223,Pias_SUR\n", encoding="utf-8")
+        with patch("tools.xl_invoice_set._MAGAZYN_CSV", csv_path):
+            assert _resolve_magazyn("7811921223") == "Pias_SUR"
+
+    def test_nip_not_in_csv_returns_env_default(self, tmp_path):
+        csv_path = tmp_path / "fz_magazyn.csv"
+        csv_path.write_text("nip,magazyn\n9999999999,Pias_SUR\n", encoding="utf-8")
+        with patch("tools.xl_invoice_set._MAGAZYN_CSV", csv_path), \
+             patch.dict("os.environ", {"FZ_MAGAZYN_DEFAULT": "OTO_SUR"}):
+            assert _resolve_magazyn("1234567890") == "OTO_SUR"
+
+    def test_no_csv_returns_env_default(self, tmp_path):
+        missing = tmp_path / "nonexistent.csv"
+        with patch("tools.xl_invoice_set._MAGAZYN_CSV", missing), \
+             patch.dict("os.environ", {"FZ_MAGAZYN_DEFAULT": "TEST_MAG"}):
+            assert _resolve_magazyn("1234567890") == "TEST_MAG"
+
+    def test_empty_csv_returns_default(self, tmp_path):
+        csv_path = tmp_path / "fz_magazyn.csv"
+        csv_path.write_text("nip,magazyn\n", encoding="utf-8")
+        with patch("tools.xl_invoice_set._MAGAZYN_CSV", csv_path), \
+             patch.dict("os.environ", {"FZ_MAGAZYN_DEFAULT": "OTO_SUR"}):
+            assert _resolve_magazyn("1234567890") == "OTO_SUR"
+
+    def test_first_match_wins(self, tmp_path):
+        csv_path = tmp_path / "fz_magazyn.csv"
+        csv_path.write_text("nip,magazyn\n1111111111,MAG_A\n1111111111,MAG_B\n", encoding="utf-8")
+        with patch("tools.xl_invoice_set._MAGAZYN_CSV", csv_path):
+            assert _resolve_magazyn("1111111111") == "MAG_A"
+
 
 class TestToEpoch:
     def test_formula(self):
@@ -177,6 +212,20 @@ class TestSetInvoice:
         poz_call = next(c for c in xl.invoke.call_args_list
                         if c.args and c.args[0] == "XLDodajPozycje")
         assert poz_call.kwargs["_lDokumentID"] == 999
+
+    def test_magazyn_passed_to_pozycje(self, tmp_path):
+        csv_path = tmp_path / "fz_magazyn.csv"
+        csv_path.write_text("nip,magazyn\n1234567890,Pias_SUR\n", encoding="utf-8")
+        with patch("tools.xl_invoice_set.SqlClient") as MockSql, \
+             patch("tools.xl_invoice_set.XlClient") as MockXl, \
+             patch("tools.xl_invoice_set._MAGAZYN_CSV", csv_path):
+            MockSql.return_value.get_connection.return_value = _mock_sql()
+            xl = _mock_xl()
+            MockXl.return_value = xl
+            set_invoice(_INV)
+        poz_call = next(c for c in xl.invoke.call_args_list
+                        if c.args and c.args[0] == "XLDodajPozycje")
+        assert poz_call.kwargs["Magazyn"] == "Pias_SUR"
 
     def test_result_has_duration_ms(self):
         with patch("tools.xl_invoice_set.SqlClient") as MockSql, \

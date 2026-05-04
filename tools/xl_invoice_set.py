@@ -9,9 +9,11 @@ action: "inserted" | "skipped" (duplikat po nr_obcy).
 
 from __future__ import annotations
 
+import csv
 import sys
 import time
 from datetime import date
+from os import environ
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -25,6 +27,23 @@ _KNT_TYP      = 32
 _DOC_TYP      = 1       # FZ
 _SERIA        = "ZSKR"  # kosztowa surowcowa
 _RODZAJ_ZAKUPU = 1
+
+_MAGAZYN_CSV = Path(__file__).parent.parent / "config" / "fz_magazyn.csv"
+
+
+def _resolve_magazyn(nip: str) -> str:
+    """Zwraca magazyn dla danego NIP dostawcy.
+
+    Szuka NIP w config/fz_magazyn.csv. Fallback: FZ_MAGAZYN_DEFAULT z .env.
+    """
+    default = environ.get("FZ_MAGAZYN_DEFAULT", "OTO_SUR")
+    if _MAGAZYN_CSV.exists():
+        with _MAGAZYN_CSV.open(newline="", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                if row.get("nip") == nip:
+                    return row["magazyn"]
+    return default
+
 
 _NIP_SQL = """
     SELECT Knt_GIDNumer, Knt_GIDFirma
@@ -70,6 +89,7 @@ def set_invoice(invoice: FzInvoice) -> dict:
                         f"Kontrahent NIP={invoice.nip_sprzedawcy} nie istnieje w kartotece",
                         start)
         knt_numer, knt_firma = int(row[0]), int(row[1])
+        magazyn = _resolve_magazyn(invoice.nip_sprzedawcy)
 
         cursor.execute(_EXISTS_SQL, [invoice.nr_obcy, _SERIA])
         if cursor.fetchone()[0] > 0:
@@ -111,6 +131,7 @@ def set_invoice(invoice: FzInvoice) -> dict:
                 Cena=str(poz.cena_netto),
                 Vat=poz.stawka_vat,
                 JmZ=poz.jm,
+                Magazyn=magazyn,
             )
             if not resp.get("ok"):
                 return _err("XL_API_ERROR",
