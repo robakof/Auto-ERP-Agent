@@ -193,7 +193,6 @@ def set_invoice(invoice: FzInvoice) -> dict:
             towar_kod = _resolve_towar_kod(cursor, knt_numer, poz.nazwa)
             poz_params = {
                 "_lDokumentID": doc_id,
-                "TowarNazwa":   poz.nazwa,
                 "Ilosc":        str(poz.ilosc),
                 "Cena":         str(poz.cena_netto),
                 "Vat":          _vat_group(poz.stawka_vat),
@@ -203,6 +202,7 @@ def set_invoice(invoice: FzInvoice) -> dict:
             if towar_kod:
                 poz_params["TowarKod"] = towar_kod
             else:
+                poz_params["TowarNazwa"] = poz.nazwa
                 avista.append(poz.nazwa)
 
             resp = client.invoke("XLDodajPozycje", **poz_params)
