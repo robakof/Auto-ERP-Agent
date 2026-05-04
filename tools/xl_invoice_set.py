@@ -54,7 +54,7 @@ def _resolve_towar_kod_csv(nazwa: str) -> str | None:
     if not _AVISTA_MAP_CSV.exists():
         return None
     nazwa_upper = nazwa.strip().upper()
-    with _AVISTA_MAP_CSV.open(newline="", encoding="utf-8") as f:
+    with _AVISTA_MAP_CSV.open(newline="", encoding="utf-8-sig", errors="replace") as f:
         for row in csv.DictReader(f, delimiter=";"):
             if row.get("nazwa", "").strip().upper() == nazwa_upper:
                 return row["twr_kod"].strip() or None
@@ -68,10 +68,10 @@ def _resolve_magazyn(nip: str) -> str:
     """
     default = environ.get("FZ_MAGAZYN_DEFAULT", "OTO_SUR")
     if _MAGAZYN_CSV.exists():
-        with _MAGAZYN_CSV.open(newline="", encoding="utf-8") as f:
+        with _MAGAZYN_CSV.open(newline="", encoding="utf-8-sig", errors="replace") as f:
             for row in csv.DictReader(f, delimiter=";"):
-                if row.get("nip") == nip:
-                    return row["magazyn"]
+                if row.get("nip", "").strip() == nip:
+                    return row.get("magazyn", "").strip() or default
     return default
 
 
@@ -87,20 +87,25 @@ _EXISTS_SQL = """
     WHERE TrN_DokumentObcy = ? AND RTRIM(TrN_TrNSeria) = ?
 """
 
+# GUI Comarch XL zapisuje "Dodatkowy kod" dostawcy w CDN.TwrDost.TWD_KodDodatkowyKnt
 _TOWAR_SQL = """
     SELECT TOP 1 tw.Twr_Kod
-    FROM CDN.TwrKody t
-    JOIN CDN.TwrKodyKnt tk ON t.TwK_Id = tk.TKK_TwKId
-    JOIN CDN.TwrKarty tw ON t.TwK_TwrNumer = tw.Twr_GIDNumer
-    WHERE tk.TKK_KntNumer = ? AND UPPER(LTRIM(RTRIM(t.TwK_Kod))) = UPPER(LTRIM(RTRIM(?)))
+    FROM CDN.TwrDost d
+    JOIN CDN.TwrKarty tw ON d.TWD_TwrNumer = tw.Twr_GIDNumer
+                        AND d.TWD_TwrFirma = tw.Twr_GIDFirma
+    WHERE d.TWD_KntNumer = ?
+      AND UPPER(LTRIM(RTRIM(d.TWD_KodDodatkowyKnt))) = UPPER(LTRIM(RTRIM(?)))
+      AND d.TWD_KodDodatkowyKnt <> ''
 """
 
-# fallback gdy TwrKodyKnt nie ma linku do kontrahenta (Comarch nie zawsze go zapisuje)
+# fallback bez filtra kontrahenta (gdy wpis jest przypisany do innego Knt)
 _TOWAR_SQL_FALLBACK = """
     SELECT TOP 1 tw.Twr_Kod
-    FROM CDN.TwrKody t
-    JOIN CDN.TwrKarty tw ON t.TwK_TwrNumer = tw.Twr_GIDNumer
-    WHERE UPPER(LTRIM(RTRIM(t.TwK_Kod))) = UPPER(LTRIM(RTRIM(?)))
+    FROM CDN.TwrDost d
+    JOIN CDN.TwrKarty tw ON d.TWD_TwrNumer = tw.Twr_GIDNumer
+                        AND d.TWD_TwrFirma = tw.Twr_GIDFirma
+    WHERE UPPER(LTRIM(RTRIM(d.TWD_KodDodatkowyKnt))) = UPPER(LTRIM(RTRIM(?)))
+      AND d.TWD_KodDodatkowyKnt <> ''
 """
 
 
