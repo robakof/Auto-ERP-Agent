@@ -105,12 +105,16 @@ def set_invoice(invoice: FzInvoice) -> dict:
 
     client = XlClient()
     try:
+        data_epoch = _to_epoch(invoice.data_wystawienia)
         resp = client.invoke(
             "XLNowyDokument",
             Typ=_DOC_TYP,
             Seria=_SERIA,
             RodzajZakupu=_RODZAJ_ZAKUPU,
-            Data=_to_epoch(invoice.data_wystawienia),
+            Data=data_epoch,
+            DataSpr=data_epoch,
+            DataVat=data_epoch,
+            DataMag=data_epoch,
             Termin=_to_epoch(invoice.termin_platnosci),
             KntTyp=_KNT_TYP,
             KntFirma=knt_firma,
