@@ -19,8 +19,7 @@ os.chdir(_PROJECT_ROOT)
 
 from tools.xl_invoice_bulk import bulk_import
 
-_MAGAZYN_CSV   = _PROJECT_ROOT / "config" / "fz_magazyn.csv"
-_AVISTA_MAP_CSV = _PROJECT_ROOT / "config" / "fz_avista_map.csv"
+_MAGAZYN_CSV = _PROJECT_ROOT / "config" / "fz_magazyn.csv"
 
 def _report_path() -> Path:
     from datetime import datetime
@@ -82,10 +81,6 @@ class InvoiceApp(Tk):
         row.pack(fill="x", pady=(6, 0))
         Button(row, text="Magazyny (NIP → magazyn)",
                font=_FONT, command=lambda: self._open_csv(_MAGAZYN_CSV),
-               bg="#475569", fg="white", relief="flat", padx=8, pady=4
-               ).pack(side="left", padx=(0, 8))
-        Button(row, text="Produkty (nazwa → kartoteka)",
-               font=_FONT, command=lambda: self._open_csv(_AVISTA_MAP_CSV),
                bg="#475569", fg="white", relief="flat", padx=8, pady=4
                ).pack(side="left")
 

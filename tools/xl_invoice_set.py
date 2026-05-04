@@ -29,8 +29,7 @@ _DOC_TYP      = 1       # FZ
 _SERIA        = "ZSKR"  # kosztowa surowcowa
 _RODZAJ_ZAKUPU = 1
 
-_MAGAZYN_CSV   = Path(__file__).parent.parent / "config" / "fz_magazyn.csv"
-_AVISTA_MAP_CSV = Path(__file__).parent.parent / "config" / "fz_avista_map.csv"
+_MAGAZYN_CSV = Path(__file__).parent.parent / "config" / "fz_magazyn.csv"
 
 # Mapowanie stawki VAT z KSeF P_12 na symbol grupy VAT w Comarch XL
 _VAT_GROUP: dict[str, str] = {
@@ -47,18 +46,6 @@ _VAT_GROUP: dict[str, str] = {
 
 def _vat_group(stawka: str) -> str:
     return _VAT_GROUP.get(stawka.strip(), stawka)
-
-
-def _resolve_towar_kod_csv(nazwa: str) -> str | None:
-    """Zwraca Twr_Kod z config/fz_avista_map.csv (case-insensitive match)."""
-    if not _AVISTA_MAP_CSV.exists():
-        return None
-    nazwa_upper = nazwa.strip().upper()
-    with _AVISTA_MAP_CSV.open(newline="", encoding="utf-8-sig", errors="replace") as f:
-        for row in csv.DictReader(f, delimiter=";"):
-            if row.get("nazwa", "").strip().upper() == nazwa_upper:
-                return row["twr_kod"].strip() or None
-    return None
 
 
 def _resolve_magazyn(nip: str) -> str:
@@ -122,14 +109,10 @@ def _err(err_type: str, msg: str, start: float) -> dict:
 
 
 def _resolve_towar_kod(cursor, knt_numer: int, nazwa: str) -> str | None:
-    """Zwraca Twr_Kod dla pozycji.
+    """Zwraca Twr_Kod z CDN.TwrDost (TWD_KodDodatkowyKnt).
 
-    Kolejność: 1) config/fz_avista_map.csv, 2) TwrKody z filtrem kontrahenta,
-    3) TwrKody bez filtra (fallback gdy TwrKodyKnt puste).
+    Najpierw z filtrem kontrahenta, fallback bez filtra gdy wpis przypisany do innego Knt.
     """
-    kod = _resolve_towar_kod_csv(nazwa)
-    if kod:
-        return kod
     cursor.execute(_TOWAR_SQL, [knt_numer, nazwa])
     row = cursor.fetchone()
     if row:
