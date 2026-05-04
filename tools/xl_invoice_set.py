@@ -66,6 +66,14 @@ _TOWAR_SQL = """
     WHERE tk.TKK_KntNumer = ? AND UPPER(LTRIM(RTRIM(t.TwK_Kod))) = UPPER(LTRIM(RTRIM(?)))
 """
 
+# fallback gdy TwrKodyKnt nie ma linku do kontrahenta (Comarch nie zawsze go zapisuje)
+_TOWAR_SQL_FALLBACK = """
+    SELECT TOP 1 tw.Twr_Kod
+    FROM CDN.TwrKody t
+    JOIN CDN.TwrKarty tw ON t.TwK_TwrNumer = tw.Twr_GIDNumer
+    WHERE UPPER(LTRIM(RTRIM(t.TwK_Kod))) = UPPER(LTRIM(RTRIM(?)))
+"""
+
 
 def _to_epoch(d: date) -> int:
     return d.toordinal() - _EPOCH_OFFSET
@@ -80,8 +88,16 @@ def _err(err_type: str, msg: str, start: float) -> dict:
 
 
 def _resolve_towar_kod(cursor, knt_numer: int, nazwa: str) -> str | None:
-    """Zwraca Twr_Kod dla pozycji na podstawie GIDNumer kontrahenta i nazwy z faktury."""
+    """Zwraca Twr_Kod dla pozycji na podstawie GIDNumer kontrahenta i nazwy z faktury.
+
+    Najpierw szuka z filtrem kontrahenta (TwrKodyKnt), fallback bez filtra —
+    Comarch nie zawsze zapisuje link w TwrKodyKnt.
+    """
     cursor.execute(_TOWAR_SQL, [knt_numer, nazwa])
+    row = cursor.fetchone()
+    if row:
+        return str(row[0])
+    cursor.execute(_TOWAR_SQL_FALLBACK, [nazwa])
     row = cursor.fetchone()
     return str(row[0]) if row else None
 

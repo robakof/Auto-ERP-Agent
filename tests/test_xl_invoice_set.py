@@ -108,22 +108,30 @@ def _mock_xl(doc=_OK_DOC, poz=_OK_POZ, mod=_OK_MOD, zamknij=_OK_ZAM):
 # --- testy ---
 
 class TestResolveTowarKod:
-    def test_found_returns_kod(self):
+    def test_found_with_contractor_returns_kod(self):
         cursor = MagicMock()
         cursor.fetchone.return_value = ("AP0189",)
         assert _resolve_towar_kod(cursor, 12345, "Aplikacja wz. 1") == "AP0189"
+
+    def test_fallback_when_contractor_missing(self):
+        # pierwsze zapytanie (z kontrahentem) zwraca None, drugie (fallback) zwraca wynik
+        cursor = MagicMock()
+        cursor.fetchone.side_effect = [None, ("AP0189",)]
+        assert _resolve_towar_kod(cursor, 12345, "Aplikacja wz. 1") == "AP0189"
+        assert cursor.execute.call_count == 2
 
     def test_not_found_returns_none(self):
         cursor = MagicMock()
         cursor.fetchone.return_value = None
         assert _resolve_towar_kod(cursor, 12345, "Nieznany towar") is None
 
-    def test_passes_knt_numer_and_nazwa(self):
+    def test_fallback_passes_only_nazwa(self):
+        # drugie zapytanie (fallback) używa tylko nazwy, bez knt_numer
         cursor = MagicMock()
-        cursor.fetchone.return_value = None
+        cursor.fetchone.side_effect = [None, None]
         _resolve_towar_kod(cursor, 99, "Towar X")
-        args = cursor.execute.call_args[0]
-        assert args[1] == [99, "Towar X"]
+        fallback_args = cursor.execute.call_args_list[1][0]
+        assert fallback_args[1] == ["Towar X"]
 
 
 class TestResolveMagazyn:
