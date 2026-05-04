@@ -137,13 +137,13 @@ class TestResolveTowarKod:
 class TestResolveMagazyn:
     def test_nip_found_in_csv(self, tmp_path):
         csv_path = tmp_path / "fz_magazyn.csv"
-        csv_path.write_text("nip,magazyn\n7811921223,Pias_SUR\n", encoding="utf-8")
+        csv_path.write_text("nip;magazyn\n7811921223;Pias_SUR\n", encoding="utf-8")
         with patch("tools.xl_invoice_set._MAGAZYN_CSV", csv_path):
             assert _resolve_magazyn("7811921223") == "Pias_SUR"
 
     def test_nip_not_in_csv_returns_env_default(self, tmp_path):
         csv_path = tmp_path / "fz_magazyn.csv"
-        csv_path.write_text("nip,magazyn\n9999999999,Pias_SUR\n", encoding="utf-8")
+        csv_path.write_text("nip;magazyn\n9999999999;Pias_SUR\n", encoding="utf-8")
         with patch("tools.xl_invoice_set._MAGAZYN_CSV", csv_path), \
              patch.dict("os.environ", {"FZ_MAGAZYN_DEFAULT": "OTO_SUR"}):
             assert _resolve_magazyn("1234567890") == "OTO_SUR"
@@ -156,14 +156,14 @@ class TestResolveMagazyn:
 
     def test_empty_csv_returns_default(self, tmp_path):
         csv_path = tmp_path / "fz_magazyn.csv"
-        csv_path.write_text("nip,magazyn\n", encoding="utf-8")
+        csv_path.write_text("nip;magazyn\n", encoding="utf-8")
         with patch("tools.xl_invoice_set._MAGAZYN_CSV", csv_path), \
              patch.dict("os.environ", {"FZ_MAGAZYN_DEFAULT": "OTO_SUR"}):
             assert _resolve_magazyn("1234567890") == "OTO_SUR"
 
     def test_first_match_wins(self, tmp_path):
         csv_path = tmp_path / "fz_magazyn.csv"
-        csv_path.write_text("nip,magazyn\n1111111111,MAG_A\n1111111111,MAG_B\n", encoding="utf-8")
+        csv_path.write_text("nip;magazyn\n1111111111;MAG_A\n1111111111;MAG_B\n", encoding="utf-8")
         with patch("tools.xl_invoice_set._MAGAZYN_CSV", csv_path):
             assert _resolve_magazyn("1111111111") == "MAG_A"
 
@@ -280,7 +280,7 @@ class TestSetInvoice:
 
     def test_magazyn_passed_to_pozycje(self, tmp_path):
         csv_path = tmp_path / "fz_magazyn.csv"
-        csv_path.write_text("nip,magazyn\n1234567890,Pias_SUR\n", encoding="utf-8")
+        csv_path.write_text("nip;magazyn\n1234567890;Pias_SUR\n", encoding="utf-8")
         with patch("tools.xl_invoice_set.SqlClient") as MockSql, \
              patch("tools.xl_invoice_set.XlClient") as MockXl, \
              patch("tools.xl_invoice_set._MAGAZYN_CSV", csv_path):

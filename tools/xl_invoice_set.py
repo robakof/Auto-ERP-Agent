@@ -55,7 +55,7 @@ def _resolve_towar_kod_csv(nazwa: str) -> str | None:
         return None
     nazwa_upper = nazwa.strip().upper()
     with _AVISTA_MAP_CSV.open(newline="", encoding="utf-8") as f:
-        for row in csv.DictReader(f):
+        for row in csv.DictReader(f, delimiter=";"):
             if row.get("nazwa", "").strip().upper() == nazwa_upper:
                 return row["twr_kod"].strip() or None
     return None
@@ -69,7 +69,7 @@ def _resolve_magazyn(nip: str) -> str:
     default = environ.get("FZ_MAGAZYN_DEFAULT", "OTO_SUR")
     if _MAGAZYN_CSV.exists():
         with _MAGAZYN_CSV.open(newline="", encoding="utf-8") as f:
-            for row in csv.DictReader(f):
+            for row in csv.DictReader(f, delimiter=";"):
                 if row.get("nip") == nip:
                     return row["magazyn"]
     return default
