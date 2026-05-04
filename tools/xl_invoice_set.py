@@ -31,6 +31,22 @@ _RODZAJ_ZAKUPU = 1
 
 _MAGAZYN_CSV = Path(__file__).parent.parent / "config" / "fz_magazyn.csv"
 
+# Mapowanie stawki VAT z KSeF P_12 na symbol grupy VAT w Comarch XL
+_VAT_GROUP: dict[str, str] = {
+    "23": "A",
+    "8":  "B",
+    "5":  "C",
+    "0":  "D",
+    "zw": "E",
+    "ZW": "E",
+    "np": "F",
+    "NP": "F",
+}
+
+
+def _vat_group(stawka: str) -> str:
+    return _VAT_GROUP.get(stawka.strip(), stawka)
+
 
 def _resolve_magazyn(nip: str) -> str:
     """Zwraca magazyn dla danego NIP dostawcy.
@@ -176,7 +192,7 @@ def set_invoice(invoice: FzInvoice) -> dict:
                 "TowarNazwa":   poz.nazwa,
                 "Ilosc":        str(poz.ilosc),
                 "Cena":         str(poz.cena_netto),
-                "Vat":          poz.stawka_vat,
+                "Vat":          _vat_group(poz.stawka_vat),
                 "JmZ":          poz.jm,
                 "Magazyn":      magazyn,
             }
