@@ -77,7 +77,6 @@ class LoginDialog(Toplevel):
 
         self._build()
         self.protocol("WM_DELETE_WINDOW", self._on_cancel)
-        self.transient(parent)
         self.grab_set()
         self._center(parent)
 
@@ -268,6 +267,7 @@ def main():
     login_root.withdraw()
 
     dialog = LoginDialog(login_root)
+    dialog.deiconify()
     login_root.wait_window(dialog)
 
     creds = dialog.result
