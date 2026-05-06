@@ -4,7 +4,6 @@ Użycie:
   python tools/xl_invoice_app.py
 """
 
-import configparser
 import os
 import sys
 import threading
@@ -26,7 +25,6 @@ else:
 from tools.xl_invoice_bulk import bulk_import
 
 _MAGAZYN_CSV = _BASE / "config" / "fz_magazyn.csv"
-_CONN_INI    = _BASE / "config" / "connection.ini"
 _REPORTS_DIR = _BASE / "reports"
 
 
@@ -35,24 +33,6 @@ def _report_path() -> Path:
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     _REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     return _REPORTS_DIR / f"xl_invoice_bulk_{ts}.xlsx"
-
-
-def _load_conn_config() -> dict:
-    cfg = configparser.ConfigParser()
-    if _CONN_INI.exists():
-        cfg.read(_CONN_INI, encoding="utf-8")
-    return {
-        "server":   cfg.get("connection", "server",   fallback=""),
-        "database": cfg.get("connection", "database", fallback=""),
-    }
-
-
-def _save_conn_config(server: str, database: str) -> None:
-    cfg = configparser.ConfigParser()
-    cfg["connection"] = {"server": server, "database": database}
-    _CONN_INI.parent.mkdir(parents=True, exist_ok=True)
-    with _CONN_INI.open("w", encoding="utf-8") as f:
-        cfg.write(f)
 
 
 # --- style ---
@@ -83,7 +63,7 @@ class _Step(Frame):
 
 
 class LoginDialog(Toplevel):
-    """Modal dialog logowania — zbiera dane połączenia przed startem aplikacji."""
+    """Modal dialog logowania XL API — zbiera login/hasło operatora przed startem."""
 
     def __init__(self, parent: Tk):
         super().__init__(parent)
@@ -92,9 +72,6 @@ class LoginDialog(Toplevel):
         self.resizable(False, False)
         self.result: dict | None = None
 
-        saved = _load_conn_config()
-        self._server   = StringVar(value=saved["server"])
-        self._database = StringVar(value=saved["database"])
         self._login    = StringVar()
         self._password = StringVar()
 
@@ -105,15 +82,13 @@ class LoginDialog(Toplevel):
         self._center(parent)
 
     def _build(self):
-        Label(self, text="Połączenie z bazą danych", font=_FONT_BOLD,
+        Label(self, text="Logowanie XL API", font=_FONT_BOLD,
               bg=_BG_LOGIN, fg="#1E3A5F").grid(row=0, column=0, columnspan=2,
                                                 sticky="w", pady=(0, 12))
 
         fields = [
-            ("Serwer SQL:",   self._server,   False),
-            ("Baza danych:",  self._database, False),
-            ("Login:",        self._login,    False),
-            ("Hasło:",        self._password, True),
+            ("Login XL:",  self._login,    False),
+            ("Hasło XL:",  self._password, True),
         ]
         for i, (lbl, var, secret) in enumerate(fields, start=1):
             Label(self, text=lbl, font=_FONT, bg=_BG_LOGIN, fg="#374151",
@@ -124,7 +99,7 @@ class LoginDialog(Toplevel):
                                                         padx=(8, 0), pady=4)
 
         btn_frame = Frame(self, bg=_BG_LOGIN)
-        btn_frame.grid(row=6, column=0, columnspan=2, pady=(16, 0))
+        btn_frame.grid(row=4, column=0, columnspan=2, pady=(16, 0))
         Button(btn_frame, text="Połącz", font=_FONT_BOLD,
                command=self._on_ok,
                bg="#2563EB", fg="white", relief="flat",
@@ -135,22 +110,16 @@ class LoginDialog(Toplevel):
                padx=12, pady=6).pack(side="left")
 
     def _on_ok(self):
-        server   = self._server.get().strip()
-        database = self._database.get().strip()
         login    = self._login.get().strip()
         password = self._password.get()
 
-        if not all([server, database, login, password]):
+        if not all([login, password]):
             messagebox.showwarning("Brak danych",
-                                   "Wszystkie pola są wymagane.",
+                                   "Login i hasło są wymagane.",
                                    parent=self)
             return
 
-        _save_conn_config(server, database)
-        self.result = {
-            "server": server, "database": database,
-            "login": login, "password": password,
-        }
+        self.result = {"login": login, "password": password}
         self.destroy()
 
     def _on_cancel(self):
@@ -307,10 +276,8 @@ def main():
     if creds is None:
         return
 
-    os.environ["SQL_SERVER"]   = creds["server"]
-    os.environ["SQL_DATABASE"] = creds["database"]
-    os.environ["SQL_USERNAME"] = creds["login"]
-    os.environ["SQL_PASSWORD"] = creds["password"]
+    os.environ["XL_LOGIN"]    = creds["login"]
+    os.environ["XL_PASSWORD"] = creds["password"]
 
     app = InvoiceApp()
     app.mainloop()
