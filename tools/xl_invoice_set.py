@@ -43,9 +43,26 @@ _VAT_GROUP: dict[str, str] = {
     "NP": "F",
 }
 
+# Mapowanie P_12 na (StawkaPod: int, FlagaVat: int) dla XLDodajPozycje
+# FlagaVat: 0=zwolniony, 1=opodatkowany, 2=nie podlega
+_VAT_KEYS: dict[str, tuple[int, int]] = {
+    "23": (23, 1),
+    "8":  (8,  1),
+    "5":  (5,  1),
+    "0":  (0,  1),
+    "zw": (0,  0),
+    "ZW": (0,  0),
+    "np": (0,  2),
+    "NP": (0,  2),
+}
+
 
 def _vat_group(stawka: str) -> str:
     return _VAT_GROUP.get(stawka.strip(), stawka)
+
+
+def _vat_key(stawka: str) -> tuple[int, int]:
+    return _VAT_KEYS.get(stawka.strip(), (0, 1))
 
 
 def _resolve_magazyn(nip: str) -> str:
@@ -191,11 +208,14 @@ def set_invoice(invoice: FzInvoice) -> dict:
         avista = []
         for poz in invoice.pozycje:
             towar_kod = _resolve_towar_kod(cursor, knt_numer, poz.nazwa)
+            stawka_int, flaga_int = _vat_key(poz.stawka_vat)
             poz_params = {
                 "_lDokumentID": doc_id,
                 "Ilosc":        str(poz.ilosc),
                 "Cena":         str(poz.cena_netto),
                 "Vat":          _vat_group(poz.stawka_vat),
+                "StawkaPod":    stawka_int * 100,
+                "FlagaVAT":     flaga_int,
                 "JmZ":          poz.jm,
                 "Magazyn":      magazyn,
             }
@@ -207,6 +227,7 @@ def set_invoice(invoice: FzInvoice) -> dict:
 
             resp = client.invoke("XLDodajPozycje", **poz_params)
             if not resp.get("ok"):
+                client.zamknij_dokument(lDokumentID=doc_id, Tryb=0)
                 return _err("XL_API_ERROR",
                             f"XLDodajPozycje [{poz.nr}]: {resp.get('error', {}).get('message', resp)}",
                             start)

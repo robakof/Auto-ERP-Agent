@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.xl_invoice_parser import FzInvoice, FzPozycja
 from tools.xl_invoice_set import (
-    _EPOCH_OFFSET, _resolve_magazyn, _resolve_towar_kod, _to_epoch, set_invoice,
+    _EPOCH_OFFSET, _resolve_magazyn, _resolve_towar_kod, _to_epoch, _vat_key, set_invoice,
 )
 
 # --- fixtures ---
@@ -332,3 +332,67 @@ class TestSetInvoice:
             MockXl.return_value = _mock_xl()
             result = set_invoice(_INV)
         assert "duration_ms" in result["meta"]
+
+
+class TestVatKey:
+    def test_23_opodatkowany(self):
+        assert _vat_key("23") == (23, 1)
+
+    def test_8_opodatkowany(self):
+        assert _vat_key("8") == (8, 1)
+
+    def test_5_opodatkowany(self):
+        assert _vat_key("5") == (5, 1)
+
+    def test_0_opodatkowany(self):
+        assert _vat_key("0") == (0, 1)
+
+    def test_zw_lowercase(self):
+        assert _vat_key("zw") == (0, 0)
+
+    def test_zw_uppercase(self):
+        assert _vat_key("ZW") == (0, 0)
+
+    def test_np_lowercase(self):
+        assert _vat_key("np") == (0, 2)
+
+    def test_np_uppercase(self):
+        assert _vat_key("NP") == (0, 2)
+
+    def test_unknown_fallback(self):
+        assert _vat_key("99") == (0, 1)
+
+
+class TestPositionVAT:
+    def test_stawka_pod_23pct_passed(self):
+        with patch("tools.xl_invoice_set.SqlClient") as MockSql, \
+             patch("tools.xl_invoice_set.XlClient") as MockXl:
+            MockSql.return_value.get_connection.return_value = _mock_sql()
+            xl = _mock_xl()
+            MockXl.return_value = xl
+            set_invoice(_INV)
+        poz_call = next(c for c in xl.invoke.call_args_list
+                        if c.args and c.args[0] == "XLDodajPozycje")
+        assert poz_call.kwargs["StawkaPod"] == 2300
+        assert poz_call.kwargs["FlagaVAT"] == 1
+
+    def test_stawka_pod_8pct_passed(self):
+        with patch("tools.xl_invoice_set.SqlClient") as MockSql, \
+             patch("tools.xl_invoice_set.XlClient") as MockXl:
+            MockSql.return_value.get_connection.return_value = _mock_sql()
+            xl = _mock_xl()
+            MockXl.return_value = xl
+            set_invoice(_INV)
+        calls = [c for c in xl.invoke.call_args_list
+                 if c.args and c.args[0] == "XLDodajPozycje"]
+        assert calls[1].kwargs["StawkaPod"] == 800
+        assert calls[1].kwargs["FlagaVAT"] == 1
+
+    def test_cleanup_tryb0_on_pozycja_error(self):
+        with patch("tools.xl_invoice_set.SqlClient") as MockSql, \
+             patch("tools.xl_invoice_set.XlClient") as MockXl:
+            MockSql.return_value.get_connection.return_value = _mock_sql()
+            xl = _mock_xl(poz=_ERR)
+            MockXl.return_value = xl
+            set_invoice(_INV)
+        xl.zamknij_dokument.assert_called_with(lDokumentID=999, Tryb=0)
