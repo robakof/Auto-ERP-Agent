@@ -2,10 +2,15 @@
 
 import json
 import subprocess
+import sys
 import threading
 from pathlib import Path
 
-_PROXY_EXE = Path(__file__).parent.parent / "xl_proxy" / "XlProxy.exe"
+if getattr(sys, "frozen", False):
+    # PyInstaller onedir: exe i xl_proxy/ są w tym samym katalogu
+    _PROXY_EXE = Path(sys.executable).parent / "xl_proxy" / "XlProxy.exe"
+else:
+    _PROXY_EXE = Path(__file__).parent.parent / "xl_proxy" / "XlProxy.exe"
 
 
 class XlProxyError(RuntimeError):

@@ -4,32 +4,63 @@ Użycie:
   python tools/xl_invoice_app.py
 """
 
+import configparser
 import os
 import sys
 import threading
 from datetime import date
 from pathlib import Path
 from tkinter import (
-    Button, Frame, Label, StringVar, Tk, filedialog, messagebox,
+    Button, Entry, Frame, Label, StringVar, Tk, Toplevel,
+    filedialog, messagebox,
 )
 
-_PROJECT_ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(_PROJECT_ROOT))
-os.chdir(_PROJECT_ROOT)
+# --- ścieżki bazowe (dev vs PyInstaller frozen) ---
+if getattr(sys, "frozen", False):
+    _BASE = Path(sys.executable).parent
+else:
+    _BASE = Path(__file__).parent.parent
+    sys.path.insert(0, str(_BASE))
+    os.chdir(_BASE)
 
 from tools.xl_invoice_bulk import bulk_import
 
-_MAGAZYN_CSV = _PROJECT_ROOT / "config" / "fz_magazyn.csv"
+_MAGAZYN_CSV = _BASE / "config" / "fz_magazyn.csv"
+_CONN_INI    = _BASE / "config" / "connection.ini"
+_REPORTS_DIR = _BASE / "reports"
+
 
 def _report_path() -> Path:
     from datetime import datetime
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    return Path(f"documents/human/reports/xl_invoice_bulk_{ts}.xlsx")
+    _REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    return _REPORTS_DIR / f"xl_invoice_bulk_{ts}.xlsx"
 
+
+def _load_conn_config() -> dict:
+    cfg = configparser.ConfigParser()
+    if _CONN_INI.exists():
+        cfg.read(_CONN_INI, encoding="utf-8")
+    return {
+        "server":   cfg.get("connection", "server",   fallback=""),
+        "database": cfg.get("connection", "database", fallback=""),
+    }
+
+
+def _save_conn_config(server: str, database: str) -> None:
+    cfg = configparser.ConfigParser()
+    cfg["connection"] = {"server": server, "database": database}
+    _CONN_INI.parent.mkdir(parents=True, exist_ok=True)
+    with _CONN_INI.open("w", encoding="utf-8") as f:
+        cfg.write(f)
+
+
+# --- style ---
 _BG        = "#F0F4F8"
 _BG_STEP1  = "#DBEAFE"
 _BG_STEP2  = "#EFF8EE"
 _BG_RESULT = "#F8FAFC"
+_BG_LOGIN  = "#F1F5F9"
 _FONT      = ("Segoe UI", 10)
 _FONT_BOLD = ("Segoe UI", 11, "bold")
 _FONT_HEAD = ("Segoe UI", 11, "bold")
@@ -49,6 +80,89 @@ class _Step(Frame):
         super().__init__(parent, bg=bg, bd=1, relief="solid", padx=14, pady=12)
         Label(self, text=title, font=_FONT_HEAD, bg=bg, fg=fg_head).pack(anchor="w")
         Label(self, text=subtitle, font=_FONT, bg=bg, fg="#555").pack(anchor="w", pady=(2, 0))
+
+
+class LoginDialog(Toplevel):
+    """Modal dialog logowania — zbiera dane połączenia przed startem aplikacji."""
+
+    def __init__(self, parent: Tk):
+        super().__init__(parent)
+        self.title("Logowanie — Import FZ CEiM")
+        self.configure(bg=_BG_LOGIN, padx=24, pady=20)
+        self.resizable(False, False)
+        self.result: dict | None = None
+
+        saved = _load_conn_config()
+        self._server   = StringVar(value=saved["server"])
+        self._database = StringVar(value=saved["database"])
+        self._login    = StringVar()
+        self._password = StringVar()
+
+        self._build()
+        self.protocol("WM_DELETE_WINDOW", self._on_cancel)
+        self.transient(parent)
+        self.grab_set()
+        self._center(parent)
+
+    def _build(self):
+        Label(self, text="Połączenie z bazą danych", font=_FONT_BOLD,
+              bg=_BG_LOGIN, fg="#1E3A5F").grid(row=0, column=0, columnspan=2,
+                                                sticky="w", pady=(0, 12))
+
+        fields = [
+            ("Serwer SQL:",   self._server,   False),
+            ("Baza danych:",  self._database, False),
+            ("Login:",        self._login,    False),
+            ("Hasło:",        self._password, True),
+        ]
+        for i, (lbl, var, secret) in enumerate(fields, start=1):
+            Label(self, text=lbl, font=_FONT, bg=_BG_LOGIN, fg="#374151",
+                  anchor="e", width=13).grid(row=i, column=0, sticky="e", pady=4)
+            show = "*" if secret else ""
+            Entry(self, textvariable=var, font=_FONT, show=show,
+                  width=32, relief="solid", bd=1).grid(row=i, column=1, sticky="w",
+                                                        padx=(8, 0), pady=4)
+
+        btn_frame = Frame(self, bg=_BG_LOGIN)
+        btn_frame.grid(row=6, column=0, columnspan=2, pady=(16, 0))
+        Button(btn_frame, text="Połącz", font=_FONT_BOLD,
+               command=self._on_ok,
+               bg="#2563EB", fg="white", relief="flat",
+               padx=16, pady=6).pack(side="left", padx=(0, 8))
+        Button(btn_frame, text="Anuluj", font=_FONT,
+               command=self._on_cancel,
+               bg="#6B7280", fg="white", relief="flat",
+               padx=12, pady=6).pack(side="left")
+
+    def _on_ok(self):
+        server   = self._server.get().strip()
+        database = self._database.get().strip()
+        login    = self._login.get().strip()
+        password = self._password.get()
+
+        if not all([server, database, login, password]):
+            messagebox.showwarning("Brak danych",
+                                   "Wszystkie pola są wymagane.",
+                                   parent=self)
+            return
+
+        _save_conn_config(server, database)
+        self.result = {
+            "server": server, "database": database,
+            "login": login, "password": password,
+        }
+        self.destroy()
+
+    def _on_cancel(self):
+        self.result = None
+        self.destroy()
+
+    def _center(self, parent: Tk):
+        self.update_idletasks()
+        w, h = self.winfo_reqwidth(), self.winfo_reqheight()
+        pw = parent.winfo_screenwidth()
+        ph = parent.winfo_screenheight()
+        self.geometry(f"{w}x{h}+{(pw - w) // 2}+{(ph - h) // 2}")
 
 
 class InvoiceApp(Tk):
@@ -180,6 +294,24 @@ class InvoiceApp(Tk):
 
 
 def main():
+    # Tymczasowy root tylko do dialogu — zniszczony przed główną aplikacją
+    login_root = Tk()
+    login_root.withdraw()
+
+    dialog = LoginDialog(login_root)
+    login_root.wait_window(dialog)
+
+    creds = dialog.result
+    login_root.destroy()
+
+    if creds is None:
+        return
+
+    os.environ["SQL_SERVER"]   = creds["server"]
+    os.environ["SQL_DATABASE"] = creds["database"]
+    os.environ["SQL_USERNAME"] = creds["login"]
+    os.environ["SQL_PASSWORD"] = creds["password"]
+
     app = InvoiceApp()
     app.mainloop()
 
