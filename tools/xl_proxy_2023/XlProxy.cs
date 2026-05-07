@@ -97,7 +97,7 @@ class XlProxy {
                 foreach (FieldInfo f in pt.GetFields()) {
                     string val = GetStr(paramsJson, f.Name);
                     if (val.Length == 0) continue;
-                    try { f.SetValue(info, Convert.ChangeType(val, f.FieldType)); } catch { }
+                    try { f.SetValue(info, Convert.ChangeType(val, f.FieldType, System.Globalization.CultureInfo.InvariantCulture)); } catch { }
                 }
                 pars[i] = info;
             }
