@@ -240,8 +240,8 @@ def set_invoice(invoice: FzInvoice) -> dict:
             stawka_int, flaga_int = _vat_key(poz.stawka_vat)
             poz_params = {
                 "_lDokumentID": doc_id,
-                "Ilosc":        str(poz.ilosc),
-                "Cena":         str(poz.cena_netto),
+                "Ilosc":        str(poz.ilosc).replace(".", ","),
+                "Cena":         str(poz.cena_netto).replace(".", ","),
                 "NiePrzeliczaj": 1,
                 "Vat":          _vat_group(poz.stawka_vat),
                 "StawkaPod":    stawka_int * 100,
