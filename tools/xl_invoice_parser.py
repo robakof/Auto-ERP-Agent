@@ -148,8 +148,8 @@ def _parse_pozycje(fa: ET.Element) -> list[FzPozycja]:
             nazwa=_text(wiersz, "P_7"),
             ilosc=_decimal(wiersz, "P_8B"),
             jm=_text(wiersz, "P_8A", "szt"),
-            cena_netto=_decimal(wiersz, "P_9B"),
-            wartosc_netto=_decimal(wiersz, "P_11A"),
+            cena_netto=_decimal(wiersz, "P_9A") or _decimal(wiersz, "P_9B"),
+            wartosc_netto=_decimal(wiersz, "P_11A") or _decimal(wiersz, "P_11"),
             stawka_vat=stawka,
             wartosc_vat=_decimal(wiersz, "P_11Vat"),
         ))
