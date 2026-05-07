@@ -22,6 +22,7 @@ from openpyxl.styles import Font, PatternFill
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from tools.lib import xl_session
 from tools.lib.sql_client import SqlClient
 from tools.xl_attribute_set import delete_attributes, set_attribute
 
@@ -117,57 +118,63 @@ def bulk_update(file: Path, operator: str | None = None, report: Path | None = N
     results = []
     total = success = skipped = failed = 0
 
-    for row in data_rows:
-        if not row or row[0] is None or str(row[0]).strip() == "":
-            continue
+    try:
+        for row in data_rows:
+            if not row or row[0] is None or str(row[0]).strip() == "":
+                continue
 
-        akronim = str(row[0]).strip()
-        attr_raw = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
+            akronim = str(row[0]).strip()
+            attr_raw = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
 
-        if not attr_raw:
-            continue
+            if not attr_raw:
+                continue
 
-        # wartości od kolumny D (indeks 3) wzwyż — zbierz wszystkie niepuste
-        values = [
-            str(row[i]).strip()
-            for i in range(3, len(row))
-            if row[i] is not None and str(row[i]).strip() != ""
-        ]
+            # wartości od kolumny D (indeks 3) wzwyż — zbierz wszystkie niepuste
+            values = [
+                str(row[i]).strip()
+                for i in range(3, len(row))
+                if row[i] is not None and str(row[i]).strip() != ""
+            ]
 
-        total += 1
+            total += 1
 
-        if not values:
-            skipped += 1
-            results.append({"akronim": akronim, "class": attr_raw, "value": None, "status": "POMINIĘTY"})
-            continue
+            if not values:
+                skipped += 1
+                results.append({"akronim": akronim, "class": attr_raw, "value": None, "status": "POMINIĘTY"})
+                continue
 
-        if akronim in failed_akronimy:
-            failed += 1
-            results.append({"akronim": akronim, "class": attr_raw, "value": ", ".join(values) if values else None,
-                             "status": "BŁĄD", "message": f"Błąd usuwania atrybutów: {akronim}"})
-            continue
-
-        exact_name = class_map.get(attr_raw.lower())
-        if exact_name is None:
-            failed += 1
-            results.append({"akronim": akronim, "class": attr_raw, "value": ", ".join(values),
-                             "status": "BŁĄD", "message": f"Nieznana klasa atrybutu: '{attr_raw}'"})
-            continue
-
-        # wstaw każdą wartość osobno (obsługa wielowartościowych)
-        row_ok = True
-        for v in values:
-            res = set_attribute(exact_name, v, akronim, obj_type=16, operator=operator)
-            if not res["ok"]:
-                row_ok = False
+            if akronim in failed_akronimy:
                 failed += 1
-                results.append({"akronim": akronim, "class": attr_raw, "value": v,
-                                 "status": "BŁĄD", "message": res["error"]["message"]})
+                results.append({"akronim": akronim, "class": attr_raw, "value": ", ".join(values) if values else None,
+                                 "status": "BŁĄD", "message": f"Błąd usuwania atrybutów: {akronim}"})
+                continue
 
-        if row_ok:
-            success += 1
-            results.append({"akronim": akronim, "class": attr_raw,
-                             "value": ", ".join(values), "status": "OK"})
+            exact_name = class_map.get(attr_raw.lower())
+            if exact_name is None:
+                failed += 1
+                results.append({"akronim": akronim, "class": attr_raw, "value": ", ".join(values),
+                                 "status": "BŁĄD", "message": f"Nieznana klasa atrybutu: '{attr_raw}'"})
+                continue
+
+            # wstaw każdą wartość osobno (obsługa wielowartościowych)
+            row_ok = True
+            for v in values:
+                res = set_attribute(exact_name, v, akronim, obj_type=16, operator=operator)
+                if not res["ok"]:
+                    row_ok = False
+                    failed += 1
+                    results.append({"akronim": akronim, "class": attr_raw, "value": v,
+                                     "status": "BŁĄD", "message": res["error"]["message"]})
+
+            if row_ok:
+                success += 1
+                results.append({"akronim": akronim, "class": attr_raw,
+                                 "value": ", ".join(values), "status": "OK"})
+    finally:
+        try:
+            xl_session.logout()
+        except Exception:
+            pass
 
     if report:
         _write_report(path=report, results=results)

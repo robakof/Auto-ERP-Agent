@@ -1,5 +1,6 @@
 """xl_session — singleton sesji XL API (login/logout, lazy init z .env)."""
 
+import atexit
 import os
 import threading
 from pathlib import Path
@@ -15,7 +16,7 @@ _client: XlProxyClient | None = None
 _sesja_id: int = 0
 
 _DEFAULTS = {
-    "XL_DLL_DIR":       r"C:\Comarch ERP\Comarch ERP XL 2025.1",
+    "XL_DLL_DIR":       r"C:\Program Files (x86)\Comarch ERP XL 2023.1",
     "XL_BAZA":          "",
     "XL_LOGIN":         "",
     "XL_PASSWORD":      "",
@@ -48,6 +49,17 @@ def logout() -> None:
                 _client.stop()
                 _client = None
                 _sesja_id = 0
+
+
+def _atexit_logout() -> None:
+    """Automatyczny logout przy zamknięciu procesu Python."""
+    try:
+        logout()
+    except Exception:
+        pass
+
+
+atexit.register(_atexit_logout)
 
 
 def _login() -> tuple[XlProxyClient, int]:

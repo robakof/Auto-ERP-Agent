@@ -6,11 +6,15 @@ import sys
 import threading
 from pathlib import Path
 
-if getattr(sys, "frozen", False):
-    # PyInstaller onedir: exe i xl_proxy/ są w tym samym katalogu
-    _PROXY_EXE = Path(sys.executable).parent / "xl_proxy" / "XlProxy.exe"
-else:
-    _PROXY_EXE = Path(__file__).parent.parent / "xl_proxy" / "XlProxy.exe"
+def _resolve_proxy_exe(dll_dir: str) -> Path:
+    """Wybierz exe proxy na podstawie wersji XL (2023 vs 2025)."""
+    if getattr(sys, "frozen", False):
+        base = Path(sys.executable).parent
+    else:
+        base = Path(__file__).parent.parent
+    if "2023" in dll_dir:
+        return base / "xl_proxy_2023" / "XlProxy.exe"
+    return base / "xl_proxy" / "XlProxy.exe"
 
 
 class XlProxyError(RuntimeError):
@@ -24,10 +28,11 @@ class XlProxyClient:
         self._lock = threading.Lock()
 
     def start(self) -> None:
-        if not _PROXY_EXE.exists():
-            raise XlProxyError(f"XlProxy.exe nie znaleziony: {_PROXY_EXE}")
+        proxy_exe = _resolve_proxy_exe(self._dll_dir)
+        if not proxy_exe.exists():
+            raise XlProxyError(f"XlProxy.exe nie znaleziony: {proxy_exe}")
         self._proc = subprocess.Popen(
-            [str(_PROXY_EXE), self._dll_dir],
+            [str(proxy_exe), self._dll_dir],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             text=True,

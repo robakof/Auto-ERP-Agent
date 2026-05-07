@@ -12,7 +12,7 @@ class XlClient:
     def invoke(self, method: str, **params) -> dict:
         """Wywołaj dowolną metodę XL API.
 
-        Wersja=20251 ustawiana automatycznie. sesja_id pobierana z singletona.
+        Wersja ustawiana automatycznie (z XL_DLL_DIR). sesja_id pobierana z singletona.
         Przykład: client.invoke("XLNowyDokument", TrNTyp=524288)
         """
         client, sesja_id = xl_session.get()
@@ -20,7 +20,7 @@ class XlClient:
             "cmd":      "invoke",
             "method":   method,
             "sesja_id": sesja_id,
-            "params":   {"Wersja": 20251, **params},
+            "params":   params,
         })
 
     # --- Logowanie (zarządza xl_session) ---
