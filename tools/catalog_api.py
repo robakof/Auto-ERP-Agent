@@ -153,6 +153,7 @@ def get_product(kod: str):
         "liczba_zdjec": base.get("LiczbaZdjec", 0),
         "zasilanie": (base.get("Zasilanie") or "").strip(),
         "bateria_w_zestawie": (base.get("CzyBateriaWZestawie") or "").strip(),
+        "trend_nowosc": (base.get("TrendNowosc") or "").strip(),
         "ceny": [],
     }
 

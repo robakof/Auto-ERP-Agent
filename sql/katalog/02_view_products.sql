@@ -52,6 +52,7 @@ SELECT
     -- Dodatkowe atrybuty
     atr_zasilanie.Wartosc   AS Zasilanie,
     atr_bateria.Wartosc     AS CzyBateriaWZestawie,
+    atr_trend.Wartosc       AS TrendNowosc,
 
     -- Klucz wewnetrzny
     tw.Twr_GIDNumer         AS TwrGIDNumer
@@ -154,6 +155,11 @@ OUTER APPLY (
     FROM CDN.Atrybuty a WHERE a.Atr_ObiTyp = 16
         AND a.Atr_ObiNumer = tw.Twr_GIDNumer AND a.Atr_AtkId = 8
 ) atr_bateria     -- CZY BATERIA W ZESTAWIE
+OUTER APPLY (
+    SELECT TOP 1 a.Atr_Wartosc AS Wartosc
+    FROM CDN.Atrybuty a WHERE a.Atr_ObiTyp = 16
+        AND a.Atr_ObiNumer = tw.Twr_GIDNumer AND a.Atr_AtkId = 18
+) atr_trend       -- TREND NOWOSCI
 
 -- --- Jednostki logistyczne ---
 OUTER APPLY (
