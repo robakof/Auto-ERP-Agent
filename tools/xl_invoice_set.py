@@ -242,6 +242,7 @@ def set_invoice(invoice: FzInvoice) -> dict:
                 "_lDokumentID": doc_id,
                 "Ilosc":        str(poz.ilosc),
                 "Cena":         str(poz.cena_netto),
+                "NiePrzeliczaj": 1,
                 "Vat":          _vat_group(poz.stawka_vat),
                 "StawkaPod":    stawka_int * 100,
                 "FlagaVAT":     flaga_int,
