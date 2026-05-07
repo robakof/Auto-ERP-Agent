@@ -102,14 +102,35 @@ _TOWAR_SQL = """
       AND d.TWD_KodDodatkowyKnt <> ''
 """
 
-# fallback bez filtra kontrahenta (gdy wpis jest przypisany do innego Knt)
-_TOWAR_SQL_FALLBACK = """
+# fallback 1: kod dodatkowy bez filtra kontrahenta
+_TOWAR_SQL_FALLBACK_KOD = """
     SELECT TOP 1 tw.Twr_Kod
     FROM CDN.TwrDost d
     JOIN CDN.TwrKarty tw ON d.TWD_TwrNumer = tw.Twr_GIDNumer
                         AND d.TWD_TwrFirma = tw.Twr_GIDFirma
     WHERE UPPER(LTRIM(RTRIM(d.TWD_KodDodatkowyKnt))) = UPPER(LTRIM(RTRIM(?)))
       AND d.TWD_KodDodatkowyKnt <> ''
+"""
+
+# fallback 2: nazwa dostawcy z filtrem kontrahenta (255 znaków)
+_TOWAR_SQL_NAZWA = """
+    SELECT TOP 1 tw.Twr_Kod
+    FROM CDN.TwrDost d
+    JOIN CDN.TwrKarty tw ON d.TWD_TwrNumer = tw.Twr_GIDNumer
+                        AND d.TWD_TwrFirma = tw.Twr_GIDFirma
+    WHERE d.TWD_KntNumer = ?
+      AND UPPER(LTRIM(RTRIM(d.TWD_NazwaKnt))) = UPPER(LTRIM(RTRIM(?)))
+      AND d.TWD_NazwaKnt <> ''
+"""
+
+# fallback 3: nazwa dostawcy bez filtra kontrahenta
+_TOWAR_SQL_NAZWA_FALLBACK = """
+    SELECT TOP 1 tw.Twr_Kod
+    FROM CDN.TwrDost d
+    JOIN CDN.TwrKarty tw ON d.TWD_TwrNumer = tw.Twr_GIDNumer
+                        AND d.TWD_TwrFirma = tw.Twr_GIDFirma
+    WHERE UPPER(LTRIM(RTRIM(d.TWD_NazwaKnt))) = UPPER(LTRIM(RTRIM(?)))
+      AND d.TWD_NazwaKnt <> ''
 """
 
 
@@ -126,17 +147,25 @@ def _err(err_type: str, msg: str, start: float) -> dict:
 
 
 def _resolve_towar_kod(cursor, knt_numer: int, nazwa: str) -> str | None:
-    """Zwraca Twr_Kod z CDN.TwrDost (TWD_KodDodatkowyKnt).
+    """Zwraca Twr_Kod z CDN.TwrDost.
 
-    Najpierw z filtrem kontrahenta, fallback bez filtra gdy wpis przypisany do innego Knt.
+    Kolejność szukania:
+    1. TWD_KodDodatkowyKnt + kontrahent
+    2. TWD_KodDodatkowyKnt bez kontrahenta
+    3. TWD_NazwaKnt + kontrahent (255 znaków — obsługuje długie nazwy)
+    4. TWD_NazwaKnt bez kontrahenta
     """
-    cursor.execute(_TOWAR_SQL, [knt_numer, nazwa])
-    row = cursor.fetchone()
-    if row:
-        return str(row[0])
-    cursor.execute(_TOWAR_SQL_FALLBACK, [nazwa])
-    row = cursor.fetchone()
-    return str(row[0]) if row else None
+    for sql, params in [
+        (_TOWAR_SQL,                [knt_numer, nazwa]),
+        (_TOWAR_SQL_FALLBACK_KOD,   [nazwa]),
+        (_TOWAR_SQL_NAZWA,          [knt_numer, nazwa]),
+        (_TOWAR_SQL_NAZWA_FALLBACK, [nazwa]),
+    ]:
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        if row:
+            return str(row[0])
+    return None
 
 
 def set_invoice(invoice: FzInvoice) -> dict:
