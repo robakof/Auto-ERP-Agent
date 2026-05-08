@@ -68,7 +68,7 @@ def write_html(html: str, output_path: str) -> str:
 # Excel renderer v4 — config-driven, sorted, branded
 # ---------------------------------------------------------------------------
 
-_PROJECT_ROOT = Path(__file__).parent.parent
+_PROJECT_ROOT = Path(__file__).parent.parent.parent
 _IMAGES_DIR = _PROJECT_ROOT / "assets" / "catalog" / "images"
 
 
