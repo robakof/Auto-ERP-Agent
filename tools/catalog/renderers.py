@@ -68,7 +68,7 @@ def write_html(html: str, output_path: str) -> str:
 # Excel renderer v4 — config-driven, sorted, branded
 # ---------------------------------------------------------------------------
 
-_PROJECT_ROOT = Path(__file__).parent.parent.parent
+_PROJECT_ROOT = Path(__file__).parent.parent
 _IMAGES_DIR = _PROJECT_ROOT / "assets" / "catalog" / "images"
 
 
@@ -99,6 +99,7 @@ def _excel_cfg(config: dict) -> dict:
         "columns": ec.get("columns", []),
         "sort_order": ec.get("package_sort_order", []),
         "sort_products": ec.get("sort_products_by", "price_asc"),
+        "section_order": ec.get("section_order"),
     }
 
 
@@ -210,16 +211,21 @@ def _write_top_bar(ws, fmt: dict, config: dict, last_col: int,
 
 
 def _write_pkg_header(ws, fmt: dict, pkg: dict, row: int, last_col: int,
-                      pkg_h: int) -> int:
+                      pkg_h: int, standalone: bool = False) -> int:
     name = pkg.get("name", "")
     ws.merge_range(row, 0, row, 3, name, fmt["pkg_bar"])
-    ws.write(row, 4, "Zamów pakiety:", fmt["pkg_label"])
-    ws.write(row, 5, 0, fmt["pkg_qty"])
-    ws.data_validation(row, 5, row, 5, {
-        "validate": "integer", "criteria": ">=",
-        "value": 0, "error_message": "Ilość pakietów >= 0",
-    })
-    ws.merge_range(row, 6, row, 7, "Wartość pakietu:", fmt["pkg_label"])
+    if standalone:
+        ws.merge_range(row, 4, row, 5, "", fmt["pkg_fill"])
+    else:
+        ws.write(row, 4, "Zamów pakiety:", fmt["pkg_label"])
+        ws.write(row, 5, 0, fmt["pkg_qty"])
+        ws.data_validation(row, 5, row, 5, {
+            "validate": "integer", "criteria": ">=",
+            "value": 0, "error_message": "Ilość pakietów >= 0",
+        })
+    ws.merge_range(row, 6, row, 7,
+                   "Wartość sekcji:" if standalone else "Wartość pakietu:",
+                   fmt["pkg_label"])
     for c in range(9, last_col + 1):
         ws.write_blank(row, c, None, fmt["pkg_fill"])
     ws.set_row(row, pkg_h)
@@ -343,29 +349,106 @@ def render_excel(
     row += 1
     data_start_row = row
 
+    from tools.catalog.data_loader import standalone_group_name
+
     sorted_pkgs = _sort_packages(
         [p for p in packages if p.get("items")], ec["sort_order"])
 
+    # -- Collect codes used in packages --
+    pkg_product_codes = set()
     for pkg in sorted_pkgs:
+        for item in pkg.get("items", []):
+            pkg_product_codes.add(item.get("product_code", ""))
+
+    # -- Build standalone groups --
+    standalone = [p for p in products
+                  if p.get("code_xl", "") and p["code_xl"] not in pkg_product_codes]
+    sa_groups: dict[str, list] = {}
+    for p in standalone:
+        grp = standalone_group_name(p.get("default_group"), p.get("name", ""))
+        sa_groups.setdefault(grp, []).append(p)
+    for grp_products in sa_groups.values():
+        grp_products.sort(key=lambda p: p.get("name", ""))
+
+    # -- Render sections in config-defined order (interleaved) --
+    section_order = ec.get("section_order")
+    pkg_header_rows = []
+
+    def _render_package(pkg):
+        nonlocal row
         pkg_row = row
         row = _write_pkg_header(ws, fmt, pkg, row, last_col, ec["pkg_h"])
         pkg_qty_cell = f"${_col_letter(5)}${pkg_row + 1}"
-
         items = _sort_items(pkg["items"], ec["sort_products"], prod_lookup)
         first_item_row = row
         for i, item in enumerate(items):
             _write_product_row(ws, fmt, row, i, item, pkg_qty_cell,
                                prod_lookup, columns, ec["photo_h"])
             row += 1
-
         if items:
             ws.write_formula(pkg_row, value_ci,
                 f"=SUM({val_letter}{first_item_row+1}:{val_letter}{row})",
                 fmt["pkg_val"])
+            pkg_header_rows.append(pkg_row)
 
-    ws.write_formula(summary_row, value_ci,
-        f"=SUM({val_letter}{data_start_row+1}:{val_letter}{row})",
-        fmt["top_val"])
+    def _render_standalone_group(grp_name, grp_products):
+        nonlocal row
+        pkg_row = row
+        standalone_pkg = {"name": grp_name, "code_xl": "", "items": []}
+        row = _write_pkg_header(ws, fmt, standalone_pkg, row, last_col, ec["pkg_h"],
+                                standalone=True)
+        first_item_row = row
+        for i, p in enumerate(grp_products):
+            item = {
+                "product_code": p["code_xl"],
+                "product_name": p.get("name", ""),
+                "quantity": 0,
+                "unit_price": p.get("price_net", 0),
+            }
+            _write_product_row(ws, fmt, row, i, item, "0",
+                               prod_lookup, columns, ec["photo_h"])
+            row += 1
+        ws.write_formula(pkg_row, value_ci,
+            f"=SUM({val_letter}{first_item_row+1}:{val_letter}{row})",
+            fmt["pkg_val"])
+        pkg_header_rows.append(pkg_row)
+
+    if section_order:
+        used_pkgs = set()
+        used_sa = set()
+        for section in section_order:
+            if section["type"] == "packages":
+                match_list = [m.upper() for m in section.get("match", [])]
+                for pkg in sorted_pkgs:
+                    pname = (pkg.get("name") or "").upper()
+                    if any(m in pname for m in match_list) and id(pkg) not in used_pkgs:
+                        _render_package(pkg)
+                        used_pkgs.add(id(pkg))
+            elif section["type"] == "standalone":
+                for grp_name in section.get("groups", []):
+                    if grp_name in sa_groups and grp_name not in used_sa:
+                        _render_standalone_group(grp_name, sa_groups[grp_name])
+                        used_sa.add(grp_name)
+        # Render any remaining packages/standalone not matched by section_order
+        for pkg in sorted_pkgs:
+            if id(pkg) not in used_pkgs:
+                _render_package(pkg)
+        for grp_name, grp_products in sa_groups.items():
+            if grp_name not in used_sa:
+                _render_standalone_group(grp_name, grp_products)
+    else:
+        # Fallback: all packages then all standalone
+        for pkg in sorted_pkgs:
+            _render_package(pkg)
+        for grp_name, grp_products in sa_groups.items():
+            _render_standalone_group(grp_name, grp_products)
+
+    # Sum only section header rows (not products) to avoid double-counting
+    if pkg_header_rows:
+        pkg_cells = "+".join(f"{val_letter}{r + 1}" for r in pkg_header_rows)
+        ws.write_formula(summary_row, value_ci, f"={pkg_cells}", fmt["top_val"])
+    else:
+        ws.write_number(summary_row, value_ci, 0, fmt["top_val"])
 
     for ci, col_cfg in enumerate(columns):
         ws.set_column(ci, ci, col_cfg.get("width", 12))

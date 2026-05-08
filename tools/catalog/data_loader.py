@@ -48,6 +48,7 @@ def _map_product(raw: dict) -> dict:
         "weight_g": raw.get("WagaProduktu_g"),
         "hole_diameter_cm": raw.get("SrednicaOtworu_cm"),
         "group_path": raw.get("GrupaSciezka", ""),
+        "default_group": raw.get("GrupaDomyslna"),
     }
 
 
@@ -87,8 +88,9 @@ def load_erp_data(
         for s in pkg.get("skladniki", []):
             pkg_codes_in_use.add(s["kod"])
 
-    products = [_map_product(p) for p in products_list if p.get("KodXL", "") in pkg_codes_in_use]
+    products = [_map_product(p) for p in products_list]
     for p in products:
+        p["in_package"] = p["code_xl"] in pkg_codes_in_use
         p["package_name"] = ""
     for pkg in packages_list:
         for s in pkg.get("skladniki", []):
@@ -106,6 +108,32 @@ def group_by_package(products: list) -> dict[str, list]:
         pkg = p.get("package_name", "INNE")
         groups.setdefault(pkg, []).append(p)
     return groups
+
+
+# --- Standalone product grouping by ERP default group ---
+GROUP_DISPLAY_NAMES = {
+    "6_LEDOWE": "Znicze LED",
+    "7_LEDOWE": "Znicze LED",
+    "LEDOWE": "Znicze LED",
+    "8_SOLARNE": "Znicze Solarne",
+    "3_LAMPIONY": "Lampiony",
+    "BEZ WKŁADU": "Lampiony",
+    "BEZ WKLADU": "Lampiony",
+    "ALAS0018": "Zapalarki",
+}
+STANDALONE_GROUP_ORDER = [
+    "Znicze LED", "Znicze Solarne", "Lampiony", "Zapalarki", "Wkłady LED",
+]
+
+
+def standalone_group_name(default_group: str | None, product_name: str = "") -> str:
+    if default_group and default_group in GROUP_DISPLAY_NAMES:
+        return GROUP_DISPLAY_NAMES[default_group]
+    # Fallback: check product name for zapalarki/zapałki
+    n = (product_name or "").upper()
+    if "ZAPAL" in n or "ZAPAŁ" in n:
+        return "Zapalarki"
+    return "Wkłady LED"
 
 
 def category_for_package(pkg_name: str) -> str:
