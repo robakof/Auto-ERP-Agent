@@ -33,6 +33,7 @@ _INV = FzInvoice(
 
 _PARSE_OK   = {"ok": True,  "data": _INV,  "error": None}
 _PARSE_FAIL = {"ok": False, "data": None,  "error": "XML parse error: bad"}
+_PARSE_KOR  = {"ok": False, "data": None,  "error": "Nieobsługiwany rodzaj faktury: KOR (obsługiwane: VAT)", "skip": True}
 _SET_OK     = {"ok": True,  "data": {"doc_id": 1, "nr_obcy": "FV/1/2026", "action": "inserted"},
                "error": None, "meta": {"duration_ms": 10}}
 _SET_SKIP   = {"ok": True,  "data": {"nr_obcy": "FV/1/2026", "action": "skipped"},
@@ -144,4 +145,23 @@ class TestBulkImport:
         ws = wb.active
         statuses = [ws.cell(r, 5).value for r in range(2, ws.max_row + 1)]
         assert "BŁĄD" in statuses
+        wb.close()
+
+    def test_kor_counted_as_skipped_not_failed(self, tmp_path):
+        _xml_dir(tmp_path)
+        with patch.object(xb, "parse_ksef_xml", return_value=_PARSE_KOR):
+            result = xb.bulk_import(tmp_path)
+        assert result["data"]["skipped"] == 1
+        assert result["data"]["failed"] == 0
+
+    def test_kor_report_status_pominieto(self, tmp_path):
+        _xml_dir(tmp_path)
+        report = tmp_path / "raport.xlsx"
+        with patch.object(xb, "parse_ksef_xml", return_value=_PARSE_KOR):
+            xb.bulk_import(tmp_path, report=report)
+        wb = load_workbook(report, read_only=True, data_only=True)
+        ws = wb.active
+        statuses = [ws.cell(r, 5).value for r in range(2, ws.max_row + 1)]
+        assert "POMINIĘTO" in statuses
+        assert "BŁĄD" not in statuses
         wb.close()

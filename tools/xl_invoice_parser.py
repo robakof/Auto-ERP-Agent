@@ -83,7 +83,8 @@ def parse_ksef_xml(path: Path) -> dict:
 
     rodzaj = _text(fa, "RodzajFaktury")
     if rodzaj != "VAT":
-        return {"ok": False, "data": None, "error": f"Nieobsługiwany rodzaj faktury: {rodzaj} (obsługiwane: VAT)"}
+        return {"ok": False, "data": None, "error": f"Nieobsługiwany rodzaj faktury: {rodzaj} (obsługiwane: VAT)",
+                "skip": True}
 
     podmiot1 = root.find(_tag("Podmiot1"))
     dane1 = podmiot1.find(_tag("DaneIdentyfikacyjne")) if podmiot1 is not None else None

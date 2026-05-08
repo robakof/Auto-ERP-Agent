@@ -121,6 +121,7 @@ def test_parse_kor_rejected():
     result = parse_ksef_xml(path)
     assert not result["ok"]
     assert "KOR" in result["error"]
+    assert result.get("skip") is True
 
 
 def test_parse_stanprzed_skipped():

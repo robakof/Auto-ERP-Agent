@@ -71,12 +71,20 @@ def bulk_import(dir_path: Path, report: Path | None = None) -> dict:
             parse_result = parse_ksef_xml(xml_path)
 
             if not parse_result["ok"]:
-                failed += 1
-                rows.append({
-                    "plik": xml_path.name,
-                    "status": "BŁĄD",
-                    "komunikat": parse_result["error"],
-                })
+                if parse_result.get("skip"):
+                    skipped += 1
+                    rows.append({
+                        "plik": xml_path.name,
+                        "status": "POMINIĘTO",
+                        "komunikat": parse_result["error"],
+                    })
+                else:
+                    failed += 1
+                    rows.append({
+                        "plik": xml_path.name,
+                        "status": "BŁĄD",
+                        "komunikat": parse_result["error"],
+                    })
                 continue
 
             inv = parse_result["data"]
