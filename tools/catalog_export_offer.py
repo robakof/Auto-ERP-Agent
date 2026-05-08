@@ -52,6 +52,7 @@ for i in range(0, len(offer_codes), 500):
                Sezon, Kolor, MaZdjecie, TwrGIDNumer
         FROM AIOP.vKatalogProdukty
         WHERE KodXL IN ({ph})
+          AND CennikNazwa = 'Cennik Brico DDD'
     """, batch)
     cols = [c[0] for c in cur.description]
     for row in cur.fetchall():
@@ -62,13 +63,43 @@ for i in range(0, len(offer_codes), 500):
 
 print(f"Raw rows from ERP: {len(products)}")
 
-# Dedup: one row per KodXL (highest CenaNetto)
+# Dedup: one row per KodXL (cennik Brico DDD already filtered)
 best = {}
 for p in products:
     code = p["KodXL"]
-    price = p.get("CenaNetto") or 0
-    if code not in best or price > (best[code].get("CenaNetto") or 0):
+    if code not in best:
         best[code] = p
+
+# Fallback: products missing from "Cennik Brico DDD" — try "katalog 2025 Brico"
+missing_codes = [c for c in offer_codes if c not in best]
+if missing_codes:
+    print(f"Fallback query for {len(missing_codes)} missing products...")
+    for i in range(0, len(missing_codes), 500):
+        batch = missing_codes[i:i+500]
+        ph = ",".join(["?"] * len(batch))
+        cur.execute(f"""
+            SELECT KodXL, KodEAN, NazwaHandlowa, GrupaSciezka,
+                   CenaNetto, CennikRodzaj,
+                   CzasPalenia_h, GramaturaWkladu_g,
+                   WysokoscNetto_cm, SzerokoscNetto_cm,
+                   SrednicaProduktu_cm, Material, Zapach,
+                   WagaProduktu_g, SrednicaOtworu_cm,
+                   SzerokoscBrutto_cm, WysokoscBrutto_cm, GlebokoscBrutto_cm,
+                   SztWOpakowaniu, SztNaWarstwie, SztNaPalecie,
+                   Sezon, Kolor, MaZdjecie, TwrGIDNumer
+            FROM AIOP.vKatalogProdukty
+            WHERE KodXL IN ({ph})
+              AND CennikNazwa = 'katalog 2025 Brico'
+        """, batch)
+        cols = [c[0] for c in cur.description]
+        for row in cur.fetchall():
+            d = {}
+            for j, v in enumerate(row):
+                d[cols[j]] = float(v) if isinstance(v, Decimal) else v
+            code = d["KodXL"]
+            if code not in best:
+                best[code] = d
+
 products = list(best.values())
 
 # Override GrupaSciezka for all
