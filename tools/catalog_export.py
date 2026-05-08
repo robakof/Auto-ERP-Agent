@@ -13,6 +13,7 @@ Usage:
 import argparse
 import json
 import os
+import shutil
 import sys
 from decimal import Decimal
 from pathlib import Path
@@ -68,22 +69,36 @@ def _query_rows(conn, sql: str, params: list | None = None) -> list[dict]:
 # ---------- Export: Products ----------
 
 def export_products(conn, grupa: str, cennik_rodzaj: int | None) -> list[dict]:
-    """Export products from AIOP.vKatalogProdukty."""
+    """Export products from AIOP.vKatalogProdukty.
+
+    Default (no cennik_rodzaj): one row per product with MAX(CenaNetto).
+    With cennik_rodzaj: rows from that specific price list.
+    """
     conditions = []
     params = []
 
     if cennik_rodzaj is not None:
         conditions.append("CennikRodzaj = ?")
         params.append(cennik_rodzaj)
-    else:
-        conditions.append("CennikId IS NULL")
 
     if grupa:
         conditions.append("GrupaSciezka LIKE ?")
         params.append(f"%{grupa}%")
 
     where = " AND ".join(conditions) if conditions else "1=1"
-    sql = f"SELECT * FROM AIOP.vKatalogProdukty WHERE {where} ORDER BY KodXL"
+
+    if cennik_rodzaj is not None:
+        sql = f"SELECT * FROM AIOP.vKatalogProdukty WHERE {where} ORDER BY KodXL"
+    else:
+        # One row per product: highest CenaNetto wins
+        sql = f"""
+            SELECT * FROM (
+                SELECT *, ROW_NUMBER() OVER (
+                    PARTITION BY KodXL ORDER BY CenaNetto DESC
+                ) AS _rn
+                FROM AIOP.vKatalogProdukty WHERE {where}
+            ) ranked WHERE _rn = 1 ORDER BY KodXL
+        """
     return _query_rows(conn, sql, params)
 
 
@@ -113,26 +128,40 @@ def export_packages(conn) -> list[dict]:
     return list(packages.values())
 
 
-# ---------- Export: Photos ----------
+# ---------- Export: Photos (from server disk) ----------
 
-_PHOTO_SQL = (
-    "SELECT tw.Twr_Kod, tw.Twr_Ean, dab.DAB_Dane, dab.DAB_Rozszerzenie "
-    "FROM CDN.DaneObiekty dao "
-    "INNER JOIN CDN.DaneBinarne dab ON dao.DAO_DABId = dab.DAB_ID "
-    "INNER JOIN CDN.TwrKarty tw ON dao.DAO_ObiNumer = tw.Twr_GIDNumer "
-    "WHERE dao.DAO_ObiTyp = 16 "
-    "  AND dab.DAB_Rozszerzenie IN ('jpg','png','jpeg','JPG','PNG','JPEG') "
-    "  AND tw.Twr_Kod IN ({placeholders}) "
-    "ORDER BY tw.Twr_Kod, dab.DAB_ID"
-)
+DEFAULT_PHOTOS_DIR = r"C:\CEIM\Zdjęcia"
 
 
-def export_photos(conn, product_codes: list[str]) -> dict:
-    """Export first photo per product, saved as {EAN}.jpg."""
+def export_photos(conn, product_codes: list[str],
+                  photos_dir: str = DEFAULT_PHOTOS_DIR) -> dict:
+    """Copy product photos from server disk to assets/catalog/images/{EAN}.jpg.
+
+    Source files on disk are named by KodXL (e.g. DAVP43567.jpg).
+    Output files are named by EAN (e.g. 5907702543567.jpg).
+    """
     if not product_codes:
-        return {"exported": 0, "skipped": 0}
+        return {"exported": 0, "skipped": 0, "no_file": 0, "no_ean": 0}
 
     IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+    src_dir = Path(photos_dir)
+
+    if not src_dir.exists():
+        print(f"  WARNING: Photos directory not found: {src_dir}")
+        return {"exported": 0, "skipped": 0, "no_file": len(product_codes), "no_ean": 0}
+
+    # Build index of source files: KodXL (uppercase, no suffix) → path
+    # Files may have suffixes like AGNE14297B.jpg, AGNE14297C.jpg
+    # We prefer the base file (no suffix) over suffixed variants
+    src_index: dict[str, Path] = {}
+    for f in src_dir.iterdir():
+        if f.suffix.lower() not in (".jpg", ".jpeg", ".png", ".webp"):
+            continue
+        stem = f.stem.upper()
+        # Base file (exact KodXL match) takes priority
+        # Suffixed files (e.g. AGNE14297B) are fallback
+        if stem not in src_index:
+            src_index[stem] = f
 
     # Query EAN mapping for all products
     ean_map = {}
@@ -149,41 +178,34 @@ def export_photos(conn, product_codes: list[str]) -> dict:
             if ean:
                 ean_map[r["Twr_Kod"]] = ean
 
-    # Query photos in batches
+    # Copy photos: {KodXL}.jpg → {EAN}.jpg
     exported = 0
     skipped = 0
-    seen_codes = set()
+    no_file = 0
 
     codes_with_ean = [c for c in product_codes if c in ean_map]
-    for batch_start in range(0, len(codes_with_ean), 200):
-        batch = codes_with_ean[batch_start:batch_start + 200]
-        ph = ",".join(["?"] * len(batch))
-        sql = _PHOTO_SQL.replace("{placeholders}", ph)
+    for kod in codes_with_ean:
+        kod_upper = kod.strip().upper()
+        src_path = src_index.get(kod_upper)
+        if not src_path:
+            no_file += 1
+            continue
 
-        cursor = conn.cursor()
-        cursor.execute(sql, batch)
-        for row in cursor.fetchall():
-            kod = row[0].strip()
-            if kod in seen_codes:
-                continue  # first photo only
-            seen_codes.add(kod)
-
-            ean = ean_map.get(kod, "")
-            blob = row[2]
-            ext = (row[3] or "jpg").strip().lower()
-            if ext == "jpeg":
-                ext = "jpg"
-
-            if not blob or not ean:
-                skipped += 1
-                continue
-
-            out_path = IMAGES_DIR / f"{ean}.{ext}"
-            out_path.write_bytes(bytes(blob))
+        ean = ean_map[kod]
+        out_path = IMAGES_DIR / f"{ean}.jpg"
+        try:
+            shutil.copy2(str(src_path), str(out_path))
             exported += 1
+        except OSError as e:
+            print(f"  WARNING: Failed to copy {src_path} → {out_path}: {e}")
+            skipped += 1
 
-    skipped += len(codes_with_ean) - len(seen_codes)
-    return {"exported": exported, "skipped": skipped, "no_ean": len(product_codes) - len(codes_with_ean)}
+    return {
+        "exported": exported,
+        "skipped": skipped,
+        "no_file": no_file,
+        "no_ean": len(product_codes) - len(codes_with_ean),
+    }
 
 
 # ---------- Save JSON ----------
@@ -228,9 +250,10 @@ def main():
     parser = argparse.ArgumentParser(description="Catalog Export — SQL → JSON + photos + Excel")
     parser.add_argument("--grupa", default="", help="Filter by GrupaSciezka (LIKE), e.g. OFERTY/2025/BRICO")
     parser.add_argument("--cennik-rodzaj", type=int, default=None, help="Price list type (4=BRICO)")
-    parser.add_argument("--photos", action="store_true", help="Export product photos as EAN.jpg")
+    parser.add_argument("--photos", action="store_true", help="Copy product photos from server disk as EAN.jpg")
+    parser.add_argument("--photos-dir", default=DEFAULT_PHOTOS_DIR, help="Source directory for product photos (default: C:\\CEIM\\Zdjęcia)")
     parser.add_argument("--render-excel", action="store_true", help="Generate Excel order form after export")
-    parser.add_argument("--config", default="config/ceim_brico_2025.yaml", help="YAML config for Excel render")
+    parser.add_argument("--config", default="config/ceim_brico_2026.yaml", help="YAML config for Excel render")
     parser.add_argument("--skip-export", action="store_true", help="Skip SQL export, only render Excel from existing JSONs")
     parser.add_argument("--products-out", default="data/catalog_products.json", help="Output path for products JSON")
     parser.add_argument("--packages-out", default="data/catalog_packages.json", help="Output path for packages JSON")
@@ -261,13 +284,13 @@ def main():
             result["packages"] = {"count": len(packages), "path": str(packages_path)}
             print(f"  → {len(packages)} packages → {packages_path}")
 
-            # Photos
+            # Photos (from server disk)
             if args.photos:
-                codes = [p["KodXL"] for p in products if p.get("KodXL") and p.get("MaZdjecie")]
-                print(f"Exporting photos for {len(codes)} products...")
-                photo_result = export_photos(conn, codes)
+                codes = [p["KodXL"] for p in products if p.get("KodXL")]
+                print(f"Copying photos for {len(codes)} products from {args.photos_dir}...")
+                photo_result = export_photos(conn, codes, args.photos_dir)
                 result["photos"] = photo_result
-                print(f"  → {photo_result['exported']} exported, {photo_result['skipped']} skipped, {photo_result.get('no_ean', 0)} no EAN")
+                print(f"  → {photo_result['exported']} exported, {photo_result['no_file']} no file on disk, {photo_result.get('no_ean', 0)} no EAN")
         finally:
             conn.close()
 

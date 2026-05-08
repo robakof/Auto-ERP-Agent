@@ -59,9 +59,8 @@ SELECT
 
 FROM CDN.TwrKarty tw
 
--- --- Ceny: LEFT JOIN = produkt x cennik ---
+-- --- Ceny: LEFT JOIN = produkt x cennik (ogolne + kontrahentowe) ---
 LEFT JOIN CDN.TwrCeny tc ON tc.TwC_TwrNumer = tw.Twr_GIDNumer
-    AND tc.TwC_KntNumer = 0
 LEFT JOIN CDN.TwrCenyNag cn ON tc.TwC_TcnId = cn.TCN_Id
 
 -- --- Atrybuty (OUTER APPLY per klasa atrybutu) ---

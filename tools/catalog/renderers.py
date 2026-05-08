@@ -243,7 +243,7 @@ def _write_product_row(
     prod = prod_lookup.get(code, {})
     price = item.get("unit_price") or prod.get("price_net", 0)
     ean = prod.get("ean", "")
-    per_pack_col = None
+    per_pack_col = _find_col_idx(columns, "per_pack") if any(c.get("key") == "per_pack" for c in columns) else None
 
     for ci, col_cfg in enumerate(columns):
         key = col_cfg.get("key", "")
@@ -291,8 +291,6 @@ def _write_product_row(
             ws.write_formula(row, ci, f"={price_col}{r1}*{total_col}{r1}", v)
         else:
             val = prod.get(key)
-            if key == "per_pack":
-                per_pack_col = ci
             if val is None:
                 ws.write_blank(row, ci, None, n)
             elif isinstance(val, (int, float)):
