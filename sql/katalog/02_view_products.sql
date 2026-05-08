@@ -11,8 +11,8 @@ SELECT
     tw.Twr_Ean              AS KodEAN,
     tw.Twr_Nazwa            AS NazwaHandlowa,
 
-    -- B. Klasyfikacja (atrybut GRUPA = sciezka folderowa)
-    atr_grupa.Wartosc       AS GrupaSciezka,
+    -- B. Klasyfikacja (folder ofertowy z drzewa TwrGrupyDom, fallback: atrybut GRUPA)
+    COALESCE(folder_grupa.FolderPath, atr_grupa.Wartosc) AS GrupaSciezka,
     atr_sezon.Wartosc       AS Sezon,
     atr_kolor.Wartosc       AS Kolor,
     atr_status.Wartosc      AS StatusOfertowy,
@@ -63,12 +63,34 @@ FROM CDN.TwrKarty tw
 LEFT JOIN CDN.TwrCeny tc ON tc.TwC_TwrNumer = tw.Twr_GIDNumer
 LEFT JOIN CDN.TwrCenyNag cn ON tc.TwC_TcnId = cn.TCN_Id
 
+-- --- Folder ofertowy (drzewo TwrGrupyDom → TwrGrupy, pod 10_OFERTY) ---
+OUTER APPLY (
+    SELECT TOP 1
+        CASE
+            WHEN g3.TwG_Kod IS NOT NULL
+            THEN REPLACE(g3.TwG_Kod, '10_', '') + '/' + g2.TwG_Kod + '/' + g1.TwG_Kod
+            WHEN g2.TwG_Kod IS NOT NULL
+            THEN REPLACE(g2.TwG_Kod, '10_', '') + '/' + g1.TwG_Kod
+            ELSE REPLACE(g1.TwG_Kod, '10_', '')
+        END AS FolderPath
+    FROM CDN.TwrGrupyDom d
+    JOIN CDN.TwrGrupy g1 ON d.TGD_GrONumer = g1.TwG_GIDNumer
+    LEFT JOIN CDN.TwrGrupy g2 ON g1.TwG_GrONumer = g2.TwG_GIDNumer
+        AND g1.TwG_GrONumer <> 0 AND g1.TwG_GrONumer <> g1.TwG_GIDNumer
+    LEFT JOIN CDN.TwrGrupy g3 ON g2.TwG_GrONumer = g3.TwG_GIDNumer
+        AND g2.TwG_GrONumer <> 0 AND g2.TwG_GrONumer <> g2.TwG_GIDNumer
+    WHERE d.TGD_GIDNumer = tw.Twr_GIDNumer
+        AND (g1.TwG_Kod = '10_OFERTY'
+             OR g2.TwG_Kod = '10_OFERTY'
+             OR g3.TwG_Kod = '10_OFERTY')
+) folder_grupa
+
 -- --- Atrybuty (OUTER APPLY per klasa atrybutu) ---
 OUTER APPLY (
     SELECT TOP 1 a.Atr_Wartosc AS Wartosc
     FROM CDN.Atrybuty a WHERE a.Atr_ObiTyp = 16
         AND a.Atr_ObiNumer = tw.Twr_GIDNumer AND a.Atr_AtkId = 44
-) atr_grupa       -- GRUPA (sciezka folderowa)
+) atr_grupa       -- GRUPA (fallback gdy brak folderu ofertowego)
 OUTER APPLY (
     SELECT TOP 1 a.Atr_Wartosc AS Wartosc
     FROM CDN.Atrybuty a WHERE a.Atr_ObiTyp = 16
