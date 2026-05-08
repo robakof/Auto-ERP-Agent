@@ -128,7 +128,7 @@ class TestResolveTowarKod:
     def test_fallback_passes_only_nazwa(self):
         # drugie zapytanie (fallback) używa tylko nazwy, bez knt_numer
         cursor = MagicMock()
-        cursor.fetchone.side_effect = [None, None]
+        cursor.fetchone.side_effect = [None, None, None, None]
         _resolve_towar_kod(cursor, 99, "Towar X")
         fallback_args = cursor.execute.call_args_list[1][0]
         assert fallback_args[1] == ["Towar X"]
