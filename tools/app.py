@@ -89,11 +89,11 @@ APPS = [
         "active": True,
     },
     {
-        "name": "Preprocessing Zdjęć",
-        "desc": "Przygotowanie zdjęć produktowych do katalogu",
-        "icon": "🖼️",
-        "page": None,
-        "active": False,
+        "name": "Formularz Zamówień",
+        "desc": "Generator Excel z folderu ofertowego Comarch",
+        "icon": "📊",
+        "page": "pages/zamowienia.py",
+        "active": True,
     },
     {
         "name": "Oferta Katalogowa",

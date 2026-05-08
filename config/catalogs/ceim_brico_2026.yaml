@@ -2,6 +2,10 @@ catalog:
   name: OFERTA SEZON BRICO 2026
   client: CEiM
   subtitle: Produkcja Zniczy i Lampionów
+erp_source:
+  folder: OFERTY/2026/BRICO DDD
+  pricelist: Cennik Brico DDD
+  fallback_pricelist: katalog 2025 Brico
 data:
   type: erp_export
   products_path: data/catalog_products.json
