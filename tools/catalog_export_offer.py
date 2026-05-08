@@ -102,6 +102,65 @@ if missing_codes:
 
 products = list(best.values())
 
+# --- 2b. Default group from ERP tree (for standalone product grouping) ---
+# Find the sub-category group for each product by walking up from assigned groups.
+# Tree: 01_CMENTARZ(1) → 1_ZNICZE(10) → 1_MINI(60), 2_MAŁE, 3_ŚREDNIE, 8_SOLARNE...
+#                       → 2_WKŁADY(11) → 6_LEDOWE(49), ...
+#                       → 3_LAMPIONY(185)
+# We want the group whose parent is a child of 01_CMENTARZ (parent in {10,11,185,12,19})
+# i.e., the "leaf category" like 8_SOLARNE, 1_MINI, 6_LEDOWE
+gid_to_code = {p["TwrGIDNumer"]: p["KodXL"] for p in products}
+gids = list(gid_to_code.keys())
+group_map = {}  # KodXL -> GrupaDomyslna
+
+# Known sub-category parents (children of 01_CMENTARZ id=1):
+# 1_ZNICZE=10, 2_WKŁADY=11, 3_LAMPIONY=185, 4_DEKORACJE=12, 5_ZNICZOMATY=19
+# And for DOM: children of 02_DOM id=2
+SUB_CAT_PARENTS = {10, 11, 185, 12, 19}
+# Also include direct children of 01_CMENTARZ (id=1) and 02_DOM (id=2)
+MAIN_CAT_IDS = {1, 2}
+
+for i in range(0, len(gids), 500):
+    batch = gids[i:i+500]
+    ph = ",".join(["?"] * len(batch))
+    # Get assigned group + its parent + grandparent
+    cur.execute(f"""
+        SELECT d.TGD_GIDNumer, g.TwG_Kod, g.TwG_GrONumer,
+               pg.TwG_Kod AS ParentKod, pg.TwG_GrONumer AS GrandparentId
+        FROM CDN.TwrGrupyDom d
+        JOIN CDN.TwrGrupy g ON d.TGD_GrONumer = g.TwG_GIDNumer
+        LEFT JOIN CDN.TwrGrupy pg ON g.TwG_GrONumer = pg.TwG_GIDNumer
+        WHERE d.TGD_GIDNumer IN ({ph})
+    """, batch)
+    for row in cur.fetchall():
+        gid_num = row[0]
+        grp_kod = row[1]
+        grp_parent = row[2]
+        parent_kod = row[3]
+        grandparent_id = row[4]
+        if gid_num not in gid_to_code:
+            continue
+        code = gid_to_code[gid_num]
+        if code in group_map:
+            continue
+        # Case 1: group is directly under a known sub-category (e.g. 1_MINI under 1_ZNICZE)
+        if grp_parent in SUB_CAT_PARENTS:
+            group_map[code] = grp_kod
+        # Case 2: group IS a sub-category itself (e.g. 3_LAMPIONY under 01_CMENTARZ)
+        elif grp_parent in MAIN_CAT_IDS:
+            group_map[code] = grp_kod
+
+for p in products:
+    p["GrupaDomyslna"] = group_map.get(p["KodXL"])
+
+grp_stats = {}
+for p in products:
+    g = p.get("GrupaDomyslna") or "(brak)"
+    grp_stats[g] = grp_stats.get(g, 0) + 1
+print("Default groups:")
+for g in sorted(grp_stats, key=lambda x: grp_stats[x], reverse=True):
+    print(f"  {g}: {grp_stats[g]}")
+
 # Override GrupaSciezka for all
 for p in products:
     p["GrupaSciezka"] = "OFERTY/2026/BRICO DDD"
