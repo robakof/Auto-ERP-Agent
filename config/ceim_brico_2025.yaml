@@ -1,0 +1,116 @@
+catalog:
+  name: OFERTA SEZON BRICO 2025
+  client: CEiM
+  subtitle: Produkcja Zniczy i Lampionów
+data:
+  type: erp_export
+  products_path: data/catalog_products.json
+  packages_path: data/catalog_packages.json
+  package_filter:
+    year: '2026'
+    exclude_prefixes:
+    - PAKK
+brandbook:
+  colors:
+    black: '#000000'
+    dark_brown: '#2B110C'
+    gold: '#FABC61'
+    beige: '#FDF8F1'
+    white: '#FFFDFD'
+  fonts:
+    heading: '''Blacker Sans Text'', Georgia, serif'
+    body: '''Clear Sans'', ''Segoe UI'', system-ui, sans-serif'
+  logo: assets/catalog/logo/ceim.png
+images:
+  dir: assets/catalog/images/
+  format: jpg
+  placeholder: true
+outputs:
+  excel:
+    path: output/zamowienie.xlsx
+excel:
+  font: Calibri
+  photo_row_height: 90
+  package_row_height: 32
+  columns:
+  - key: photo
+    header: ''
+    width: 14
+  - key: ean
+    header: EAN
+    width: 16
+  - key: name
+    header: Nazwa produktu
+    width: 38
+    bold: true
+  - key: price_net
+    header: "Cena\nnetto"
+    width: 12
+    bold: true
+    format: price
+  - key: qty_in_pkg
+    header: "Szt w\n1 pakiecie"
+    width: 12
+  - key: qty_from_pkg
+    header: "Ilość\nz pakietów"
+    width: 12
+    format: formula
+  - key: qty_extra
+    header: "Dodatkowe\nopakowania"
+    width: 14
+    format: qty
+  - key: qty_total
+    header: "Ilość\nw sumie"
+    width: 12
+    format: formula
+  - key: value
+    header: "Wartość\nnetto"
+    width: 14
+    bold: true
+    format: value
+  - key: burn_hours
+    header: "Czas\npalenia (h)"
+    width: 12
+  - key: per_pack
+    header: "Szt w\nopakowaniu"
+    width: 12
+  - key: per_pallet
+    header: "Szt na\npalecie"
+    width: 11
+  - key: height_net_cm
+    header: "Wysokość\n(cm)"
+    width: 10
+  - key: width_net_cm
+    header: "Szerokość\n(cm)"
+    width: 10
+  package_sort_order:
+  - MAŁE
+  - ŚREDNIE
+  - DUŻE
+  - LAMPION
+  - WKŁAD
+  - W1
+  - W2
+  - W3
+  - LED
+  - SOLAR
+  - ZAPAL
+  sort_products_by: price_asc
+categories_order:
+- male
+- srednie
+- duze
+- lampiony
+- led
+- wklady
+- zapalarki
+- inne
+category_labels:
+  male: Małe
+  srednie: Średnie
+  duze: Duże
+  lampiony: Lampiony
+  led: LED / Solar
+  wklady: Wkłady
+  zapalarki: Zapalarki
+  inne: Pozostałe
