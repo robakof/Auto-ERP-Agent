@@ -1,7 +1,12 @@
 # KSeF — Instrukcja operacyjna
 
-Dokument opisuje architekture, codzienne uzytkowanie i wdrozenie produkcyjne
+Dokument opisuje architekture, codzienne uzytkowanie i obsluge produkcyjna
 systemu integracji z Krajowym Systemem e-Faktur (KSeF).
+
+**Srodowisko produkcyjne:**
+- Serwer aplikacji: **TerminalServer** (192.168.80.4)
+- Serwer bazy ERP: **SQLSERVER\SQLEXPRESS** (baza: ERPXL_CEIM)
+- Katalog projektu: `C:\Users\arkadiusz\Desktop\Auto-ERP-Agent`
 
 ---
 
@@ -23,7 +28,7 @@ Auto-ERP-Agent/
   tools/                      # Narzedzia CLI (cienkie wrappery nad core/)
     ksef_generate.py           #   Generowanie XML z faktur FS
     ksef_generate_kor.py       #   Generowanie XML z korekt FSK
-    ksef_generate_skonto.py    #   Generowanie XML z korekt skontowych
+    ksef_generate_rabat.py    #   Generowanie XML z korekt rabatowych
     ksef_send.py               #   Reczna wysylka XML na KSeF
     ksef_daemon.py             #   Automat: scan ERP -> generate -> send (petla)
     ksef_watchdog.py           #   Monitor daemona (auto-restart, heartbeat)
@@ -46,7 +51,7 @@ Auto-ERP-Agent/
       output/
         upo/
 
-  tests/ksef/                 # Testy jednostkowe (241 testow)
+  tests/ksef/                 # Testy jednostkowe (271 testow)
   tests/integration/          # Test integracyjny (smoke na demo API)
 
   *.bat                       # Skroty Windows (dwuklik)
@@ -82,12 +87,25 @@ Sciezki do danych (DB, output, logi) automatycznie wskazuja na `ksef_api/<env>/`
 
 | Srodowisko | KSEF_ENV | URL API | Opis |
 |---|---|---|---|
+| **Produkcja** | `prod` | `https://api.ksef.mf.gov.pl/v2` | **Aktywne — prawdziwe faktury** |
 | Demo | `demo` | `https://api-demo.ksef.mf.gov.pl/v2` | Testowe, brak konsekwencji |
-| Produkcja | `prod` | `https://api.ksef.mf.gov.pl/v2` | Prawdziwe faktury (!) |
 | Test | `test` | dowolne | Do testow jednostkowych |
 
 **Bezpiecznik produkcyjny:** `KSEF_ENV=prod` wymaga dodatkowego `KSEF_PROD_CONFIRMED=yes`.
 Bez tego daemon odmowi startu.
+
+### 1.4 Infrastruktura sieciowa
+
+| Zasob | Adres | Port | Opis |
+|---|---|---|---|
+| Serwer aplikacji | TerminalServer (192.168.80.4) | — | Daemon, watchdog, raporty |
+| SQL Server ERP | SQLSERVER\SQLEXPRESS | 1433 | Baza ERPXL_CEIM (Comarch XL) |
+| KSeF API (prod) | api.ksef.mf.gov.pl | 443 | Ministerstwo Finansow |
+| SMTP (raporty) | server617240.nazwa.pl | 465 | Raporty dzienne email |
+| Streamlit UI | 192.168.80.4 | 8501 | Interfejs webowy (siec wewn.) |
+| Catalog API | 192.168.80.4 | 8502 | FastAPI backend (siec wewn.) |
+
+Streamlit i Catalog API sa zbindowane na 192.168.80.4 — dostepne tylko z sieci wewnetrznej.
 
 ---
 
@@ -110,17 +128,15 @@ Zapis nadpisuje `.env` zachowujac komentarze i kolejnosc.
 ### 2.2 Plik .env (reczna edycja)
 
 Wszystkie ustawienia KSeF sa w `.env` w glownym katalogu projektu.
-GUI edytuje ten sam plik — mozna tez edytowac reczne.
+GUI edytuje ten sam plik — mozna tez edytowac recznie.
 
 ```ini
 # Srodowisko
-KSEF_ENV=demo
-KSEF_BASE_URL=https://api-demo.ksef.mf.gov.pl/v2
-KSEF_TOKEN=<token autoryzacyjny z portalu KSeF>
+KSEF_ENV=prod
+KSEF_BASE_URL=https://api.ksef.mf.gov.pl/v2
+KSEF_TOKEN=<token produkcyjny z portalu KSeF>
 KSEF_NIP=7871003063
-
-# Produkcja (odkomentuj po wdrozeniu)
-# KSEF_PROD_CONFIRMED=yes
+KSEF_PROD_CONFIRMED=yes
 
 # SMTP — raporty dzienne
 KSEF_SMTP_HOST=<host>
@@ -187,7 +203,7 @@ Dwuklik z Eksploratora:
 | **`ksef_start.bat`** | **Glowny launcher: daemon + watchdog + raport o 13:30 (jedno okno)** |
 | `ksef_generuj_fs.bat` | Generuje XML z faktur (FS) za dzisiejszy dzien |
 | `ksef_generuj_kor.bat` | Generuje XML z korekt (FSK) za dzisiejszy dzien |
-| `ksef_generuj_skonto.bat` | Generuje XML z korekt skontowych za dzisiejszy dzien |
+| `ksef_generuj_rabat.bat` | Generuje XML z korekt rabatowych za dzisiejszy dzien |
 | `ksef_wyslij_demo.bat` | Uruchamia daemon+watchdog (demo) — auto wysylka (bez raportu) |
 | `ksef_raport_dzienny.bat` | Wysyla raport email lub wyswietla w terminalu |
 | `ksef_ustawienia.bat` | Otwiera GUI ustawien (.env) |
@@ -217,16 +233,16 @@ Zamkniecie: **Ctrl+C** w oknie terminala — zamyka daemon, watchdog i scheduler
 
 ```bash
 # 1. Generuj XML z faktur za dzis
-py tools/ksef_generate.py --date-from 2026-04-24
+py tools/ksef_generate.py --date-from 2026-05-11
 
 # 2. Generuj XML z korekt za dzis
-py tools/ksef_generate_kor.py --date-from 2026-04-24
+py tools/ksef_generate_kor.py --date-from 2026-05-11
 
-# 3. Generuj XML z korekt skontowych za dzis
-py tools/ksef_generate_skonto.py --date-from 2026-04-24
+# 3. Generuj XML z korekt rabatowych za dzis
+py tools/ksef_generate_rabat.py --date-from 2026-05-11
 
 # 4. Wyslij na KSeF
-py tools/ksef_send.py ksef_api/demo/output/ksef_FS-*.xml
+py tools/ksef_send.py ksef_api/prod/output/ksef_FS-*.xml
 
 # 5. Sprawdz status
 py tools/ksef_status.py --today
@@ -291,7 +307,7 @@ py tools/ksef_report.py --since 7d --stdout
 py tools/ksef_smoke.py
 
 # Walidacja XML vs schemat XSD
-py tools/ksef_validate.py output/schemat_FA3.xsd ksef_api/demo/output/*.xml
+py tools/ksef_validate.py output/schemat_FA3.xsd ksef_api/prod/output/*.xml
 
 # Testy automatyczne
 py -m pytest tests/ksef/ -v
@@ -309,7 +325,7 @@ Lokalna baza SQLite sledzaca stan kazdej wysylki. Lokalizacja: `ksef_api/<env>/d
 |---|---|
 | id | ID wysylki (auto) |
 | gid_erp | GID faktury w ERP XL |
-| rodzaj | FS / FSK / FSK_SKONTO |
+| rodzaj | FS / FSK / FSK_RABAT |
 | nr_faktury | Numer faktury (np. FS-59/04/26/SPKR) |
 | data_wystawienia | Data wystawienia |
 | xml_path | Sciezka do pliku XML |
@@ -330,7 +346,7 @@ DRAFT -> QUEUED -> SENT -> ACCEPTED (sukces)
 
 ### Przegladanie DB
 
-Najlatwiej: DB Browser for SQLite otwiera `ksef_api/demo/data/ksef.db`.
+Najlatwiej: DB Browser for SQLite otwiera `ksef_api/prod/data/ksef.db`.
 
 ```sql
 -- Ostatnie wysylki
@@ -410,7 +426,7 @@ KSEF_TOKEN=<token demo>
 tasklist /FI "IMAGENAME eq python.exe"
 
 :: Ostatni heartbeat daemona
-more ksef_api\demo\data\ksef_heartbeat.json
+more ksef_api\prod\data\ksef_heartbeat.json
 
 :: Log startu (czy launcher nie padl)
 more data\ksef_start.log
@@ -422,20 +438,22 @@ py tools/ksef_status.py --today
 ### Autostart (Task Scheduler)
 
 Daemon uruchamia sie automatycznie przy starcie serwera przez Windows Task Scheduler.
-Zadanie: `KSEF DEAMON`, trigger: At system startup.
+Zadanie: `KSeF_Daemon`, trigger: At log on (ONLOGON), highest privileges.
+Serwer: TerminalServer (192.168.80.4).
+Program: `C:\Users\arkadiusz\Desktop\Auto-ERP-Agent\ksef_service.bat`
 
 ```bash
 :: Sprawdz status zadania (z CMD admina)
-schtasks /query /tn "KSEF DEAMON" /fo LIST /v
+schtasks /query /tn "KSeF_Daemon" /fo LIST /v
 
 :: Reczne uruchomienie
-schtasks /run /tn "KSEF DEAMON"
+schtasks /run /tn "KSeF_Daemon"
 
 :: Zatrzymanie
-schtasks /end /tn "KSEF DEAMON"
+schtasks /end /tn "KSeF_Daemon"
 
 :: Restart (zatrzymaj + uruchom)
-schtasks /end /tn "KSEF DEAMON" && schtasks /run /tn "KSEF DEAMON"
+schtasks /end /tn "KSeF_Daemon" && schtasks /run /tn "KSeF_Daemon"
 ```
 
 Komendy `schtasks` wymagaja terminala z prawami administratora
@@ -446,7 +464,7 @@ Komendy `schtasks` wymagaja terminala z prawami administratora
 ## 7. Testy
 
 ```bash
-# Pelny suite (241 testow)
+# Pelny suite (271 testow)
 py -m pytest tests/ksef/ -v
 
 # Szybki smoke
@@ -488,14 +506,14 @@ py tools/ksef_generate.py --date-from 2026-04-24 --output-dir sciezka  # Inny fo
 py tools/ksef_generate_kor.py --date-from 2026-04-24       # Korekty (FSK)
 py tools/ksef_generate_kor.py --gid 100 101                # Konkretne GID korekt
 
-py tools/ksef_generate_skonto.py --date-from 2026-04-24    # Korekty skontowe
+py tools/ksef_generate_rabat.py --date-from 2026-04-24    # Korekty skontowe
 ```
 
 ### 8.3 Reczna wysylka na KSeF
 
 ```bash
-py tools/ksef_send.py ksef_api/demo/output/ksef_FS-*.xml   # Wyslij pliki XML
-py tools/ksef_send.py ksef_api/demo/output/*.xml            # Wyslij wszystkie XML
+py tools/ksef_send.py ksef_api/prod/output/ksef_FS-*.xml   # Wyslij pliki XML
+py tools/ksef_send.py ksef_api/prod/output/*.xml            # Wyslij wszystkie XML
 ```
 
 ### 8.4 Daemon (samodzielnie, bez launchera)
@@ -549,7 +567,7 @@ py tools/ksef_init_db.py                       # Utworz/sprawdz baze danych shad
 
 ```bash
 py tools/ksef_smoke.py                         # Smoke test — czy API KSeF odpowiada
-py tools/ksef_validate.py output/schemat_FA3.xsd ksef_api/demo/output/*.xml  # Walidacja XML vs XSD
+py tools/ksef_validate.py output/schemat_FA3.xsd ksef_api/prod/output/*.xml  # Walidacja XML vs XSD
 py -m pytest tests/ksef/ -v                    # Pelny suite testow
 py -m pytest tests/ksef/ -x -q                 # Szybki test (stop na 1. bledzie)
 py -m pytest tests/integration/test_ksef_demo_smoke.py -v   # Test integracyjny z demo API

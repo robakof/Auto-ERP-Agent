@@ -303,7 +303,7 @@ def health():
 if __name__ == "__main__":
     uvicorn.run(
         "catalog_api:app",
-        host="0.0.0.0",
+        host="192.168.80.4",
         port=API_PORT,
         reload=False,
     )

@@ -456,6 +456,14 @@ def render_excel(
     last_data_row = row - 1 if row > header_row + 1 else header_row + 1
     ws.autofilter(header_row, 0, last_data_row, last_col)
     ws.freeze_panes(header_row + 1, 0)
+    ws.protect("", {
+        "objects": True,
+        "scenarios": True,
+        "autofilter": True,
+        "sort": True,
+        "select_unlocked_cells": True,
+        "select_locked_cells": True,
+    })
     ws.set_landscape()
     ws.set_paper(9)
     ws.fit_to_pages(1, 0)
