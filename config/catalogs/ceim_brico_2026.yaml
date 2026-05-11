@@ -103,13 +103,15 @@ excel:
   - ZAPAL
   section_order:
   - type: packages
-    match: [MAŁE, ŚREDNIE, DUŻE, LAMPION]
+    match: [MAŁE, ŚREDNIE, DUŻE]
+  - type: packages
+    match: [LAMPION]
   - type: standalone
-    groups: [Znicze LED, Znicze Solarne, Lampiony]
+    groups: [Lampiony]
   - type: packages
     match: [WKŁAD]
   - type: standalone
-    groups: [Wkłady LED, Zapalarki]
+    groups: [Znicze LED, Znicze Solarne, Wkłady LED, Świece LED, Figurki LED, Zapalarki]
   sort_products_by: price_asc
 categories_order:
 - male

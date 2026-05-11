@@ -367,8 +367,12 @@ def render_excel(
     for p in standalone:
         grp = standalone_group_name(p.get("default_group"), p.get("name", ""))
         sa_groups.setdefault(grp, []).append(p)
-    for grp_products in sa_groups.values():
-        grp_products.sort(key=lambda p: p.get("name", ""))
+    _SORT_BY_PRICE_GROUPS = {"Wkłady LED", "Świece LED"}
+    for grp_name, grp_products in sa_groups.items():
+        if grp_name in _SORT_BY_PRICE_GROUPS:
+            grp_products.sort(key=lambda p: p.get("price_net", 0))
+        else:
+            grp_products.sort(key=lambda p: p.get("name", ""))
 
     # -- Render sections in config-defined order (interleaved) --
     section_order = ec.get("section_order")

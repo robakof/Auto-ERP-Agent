@@ -112,7 +112,7 @@ def group_by_package(products: list) -> dict[str, list]:
 
 # --- Standalone product grouping by ERP default group ---
 GROUP_DISPLAY_NAMES = {
-    "6_LEDOWE": "Znicze LED",
+    "6_LEDOWE": "Wkłady LED",
     "7_LEDOWE": "Znicze LED",
     "LEDOWE": "Znicze LED",
     "8_SOLARNE": "Znicze Solarne",
@@ -120,9 +120,12 @@ GROUP_DISPLAY_NAMES = {
     "BEZ WKŁADU": "Lampiony",
     "BEZ WKLADU": "Lampiony",
     "ALAS0018": "Zapalarki",
+    "9_ŚWIECE LED": "Świece LED",
+    "10_FIGURKI LED": "Figurki LED",
 }
 STANDALONE_GROUP_ORDER = [
-    "Znicze LED", "Znicze Solarne", "Lampiony", "Zapalarki", "Wkłady LED",
+    "Lampiony", "Znicze LED", "Znicze Solarne",
+    "Wkłady LED", "Świece LED", "Figurki LED", "Zapalarki",
 ]
 
 
