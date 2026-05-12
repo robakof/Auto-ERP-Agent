@@ -135,64 +135,43 @@ DEFAULT_PHOTOS_DIR = r"C:\CEIM\Zdjęcia"
 
 def export_photos(conn, product_codes: list[str],
                   photos_dir: str = DEFAULT_PHOTOS_DIR) -> dict:
-    """Copy product photos from server disk to assets/catalog/images/{EAN}.jpg.
+    """Copy product photos from server disk to assets/catalog/images/{KodXL}.jpg.
 
     Source files on disk are named by KodXL (e.g. DAVP43567.jpg).
-    Output files are named by EAN (e.g. 5907702543567.jpg).
+    Output files keep the same KodXL naming.
     """
     if not product_codes:
-        return {"exported": 0, "skipped": 0, "no_file": 0, "no_ean": 0}
+        return {"exported": 0, "skipped": 0, "no_file": 0}
 
     IMAGES_DIR.mkdir(parents=True, exist_ok=True)
     src_dir = Path(photos_dir)
 
     if not src_dir.exists():
         print(f"  WARNING: Photos directory not found: {src_dir}")
-        return {"exported": 0, "skipped": 0, "no_file": len(product_codes), "no_ean": 0}
+        return {"exported": 0, "skipped": 0, "no_file": len(product_codes)}
 
-    # Build index of source files: KodXL (uppercase, no suffix) → path
-    # Files may have suffixes like AGNE14297B.jpg, AGNE14297C.jpg
-    # We prefer the base file (no suffix) over suffixed variants
+    # Build index of source files: KodXL (uppercase) → path
     src_index: dict[str, Path] = {}
     for f in src_dir.iterdir():
         if f.suffix.lower() not in (".jpg", ".jpeg", ".png", ".webp"):
             continue
         stem = f.stem.upper()
-        # Base file (exact KodXL match) takes priority
-        # Suffixed files (e.g. AGNE14297B) are fallback
         if stem not in src_index:
             src_index[stem] = f
 
-    # Query EAN mapping for all products
-    ean_map = {}
-    for batch_start in range(0, len(product_codes), 500):
-        batch = product_codes[batch_start:batch_start + 500]
-        ph = ",".join(["?"] * len(batch))
-        rows = _query_rows(
-            conn,
-            f"SELECT Twr_Kod, Twr_Ean FROM CDN.TwrKarty WHERE Twr_Kod IN ({ph})",
-            batch,
-        )
-        for r in rows:
-            ean = (r.get("Twr_Ean") or "").strip()
-            if ean:
-                ean_map[r["Twr_Kod"]] = ean
-
-    # Copy photos: {KodXL}.jpg → {EAN}.jpg
+    # Copy photos: {KodXL}.jpg → {KodXL}.jpg
     exported = 0
     skipped = 0
     no_file = 0
 
-    codes_with_ean = [c for c in product_codes if c in ean_map]
-    for kod in codes_with_ean:
+    for kod in product_codes:
         kod_upper = kod.strip().upper()
         src_path = src_index.get(kod_upper)
         if not src_path:
             no_file += 1
             continue
 
-        ean = ean_map[kod]
-        out_path = IMAGES_DIR / f"{ean}.jpg"
+        out_path = IMAGES_DIR / f"{kod_upper}.jpg"
         try:
             shutil.copy2(str(src_path), str(out_path))
             exported += 1
@@ -204,7 +183,6 @@ def export_photos(conn, product_codes: list[str],
         "exported": exported,
         "skipped": skipped,
         "no_file": no_file,
-        "no_ean": len(product_codes) - len(codes_with_ean),
     }
 
 
@@ -290,7 +268,7 @@ def main():
                 print(f"Copying photos for {len(codes)} products from {args.photos_dir}...")
                 photo_result = export_photos(conn, codes, args.photos_dir)
                 result["photos"] = photo_result
-                print(f"  → {photo_result['exported']} exported, {photo_result['no_file']} no file on disk, {photo_result.get('no_ean', 0)} no EAN")
+                print(f"  → {photo_result['exported']} exported, {photo_result['no_file']} no file on disk")
         finally:
             conn.close()
 

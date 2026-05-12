@@ -80,11 +80,11 @@ def _img_scale(img_path: str, tw: int, th: int) -> tuple[float, float]:
     return s, s
 
 
-def _find_product_image(ean: str) -> str | None:
-    if not ean:
+def _find_product_image(code_xl: str) -> str | None:
+    if not code_xl:
         return None
     for ext in ("jpg", "jpeg", "png", "webp"):
-        p = _IMAGES_DIR / f"{ean}.{ext}"
+        p = _IMAGES_DIR / f"{code_xl.upper()}.{ext}"
         if p.exists():
             return str(p)
     return None
@@ -258,7 +258,7 @@ def _write_product_row(
 
         if key == "photo":
             ws.write_blank(row, ci, None, t)
-            img = _find_product_image(ean)
+            img = _find_product_image(code)
             if img:
                 sx, sy = _img_scale(img, 95, 115)
                 ws.insert_image(row, ci, img, {
