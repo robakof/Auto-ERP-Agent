@@ -16,10 +16,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from dotenv import load_dotenv
+load_dotenv(override=False)
+
 from core.ksef import paths as ksef_paths
 from core.ksef.adapters.repo import ShipmentRepository
 _EXPECTED_TABLES = {"ksef_wysylka", "ksef_transition", "schema_version"}
-_EXPECTED_VERSION = 1
+_EXPECTED_VERSION = 3
 
 
 def main() -> int:
