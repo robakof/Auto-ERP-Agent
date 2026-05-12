@@ -119,8 +119,8 @@ Otwiera okno z zakladkami:
 - **KSeF API** — srodowisko (demo/prod), URL, NIP, token
 - **SMTP** — serwer, port, login, haslo, SSL
 - **Raport** — nadawca, odbiorca, prefix tematu
-- **Daemon** — interval ticka, timeout, rate limit, prog bledow
-- **Watchdog** — max restartow/h, stale heartbeat
+- **Daemon** — interval ticka, timeout, rate limit, prog bledow (eskalacja)
+- **Watchdog** — max restartow/h, stale heartbeat (wykrywanie zamarzniecia)
 
 Pola z tokenem i haslem sa maskowane (gwiazdki).
 Zapis nadpisuje `.env` zachowujac komentarze i kolejnosc.
@@ -151,6 +151,12 @@ KSEF_REPORT_SUBJECT_PREFIX=[KSeF]
 # Daemon
 KSEF_DAEMON_INTERVAL=900
 KSEF_DAEMON_TICK_TIMEOUT=300
+KSEF_DAEMON_RATE_LIMIT=10
+KSEF_DAEMON_ERROR_THRESHOLD=1
+
+# Watchdog
+KSEF_WATCHDOG_MAX_RESTARTS=5
+KSEF_WATCHDOG_HEARTBEAT_STALE=1200
 ```
 
 ### 2.3 Skad wziac token
@@ -330,18 +336,44 @@ Lokalna baza SQLite sledzaca stan kazdej wysylki. Lokalizacja: `ksef_api/<env>/d
 | data_wystawienia | Data wystawienia |
 | xml_path | Sciezka do pliku XML |
 | xml_hash | SHA-256 XML (deduplikacja) |
-| status | DRAFT / QUEUED / SENT / ACCEPTED / REJECTED / ERROR |
+| status | DRAFT / QUEUED / AUTH_PENDING / SENT / ACCEPTED / REJECTED / ERROR |
+| ksef_session_ref | Referencja sesji KSeF |
+| ksef_invoice_ref | Referencja faktury w sesji KSeF |
 | ksef_number | Numer KSeF (po akceptacji) |
 | upo_path | Sciezka do UPO |
+| error_code | Kod bledu (np. z KSeF API) |
 | error_msg | Komunikat bledu |
 | attempt | Numer proby |
+| created_at | Data utworzenia rekordu |
+| queued_at | Data wstawienia do kolejki |
+| sent_at | Data wyslania na KSeF |
+| accepted_at | Data akceptacji przez KSeF |
+| rejected_at | Data odrzucenia przez KSeF |
+| errored_at | Data wystapienia bledu |
+
+### Tabela `ksef_transition`
+
+Historia zmian statusow — kazda zmiana statusu wysylki jest logowana.
+
+| Kolumna | Opis |
+|---|---|
+| id | ID przejscia (auto) |
+| wysylka_id | FK do ksef_wysylka.id |
+| from_status | Status przed zmiana |
+| to_status | Status po zmianie |
+| occurred_at | Data przejscia |
+| meta_json | Dodatkowe dane (JSON) |
+
+### Tabela `schema_version`
+
+Wersja schematu bazy — aktualnie v3.
 
 ### Statusy
 
 ```
-DRAFT -> QUEUED -> SENT -> ACCEPTED (sukces)
-                       \-> REJECTED (KSeF odrzucil)
-                       \-> ERROR (blad techniczny)
+DRAFT -> QUEUED -> AUTH_PENDING -> SENT -> ACCEPTED (sukces)
+                                       \-> REJECTED (KSeF odrzucil)
+                                       \-> ERROR (blad techniczny)
 ```
 
 ### Przegladanie DB
@@ -438,22 +470,24 @@ py tools/ksef_status.py --today
 ### Autostart (Task Scheduler)
 
 Daemon uruchamia sie automatycznie przy starcie serwera przez Windows Task Scheduler.
-Zadanie: `KSeF_Daemon`, trigger: At log on (ONLOGON), highest privileges.
+Zadanie: `KSEF DEAMON`, trigger: At system startup + co godzine (zabezpieczenie), highest privileges.
 Serwer: TerminalServer (192.168.80.4).
 Program: `C:\Users\arkadiusz\Desktop\Auto-ERP-Agent\ksef_service.bat`
 
+Plik `ksef_service.bat` wywoluje `py tools\ksef_start.py` z katalogu projektu.
+
 ```bash
 :: Sprawdz status zadania (z CMD admina)
-schtasks /query /tn "KSeF_Daemon" /fo LIST /v
+schtasks /query /tn "KSEF DEAMON" /fo LIST /v
 
 :: Reczne uruchomienie
-schtasks /run /tn "KSeF_Daemon"
+schtasks /run /tn "KSEF DEAMON"
 
 :: Zatrzymanie
-schtasks /end /tn "KSeF_Daemon"
+schtasks /end /tn "KSEF DEAMON"
 
 :: Restart (zatrzymaj + uruchom)
-schtasks /end /tn "KSeF_Daemon" && schtasks /run /tn "KSeF_Daemon"
+schtasks /end /tn "KSEF DEAMON" && schtasks /run /tn "KSEF DEAMON"
 ```
 
 Komendy `schtasks` wymagaja terminala z prawami administratora
