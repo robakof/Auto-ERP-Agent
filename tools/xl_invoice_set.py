@@ -89,6 +89,7 @@ _EXISTS_SQL = """
     SELECT COUNT(*)
     FROM CDN.TraNag
     WHERE TrN_DokumentObcy = ? AND RTRIM(TrN_TrNSeria) = ?
+      AND TrN_Stan <> 6
 """
 
 # GUI Comarch XL zapisuje "Dodatkowy kod" dostawcy w CDN.TwrDost.TWD_KodDodatkowyKnt
