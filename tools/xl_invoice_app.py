@@ -25,6 +25,7 @@ else:
 from tools.xl_invoice_bulk import bulk_import
 
 _MAGAZYN_CSV = _BASE / "config" / "fz_magazyn.csv"
+_JEDNOSTKI_CSV = _BASE / "config" / "fz_jednostki.csv"
 _REPORTS_DIR = _BASE / "reports"
 
 
@@ -165,6 +166,10 @@ class InvoiceApp(Tk):
                font=_FONT, command=lambda: self._open_csv(_MAGAZYN_CSV),
                bg="#475569", fg="white", relief="flat", padx=8, pady=4
                ).pack(side="left")
+        Button(row, text="Jednostki (przeliczniki)",
+               font=_FONT, command=lambda: self._open_csv(_JEDNOSTKI_CSV),
+               bg="#475569", fg="white", relief="flat", padx=8, pady=4
+               ).pack(side="left", padx=(8, 0))
 
     def _open_csv(self, path: Path):
         if not path.exists():
