@@ -173,7 +173,12 @@ def _today_local():
 
 
 def _fmt_dt(dt: datetime | None) -> str:
-    return dt.strftime("%Y-%m-%d %H:%M") if dt else "-"
+    if dt is None:
+        return "-"
+    # DB stores naive UTC — convert to local timezone for display
+    aware = dt.replace(tzinfo=timezone.utc)
+    local = aware.astimezone()
+    return local.strftime("%Y-%m-%d %H:%M")
 
 
 if __name__ == "__main__":
