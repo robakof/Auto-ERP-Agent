@@ -66,9 +66,9 @@ def _report_scheduler(report_time: str) -> None:
         today = now.strftime("%Y-%m-%d")
 
         if now.hour == hour and now.minute == minute and sent_today != today:
+            sent_today = today
             _LOG.info("[KSeF] %s — Wysylam raport dzienny...", report_time)
-            if _send_report():
-                sent_today = today
+            _send_report()
 
         _shutdown.wait(30)
 
