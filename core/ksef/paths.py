@@ -8,6 +8,10 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+load_dotenv(override=False)
+
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 _KSEF_API_ROOT = _PROJECT_ROOT / "ksef_api"
 
