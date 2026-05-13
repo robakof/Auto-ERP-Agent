@@ -11,6 +11,7 @@ Użycie:
 
 from __future__ import annotations
 
+import csv
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -18,6 +19,25 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 _NS = "http://crd.gov.pl/wzor/2025/06/25/13775/"
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_JM_CONFIG = _PROJECT_ROOT / "config" / "fz_jednostki.csv"
+
+
+def _load_jm_map() -> dict[str, tuple[str, Decimal]]:
+    """Ładuje mapowanie jednostek z config/fz_jednostki.csv.
+
+    Zwraca dict: jm_zrodlowa_lower → (jm_docelowa, mnoznik).
+    """
+    result: dict[str, tuple[str, Decimal]] = {}
+    if not _JM_CONFIG.exists():
+        return result
+    with open(_JM_CONFIG, encoding="utf-8") as f:
+        for row in csv.DictReader(f, delimiter=";"):
+            src = row["jm_zrodlowa"].strip().lower()
+            dst = row["jm_docelowa"].strip()
+            mult = Decimal(row["mnoznik"].strip())
+            result[src] = (dst, mult)
+    return result
 
 
 def _tag(name: str) -> str:
@@ -133,6 +153,7 @@ def parse_ksef_xml(path: Path) -> dict:
 
 
 def _parse_pozycje(fa: ET.Element) -> list[FzPozycja]:
+    jm_map = _load_jm_map()
     pozycje = []
     for wiersz in fa.findall(_tag("FaWiersz")):
         if wiersz.find(_tag("StanPrzed")) is not None:
@@ -144,12 +165,25 @@ def _parse_pozycje(fa: ET.Element) -> list[FzPozycja]:
             nr = 0
         stawka_raw = _text(wiersz, "P_12")
         stawka = stawka_raw if stawka_raw else "ZW"
+
+        jm_raw = _text(wiersz, "P_8A", "szt")
+        ilosc = _decimal(wiersz, "P_8B")
+        cena = _decimal(wiersz, "P_9A") or _decimal(wiersz, "P_9B")
+
+        conv = jm_map.get(jm_raw.lower())
+        if conv:
+            jm, mnoznik = conv
+            ilosc = ilosc * mnoznik
+            cena = cena / mnoznik
+        else:
+            jm = jm_raw
+
         pozycje.append(FzPozycja(
             nr=nr,
             nazwa=_text(wiersz, "P_7"),
-            ilosc=_decimal(wiersz, "P_8B"),
-            jm=_text(wiersz, "P_8A", "szt"),
-            cena_netto=_decimal(wiersz, "P_9A") or _decimal(wiersz, "P_9B"),
+            ilosc=ilosc,
+            jm=jm,
+            cena_netto=cena,
             wartosc_netto=_decimal(wiersz, "P_11A") or _decimal(wiersz, "P_11"),
             stawka_vat=stawka,
             wartosc_vat=_decimal(wiersz, "P_11Vat"),

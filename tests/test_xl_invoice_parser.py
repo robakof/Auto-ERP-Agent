@@ -154,6 +154,40 @@ def test_parse_missing_fa():
     assert "Fa" in result["error"]
 
 
+def test_parse_jm_conversion_kszt():
+    """kszt (kilo-sztuk) → szt: ilość ×1000, cena ÷1000."""
+    wiersze = """<FaWiersz>
+      <NrWierszaFa>1</NrWierszaFa>
+      <P_7>TUBA WAX 3</P_7>
+      <P_8A>kszt</P_8A>
+      <P_8B>31.000000</P_8B>
+      <P_9A>160.000</P_9A>
+      <P_11>4960.00</P_11>
+      <P_11Vat>1140.80</P_11Vat>
+      <P_12>23</P_12>
+    </FaWiersz>"""
+    path = _write_fixture("jm_kszt.xml", _make_vat_xml(
+        wiersze=wiersze, p13_1="4960.00", p14_1="1140.80", p15="6100.80"))
+    result = parse_ksef_xml(path)
+    assert result["ok"]
+    poz = result["data"].pozycje[0]
+    assert poz.jm == "szt"
+    assert poz.ilosc == Decimal("31000.000000")
+    assert poz.cena_netto == Decimal("0.160")
+    # wartość netto bez zmian (bierze z P_11 wprost)
+    assert poz.wartosc_netto == Decimal("4960.00")
+
+
+def test_parse_jm_no_conversion():
+    """Zwykła jednostka szt — bez przeliczania."""
+    path = _write_fixture("vat_basic.xml", _make_vat_xml())
+    result = parse_ksef_xml(path)
+    poz = result["data"].pozycje[0]
+    assert poz.jm == "szt"
+    assert poz.ilosc == Decimal("10")
+    assert poz.cena_netto == Decimal("10.00")
+
+
 def test_parse_invalid_xml():
     path = _write_fixture("broken.xml", "<<NOT XML>>")
     result = parse_ksef_xml(path)
