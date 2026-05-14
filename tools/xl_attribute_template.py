@@ -1,4 +1,4 @@
-"""Generuje Excel template z atrybutami produktów z CDN.AtrybutyKlasy (GIDTyp=16).
+"""Generuje Excel template z atrybutami produktów z AIOP.vAtrybutyTowarow.
 
 Format (zgodny ze wzorem):
   Wiersz 1:  (puste) | "Atrybut / Akronim →" | "Typ" | ...
@@ -31,20 +31,18 @@ DEFAULT_OUTPUT = Path("documents/Wzory plików/Atrybuty produktów - template.xl
 TYPE_LABELS = {1: "TAK / NIE", 2: "tekst", 3: "liczba", 4: "lista*"}
 
 _QUERY_ATTRS = """
-SELECT ak.AtK_Nazwa, ak.AtK_Typ, ak.AtK_Wielowart, ak.AtK_Zamknieta
-FROM CDN.AtrybutyKlasy ak
-INNER JOIN CDN.AtrybutyObiekty ao ON ao.AtO_AtKId = ak.AtK_ID
-WHERE ao.AtO_GIDTyp = 16
-ORDER BY ak.AtK_Nazwa
+SELECT DISTINCT KlasaAtrybutu, TypAtrybutu, Wielowartosciowy, ListaZamknieta
+FROM AIOP.vAtrybutyTowarow
+ORDER BY KlasaAtrybutu
 """
 
 _QUERY_PRODUCTS_ALL = """
-SELECT Twr_Kod, Twr_Nazwa1
-FROM CDN.TwrKarty
-WHERE Twr_Archiwalny = 0
-ORDER BY Twr_Kod
+SELECT DISTINCT KodXL, NazwaTowaru
+FROM AIOP.vAtrybutyTowarow
+ORDER BY KodXL
 """
 
+# Filtr po grupie towarowej — wymaga bezposredniego CDN (AIOP nie ma drzewa grup)
 _QUERY_PRODUCTS_GROUP = """
 WITH GTree AS (
     SELECT TwG_GIDNumer, TwG_GIDTyp
@@ -69,29 +67,25 @@ ORDER BY tk.Twr_Kod
 """
 
 _QUERY_EXISTING_VALUES = """
-SELECT tk.Twr_Kod, ak.AtK_Nazwa, a.Atr_Wartosc
-FROM CDN.Atrybuty a
-JOIN CDN.AtrybutyKlasy ak ON ak.AtK_Id = a.Atr_AtkId
-JOIN CDN.TwrKarty tk ON tk.Twr_GIDNumer = a.Atr_ObiNumer AND tk.Twr_GIDTyp = a.Atr_ObiTyp
-WHERE a.Atr_ObiTyp = 16
-ORDER BY tk.Twr_Kod, ak.AtK_Nazwa
+SELECT KodXL, KlasaAtrybutu, Wartosc
+FROM AIOP.vAtrybutyTowarow
+WHERE Wartosc IS NOT NULL
+ORDER BY KodXL, KlasaAtrybutu
 """
 
 _QUERY_PRODUCTS_BY_AKRONIMY = """
-SELECT Twr_Kod, Twr_Nazwa1
-FROM CDN.TwrKarty
-WHERE Twr_Kod IN ({placeholders})
-ORDER BY Twr_Kod
+SELECT DISTINCT KodXL, NazwaTowaru
+FROM AIOP.vAtrybutyTowarow
+WHERE KodXL IN ({placeholders})
+ORDER BY KodXL
 """
 
 _QUERY_VALUES_BY_AKRONIMY = """
-SELECT tk.Twr_Kod, ak.AtK_Nazwa, a.Atr_Wartosc
-FROM CDN.Atrybuty a
-JOIN CDN.AtrybutyKlasy ak ON ak.AtK_Id = a.Atr_AtkId
-JOIN CDN.TwrKarty tk ON tk.Twr_GIDNumer = a.Atr_ObiNumer AND tk.Twr_GIDTyp = a.Atr_ObiTyp
-WHERE a.Atr_ObiTyp = 16
-  AND tk.Twr_Kod IN ({placeholders})
-ORDER BY tk.Twr_Kod, ak.AtK_Nazwa
+SELECT KodXL, KlasaAtrybutu, Wartosc
+FROM AIOP.vAtrybutyTowarow
+WHERE Wartosc IS NOT NULL
+  AND KodXL IN ({placeholders})
+ORDER BY KodXL, KlasaAtrybutu
 """
 
 _HEADER_FILL = PatternFill("solid", fgColor="1F4E79")

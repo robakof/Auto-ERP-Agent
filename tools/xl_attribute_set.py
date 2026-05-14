@@ -19,14 +19,14 @@ from tools.lib.sql_client import SqlClient
 from tools.lib.xl_client import XlClient
 
 _GID_SQL = """
-    SELECT Twr_GIDNumer, Twr_GIDFirma, Twr_GIDTyp
-    FROM CDN.TwrKarty WHERE Twr_Kod = ?
+    SELECT DISTINCT TwrGIDNumer, TwrGIDFirma, TwrGIDTyp
+    FROM AIOP.vAtrybutyTowarow WHERE KodXL = ?
 """
 
 _EXISTS_SQL = """
-    SELECT COUNT(*) FROM CDN.Atrybuty a
-    JOIN CDN.AtrybutyKlasy k ON a.Atr_AtkId = k.AtK_Id
-    WHERE a.Atr_ObiNumer = ? AND a.Atr_ObiTyp = ? AND k.AtK_Nazwa = ?
+    SELECT COUNT(*) FROM AIOP.vAtrybutyTowarow
+    WHERE TwrGIDNumer = ? AND TwrGIDTyp = ? AND KlasaAtrybutu = ?
+      AND Wartosc IS NOT NULL
 """
 
 _DELETE_SQL = "DELETE FROM CDN.Atrybuty WHERE Atr_ObiNumer = ? AND Atr_ObiTyp = ? AND Atr_ObiLp = 0"

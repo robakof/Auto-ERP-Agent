@@ -27,10 +27,8 @@ from tools.lib.sql_client import SqlClient
 from tools.xl_attribute_set import delete_attributes, set_attribute
 
 _QUERY_CLASS_NAMES = """
-SELECT DISTINCT ak.AtK_Nazwa
-FROM CDN.AtrybutyKlasy ak
-INNER JOIN CDN.AtrybutyObiekty ao ON ao.AtO_AtKId = ak.AtK_ID
-WHERE ao.AtO_GIDTyp = 16
+SELECT DISTINCT KlasaAtrybutu
+FROM AIOP.vAtrybutyTowarow
 """
 
 _STATUS_FILLS = {

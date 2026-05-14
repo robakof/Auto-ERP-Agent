@@ -6,6 +6,7 @@
 2. `01_view_folders.sql` — AIOP.vKatalogFoldery
 3. `02_view_products.sql` — AIOP.vKatalogProdukty
 4. `03_view_packages.sql` — AIOP.vKatalogPakiety
+5. `04_view_attributes.sql` — AIOP.vAtrybutyTowarow
 
 Kazdy plik uruchamiasz osobno w SSMS (F5) na bazie Comarch XL.
 Wymaga konta z uprawnieniem CREATE VIEW.
@@ -33,6 +34,20 @@ Tabela zrodlowa: CDN.TwrPodm (zamienniki/komplety).
 
 ```sql
 SELECT * FROM AIOP.vKatalogPakiety WHERE PakietKod = 'PAKZM012025'
+```
+
+### AIOP.vAtrybutyTowarow
+Jeden wiersz per produkt x klasa atrybutu (dynamiczna lista — wszystkie klasy przypisane do towarow).
+Zawiera: kod/nazwa towaru, GID (Numer/Firma/Typ), klasa atrybutu z metadanymi (typ, wielowart, zamknieta), wartosc.
+Produkt bez danego atrybutu = wiersz z NULL w Wartosc.
+
+```sql
+-- Lista klas atrybutow
+SELECT DISTINCT KlasaAtrybutu, TypAtrybutu FROM AIOP.vAtrybutyTowarow
+
+-- Atrybuty jednego produktu
+SELECT KlasaAtrybutu, Wartosc FROM AIOP.vAtrybutyTowarow
+WHERE KodXL = 'CZNI42027' AND Wartosc IS NOT NULL
 ```
 
 ## Cenniki (RodzajCeny)
