@@ -9,11 +9,15 @@ Uzycie:
     py tools/ksef_status.py --gid 123456 --rodzaj FS
     py tools/ksef_status.py --today                      # tylko dzisiejsze (local date)
 
-Filtry laczone addytywnie: kazdy kolejny filtr zawiera wynik poprzedniego.
+Heartbeat sprawdzenie reczne:
+    type ksef_api\\prod\\data\\ksef_heartbeat.json
+
+Filtry laczone addytywnie: kazdy kolejny filtr zaweza wynik poprzedniego.
 """
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -118,6 +122,45 @@ def _render_table(rows: list[Wysylka]) -> None:
         print(sep.join(v.ljust(w) for v, w in zip(r, widths, strict=True)))
 
 
+def _render_daemon_status() -> None:
+    """Print daemon heartbeat status from env-aware path."""
+    hb_path = ksef_paths.heartbeat_path()
+    if not hb_path.exists():
+        print(f"Daemon: BRAK HEARTBEAT ({hb_path})")
+        print(f"  Sprawdz recznie: type {hb_path}")
+        return
+    try:
+        data = json.loads(hb_path.read_text(encoding="utf-8"))
+        last_utc = datetime.fromisoformat(data["last_tick_utc"])
+        if last_utc.tzinfo is None:
+            last_utc = last_utc.replace(tzinfo=timezone.utc)
+        age = datetime.now(timezone.utc) - last_utc
+        last_local = last_utc.astimezone()
+        ts = last_local.strftime("%Y-%m-%d %H:%M")
+        pid = data.get("pid", "?")
+        tick = data.get("tick_count", "?")
+        if age.total_seconds() < 1200:
+            print(f"Daemon: DZIALA (pid {pid}, tick #{tick}, ostatni: {ts})")
+        else:
+            age_str = _fmt_age(age)
+            print(f"Daemon: NIE DZIALA (ostatni tick: {ts}, {age_str} temu)")
+        print(f"  Sprawdz recznie: type {hb_path}")
+    except Exception as exc:
+        print(f"Daemon: BLAD ODCZYTU HEARTBEAT — {exc}")
+
+
+def _fmt_age(delta: timedelta) -> str:
+    total_s = int(delta.total_seconds())
+    if total_s < 3600:
+        return f"{total_s // 60}min"
+    hours = total_s // 3600
+    mins = (total_s % 3600) // 60
+    if hours < 24:
+        return f"{hours}h {mins}min" if mins else f"{hours}h"
+    days = hours // 24
+    return f"{days}d {hours % 24}h"
+
+
 def _render_summary(repo: ShipmentRepository) -> None:
     now_local = datetime.now().astimezone()
     today_local = now_local.date()
@@ -132,6 +175,8 @@ def _render_summary(repo: ShipmentRepository) -> None:
     recent = repo.list_recent(limit=1)
 
     print("=== KSeF Shadow DB — podsumowanie ===")
+    print()
+    _render_daemon_status()
     print()
     print(f"Dzis ({today_local.isoformat()}):")
     _print_status_block(today)
