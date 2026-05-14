@@ -1,0 +1,3 @@
+0,"26/04/30","00:00:00",2,"GOŁEBIEWSKIP","KW/",1,"/04/26","Ryczałt za auto pryw. do celów służb.","","POSS",310.5,273.5,0,0
+0,"26/04/30","00:00:00",2,"KACZMAREKO","KW/",2,"/04/26","Ryczałt za auto pryw. do celów służb.","","POSS",345,304,0,0
+0,"26/04/30","00:00:00",2,"KAŁKAK","KW/",3,"/04/26","Ryczałt za auto pryw. do celów służb.","","POSS",327.75,288.75,0,0
