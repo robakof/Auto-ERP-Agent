@@ -171,7 +171,7 @@ def convert(input_path: Path, output_path: Path) -> dict:
     all_transactions.sort(key=lambda t: t["data"])
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, "w", encoding="utf-8", newline="") as fh:
+    with open(output_path, "w", encoding="utf-8-sig", newline="") as fh:
         writer = csv.DictWriter(fh, fieldnames=CSV_COLUMNS, delimiter=";")
         writer.writeheader()
         writer.writerows(all_transactions)
