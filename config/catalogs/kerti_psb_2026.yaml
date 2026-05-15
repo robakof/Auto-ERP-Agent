@@ -128,10 +128,10 @@ excel:
     match: [LAMPION]
   - type: standalone
     groups: [Lampiony]
-  - type: standalone
-    groups: [Wkłady]
   - type: packages
     match: [WKŁAD]
+  - type: standalone
+    groups: [Wkłady]
   - type: standalone
     groups: [Znicze LED, Znicze Solarne, Wkłady LED, Świece LED, Figurki LED, Zapalarki]
   sort_products_by: price_asc
