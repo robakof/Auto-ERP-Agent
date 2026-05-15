@@ -119,8 +119,6 @@ excel:
   - type: packages
     match: [ZNICZE 1, ZNICZE 2, ZNICZE 3, ZNICZE 4, ZNICZE 5, ZNICZE 6, ZNICZE 7]
   - type: packages
-    match: [WKŁADY]
-  - type: packages
     match: [MAŁE, ŚREDNIE, DUŻE]
   - type: standalone
     groups: ["Nowość! Seria Luminox"]
