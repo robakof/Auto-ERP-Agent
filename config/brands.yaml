@@ -1,0 +1,13 @@
+brands:
+  CEiM:
+    label: CEiM
+    subtitle: Produkcja Zniczy i Lampionów
+    logo: assets/catalog/logo/ceim.png
+    accent_color: '#FAA400'
+    text_color: '#1A1A1A'
+  Kerti:
+    label: Kerti
+    subtitle: Znicze i Lampiony
+    logo: assets/catalog/logo/kerti.png
+    accent_color: '#CC2229'
+    text_color: '#1A1A1A'

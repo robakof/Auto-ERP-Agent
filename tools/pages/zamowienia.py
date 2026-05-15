@@ -30,6 +30,7 @@ from tools.catalog_export_erp import (
 from tools.catalog_export import export_photos, _get_connection
 
 _CONFIG_DIR = _ROOT / "config" / "catalogs"
+_BRANDS_PATH = _ROOT / "config" / "brands.yaml"
 _DATA_DIR = _ROOT / "data"
 
 st.set_page_config(page_title="Zamowienia", layout="wide")
@@ -37,12 +38,38 @@ st.set_page_config(page_title="Zamowienia", layout="wide")
 if st.button("< Menu glowne"):
     st.switch_page("app.py")
 
-st.markdown(
-    "<h2 style='color:#1A1A1A; margin-bottom:4px;'>Generator Zamowien "
-    "<span style='color:#FAA400'>CEiM</span></h2>",
-    unsafe_allow_html=True,
+# ---------------------------------------------------------------------------
+# Brand selection
+# ---------------------------------------------------------------------------
+
+_brands_cfg = yaml.safe_load(_BRANDS_PATH.read_text(encoding="utf-8"))["brands"]
+_brand_names = list(_brands_cfg.keys())
+
+selected_brand = st.radio(
+    "Firma",
+    _brand_names,
+    horizontal=True,
+    index=0,
 )
-st.markdown("<hr style='border:2px solid #FAA400; margin-top:0;'>", unsafe_allow_html=True)
+brand = _brands_cfg[selected_brand]
+_accent = brand["accent_color"]
+
+col_logo, col_title = st.columns([1, 4])
+with col_logo:
+    logo_path = _ROOT / brand["logo"]
+    if logo_path.exists():
+        st.image(str(logo_path), width=300)
+with col_title:
+    st.markdown(
+        f"<h2 style='color:{brand['text_color']}; margin-bottom:4px;'>Generator Zamowien "
+        f"<span style='color:{_accent}'>{brand['label']}</span></h2>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f"<span style='color:{_accent}; font-size:0.9em;'>{brand['subtitle']}</span>",
+        unsafe_allow_html=True,
+    )
+st.markdown(f"<hr style='border:2px solid {_accent}; margin-top:0;'>", unsafe_allow_html=True)
 
 st.info("Wybierz folder ofertowy z Comarch, kliknij Generuj - pobierz formularz Excel.")
 
@@ -187,7 +214,17 @@ st.sidebar.markdown("---")
 matched_config = _find_config_for_folder(folder_path) if folder_path else None
 
 yaml_files = sorted(_CONFIG_DIR.glob("*.yaml"))
-config_names = [f.stem for f in yaml_files]
+# Filter configs by selected brand (catalog.client)
+brand_yaml_files = []
+for yf in yaml_files:
+    cfg_tmp = yaml.safe_load(yf.read_text(encoding="utf-8"))
+    if cfg_tmp.get("catalog", {}).get("client", "") == selected_brand:
+        brand_yaml_files.append(yf)
+# Fallback: show all if no configs match brand
+if not brand_yaml_files:
+    brand_yaml_files = yaml_files
+
+config_names = [f.stem for f in brand_yaml_files]
 default_idx = 0
 if matched_config:
     try:
@@ -207,6 +244,7 @@ config = _load_config(config_path)
 erp_src = config.get("erp_source", {})
 config_pricelist = erp_src.get("pricelist", "")
 config_fallback = erp_src.get("fallback_pricelist", "")
+config_pricelist_position = erp_src.get("pricelist_position")
 
 all_pricelists = fetch_pricelists()
 
@@ -236,11 +274,16 @@ copy_photos = st.sidebar.checkbox("Kopiuj zdjecia z serwera", value=True)
 # Main area
 # ---------------------------------------------------------------------------
 
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 with col1:
     st.markdown(f"**Folder:** `{folder_path}`")
 with col2:
     st.markdown(f"**Cennik:** `{selected_pricelist}`")
+with col3:
+    if config_pricelist_position is not None:
+        st.markdown(f"**Pozycja cennika:** `{config_pricelist_position}`")
+    else:
+        st.markdown("**Pozycja cennika:** _(wg nazwy)_")
 
 if st.button("Generuj zamowienie", type="primary", use_container_width=True):
     if not folder_path:
@@ -262,7 +305,8 @@ if st.button("Generuj zamowienie", type="primary", use_container_width=True):
 
         # 2. Fetch product data with pricelist
         with st.spinner(f"Pobieranie danych z cennika '{selected_pricelist}'..."):
-            products = fetch_products(cur, codes, selected_pricelist, fallback_pricelist)
+            products = fetch_products(cur, codes, selected_pricelist, fallback_pricelist,
+                                         pricelist_position=config_pricelist_position)
             for p in products:
                 for k, v in list(p.items()):
                     if isinstance(v, Decimal):

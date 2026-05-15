@@ -1,0 +1,155 @@
+catalog:
+  name: OFERTA SEZON PSB 2026
+  client: Kerti
+  subtitle: Znicze i Lampiony
+erp_source:
+  folder: OFERTY/2026/PSB DDD
+  pricelist: MRÓWKA
+  pricelist_position: 6
+  fallback_pricelist: ''
+data:
+  type: erp_export
+  products_path: data/catalog_products.json
+  packages_path: data/catalog_packages.json
+  package_filter:
+    year: '2026'
+    include_prefixes:
+    - PAKK
+brandbook:
+  colors:
+    black: '#1A1A1A'
+    red: '#CC2229'
+    dark_gray: '#333333'
+    light_gray: '#F5F5F5'
+    white: '#FFFFFF'
+  fonts:
+    heading: "'Segoe UI', system-ui, sans-serif"
+    body: "'Segoe UI', system-ui, sans-serif"
+  logo: assets/catalog/logo/kerti.png
+  logo_excel_cols: 3
+  logo_excel_row_height: 80
+images:
+  dir: assets/catalog/images/
+  format: jpg
+  placeholder: true
+outputs:
+  html:
+    path: output/catalogs/kerti_psb_2026/index.html
+  excel:
+    path: output/zamowienie_kerti_2026.xlsx
+excel:
+  font: Calibri
+  photo_row_height: 90
+  package_row_height: 32
+  columns:
+  - key: photo
+    header: ''
+    width: 14
+  - key: ean
+    header: EAN
+    width: 16
+  - key: name
+    header: Nazwa produktu
+    width: 38
+    bold: true
+  - key: price_net
+    header: "Cena\nnetto"
+    width: 12
+    bold: true
+    format: price
+  - key: qty_in_pkg
+    header: "Szt w\n1 pakiecie"
+    width: 12
+  - key: qty_from_pkg
+    header: "Ilość\nz pakietów"
+    width: 12
+    format: formula
+  - key: qty_extra
+    header: "Dodatkowe\nopakowania"
+    width: 14
+    format: qty
+  - key: qty_total
+    header: "Ilość\nw sumie"
+    width: 12
+    format: formula
+  - key: value
+    header: "Wartość\nnetto"
+    width: 14
+    bold: true
+    format: value
+  - key: burn_hours
+    header: "Czas\npalenia (h)"
+    width: 12
+  - key: per_pack
+    header: "Szt w\nopakowaniu"
+    width: 12
+  - key: per_pallet
+    header: "Szt na\npalecie"
+    width: 11
+  - key: height_net_cm
+    header: "Wysokość\n(cm)"
+    width: 10
+  - key: width_net_cm
+    header: "Szerokość\n(cm)"
+    width: 10
+  package_sort_order:
+  - PROMOCJA
+  - ZNICZE 1
+  - ZNICZE 2
+  - ZNICZE 3
+  - ZNICZE 4
+  - ZNICZE 5
+  - ZNICZE 6
+  - ZNICZE 7
+  - WKŁADY
+  - MAŁE
+  - ŚREDNIE
+  - DUŻE
+  - LAMPION
+  - WKŁAD
+  - W1
+  - W2
+  - W3
+  - LED
+  - SOLAR
+  - ZAPAL
+  section_order:
+  - type: packages
+    match: [PROMOCJA]
+  - type: packages
+    match: [ZNICZE 1, ZNICZE 2, ZNICZE 3, ZNICZE 4, ZNICZE 5, ZNICZE 6, ZNICZE 7]
+  - type: packages
+    match: [WKŁADY]
+  - type: packages
+    match: [MAŁE, ŚREDNIE, DUŻE]
+  - type: standalone
+    groups: ["Nowość! Seria Luminox"]
+  - type: packages
+    match: [LAMPION]
+  - type: standalone
+    groups: [Lampiony]
+  - type: standalone
+    groups: [Wkłady]
+  - type: packages
+    match: [WKŁAD]
+  - type: standalone
+    groups: [Znicze LED, Znicze Solarne, Wkłady LED, Świece LED, Figurki LED, Zapalarki]
+  sort_products_by: price_asc
+categories_order:
+- male
+- srednie
+- duze
+- lampiony
+- led
+- wklady
+- zapalarki
+- inne
+category_labels:
+  male: Małe
+  srednie: Średnie
+  duze: Duże
+  lampiony: Lampiony
+  led: LED / Solar
+  wklady: Wkłady
+  zapalarki: Zapalarki
+  inne: Pozostałe

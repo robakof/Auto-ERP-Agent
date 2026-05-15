@@ -13,10 +13,13 @@ def load_mock_data(products_path: str, packages_path: str) -> tuple[list, list]:
 def _filter_packages(raw_packages: list, filt: dict) -> list:
     year = filt.get("year", "")
     exclude = filt.get("exclude_prefixes", [])
+    include = filt.get("include_prefixes", [])
     result = []
     for p in raw_packages:
         code = p.get("pakiet_kod", "")
         if year and year not in code:
+            continue
+        if include and not any(code.startswith(inc) for inc in include):
             continue
         if any(code.startswith(ex) for ex in exclude):
             continue
@@ -49,6 +52,7 @@ def _map_product(raw: dict) -> dict:
         "hole_diameter_cm": raw.get("SrednicaOtworu_cm"),
         "group_path": raw.get("GrupaSciezka", ""),
         "default_group": raw.get("GrupaDomyslna"),
+        "default_group_parent": raw.get("GrupaDomyslnaParent"),
     }
 
 
@@ -112,16 +116,31 @@ def group_by_package(products: list) -> dict[str, list]:
 
 # --- Standalone product grouping by ERP default group ---
 GROUP_DISPLAY_NAMES = {
+    "1_PARAFINOWE": "Wkłady",
+    "2_OLEJOWE": "Wkłady",
+    "3_EKONOMICZNE": "Wkłady",
+    "4_ROZSUWANE": "Wkłady",
+    "5_SKŁADAKI": "Wkłady",
+    "7_OTWARTE": "Wkłady",
+    "8_INNE": "Wkłady",
     "6_LEDOWE": "Wkłady LED",
     "7_LEDOWE": "Znicze LED",
-    "LEDOWE": "Znicze LED",
     "8_SOLARNE": "Znicze Solarne",
     "3_LAMPIONY": "Lampiony",
     "BEZ WKŁADU": "Lampiony",
     "BEZ WKLADU": "Lampiony",
+    "NAFTOWE": "Nowość! Seria Luminox",
     "ALAS0018": "Zapalarki",
     "9_ŚWIECE LED": "Świece LED",
     "10_FIGURKI LED": "Figurki LED",
+}
+
+# Groups that change meaning based on parent SUB_CAT
+# key: (grp_kod, parent_id) -> display name
+# 185 = 3_LAMPIONY, 10 = 1_ZNICZE
+GROUP_PARENT_OVERRIDES = {
+    ("LEDOWE", 185): "Lampiony",
+    ("LEDOWE", 10): "Znicze LED",
 }
 STANDALONE_GROUP_ORDER = [
     "Lampiony", "Znicze LED", "Znicze Solarne",
@@ -129,7 +148,13 @@ STANDALONE_GROUP_ORDER = [
 ]
 
 
-def standalone_group_name(default_group: str | None, product_name: str = "") -> str:
+def standalone_group_name(default_group: str | None, product_name: str = "",
+                          parent_id: int | None = None) -> str:
+    # Check parent-specific override first (e.g. LEDOWE under Lampiony vs Znicze)
+    if default_group and parent_id is not None:
+        key = (default_group, parent_id)
+        if key in GROUP_PARENT_OVERRIDES:
+            return GROUP_PARENT_OVERRIDES[key]
     if default_group and default_group in GROUP_DISPLAY_NAMES:
         return GROUP_DISPLAY_NAMES[default_group]
     # Fallback: check product name for zapalarki/zapałki

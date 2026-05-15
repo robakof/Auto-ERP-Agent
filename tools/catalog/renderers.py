@@ -193,19 +193,25 @@ def _write_top_bar(ws, fmt: dict, config: dict, last_col: int,
     logo_path = config.get("brandbook", {}).get("logo", "")
     logo_full = _PROJECT_ROOT / logo_path if logo_path else None
 
-    ws.merge_range(0, 0, 0, 1, "", fmt["top_bar"])
+    logo_cols = config.get("brandbook", {}).get("logo_excel_cols", 2)
+    ws.merge_range(0, 0, 0, logo_cols - 1, "", fmt["top_bar"])
     label = f"{catalog.get('subtitle', '')}   |   WARTOŚĆ ZAMÓWIENIA NETTO:"
-    ws.merge_range(0, 2, 0, value_col - 1, label, fmt["top_bar"])
+    ws.merge_range(0, logo_cols, 0, value_col - 1, label, fmt["top_bar"])
     ws.write(0, value_col, 0, fmt["top_val"])
     for c in range(value_col + 1, last_col + 1):
         ws.write_blank(0, c, None, fmt["top_bar"])
-    ws.set_row(0, 60)
+    row_h = config.get("brandbook", {}).get("logo_excel_row_height", 60)
+    ws.set_row(0, row_h)
 
     if logo_full and logo_full.exists():
-        sx, sy = _img_scale(str(logo_full), 250, 72)
+        col_cfgs = config.get("excel", {}).get("columns", [])
+        total_w = sum(col_cfgs[i].get("width", 14) for i in range(min(logo_cols, len(col_cfgs))))
+        cell_w_px = int(total_w * 7.5)
+        cell_h_px = int(row_h - 4)
+        sx, sy = _img_scale(str(logo_full), cell_w_px, cell_h_px)
         ws.insert_image(0, 0, str(logo_full), {
             "x_scale": sx, "y_scale": sy,
-            "x_offset": 3, "y_offset": 3, "object_position": 1,
+            "x_offset": 3, "y_offset": 2, "object_position": 1,
         })
     return 2
 
@@ -365,7 +371,8 @@ def render_excel(
                   if p.get("code_xl", "") and p["code_xl"] not in pkg_product_codes]
     sa_groups: dict[str, list] = {}
     for p in standalone:
-        grp = standalone_group_name(p.get("default_group"), p.get("name", ""))
+        grp = standalone_group_name(p.get("default_group"), p.get("name", ""),
+                                    p.get("default_group_parent"))
         sa_groups.setdefault(grp, []).append(p)
     _SORT_BY_PRICE_GROUPS = {"Wkłady LED", "Figurki LED"}
     for grp_name, grp_products in sa_groups.items():

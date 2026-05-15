@@ -109,48 +109,133 @@ def find_products_by_folder(cur, folder_path: str) -> list[str]:
 
 # --- 2. Fetch product data with price list ---
 
-def fetch_products(cur, codes: list[str], pricelist: str,
-                   fallback_pricelist: str | None = None) -> list[dict]:
-    """Fetch product data from vKatalogProdukty for given codes and price list."""
-    best = {}
+# Columns that are product attributes (independent of pricelist)
+_ATTR_COLUMNS = """KodXL, KodEAN, NazwaHandlowa, GrupaSciezka,
+       CzasPalenia_h, GramaturaWkladu_g,
+       WysokoscNetto_cm, SzerokoscNetto_cm,
+       SrednicaProduktu_cm, Material, Zapach,
+       WagaProduktu_g, SrednicaOtworu_cm,
+       SzerokoscBrutto_cm, WysokoscBrutto_cm, GlebokoscBrutto_cm,
+       SztWOpakowaniu, SztNaWarstwie, SztNaPalecie,
+       Sezon, Kolor, MaZdjecie, TwrGIDNumer"""
+
+
+def _fetch_attributes(cur, codes: list[str]) -> dict[str, dict]:
+    """Fetch product attributes without pricelist filter (one row per product)."""
+    attrs = {}
     for i in range(0, len(codes), 500):
         batch = codes[i:i + 500]
         ph = ",".join(["?"] * len(batch))
         cur.execute(f"""
-            SELECT {PRODUCT_COLUMNS}
+            SELECT {_ATTR_COLUMNS}
             FROM AIOP.vKatalogProdukty
             WHERE KodXL IN ({ph})
-              AND CennikNazwa = ?
-        """, *batch, pricelist)
+        """, batch)
         cols = [c[0] for c in cur.description]
         for row in cur.fetchall():
             d = _row_to_dict(cols, row)
             code = d["KodXL"]
-            if code not in best:
-                best[code] = d
+            if code not in attrs:
+                attrs[code] = d
+    return attrs
 
-    # Fallback price list for missing products
-    if fallback_pricelist:
-        missing = [c for c in codes if c not in best]
-        if missing:
-            print(f"Fallback '{fallback_pricelist}' for {len(missing)} missing products...")
-            for i in range(0, len(missing), 500):
-                batch = missing[i:i + 500]
-                ph = ",".join(["?"] * len(batch))
-                cur.execute(f"""
-                    SELECT {PRODUCT_COLUMNS}
-                    FROM AIOP.vKatalogProdukty
-                    WHERE KodXL IN ({ph})
-                      AND CennikNazwa = ?
-                """, *batch, fallback_pricelist)
-                cols = [c[0] for c in cur.description]
-                for row in cur.fetchall():
-                    d = _row_to_dict(cols, row)
-                    code = d["KodXL"]
-                    if code not in best:
-                        best[code] = d
 
-    return list(best.values())
+def _fetch_prices(cur, codes: list[str], pricelist: str) -> dict[str, dict]:
+    """Fetch price data for given pricelist name (via AIOP view)."""
+    prices = {}
+    for i in range(0, len(codes), 500):
+        batch = codes[i:i + 500]
+        ph = ",".join(["?"] * len(batch))
+        cur.execute(f"""
+            SELECT KodXL, CenaNetto, CennikRodzaj, CennikNazwa
+            FROM AIOP.vKatalogProdukty
+            WHERE KodXL IN ({ph})
+              AND CennikNazwa = ?
+        """, *batch, pricelist)
+        for row in cur.fetchall():
+            code = row[0]
+            if code not in prices:
+                prices[code] = {
+                    "CenaNetto": float(row[1]) if row[1] else 0,
+                    "CennikRodzaj": row[2],
+                    "CennikNazwa": row[3],
+                }
+    return prices
+
+
+def _fetch_prices_by_position(cur, codes: list[str], position: int) -> dict[str, dict]:
+    """Fetch latest price from TwrCeny by position number (TwC_TwrLp).
+
+    Comarch XL stores multiple historical pricelists per position.
+    This takes the newest (highest TCN_Id) with value > 0.
+    """
+    prices = {}
+    for i in range(0, len(codes), 500):
+        batch = codes[i:i + 500]
+        ph = ",".join(["?"] * len(batch))
+        cur.execute(f"""
+            WITH ranked AS (
+                SELECT t.Twr_Kod, c.TwC_Wartosc, n.TCN_Nazwa, n.TCN_RodzajCeny,
+                       ROW_NUMBER() OVER(PARTITION BY t.Twr_Kod
+                                         ORDER BY n.TCN_Id DESC) as rn
+                FROM CDN.TwrKarty t
+                JOIN CDN.TwrCeny c ON c.TwC_TwrNumer = t.Twr_GIDNumer
+                                  AND c.TwC_TwrLp = ?
+                JOIN CDN.TwrCenyNag n ON c.TwC_TcnId = n.TCN_Id
+                WHERE t.Twr_Kod IN ({ph}) AND c.TwC_Wartosc > 0
+            )
+            SELECT Twr_Kod, TwC_Wartosc, TCN_Nazwa, TCN_RodzajCeny
+            FROM ranked WHERE rn = 1
+        """, position, *batch)
+        for row in cur.fetchall():
+            code = row[0]
+            prices[code] = {
+                "CenaNetto": float(row[1]) if row[1] else 0,
+                "CennikRodzaj": row[3],
+                "CennikNazwa": row[2],
+            }
+    return prices
+
+
+def fetch_products(cur, codes: list[str], pricelist: str,
+                   fallback_pricelist: str | None = None,
+                   pricelist_position: int | None = None) -> list[dict]:
+    """Fetch product attributes + prices (separately, so missing price doesn't hide EAN)."""
+    # 1. Attributes — all products, no pricelist filter
+    attrs = _fetch_attributes(cur, codes)
+    print(f"  Atrybuty: {len(attrs)}/{len(codes)} produktow")
+
+    # 2. Prices — by position (direct TwrCeny) or by name (AIOP view)
+    if pricelist_position is not None:
+        prices = _fetch_prices_by_position(cur, codes, pricelist_position)
+        print(f"  Ceny z pozycji {pricelist_position}: {len(prices)} produktow")
+    else:
+        prices = _fetch_prices(cur, codes, pricelist)
+        print(f"  Ceny z '{pricelist}': {len(prices)} produktow")
+
+    # 3. Fallback prices (only for name-based mode)
+    if fallback_pricelist and pricelist_position is None:
+        missing_price = [c for c in codes if c not in prices]
+        if missing_price:
+            fb_prices = _fetch_prices(cur, missing_price, fallback_pricelist)
+            print(f"  Fallback '{fallback_pricelist}': {len(fb_prices)} produktow")
+            prices.update(fb_prices)
+
+    # 4. Merge: attributes + price
+    result = []
+    for code in codes:
+        if code not in attrs:
+            continue
+        product = dict(attrs[code])
+        price_info = prices.get(code, {"CenaNetto": 0, "CennikRodzaj": None, "CennikNazwa": pricelist})
+        product.update(price_info)
+        result.append(product)
+
+    no_price = sum(1 for p in result if (p.get("CenaNetto") or 0) == 0)
+    if no_price:
+        print(f"  Produkty bez ceny: {no_price}")
+
+    return result
 
 
 # --- 3. Default group resolution ---
@@ -160,36 +245,54 @@ MAIN_CAT_IDS = {1, 2}  # 01_CMENTARZ, 02_DOM
 
 
 def resolve_default_groups(cur, products: list[dict]) -> None:
-    """Add GrupaDomyslna field to each product based on ERP group tree."""
+    """Add GrupaDomyslna field to each product based on ERP group tree.
+
+    Priority: child of SUB_CAT (e.g. NAFTOWE under 3_LAMPIONY, prio=1)
+    beats SUB_CAT itself or MAIN_CAT child (prio=2).
+    Most specific group wins.
+    Stores composite key "parent_id:grp_kod" to disambiguate same-name groups.
+    """
     gid_to_code = {p["TwrGIDNumer"]: p["KodXL"] for p in products}
     gids = list(gid_to_code.keys())
-    group_map = {}
+    group_map = {}  # code -> (priority, grp_kod, parent_id)
 
     for i in range(0, len(gids), 500):
         batch = gids[i:i + 500]
         ph = ",".join(["?"] * len(batch))
         cur.execute(f"""
             SELECT d.TGD_GIDNumer, g.TwG_Kod, g.TwG_GrONumer,
-                   pg.TwG_Kod AS ParentKod, pg.TwG_GrONumer AS GrandparentId
+                   g.TwG_GIDNumer AS GrpId
             FROM CDN.TwrGrupyDom d
             JOIN CDN.TwrGrupy g ON d.TGD_GrONumer = g.TwG_GIDNumer
-            LEFT JOIN CDN.TwrGrupy pg ON g.TwG_GrONumer = pg.TwG_GIDNumer
             WHERE d.TGD_GIDNumer IN ({ph})
         """, batch)
         for row in cur.fetchall():
-            gid_num, grp_kod, grp_parent = row[0], row[1], row[2]
+            gid_num, grp_kod, grp_parent, grp_id = row
             if gid_num not in gid_to_code:
                 continue
             code = gid_to_code[gid_num]
-            if code in group_map:
-                continue
-            if grp_parent in SUB_CAT_PARENTS:
-                group_map[code] = grp_kod
+
+            if grp_parent in SUB_CAT_PARENTS and grp_id not in SUB_CAT_PARENTS:
+                prio = 1
+            elif grp_parent in SUB_CAT_PARENTS:
+                prio = 2
             elif grp_parent in MAIN_CAT_IDS:
-                group_map[code] = grp_kod
+                prio = 2
+            else:
+                continue
+
+            cur_best = group_map.get(code)
+            if cur_best is None or prio < cur_best[0]:
+                group_map[code] = (prio, grp_kod, grp_parent)
 
     for p in products:
-        p["GrupaDomyslna"] = group_map.get(p["KodXL"])
+        entry = group_map.get(p["KodXL"])
+        if entry:
+            p["GrupaDomyslna"] = entry[1]
+            p["GrupaDomyslnaParent"] = entry[2]
+        else:
+            p["GrupaDomyslna"] = None
+            p["GrupaDomyslnaParent"] = None
 
 
 # --- 4. Packages ---
@@ -233,6 +336,7 @@ def main():
     args = parser.parse_args()
 
     # Load from config if provided
+    pricelist_position = None
     if args.config:
         import yaml
         cfg_path = ROOT / args.config
@@ -241,6 +345,7 @@ def main():
         folder = erp_cfg.get("folder", args.folder)
         pricelist = erp_cfg.get("pricelist", args.pricelist)
         fallback = erp_cfg.get("fallback_pricelist", args.fallback)
+        pricelist_position = erp_cfg.get("pricelist_position")
         out_dir = Path(cfg.get("data", {}).get("products_path", "data/catalog_products.json")).parent
         output = ROOT / out_dir
     else:
@@ -263,7 +368,8 @@ def main():
         sys.exit(1)
 
     # 2. Fetch product data
-    products = fetch_products(cur, codes, pricelist, fallback)
+    products = fetch_products(cur, codes, pricelist, fallback,
+                              pricelist_position=pricelist_position)
     print(f"Products with price: {len(products)}")
 
     # 3. Resolve default groups
